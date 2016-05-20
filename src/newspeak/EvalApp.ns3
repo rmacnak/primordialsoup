@@ -1,0 +1,28 @@
+Newspeak3
+'NS2PrimordialSoup'
+class EvalApp packageUsing: manifest = () (
+'as yet unclassified'
+public main: platform args: args = (
+	(* | ObjectMirror = platform mirrors ObjectMirror. |
+	('Expression: ', args first) out.
+	((ObjectMirror reflecting: platform) 
+		evaluate: args first
+		ifCompilerError: [:e | 'Compile-time error' out. e pass]
+		ifError: [:e | 'Runtime error' out. e pass]) reflectee out. *)
+		
+	| 
+	ClassMirror = platform mirrors ClassMirror.
+	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
+	src klass <Class>
+	instance
+	builder <ClassDeclarationBuilder> 
+	|
+	src:: 'class TestClassDeclRemoveSlot = ( | public x ::= 117. public y = 0. public z | )()'.
+	klass:: (ClassDeclarationBuilder fromSource: src) install applyToObject reflectee.
+	instance:: klass new.
+	instance x out.
+	instance y out.
+	instance z out.
+)
+) : (
+)

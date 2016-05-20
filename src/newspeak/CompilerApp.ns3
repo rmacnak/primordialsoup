@@ -1,0 +1,186 @@
+Newspeak3
+'NS2PrimordialSoup'
+class CompilerApp packageUsing: manifest = (|
+|) (
+class Manifest forNamespace: ns = (|
+namespace = ns.
+|) (
+'as yet unclassified'
+protected doesNotUnderstand: message = (
+	^namespace at: message selector
+)
+) : (
+)
+'as yet unclassified'
+public _main: platform args: args = (
+	|
+	Stopwatch = platform kernel Stopwatch.
+	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
+	Snapshotter = platform victoryFuel Snapshotter.
+	namespace = platform collections Dictionary new.
+	manifest = Manifest forNamespace: namespace.
+	s index ::= 1.
+	|
+	
+	s:: Stopwatch new start.
+	[(args at: index) endsWith: '.ns3'] whileTrue:
+		[ | source builder klass |
+		('Compiling ', (args at: index)) out.
+		source:: readFileAsString: (args at: index) using: platform.
+		builder:: ClassDeclarationBuilder fromUnitSource: source.
+		klass:: builder install applyToObject reflectee.
+		namespace at: klass name put: klass.
+		index:: index + 1].
+	('Compiled in ', s elapsedMilliseconds printString, ' ms') out.
+
+
+	[(index + 2) <= args size] whileTrue: 
+		[ | runtimeName appName snapshotName runtime app fuel bytes |	
+		runtimeName:: args at: index.
+		appName:: args at: index + 1.
+		snapshotName:: args at: index + 2.
+		index:: index + 3.
+		('Runtime configuration: ', runtimeName) out.
+		('Application configuration: ', appName) out.
+	
+		runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.	
+		app:: (namespace at: appName) packageUsing: manifest.
+	
+		s:: Stopwatch new start.
+		bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
+		writeBytes: bytes toFileNamed: snapshotName.
+	
+		('Serialized in ', s elapsedMilliseconds printString, ' ms') out].
+)
+public childMain: platform args: args = (
+	|
+	List = platform collections OrderedCollection.
+	Stopwatch = platform kernel Stopwatch.
+	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
+	Port = platform actors Port.
+	replyPort = Port fromId: (args at: 2).
+	s
+	source builder klass
+	result = List new.
+	|
+	
+	s:: Stopwatch new start.
+	3 to: args size do: [:index |
+		('Compiling ', (args at: index)) out.
+		source:: readFileAsString: (args at: index) using: platform.
+		builder:: ClassDeclarationBuilder fromUnitSource: source.
+		klass:: builder install applyToObject reflectee.
+		result add: klass].
+
+	('Worker done in ', s elapsedMilliseconds printString, ' ms') out.
+	replyPort send: result asArray.
+)
+decodeUtf8: bytes using: platform = (
+	| 
+	runes = platform collections OrderedCollection new.
+	position ::= 0.
+	a b c d
+	|
+	
+	[position < bytes size] whileTrue: [
+		a:: bytes at: 1 + position.
+		(a >> 7) = 0 ifTrue: 
+			[runes add: a. 
+			 position:: position + 1].
+
+		(a >> 5) = 2r110 ifTrue: 
+			[a:: a bitAnd: 2r11111.
+			b:: (bytes at: 2 + position) bitAnd: 2r111111.
+			runes add: (a << 6) + b.
+			position:: position + 2].
+
+		(a >> 4) = 2r1110 ifTrue: 
+			[a:: a bitAnd: 2r1111.
+			b:: (bytes at: 2 + position) bitAnd: 2r111111.
+			c:: (bytes at: 3 + position) bitAnd: 2r111111.
+			runes add: (a << 12) + (b << 6) + c.
+			position:: position + 3].
+	
+		(a >> 3) = 2r11110 ifTrue:
+			[a:: a bitAnd: 2r111.
+			b:: (bytes at: 2 + position) bitAnd: 2r111111.
+			c:: (bytes at: 3 + position) bitAnd: 2r111111.
+			d:: (bytes at: 4 + position) bitAnd: 2r111111.
+			runes add: (a << 18) + (b << 12) + (c << 6) + d.
+			position:: position + 4]].
+	
+	^String fromRunes: runes
+)
+public main: platform args: args = (
+	(args at: 1) = 'child'
+		ifTrue: [childMain: platform args: args]
+		ifFalse: [parentMain: platform args: args].
+)
+public parentMain: platform args: args = (
+	|
+	List = platform collections OrderedCollection.
+	Stopwatch = platform kernel Stopwatch.
+	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
+	Snapshotter = platform victoryFuel Snapshotter.
+	namespace = platform collections Dictionary new.
+	manifest = Manifest forNamespace: namespace.
+	Port = platform actors Port.
+	receivePort = Port new.
+	n = 4. 
+	workLists
+	s index ::= 1.
+	outstanding ::= 0.
+	|
+	
+	s:: Stopwatch new start.
+	workLists:: Array new: n.
+	1 to: n do: [:i | workLists at: i put: List new].
+
+	[(args at: index) endsWith: '.ns3'] whileTrue:
+		[(workLists at: index \\ n + 1) add: (args at: index).
+		index:: index + 1].
+	workLists do: [:workList | 
+		workList addFirst: receivePort id.
+		workList addFirst: 'child'.
+		workList asArray out.
+		receivePort spawn: workList asArray].
+	n timesRepeat:
+		[ | klasses |
+		klasses:: receivePort receive.
+		klasses do: [:klass | 
+		('Got ', klass name) out.
+		namespace at: klass name put: klass]].
+	('Compiled in ', s elapsedMilliseconds printString, ' ms') out.
+
+
+	[(index + 2) <= args size] whileTrue: 
+		[ | runtimeName appName snapshotName runtime app fuel bytes |	
+		runtimeName:: args at: index.
+		appName:: args at: index + 1.
+		snapshotName:: args at: index + 2.
+		index:: index + 3.
+		('Runtime configuration: ', runtimeName) out.
+		('Application configuration: ', appName) out.
+	
+		runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.	
+		app:: (namespace at: appName) packageUsing: manifest.
+	
+		s:: Stopwatch new start.
+		bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
+		writeBytes: bytes toFileNamed: snapshotName.
+	
+		('Serialized in ', s elapsedMilliseconds printString, ' ms') out].
+)
+private readFileAsBytes: n = (
+	(* :literalmessage: primitive: 130 *)
+	halt.
+)
+private readFileAsString: n using: platform = (
+	^decodeUtf8: (readFileAsBytes: n) using: platform
+)
+private writeBytes: b toFileNamed: n = (
+	(* :literalmessage: primitive: 128 *)
+	halt.
+)
+) : (
+)

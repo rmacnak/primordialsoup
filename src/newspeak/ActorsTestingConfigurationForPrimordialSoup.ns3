@@ -1,0 +1,45 @@
+Newspeak3
+'Actors'
+class ActorsTestingConfigurationForPrimordialSoup packageTestsUsing: manifest = (|
+private ActorsTesting = manifest ActorsTesting.
+private TestActor = manifest TestActor.
+|) (
+class DrainEventLoopBlockingStrategy usingActors: actors = (|
+private Promise = actors Promise.
+private scheduler = actors theScheduler.
+|) (
+'as yet unclassified'
+public blockFor: promise ifFulfilled: onFulfilled ifBroken: onBroken ifTimeout: onTimeout = (
+	|
+	state ::= #unresolved.
+	resolution
+	|
+	Promise 
+		when: promise
+		fulfilled: [:value | resolution:: value. state:: #fulfilled]
+		broken: [:error | resolution:: error. state:: #broken].
+
+	scheduler drainEventLoop.
+	
+	state = #unresolved ifTrue: [^onTimeout value].
+	state = #fulfilled ifTrue: [^onFulfilled value: resolution].
+	state = #broken ifTrue: [^onBroken value: resolution].
+	halt.
+)
+) : (
+)
+'as yet unclassified'
+public testModulesUsingPlatform: platform minitest: minitest = (
+	|
+	actors = platform actors.
+	blocker = DrainEventLoopBlockingStrategy usingActors: platform actors.
+	|
+	^{ActorsTesting 
+		usingPlatform: platform 
+		actors: actors 
+		testActor: TestActor 
+		minitest: minitest
+		blocker: blocker}
+)
+) : (
+)

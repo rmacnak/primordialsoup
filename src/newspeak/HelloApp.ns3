@@ -1,0 +1,9 @@
+Newspeak3
+'NS2PrimordialSoup'
+class HelloApp packageUsing: manifest = () (
+'as yet unclassified'
+public main: platform args: args = (
+	'Hello, polymerizing new world!' out.
+)
+) : (
+)

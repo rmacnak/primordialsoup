@@ -1,0 +1,1568 @@
+Newspeak3
+'NS2PrimordialSoup'
+class PrimordialFuel usingPlatform: p internalKernel: k = (|
+private List = p collections OrderedCollection.
+private Stopwatch = p kernel Stopwatch.
+
+(* Classes which require special handling. *)
+private SmallInteger = k SmallInteger.
+private MediumInteger = k MediumInteger.
+private LargeInteger = k LargeInteger.
+private Float = k Float.
+private ByteArray = k ByteArray.
+private ByteString = k ByteString.
+private WideString = k WideString.
+private Array = k _Array.
+private WeakArray = k WeakArray.
+private Ephemeron = k Ephemeron.
+private Activation = k Activation.
+private Closure = k Closure.
+private Metaclass = k Metaclass.
+
+private True = k True.
+private False = k False.
+private UndefinedObject = k UndefinedObject.
+private Fraction = k Fraction.
+private Method = k Method.
+private Class = k Class.
+private InstanceMixin = k InstanceMixin.
+private ClassMixin = k ClassMixin.
+
+private kSmiCid = 2.
+private kMintCid = 3.
+private kBigintCid = 4.
+private kFloat64Cid = 5.
+private kByteArrayCid = 6.
+private kByteStringCid = 7.
+private kWideStringCid = 8.
+private kArrayCid = 9.
+private kWeakArrayCid = 10.
+private kEphemeronCid = 11.
+private kActivationCid = 12.
+private kClosureCid = 13.
+private kFirstPlainObjectCid = 14.
+private Version = 0.
+|) (
+class ByteStream = (|
+data ::= ByteArray new: 32 * 1024.
+public position ::= 0.
+|) (
+'as yet unclassified'
+public int32: value = (
+	position + 4 > data size ifTrue: [data:: data copyWithSize: data size * 2].
+	data at: position + 1 put: (value >> 24 bitAnd: 255).
+	data at: position + 2 put: (value >> 16 bitAnd: 255).
+	data at: position + 3 put: (value >> 8 bitAnd: 255).
+	data at: position + 4 put: (value bitAnd: 255).
+	position:: position + 4.
+)
+public int64: value = (
+	position + 8 > data size ifTrue: [data:: data copyWithSize: data size * 2].
+	data at: position + 1 put: (value >> 56 bitAnd: 255).
+	data at: position + 2 put: (value >> 48 bitAnd: 255).
+	data at: position + 3 put: (value >> 40 bitAnd: 255).
+	data at: position + 4 put: (value >> 32 bitAnd: 255).
+	data at: position + 5 put: (value >> 24 bitAnd: 255).
+	data at: position + 6 put: (value >> 16 bitAnd: 255).
+	data at: position + 7 put: (value >> 8 bitAnd: 255).
+	data at: position + 8 put: (value bitAnd: 255).
+	position:: position + 8.
+)
+public stealBytes = (
+	^data copyWithSize: position
+)
+public uint16: value = (
+	position + 2 > data size ifTrue: [data:: data copyWithSize: data size * 2].
+	data at: position + 1 put: value >> 8.
+	data at: position + 2 put: (value bitAnd: 255).
+	position:: position + 2.
+)
+public uint32: value = (
+	position + 4 > data size ifTrue: [data:: data copyWithSize: data size * 2].
+	data at: position + 1 put: value >> 24.
+	data at: position + 2 put: (value >> 16 bitAnd: 255).
+	data at: position + 3 put: (value >> 8 bitAnd: 255).
+	data at: position + 4 put: (value bitAnd: 255).
+	position:: position + 4.
+)
+public uint8: value = (
+	position + 1 > data size ifTrue: [data:: data copyWithSize: data size * 2].
+	position:: position + 1.
+	data at: position put: value.
+)
+public unsigned: value = (
+	| v ::= value. |
+	[v > 127] whileTrue: 
+		[uint8: (v bitAnd: 127).
+		 v:: v >> 7].
+	uint8: v + 128.
+)
+) : (
+)
+public class Deserializer = (|
+stream
+clusters <Array>
+backRefs <Array>
+nextBackRef <Integer>
+|) (
+class ActivationCluster = (|
+backRefStart <Integer>
+backRefStop <Integer>
+|) (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+	backRefStart to: backRefStop do: 
+		[:refIndex |
+		| object = backRefs at: refIndex. |
+		fillActivation].
+)
+public readNodes = (
+	backRefStart:: nextBackRef.
+	stream uint16 timesRepeat:
+		[registerBackRef: Activation new].
+	backRefStop:: nextBackRef - 1.
+)
+) : (
+)
+class ArrayCluster = (|
+backRefStart <Integer>
+backRefStop <Integer>
+|) (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+	backRefStart to: backRefStop do: 
+		[:refIndex |
+		| object = backRefs at: refIndex. |
+		1 to: object size do: 
+			[:index | object at: index put: readBackRef]].
+)
+public readNodes = (
+	backRefStart:: nextBackRef.
+	stream uint16 timesRepeat:
+		[ | size object |
+		size:: stream uint16.
+		object:: Array new: size.
+		registerBackRef: object].
+	backRefStop:: nextBackRef - 1.
+)
+) : (
+)
+class ByteArrayCluster = () (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+)
+public readNodes = (
+	| count = stream uint16. |
+	(* ByteArray accessors are known to be side-effect free. *)
+	count timesRepeat:
+		[ | size = stream uint32. object = ByteArray new: size. |
+		1 to: size do: [:index | object at: index put: stream uint8].
+		registerBackRef: object].
+)
+) : (
+)
+class ByteStringCluster = () (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+)
+public readNodes = (
+	stream uint16 timesRepeat: [
+		| size = stream uint32. acc = Array new: size. |
+		1 to: size do: [:index | acc at: index put: stream uint8].
+		registerBackRef: (String fromRunes: acc)].
+
+	stream uint16 timesRepeat: [
+		| size = stream uint32. acc = Array new: size. |
+		1 to: size do: [:index | acc at: index put: stream uint8].
+		registerBackRef: (String fromRunes: acc) asSymbol].
+)
+) : (
+)
+class ClosureCluster = (|
+backRefStart
+backRefStop
+|) (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+	backRefStart to: backRefStop do: 
+		[:refIndex |
+		| object = backRefs at: refIndex. |
+		fillClosure].
+)
+public readNodes = (
+	backRefStart:: nextBackRef.
+	stream uint16 timesRepeat:
+		[registerBackRef: (Closure withNumCopied: stream uint16)].
+	backRefStop:: nextBackRef - 1.
+)
+) : (
+)
+class EphemeronCluster = (|
+backRefStart <Integer>
+backRefStop <Integer>
+|) (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+	readBackRef. (* :todo: *)
+	backRefStart to: backRefStop do: 
+		[:refIndex |
+		| object = backRefs at: refIndex. |
+		object key: readBackRef.
+		object value: readBackRef.
+		object finalizer: readBackRef].
+)
+public readNodes = (
+	backRefStart:: nextBackRef.
+	stream uint16 timesRepeat:
+		[registerBackRef: Ephemeron new].
+	backRefStop:: nextBackRef - 1.
+)
+) : (
+)
+class IntegerCluster = () (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+)
+public readNodes = (
+	| count = stream uint16. |
+	count timesRepeat:
+		[registerBackRef: stream int64].
+)
+) : (
+)
+class RegularObjectCluster for: format = (|
+numSlots <Integer> = format.
+klass
+backRefStart <Integer>
+backRefStop <Integer>
+allocClass
+|) (
+'as yet unclassified'
+public adoptInstances = (
+	backRefStart to: backRefStop do: 
+		[:refIndex |
+		| object = backRefs at: refIndex. |
+		class: klass adoptInstance: object].
+	allocClass:: nil.
+)
+public readEdges = (
+	klass:: readBackRef.
+	backRefStart to: backRefStop do: 
+		[:refIndex |
+		| object = backRefs at: refIndex. |
+		1 to: numSlots do: 
+			[:index | slotOf: object at: index put: readBackRef]].
+)
+public readNodes = (
+	allocClass:: TemporaryClass withFormat: numSlots.
+	backRefStart:: nextBackRef.
+	stream uint16 timesRepeat:
+		[registerBackRef: allocClass vfBasicNew].
+	backRefStop:: nextBackRef - 1.
+)
+) : (
+)
+class WeakArrayCluster = (|
+backRefStart <Integer>
+backRefStop <Integer>
+|) (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+	backRefStart to: backRefStop do: 
+		[:refIndex |
+		| object = backRefs at: refIndex. |
+		1 to: object size do: 
+			[:index | object at: index put: readBackRef]].
+)
+public readNodes = (
+	backRefStart:: nextBackRef.
+	stream uint16 timesRepeat:
+		[ | size object |
+		size:: stream uint16.
+		object:: Array new: size.
+		registerBackRef: object].
+	backRefStop:: nextBackRef - 1.
+)
+) : (
+)
+class WideStringCluster = () (
+'as yet unclassified'
+public adoptInstances = (
+)
+public readEdges = (
+)
+public readNodes = (
+	stream uint16 timesRepeat: [
+		| size = stream uint32. acc = Array new: size. |
+		1 to: size do: [:index | acc at: index put: stream uint32].
+		registerBackRef: (String fromRunes: acc)].
+
+	stream uint16 timesRepeat: [
+		| size = stream uint32. acc = Array new: size. |
+		1 to: size do: [:index | acc at: index put: stream uint32].
+		registerBackRef: (String fromRunes: acc) asSymbol].
+)
+) : (
+)
+'as yet unclassified'
+public deserialize: bytes = (
+	| s numClusters result |
+	s:: Stopwatch new start.
+	stream:: ReadStream over: bytes.
+	assert: [stream uint16 = 16r1984] message: 'Not VictoryFuel'.
+	assert: [stream uint16 = Version] message: 'Version mismatch'.
+	numClusters:: stream uint16.
+	clusters:: Array new: numClusters.
+	backRefs:: Array new: stream uint32.
+	nextBackRef:: 1.
+	registerSymbolicObjects.
+
+	1 to: numClusters do: [:i | clusters at: i put: readCluster readNodes].
+	1 to: numClusters do: [:i | (clusters at: i) readEdges].
+	1 to: numClusters do: [:i | (clusters at: i) adoptInstances].
+	
+	result:: readBackRef.
+	
+	('Read ', backRefs size printString, ' objects in ', 
+	 numClusters printString, ' clusters as ', 
+	 stream position printString, ' bytes in ',
+	 s elapsedMilliseconds printString, ' ms') out.
+	^result
+)
+readBackRef = (
+	^backRefs at: stream unsigned
+)
+readCluster = (
+	| format ::= readFormat. |
+	
+	format >= 0 ifTrue: [^RegularObjectCluster for: format].
+
+	format:: 0 - format.
+	
+	format = kSmiCid ifTrue: [^IntegerCluster new].
+	format = kFloat64Cid ifTrue: [^FloatCluster new].
+	format = kByteArrayCid ifTrue: [^ByteArrayCluster new].
+	format = kByteStringCid ifTrue: [^ByteStringCluster new].
+	format = kWideStringCid ifTrue: [^WideStringCluster new].
+	format = kArrayCid ifTrue: [^ArrayCluster new].
+	format = kWeakArrayCid ifTrue: [^WeakArrayCluster new].
+	format = kEphemeronCid ifTrue: [^EphemeronCluster new].
+	format = kActivationCid ifTrue: [^ActivationCluster new].
+	format = kClosureCid ifTrue: [^ClosureCluster new].
+	
+	unknownFormat.
+)
+readFormat = (
+	^stream int32
+)
+registerBackRef: object = (
+	backRefs at: nextBackRef put: object.
+	nextBackRef:: nextBackRef + 1.
+)
+registerSymbolicObjects = (
+	registerBackRef: nil.
+	registerBackRef: false.
+	registerBackRef: true.
+	
+	registerBackRef: SmallInteger.
+	registerBackRef: MediumInteger.
+	registerBackRef: LargeInteger.
+	registerBackRef: Float.
+	registerBackRef: ByteArray.
+	registerBackRef: ByteString.
+	registerBackRef: WideString.
+	registerBackRef: Array.
+	registerBackRef: WeakArray.
+	registerBackRef: Ephemeron.
+	registerBackRef: Activation.
+	registerBackRef: Closure.
+	registerBackRef: Metaclass.
+
+	registerBackRef: Fraction.
+	registerBackRef: Method.
+	registerBackRef: Class.
+	registerBackRef: InstanceMixin.
+	registerBackRef: ClassMixin.
+	
+	registerBackRef: Object.
+	registerBackRef: (classOf: Object).
+)
+) : (
+)
+class IdentityMap new: capacity = (|
+table ::= Array new: capacity.
+public size ::= 0.
+|1 to: table size do: [:index | table at: index put: table]) (
+'as yet unclassified'
+public at: key = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
+	 table = entry] whileFalse: 
+		[index:: ((index + 2) bitAnd: mask) + 1].
+	
+	noSuchKey
+)
+public at: key ifAbsent: onAbsent = (
+	| mask index entry value |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
+	 table = entry] whileFalse: 
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	^onAbsent value
+)
+public at: key ifAbsentPut: valueGen = (
+	| mask index entry value |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
+	 table = entry] whileFalse: 
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	value:: valueGen value.
+	table at: index put: key.
+	table at: index + 1 put: value.
+	size:: size + 1.
+	(size) > (table size * 3 / 8) ifTrue: [self grow].
+	^value
+)
+public at: key ifAbsentPutVal: value = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^false].
+	 table = entry] whileFalse: 
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	table at: index put: key.
+	table at: index + 1 put: value.
+	size:: size + 1.
+	(size) > (table size * 3 / 8) ifTrue: [self grow].
+	^true
+)
+public at: key put: value = (
+	(at: key ifAbsentPutVal: value) ifFalse: [duplicateKey].
+	^value
+)
+public at: key putReplace: value = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1 put: value].
+	 table = entry] whileFalse: 
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	missingKey
+)
+public atOrItself: key = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
+	 table = entry] whileFalse: 
+		[index:: ((index + 2) bitAnd: mask) + 1].
+	
+	^key
+)
+public do: action <[:V]> = (
+	1 to: table size by: 2 do: 
+		[:index | | key |
+		key:: table at: index.
+		table = key ifFalse: [ action value: (table at: index + 1) ]]
+)
+grow = (
+	| oldTable newSize mask newTable |
+	oldTable:: table.
+	newSize:: oldTable size * 2.
+	(* ('growing to ', newSize printString) out. *)
+	mask:: newSize - 2.
+	newTable:: Array new: newSize.
+	1 to: newSize do: [:index | newTable at: index put: newTable].
+	
+	1 to: oldTable size by: 2 do: [:oldIndex | 
+		| key |
+		key:: oldTable at: oldIndex.
+		oldTable = key ifFalse: 
+			[ | value newIndex |
+			 value:: oldTable at: oldIndex + 1.
+			 newIndex:: ((identityHashOf: key) bitAnd: mask) + 1.
+			 [newTable = (newTable at: newIndex)] whileFalse: 
+				[newIndex:: (newIndex + 2 bitAnd: mask) + 1].
+			 newTable at: newIndex put: key.
+			 newTable at: newIndex + 1 put: value]].
+	table:: newTable.
+)
+public includesKey: key = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^true].
+	 table = entry] whileFalse: 
+		[index:: ((index + 1) bitAnd: mask) + 1].
+	^false
+)
+) : (
+)
+class ReadStream over: bytes = (|
+data = bytes.
+public position ::= 0.
+|) (
+'as yet unclassified'
+public int32 = (
+	| result high |
+	result:: high:: data at: 1 + position.
+	result >= 128 ifTrue: [result:: result - 16r100].
+	result:: (result << 8) | (data at: 2 + position).
+	result:: (result << 8) | (data at: 3 + position).
+	result:: (result << 8) | (data at: 4 + position).
+	position:: position + 4.
+	^result
+)
+public int64 = (
+	| result high |
+	result:: data at: 1 + position.
+	result >= 128 ifTrue: [result:: result - 16r100].
+	result:: (result << 8) | (data at: 2 + position).
+	result:: (result << 8) | (data at: 3 + position).
+	result:: (result << 8) | (data at: 4 + position).
+	result:: (result << 8) | (data at: 5 + position).
+	result:: (result << 8) | (data at: 6 + position).
+	result:: (result << 8) | (data at: 7 + position).
+	result:: (result << 8) | (data at: 8 + position).
+	position:: position + 8.
+	^result
+)
+public uint16 = (
+	| result |
+	result:: data at: 1 + position.
+	result:: (result << 8) | (data at: 2 + position).
+	position:: position + 2.
+	^result
+)
+public uint32 = (
+	| result |
+	result:: data at: 1 + position.
+	result:: (result << 8) | (data at: 2 + position).
+	result:: (result << 8) | (data at: 3 + position).
+	result:: (result << 8) | (data at: 4 + position).
+	position:: position + 4.
+	^result
+)
+public uint8 = (
+	position:: position + 1.
+	^data at: position
+)
+public unsigned = (
+	| acc b |
+	b:: uint8.
+	b > 127 ifTrue: [^b - 128].
+	acc:: b.
+	
+	b:: uint8.
+	b > 127 ifTrue: [^(b - 128) << 7 | acc].
+	acc:: acc | (b << 7).
+	
+	b:: uint8.
+	b > 127 ifTrue: [^(b - 128) << 14 | acc].
+	acc:: acc | (b << 14).
+	
+	b:: uint8.
+	b > 127 ifTrue: [^(b - 128) << 21 | acc].
+	acc:: acc | (b << 21).
+
+	b:: uint8.
+	b > 127 ifTrue: [^(b - 128) << 28 | acc].
+	unreachable.
+)
+) : (
+)
+public class Serializer = (|
+stream = ByteStream new.
+clusters = IdentityMap new: 16.
+orderedClusters = List new.
+stack ::= List new.
+backRefs ::= IdentityMap new: 64. 
+nextBackRef
+|createSpecialClassClusters) (
+class ActivationCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	(* Activation accessors are known to be side-effect free. *)
+	enqueue:: object sender.
+	enqueue:: object bci.
+	enqueue:: object method.
+	enqueue:: object closure.
+	enqueue:: object receiver.
+	(* enqueue:: object numTemps
+	Cannot use back reference for allocation size. *)
+	1 to: object tempSize do: [:index | enqueue: (object tempAt: index)].
+)
+public writeEdges = (
+	(* Activation accessors are known to be side-effect free. *)
+	objects do: [:object |
+		writeBackRef: object sender.
+		writeBackRef: object bci.
+		writeBackRef: object method.
+		writeBackRef: object closure.
+		writeBackRef: object receiver.
+		stream uint32: object tempSize. (* !!!! *)
+		1 to: object tempSize do: [:index | writeBackRef: (object tempAt: index)]].
+)
+public writeNodes = (
+	writeFormat: kActivationCid negated.
+	stream uint16: objects size.
+	objects do: [:object | 
+		registerBackRef: object.
+		(* :todo: Have small and large contexts? 
+		stream uint8: isLarge *)].
+)
+) : (
+)
+class ArrayCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	(* Array accessors are known to be side-effect free. *)
+	1 to: object size do: [:index | enqueue: (object at: index)].
+)
+public replace: old with: neu = (
+	(* Array equality is known to be identity. *)
+	1 to: objects size do: 
+		[:index | old = (objects at: index) ifTrue: [objects at: index put: neu]].
+)
+public writeEdges = (
+	(* Array accessors are known to be side-effect free. *)
+	objects do: [:object |
+		1 to: object size do: [:index | writeBackRef: (object at: index)]].
+)
+public writeNodes = (
+	writeFormat: kArrayCid negated.
+	stream uint16: objects size.
+	(* Array accessors are known to be side-effect free. *)
+	objects do: [:object | 
+		registerBackRef: object.
+		stream uint16: object size].
+)
+) : (
+)
+class ByteArrayCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kByteArrayCid negated.
+	stream uint16: objects size.
+	(* ByteArray accessors are known to be side-effect free. *)
+	objects do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint8: (object at: index)]].
+)
+) : (
+)
+class ByteStringCluster = (|
+noncanonical = List new.
+canonical = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	(isCanonical: object)
+		ifTrue: [canonical add: object]
+		ifFalse: [noncanonical add: object].
+)
+public symbols = (
+	^canonical asArray
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kByteStringCid negated.
+
+	(* ByteString accessors are known to be side-effect free. *)
+	stream uint16: noncanonical size.
+	noncanonical do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint8: (object runeAt: index)]].
+	
+	stream uint16: canonical size.
+	canonical do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint8: (object runeAt: index)]].
+)
+) : (
+)
+class ClosureCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	enqueue:: definingActivationOf: object.
+	enqueue:: initialBCIOf: object.
+	enqueue:: object numArgs.
+	
+	1 to: (numCopiedOf: object) do: [:index | enqueue: (copiedOf: object at: index)].
+)
+public writeEdges = (
+	objects do: [:object |
+		writeBackRef:: definingActivationOf: object.
+		writeBackRef:: initialBCIOf: object.
+		writeBackRef:: object numArgs.
+		1 to: (numCopiedOf: object) do: [:index | writeBackRef: (copiedOf: object at: index)]]
+)
+public writeNodes = (
+	writeFormat: kClosureCid negated.
+	stream uint16: objects size.
+	objects do: [:object | 
+		registerBackRef: object.
+		stream uint16: (numCopiedOf: object)].
+)
+) : (
+)
+class EphemeronCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	(* Ephemeron accessors are known to be side-effect free. *)
+	(* :todo: Maintain the ephemeron property. *)
+	enqueue: object key.
+	enqueue: object value.
+	enqueue: object finalizer.
+)
+public writeEdges = (
+	writeBackRef: Ephemeron. (* :todo: *)
+	objects do: [:object | 
+		writeBackRef: object key.
+		writeBackRef: object value.
+		writeBackRef: object finalizer].
+)
+public writeNodes = (
+	writeFormat: kEphemeronCid negated.
+	stream uint16: objects size.
+	objects do: [:object | registerBackRef: object].
+)
+) : (
+)
+class FloatCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kWeakArrayCid negated.
+	stream uint16: objects size.
+	objects do: [:object | 
+		registerBackRef: object.
+		stream uint64: UNIMPLEMENTED].
+)
+) : (
+)
+class IntegerCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kSmiCid negated.
+	stream uint16: objects size.	
+	objects do: [:object |
+		registerBackRef: object.
+		stream int64: object].
+)
+) : (
+)
+class RegularObjectCluster for: k instancesAreBehaviors: iab = (|
+klass = k.
+numSlots = slotOf: k at: 6.
+instancesAreBehaviors = iab.
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	1 to: numSlots do: [:index | enqueue: (slotOf: object at: index)].
+)
+public writeBehaviorEdges = (
+	writeBackRef: klass.
+	objects do: 
+		[:object | 
+		1 to: 4 do: [:index | writeBackRef: (slotOf: object at: index)].
+		writeBackRef: nil. (* Erase the cid *)
+		6 to: numSlots do: [:index | writeBackRef: (slotOf: object at: index)]].
+)
+public writeEdges = (
+	instancesAreBehaviors 
+		ifTrue: [writeBehaviorEdges]
+		ifFalse: [writeNonBehaviorEdges]
+)
+public writeNodes = (
+	writeFormat: numSlots.
+	stream uint16: objects size.
+	objects do: [:object | registerBackRef: object].
+)
+public writeNonBehaviorEdges = (
+	writeBackRef: klass.
+	objects do: 
+		[:object | 1 to: numSlots do: 
+			[:index | writeBackRef: (slotOf: object at: index)]].
+)
+) : (
+)
+class WeakArrayCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	(* Not traced. *)
+)
+public writeEdges = (
+	(* WeakArray accessors are known to be side-effect free. *)
+	objects do: [:object |
+		1 to: object size do: [:index | writeWeakBackRef: (object at: index)]].
+)
+public writeNodes = (
+	writeFormat: kWeakArrayCid negated.
+	stream uint16: objects size.
+	(* WeakArray accessors are known to be side-effect free. *)
+	objects do: [:object | 
+		registerBackRef: object.
+		stream uint16: object size].
+)
+) : (
+)
+class WideStringCluster = (|
+noncanonical = List new.
+canonical = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	(isCanonical: object)
+		ifTrue: [canonical add: object]
+		ifFalse: [noncanonical add: object].
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kWideStringCid negated.
+
+	(* WideString accessors are known to be side-effect free. *)
+	stream uint16: noncanonical size.
+	noncanonical do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint32: (object runeAt: index)]].
+	
+	stream uint16: canonical size.
+	canonical do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint32: (object runeAt: index)]].
+)
+) : (
+)
+'as yet unclassified'
+analyze: object = (
+	(clusterForClass: (classOf: object)) analyze: object
+)
+clusterForClass: klass = (
+	^clusters at: klass ifAbsentPut: [newClusterForClass: klass].
+)
+createSpecialClassClusters = (
+	| intCluster |
+	intCluster:: IntegerCluster new.
+	clusters at: SmallInteger put: intCluster.
+	clusters at: MediumInteger put: intCluster.
+	clusters at: LargeInteger put: intCluster.
+	orderedClusters add: intCluster.
+	
+	(* clusters at: Float put: FloatCluster new. *)
+	orderedClusters add: (clusters at: ByteArray put: ByteArrayCluster new).
+	orderedClusters add: (clusters at: WideString put: WideStringCluster new).
+	orderedClusters add: (clusters at: ByteString put: ByteStringCluster new).
+	orderedClusters add: (clusters at: Array put: ArrayCluster new).
+	orderedClusters add: (clusters at: WeakArray put: WeakArrayCluster new).
+	orderedClusters add: (clusters at: Ephemeron put: EphemeronCluster new).
+	orderedClusters add: (clusters at: Activation put: ActivationCluster new).
+	orderedClusters add: (clusters at: Closure put: ClosureCluster new).
+	
+	RegularObjectCluster. (* Eagerly create the class. *)
+)
+enqueue: object = (
+	(backRefs at: object ifAbsentPutVal: 0) ifTrue: [stack add: object].
+)
+newClusterForClass: klass = (
+	| instancesAreBehaviors ::= false. cluster |
+	enqueue: klass.
+
+	Metaclass = klass ifTrue: [instancesAreBehaviors:: true].
+	Metaclass = (classOf: klass) ifTrue: [instancesAreBehaviors:: true].
+	(* klass out.
+	instancesAreBehaviors out. *)
+	cluster:: RegularObjectCluster for: klass instancesAreBehaviors: instancesAreBehaviors.
+	orderedClusters add: cluster.
+	^cluster
+)
+registerBackRef: object = (
+	backRefs at: object putReplace: nextBackRef.
+	nextBackRef:: nextBackRef + 1.
+)
+registerPreBackRef: object = (
+	backRefs at: object put: nextBackRef.
+	nextBackRef:: nextBackRef + 1.
+)
+registerSymbolicObjects = (
+	registerPreBackRef: nil.
+	registerPreBackRef: false.
+	registerPreBackRef: true.
+	
+	registerPreBackRef: SmallInteger.
+	registerPreBackRef: MediumInteger.
+	registerPreBackRef: LargeInteger.
+	registerPreBackRef: Float.
+	registerPreBackRef: ByteArray.
+	registerPreBackRef: ByteString.
+	registerPreBackRef: WideString.
+	registerPreBackRef: Array.
+	registerPreBackRef: WeakArray.
+	registerPreBackRef: Ephemeron.
+	registerPreBackRef: Activation.
+	registerPreBackRef: Closure.
+	registerPreBackRef: Metaclass.
+
+	registerPreBackRef: Fraction.
+	registerPreBackRef: Method.
+	registerPreBackRef: Class.
+	registerPreBackRef: InstanceMixin.
+	registerPreBackRef: ClassMixin.
+	
+	registerPreBackRef: Object.
+	registerPreBackRef: (classOf: Object).
+)
+public serialize: root = (
+	| s rewind fastforward |
+	s:: Stopwatch new start.
+	nextBackRef:: 1.
+	registerSymbolicObjects.
+
+	enqueue: root.
+	[stack isEmpty] whileFalse: [analyze: stack removeLast].
+	
+	stream uint16: 16r1984.
+	stream uint16: Version.
+	stream uint16: orderedClusters size.
+	rewind:: stream position.
+	stream uint32: 0.
+	orderedClusters do: [:c | c writeNodes].
+	orderedClusters do: [:c | c writeEdges].
+	writeBackRef: root.
+
+	fastforward:: stream position.
+	stream position: rewind.
+	stream uint32: nextBackRef.
+	stream position: fastforward.
+	
+	('Wrote ', backRefs size printString, ' objects in ', 
+	 orderedClusters size printString, ' clusters as ', 
+	 stream position printString, ' bytes in ',
+	 s elapsedMilliseconds printString, ' ms') out.
+	^stream stealBytes
+)
+writeBackRef: object = (
+	stream unsigned: (backRefs at: object).
+)
+writeFormat: format = (
+	stream int32: format.
+)
+writeWeakBackRef: object = (	
+	stream unsigned: (backRefs at: object ifAbsent: [backRefs at: nil])
+)
+) : (
+)
+public class Snapshotter = (
+(* Describe the class in this comment. *)|
+stream = ByteStream new.
+clusters = IdentityMap new: 128.
+orderedClusters = List new.
+stack ::= List new.
+backRefs ::= IdentityMap new: 4096. 
+nextBackRef
+replacements = IdentityMap new: 128.
+partial = false.
+symbolTablePlaceholder = {}.
+|createSpecialClassClusters) (
+class ActivationCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	(* Activation accessors are known to be side-effect free. *)
+	enqueue:: object sender.
+	enqueue:: object bci.
+	enqueue:: object method.
+	enqueue:: object closure.
+	enqueue:: object receiver.
+	(* enqueue:: object numTemps
+	Cannot use back reference for allocation size. *)
+	1 to: object tempSize do: [:index | enqueue: (object tempAt: index)].
+)
+public writeEdges = (
+	(* Activation accessors are known to be side-effect free. *)
+	objects do: [:object |
+		writeBackRef: object sender.
+		writeBackRef: object bci.
+		writeBackRef: object method.
+		writeBackRef: object closure.
+		writeBackRef: object receiver.
+		stream uint32: object tempSize. (* !!!! *)
+		1 to: object tempSize do: [:index | writeBackRef: (object tempAt: index)]].
+)
+public writeNodes = (
+	writeFormat: kActivationCid negated.
+	stream uint16: objects size.
+	objects do: [:object | 
+		registerBackRef: object.
+		(* :todo: Have small and large contexts? 
+		stream uint8: isLarge *)].
+)
+) : (
+)
+class ArrayCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	(* Array accessors are known to be side-effect free. *)
+	1 to: object size do: [:index | enqueue: (object at: index)].
+)
+public replace: old with: neu = (
+	(* Array equality is known to be identity. *)
+	1 to: objects size do: 
+		[:index | old = (objects at: index) ifTrue: [objects at: index put: neu]].
+)
+public writeEdges = (
+	(* Array accessors are known to be side-effect free. *)
+	objects do: [:object |
+		1 to: object size do: [:index | writeBackRef: (object at: index)]].
+)
+public writeNodes = (
+	writeFormat: kArrayCid negated.
+	stream uint16: objects size.
+	(* Array accessors are known to be side-effect free. *)
+	objects do: [:object | 
+		registerBackRef: object.
+		stream uint16: object size].
+)
+) : (
+)
+class ByteArrayCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kByteArrayCid negated.
+	stream uint16: objects size.
+	(* ByteArray accessors are known to be side-effect free. *)
+	objects do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint8: (object at: index)]].
+)
+) : (
+)
+class ByteStringCluster = (|
+noncanonical = List new.
+canonical = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	(isCanonical: object)
+		ifTrue: [canonical add: object]
+		ifFalse: [noncanonical add: object].
+)
+public symbols = (
+	^canonical asArray
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kByteStringCid negated.
+
+	(* ByteString accessors are known to be side-effect free. *)
+	stream uint16: noncanonical size.
+	noncanonical do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint8: (object runeAt: index)]].
+	
+	stream uint16: canonical size.
+	canonical do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint8: (object runeAt: index)]].
+)
+) : (
+)
+class ClosureCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	enqueue:: definingActivationOf: object.
+	enqueue:: initialBCIOf: object.
+	enqueue:: object numArgs.
+	
+	1 to: (numCopiedOf: object) do: [:index | enqueue: (copiedOf: object at: index)].
+)
+public writeEdges = (
+	objects do: [:object |
+		writeBackRef:: definingActivationOf: object.
+		writeBackRef:: initialBCIOf: object.
+		writeBackRef:: object numArgs.
+		1 to: (numCopiedOf: object) do: [:index | writeBackRef: (copiedOf: object at: index)]]
+)
+public writeNodes = (
+	writeFormat: kClosureCid negated.
+	stream uint16: objects size.
+	objects do: [:object | 
+		registerBackRef: object.
+		stream uint16: (numCopiedOf: object)].
+)
+) : (
+)
+class EphemeronCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	(* Ephemeron accessors are known to be side-effect free. *)
+	(* :todo: Maintain the ephemeron property. *)
+	enqueue: object key.
+	enqueue: object value.
+	enqueue: object finalizer.
+)
+public writeEdges = (
+	writeBackRef: Ephemeron. (* :todo: *)
+	objects do: [:object | 
+		writeBackRef: object key.
+		writeBackRef: object value.
+		writeBackRef: object finalizer].
+)
+public writeNodes = (
+	writeFormat: 3 (* :todo: maybe kEphemeronCid? *).
+	stream uint16: objects size.
+	objects do: [:object | registerBackRef: object].
+)
+) : (
+)
+class FloatCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kWeakArrayCid negated.
+	stream uint16: objects size.
+	objects do: [:object | 
+		registerBackRef: object.
+		stream uint64: UNIMPLEMENTED].
+)
+) : (
+)
+class IntegerCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kSmiCid negated.
+	stream uint16: objects size.	
+	objects do: [:object |
+		registerBackRef: object.
+		stream int64: object].
+)
+) : (
+)
+class RegularObjectCluster for: k instancesAreBehaviors: iab = (|
+klass = k.
+numSlots = slotOf: k at: 6.
+instancesAreBehaviors = iab.
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	1 to: numSlots do: [:index | enqueue: (slotOf: object at: index)].
+)
+public writeBehaviorEdges = (
+	writeBackRef: klass.
+	objects do: 
+		[:object | 
+		1 to: 4 do: [:index | writeBackRef: (slotOf: object at: index)].
+		writeBackRef: nil. (* Erase the cid *)
+		6 to: numSlots do: [:index | writeBackRef: (slotOf: object at: index)]].
+)
+public writeEdges = (
+	instancesAreBehaviors 
+		ifTrue: [writeBehaviorEdges]
+		ifFalse: [writeNonBehaviorEdges]
+)
+public writeNodes = (
+	writeFormat: numSlots.
+	stream uint16: objects size.
+	objects do: [:object | registerBackRef: object].
+)
+public writeNonBehaviorEdges = (
+	writeBackRef: klass.
+	objects do: 
+		[:object | 1 to: numSlots do: 
+			[:index | writeBackRef: (slotOf: object at: index)]].
+)
+) : (
+)
+class WeakArrayCluster = (|
+objects = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	objects add: object.
+	
+	(* Not traced. *)
+)
+public writeEdges = (
+	(* WeakArray accessors are known to be side-effect free. *)
+	objects do: [:object |
+		1 to: object size do: [:index | writeWeakBackRef: (object at: index)]].
+)
+public writeNodes = (
+	writeFormat: kWeakArrayCid negated.
+	stream uint16: objects size.
+	(* WeakArray accessors are known to be side-effect free. *)
+	objects do: [:object | 
+		registerBackRef: object.
+		stream uint16: object size].
+)
+) : (
+)
+class WideStringCluster = (|
+noncanonical = List new.
+canonical = List new.
+|) (
+'as yet unclassified'
+public analyze: object = (
+	(isCanonical: object)
+		ifTrue: [canonical add: object]
+		ifFalse: [noncanonical add: object].
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kWideStringCid negated.
+
+	(* WideString accessors are known to be side-effect free. *)
+	stream uint16: noncanonical size.
+	noncanonical do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint32: (object runeAt: index)]].
+	
+	stream uint16: canonical size.
+	canonical do: [:object |
+		registerBackRef: object.
+		stream uint32: object size.
+		1 to: object size do: [:index | stream uint32: (object runeAt: index)]].
+)
+) : (
+)
+'as yet unclassified'
+analyze: object = (
+	(clusterFor: object) analyze: object
+)
+clusterFor: object = (
+	^clusterForClass: (classOf: object).
+)
+clusterForClass: klass = (
+	^clusters at: klass ifAbsentPut: [newClusterForClass: klass].
+)
+createSpecialClassClusters = (
+	| intCluster |
+	intCluster:: IntegerCluster new.
+	clusters at: SmallInteger put: intCluster.
+	clusters at: MediumInteger put: intCluster.
+	clusters at: LargeInteger put: intCluster.
+	orderedClusters add: intCluster.
+	
+	(* clusters at: Float put: FloatCluster new. *)
+	orderedClusters add: (clusters at: ByteArray put: ByteArrayCluster new).
+	orderedClusters add: (clusters at: WideString put: WideStringCluster new).
+	orderedClusters add: (clusters at: ByteString put: ByteStringCluster new).
+	orderedClusters add: (clusters at: Array put: ArrayCluster new).
+	orderedClusters add: (clusters at: WeakArray put: WeakArrayCluster new).
+	orderedClusters add: (clusters at: Ephemeron put: EphemeronCluster new).
+	orderedClusters add: (clusters at: Activation put: ActivationCluster new).
+	orderedClusters add: (clusters at: Closure put: ClosureCluster new).
+	
+	RegularObjectCluster. (* Eagerly create the class. *)
+)
+enqueue: object = (
+	| newObject = replacements atOrItself: object. |
+	(backRefs at: newObject ifAbsentPutVal: 0) ifTrue: [stack add: newObject].
+)
+newClusterForClass: klass = (
+	| instancesAreBehaviors ::= false. cluster |
+	enqueue: klass.
+
+	Metaclass = klass ifTrue: [instancesAreBehaviors:: true].
+	Metaclass = (classOf: klass) ifTrue: [instancesAreBehaviors:: true].
+	(* klass out.
+	instancesAreBehaviors out. *)
+	cluster:: RegularObjectCluster for: klass instancesAreBehaviors: instancesAreBehaviors.
+	orderedClusters add: cluster.
+	^cluster
+)
+registerBackRef: object = (
+	backRefs at: object putReplace: nextBackRef.
+	nextBackRef:: nextBackRef + 1.
+)
+replaceClass: old with: nue = (
+	replacements at: old put: nue.
+	replacements at: (classOf: old) put: (classOf: nue)
+)
+replaceSymbolTable = (
+	| newSymbolTable |
+	newSymbolTable:: (clusters at: ByteString) symbols.
+	
+	(* Replace the written node. *)
+	(clusters at: Array) replace: symbolTablePlaceholder with: newSymbolTable.
+	(* Replace the written edges. *)
+	replacements at: symbolTablePlaceholder put: newSymbolTable.
+
+	(* registerBackRef: expects we've already traced the object. *)
+	backRefs at: newSymbolTable put: 0. 
+)
+public serialize: root = (
+	| s rewind fastforward |
+	s:: Stopwatch new start.
+	nextBackRef:: 1.
+	partial ifTrue: 
+		[registerBackRef: nil.
+		 registerBackRef: false.
+		 registerBackRef: true].
+
+	enqueue: root.
+	[stack isEmpty] whileFalse: [analyze: stack removeLast].
+
+	(* todo - the integer cluster is written 3 times, once for each key *)
+	
+	replaceSymbolTable.
+	
+	stream uint16: 16r1984.
+	stream uint16: Version.
+	stream uint16: orderedClusters size.
+	rewind:: stream position.
+	stream uint32: 0.
+	orderedClusters do: [:c | c writeNodes].
+	orderedClusters do: [:c | c writeEdges].
+	writeBackRef: root.
+
+	fastforward:: stream position.
+	stream position: rewind.
+	stream uint32: nextBackRef.
+	stream position: fastforward.
+	
+	(backRefs size printString, ' objects in ', 
+	 orderedClusters size printString, ' clusters as ', 
+	 stream position printString, ' bytes in ',
+	 s elapsedMilliseconds printString, ' ms') out.
+	^stream stealBytes
+)
+public snapshotApp: app withRuntime: runtime = (
+	| newPlatform newKernel methods objectStore |
+	newKernel:: runtime InternalKernel new.
+	newPlatform:: runtime Platform internalKernel: newKernel.
+	objectStore:: newKernel 
+		buildObjectStoreWithApp: app 
+		platform: newPlatform 
+		symbols: symbolTablePlaceholder.
+	
+	slotOf: newKernel _Object at: 1 put: nil. (* superclass *)
+	methods:: slotOf: newKernel _Object at: 2.
+	1 to: methods size do: [:index |
+		| method = methods at: index. |
+		method selector = #'initializer`new' ifTrue: [
+			method header: 200 << 16. (* public + return self *)
+			method bytecode: nil]].
+	
+	replaceClass: Activation with: newKernel Activation.
+	replaceClass: Array with: newKernel _Array.
+	replaceClass: ByteArray with: newKernel ByteArray.
+	replaceClass: ByteString with: newKernel ByteString.
+	replaceClass: Closure with: newKernel Closure.
+	replaceClass: Ephemeron with: newKernel Ephemeron.
+	replaceClass: SmallInteger with: newKernel SmallInteger.
+	replaceClass: MediumInteger with: newKernel MediumInteger.
+	replaceClass: LargeInteger with: newKernel LargeInteger.
+	replaceClass: WeakArray with: newKernel WeakArray.
+	replaceClass: WideString with: newKernel WideString.
+	
+	replaceClass: True with: newKernel True.
+	replaceClass: False with: newKernel False.
+	replaceClass: UndefinedObject with: newKernel UndefinedObject.
+	replaceClass: Fraction with: newKernel Fraction.
+	replaceClass: Object with: newKernel _Object.
+	replaceClass: Method with: newKernel Method.
+	replaceClass: Class with: newKernel Class.
+	replaceClass: Metaclass with: newKernel Metaclass.
+	replaceClass: InstanceMixin with: newKernel InstanceMixin.
+	replaceClass: ClassMixin with: newKernel ClassMixin.
+
+	^serialize: objectStore
+)
+writeBackRef: object = (
+	| newObject = replacements atOrItself: object. |
+	stream unsigned: (backRefs at: newObject).
+)
+writeFormat: format = (
+	stream int32: format.
+)
+writeWeakBackRef: object = (
+	| newObject = replacements atOrItself: object.
+	ref = backRefs at: newObject ifAbsent: [backRefs at: nil]. |
+	stream unsigned: ref.
+)
+) : (
+)
+class TemporaryClass withFormat: fmt = (|
+	superclass = Object.
+	methods = {}.
+	enclosingObject = nil.
+	mixin = nil.
+	classIndex
+	format = fmt.
+	public name = 'PartiallyDeserializedObject'.
+	subclasses
+|) (
+'as yet unclassified'
+public vfBasicNew = (
+	(* :literalmessage: primitive: 34 *)
+	halt.
+)
+) : (
+)
+'as yet unclassified'
+private class: klass adoptInstance: object = (
+	(* :literalmessage: primitive: 134 *)
+	halt.
+)
+private classOf: object = (
+	(* :literalmessage: primitive: 85 *)
+	primitiveFailed: 'Mirror classOf:'.
+)
+private definingActivationOf: closue <Closure> ^<Activation> = (
+	(* :literalmessage: primitive: 71 *)
+	primitiveFailed: 'Mirror definingActivationOf:'.
+)
+private identityHashOf: a = (
+	(* :literalmessage: primitive: 87 *)
+	halt.
+)
+private initialBCIOf: closue <Closure> ^<Integer> = (
+	(* :literalmessage: primitive: 73 *)
+	primitiveFailed: 'Mirror initialBCIOf:'.
+)
+private is: a identicalTo: b = (
+	(* :literalmessage: primitive: 86 *)
+	halt.
+)
+private isCanonical: object = (
+	(* :literalmessage: primitive: 126 *)
+	primitiveFailed: 'Mirror isCanonical:'.
+)
+private numCopiedOf: closue <Closure> ^<Integer> = (
+	(* :literalmessage: primitive: 70 *)
+	primitiveFailed: 'Mirror numCopiedOf:'.
+)
+private slotOf: object at: index = (
+	(* :literalmessage: primitive: 35 *)
+	primitiveFailed: 'Mirror slotOf:at:'.
+)
+private slotOf: object at: index put: value = (
+	(* :literalmessage: primitive: 36 *)
+	primitiveFailed: 'Mirror slotOf:at:put:'.
+)
+) : (
+)

@@ -1,0 +1,1180 @@
+Newspeak3
+'Newspeak'
+class NewspeakParsing usingPlatform: platform grammar: grammar asts: asts = ((* The Newspeak parser.
+
+Copyright 2008 Cadence Design Systems, Inc.
+Copyright 2010 Felix Geller and Ryan Macnak
+   
+Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License.  You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0 *)|
+	OrderedCollection = platform collections OrderedCollection.
+
+	TypedGrammar = grammar TypedNS3Grammar. (* so we get rid of line above *)
+	ParserError = grammar ParserError.
+	
+	public ASTModule = asts. (* Used by compilation *)
+	BinaryTypeOpAST = asts BinaryTypeOpAST.
+	BlockAST = asts BlockAST.
+	BlockTypeAST = asts BlockTypeAST.
+	CascadedSendAST = asts CascadedSendAST.
+	CategoryAST = asts CategoryAST.
+	CharAST = asts CharAST.
+	ClassBodyAST = asts ClassBodyAST.
+	ClassDeclarationAST = asts ClassDeclarationAST.
+	ClassHeaderAST = asts ClassHeaderAST.
+	ClassPrefixAST = asts ClassPrefixAST.
+	CodeBodyAST = asts CodeBodyAST.
+	ImmutableSlotDefAST = asts ImmutableSlotDefAST.
+	InitializerAST = asts InitializerAST.
+	ParameterizedTypeAST = asts ParameterizedTypeAST.
+	MessageAST = asts MessageAST.
+	MessagePatternAST = asts MessagePatternAST.
+	MethodAST = asts MethodAST.
+      MixinApplicationClassAST = asts MixinApplicationClassAST.
+	MutableSlotDefAST = asts MutableSlotDefAST.
+	NormalSendAST = asts NormalSendAST.
+	NSSideAST = asts NSSideAST.
+	NumberAST = asts NumberAST.
+	ReturnStatAST = asts ReturnStatAST.
+	SetterSendAST = asts SetterSendAST.
+	SideAST = asts SideAST.
+	StringAST = asts StringAST.
+	SymbolAST = asts SymbolAST.
+	TupleAST = asts TupleAST.
+	TypeIdAST = asts TypeIdAST.
+	UnaryTypeOpAST = asts UnaryTypeOpAST.
+	VarDeclAST = asts VarDeclAST.
+	VariableAST = asts VariableAST.
+
+	protected MixinApplicationAST = asts MixinApplicationAST.
+
+	(* patterns *)
+	protected KeywordPatternAST = asts KeywordPatternAST.
+	protected KeywordPatternPairAST = asts KeywordPatternPairAST.
+	protected WildcardPatternAST = asts WildcardPatternAST.
+	protected LiteralPatternAST = asts LiteralPatternAST.
+	protected VariablePatternAST = asts VariablePatternAST.
+|) (
+public class InternalParser = Parser ((* A parser able to handle identifiers involving the backquote character, `. 
+Such identifiers are illegal in regular Newspeak code, and are used as synthetic names in generated code, precisely because they cannot conflict with user code.
+
+Synthetic code that references such identifiers cannot be processed by the usual parser pipeline, and has often been manufactured by tedious and error prone manual AST construction.
+
+The intent is that instead, such code could be written as source code and parsed using this parser, producing a valid AST that the rest of the compiler can use.
+*)|
+  backTick = char: "`".
+  backTickIdentifier = tokenFor:( 
+		(letter | _ | backTick),  ((letter | digit | _ | backTick)) star
+                 wrapper:[:fst   :snd  | String fromRunes: {fst}, snd]
+	).
+|) (
+'as yet unclassified'
+public identifier = (
+  ^backTickIdentifier
+)
+) : (
+)
+public class Parser = TypedGrammar ((* Parser for Newpeak. Produces a Newspeak AST. This tree represents syntax only. No attribution information such as scopes/symbol tables, types etc. is present in the tree. The tree  only gives its structure and the source code positions of the nodes.
+
+The parser works by overridding the accessors for most grammar productions in its superclasses. The superclass methods deal with the grammar alone; each production defines a parser that will parse the syntax and return the corresponding set of tokens. The methods here process the output of the superclass methods to yield parsers that will construct ASTs. Hence, the typical method for a production foo is something like
+
+foo
+
+^super foo wrapper:[:w :x :y :z | FooAST new from: x and: y; start: w start; end: z end]
+
+This example assumes that the semantic content of foo is given by x and y. Typically, x and y will be the results of  productions that have also been overridden, to provide  ASTs that will be subtrees of the Foo node. In contarst, w and z are likely to be tokens used in the concrete syntax to delimit the Foo construct. They may (or may not) be used to extract source code position information, and then discarded. *)) (
+'as yet unclassified'
+blockTypeArgList ^ <List[TypeExpr]> = (
+	^super blockTypeArgList
+		wrap:[:bta <TypeExpr | List[TypeExpr]> | 
+				bta isNil 
+					ifTrue:[{}] (* nullary block type with default return type *)
+					ifFalse:[
+						(bta isKindOfCollection) ifFalse: [{bta}] ifTrue:[bta]
+						]
+				(* nullary block type with non-trivial return type will cause bta to be a type expression. In that case, we package it as a collection *)
+			]
+)
+classBody ^ <ClassBodyAST> = (
+	^super classBody wrapper: 
+		[:instInit <InitializerAST> :instanceSide <SideAST>  :classSide <SideAST> |
+		|
+		klassSide <SideAST> = classSide isNil  
+			ifTrue: [SideAST new variables: OrderedCollection new 
+	                                                  categories: OrderedCollection new]
+			ifFalse: [classSide].
+		|
+		ClassBodyAST initializer: instInit instanceSide: instanceSide classSide: klassSide].
+)
+public classComment = (
+	^super classComment wrapper: [:ws :c | c token]
+)
+public classDecl ^ <ClassDeclarationAST> = (
+ 	^super classDecl wrapper:
+		[:am :ckw :klassName <Token> :cons :eq :listAndBody <{List[SendAST]. ClassBodyAST}> |
+		|
+		start = am isNil ifTrue: [ckw start] ifFalse: [am start].
+		konstruktor = cons isNil 
+			ifTrue:[defaultConstructorPattern start: klassName end + 1; end: klassName end]
+			ifFalse:[cons].
+		bodyOrDot <ClassBodyAST> = listAndBody last.
+		iList <List[SendAST]> = listAndBody first.
+		end <Integer> = bodyOrDot end.
+		|
+		bodyOrDot isAST ifTrue: [
+			| c |
+			c:: (ClassDeclarationAST 
+				named: klassName 
+				factoryMsg: konstruktor 
+				inheriting: iList body: bodyOrDot)
+			start: start;
+			end: end.
+			c header accessModifier: (am isNil ifTrue: [#protected] ifFalse: [am token]).
+			c header start: start.
+			c
+             ] ifFalse: [
+			(MixinApplicationClassAST 
+				named: klassName token factoryMsg: konstruktor inheriting: iList)
+				accessModifier: (am isNil ifTrue: [#protected] ifFalse: [am token])]
+		].
+)
+classPrefix ^ <ClassHeaderAST> = (
+
+^super classPrefix
+     wrapper:[:klassName :cons :eq :superClause  | 
+                |  start  konstruktor superCall  |
+
+                  start:: klassName start.
+                  konstruktor:: cons isNil 
+                       ifTrue:[defaultConstructorPattern start: klassName end + 1; end: klassName end]
+                       ifFalse:[cons].
+                  superCall:: superClause isNil 
+                                     ifTrue:[defaultSuperCallAt: eq end + 1 ending: eq end] 
+                                     ifFalse:[superClause].
+                 
+                  (ClassPrefixAST 
+				name: klassName token asSymbol
+                        constructor: konstruktor
+				superclassName: superCall receiver message selector
+				superclassCall: superCall receiver
+				superConstructorCall: superCall message)
+                        start: start; end: superCall end                   
+                ].
+)
+computeDigits: digitCharCodes <List[Integer]> radix: radixValue <Integer> ^<Integer>= (
+	| sum ::= 0. |
+	digitCharCodes do: 
+		[:digitCharCode | | digitValue |
+		(digitCharCode > 47 and: [digitCharCode < 58])
+			ifTrue: 
+				[digitValue:: digitCharCode - 48]
+			ifFalse: 
+				[(digitCharCode > 64 and: [digitCharCode < 71])
+					ifTrue: 
+						[digitValue:: digitCharCode - 55]
+					ifFalse: 
+						[assert: [digitCharCode > 96 and:[digitCharCode < 123]] 
+						message: 'Internal error - illegal character in radix number'.
+						digitValue:: digitCharCode - 87]].
+		assert: [digitValue < radixValue] message: 'Malformed number: digit exceeds radix'.
+		sum:: (radixValue * sum) + (digitValue)].
+	^sum
+)
+computeFraction: digitCharCodes <List[Integer]> radix: radixValue <Integer> ^<Integer>= (
+	| 
+	numerator ::= 0. 
+	denominator ::= 1.
+	|
+	digitCharCodes do: 
+		[:digitCharCode | | digitValue |
+		(digitCharCode > 47 and: [digitCharCode < 58])
+			ifTrue: 
+				[digitValue:: digitCharCode - 48]
+			ifFalse: 
+				[(digitCharCode > 64 and: [digitCharCode < 71])
+					ifTrue: 
+						[digitValue:: digitCharCode - 55]
+					ifFalse: 
+						[assert: [digitCharCode > 96 and:[digitCharCode < 123]] 
+						message: 'Internal error - illegal character in radix number'.
+						digitValue:: digitCharCode - 87]].
+		assert: [digitValue < radixValue] message: 'Malformed number: digit exceeds radix'.
+		numerator:: (radixValue * numerator) + (digitValue).
+		denominator:: radixValue * denominator].
+	^numerator / denominator
+)
+defaultSuperclassAndBody ^ <{List[SendAST]. ClassBodyAST}> = (
+	^super defaultSuperclassAndBody
+		wrapper:[:body  <ClassBodyAST> |
+			{{defaultSuperCallAt: body start -1 ending: body start - 1}. body}
+			]
+)
+explicitInheritanceListAndOrBody ^ <{List[SendAST]. ClassBodyAST}> = (
+	^super explicitInheritanceListAndOrBody
+		wrapper:[:ic <SendAST> :ms <{List[{Token. SendAST}]. ClassBodyAST} | ClassBodyAST> |
+			ms isCollection 
+				ifFalse:[{{ic}. ms}]
+				ifTrue:[
+					| iList <List[SendAST]> = (ms first collect:[:p | p last]) addFirst: ic; yourself. |
+					{iList. ms last}
+					]
+			]
+)
+hereSetterSendFromMsg: msg = (
+
+	(* Build an implicit here send with the message msg *)
+
+	^SetterSendAST to: self hereNode  
+                          	send: msg
+    	                      	start: msg start
+					end: msg end
+)
+instanceInitializer ^ <InitializerAST> = (
+	^super instanceInitializer
+		wrapper:[:lp <Token> :cmnt :instVars :inits <List[ExpressionAST]> :rp <Token> |
+			| vs isSeq |
+			isSeq:: true.
+			vs:: instVars isNil ifTrue:[OrderedCollection new] ifFalse:[isSeq:: instVars first. instVars last].
+			(InitializerAST  slots: vs initializerExpressions: inits comment: cmnt slotsAreSequential: isSeq)
+				start: lp start; end: rp end
+			]
+)
+keywordMessages ^<Tuple[List[MessageAST], List[MessageAST], MessageAST]> = (
+	^super keywordMessages wrapper:
+		[  :kwMsg <MessageAST> | 
+		(* keywordMsg *)
+			{{}. {}. kwMsg}.
+		]
+)
+keywordPattern ^ <KeywordPatternAST> = (
+^ super keywordPattern
+	wrap: [ :pairs | |kws kwsAST pats patsAST st ed |
+		st:: pairs first start.
+		ed:: pairs last end.
+		
+		kws:: OrderedCollection new.
+		pats:: pairs inject: OrderedCollection new 
+					into: [:m :p | |kwAST|
+							kwAST:: SymbolAST new 
+										val: p keyword token asSymbol;
+										start: p keyword start;
+										end: p keyword end.
+							kws add: kwAST.
+							m add: p pattern; yourself].
+						
+		kwsAST:: TupleAST new
+					elements: kws;
+					start: st; end: ed.
+		patsAST:: TupleAST new
+					elements: pats;
+					start: st; end: ed.
+
+		KeywordPatternAST new
+			keywords: kwsAST;
+			patterns: patsAST;
+			start: st;
+			end: ed.
+	].
+)
+kwPatternPair = (
+^ super kwPatternPair
+	wrapper: [ :keyw  :val |
+		KeywordPatternPairAST new
+			keyword: keyw;
+			pattern: (val isNil 
+						ifTrue: [WildcardPatternAST new 
+									start: keyw end; end: keyw end] 
+						ifFalse: [val]);
+			start: keyw start;
+			end: (val isNil ifTrue: [keyw end] ifFalse: [val end])
+	].
+)
+literalMessage = (
+	^super literalMessage wrap:
+		[:kwsOrMsg |
+		kwsOrMsg isCollection
+			ifTrue:
+				[| sel  args  |
+				args:: OrderedCollection new.
+				sel:: kwsOrMsg inject: '' into:
+						[:s :kwd | 
+						args add: (kwd at:2). 
+						s, (kwd at:1) token].
+				MessageAST new send: sel asSymbol with: args;
+					start: kwsOrMsg first first concreteStart;
+					end: args last concreteEnd]
+			ifFalse:
+				[kwsOrMsg]]
+)
+literalMessageComment = (
+	^super literalMessageComment wrap:
+		[:tokens| (* beginNSComment :literalmessage: wsp literalMessage endNSComment *)
+		tokens at: 5]
+)
+literalPattern ^ <LiteralPatternAST> = (
+^ super literalPattern
+	wrap: [ :litTok | 
+		LiteralPatternAST new
+			literal: litTok token;
+			start: litTok start; end: litTok end.
+	].
+)
+nestedPatternLiteral = (
+ ^ super nestedPatternLiteral wrap: [ :nestedTok | nestedTok token ]	
+)
+newBlockArgType = (
+	^super newBlockArgType wrapper: 
+		[:c :rt | 
+		rt concreteStart: c start.
+		rt].
+)
+newBlockType = (
+	^super newBlockType wrapper: [:lb :tas :rb |
+		(tas isNil ifTrue: [
+			BlockTypeAST
+				formals: {}
+				return: (TypeIdAST new name: #Object)
+		] ifFalse: [
+			| fs r |
+			tas isCollection
+				ifTrue: [fs:: tas. r:: fs removeLast] 
+				ifFalse: [fs:: {}. r:: tas].
+			BlockTypeAST
+				formals: fs
+				return: r.
+		])
+		start: lb start;
+		end: rb end
+	].
+)
+newChar = (
+	^super newChar wrap: 
+		[:t | 
+		| v ::= (Character fromRune: (t token at: 2)). |
+		v isString ifTrue: [v:: v asSymbol].
+		CharAST new value: v; start: t start; end: t end].
+)
+newNonEmptyBlockArgList = (
+	^super newNonEmptyBlockArgList wrapper:
+		[:ats :vbarreturnt | 
+		| targs |
+		targs:: OrderedCollection new addAll: ats; yourself.
+            vbarreturnt isNil 
+			ifTrue:[targs addLast: (TypeIdAST new name: #Object)]
+                  ifFalse:[targs add: (vbarreturnt at: 2)].
+		targs].
+)
+nontrivialBinaryMessages ^ <Tuple[List[MessageAST], List[MessageAST], MessageAST]> = (
+	^super nontrivialBinaryMessages wrapper:
+		[ :bmsgs <List[MessageAST]> :kwMsg <MessageAST> | 
+		(* binaryMessages+ [keywordMsg] *)
+			assert:[bmsgs isEmpty not].
+			{{}. bmsgs. kwMsg}
+		]
+)
+oldChar = (
+	^super oldChar wrap: 
+		[:t | 
+		| v ::= (Character fromRune: (t token at: 2)). |
+		v isString ifTrue: [v:: v asSymbol].
+		CharAST new value: v; start: t start; end: t end].
+)
+outerReceiver ^ <NormalSendAST> = (
+
+^super outerReceiver
+    wrapper:[:okw :idn | | osend |
+	osend:: (pseudoVariableNode: okw token asSymbol)
+		start: okw start; end: okw end.
+	NormalSendAST new receiver: osend; message: (MessageAST new send: idn token asSymbol with:{}); 
+	                         start: osend start; end: idn end
+	]
+)
+pattern ^ <PatternAST> = (
+^ super pattern
+	wrapper: [ :del1 :pat :del2 | pat. ]
+)
+sendMessages: msgs <List[MessageAST]> to: receiver <ExpressionAST> ^ <ExpressionAST> = (
+(* if msgs is non-empty, the return type will always be NormalSendAST *)
+	^msgs inject: receiver into:[:r :msg | 
+									NormalSendAST new to: r send: msg;
+														left: r; right: msg
+								].
+)
+seqSlotDecls = (
+
+^super seqSlotDecls
+     wrapper:[:vb1 :sds :vb2  | 
+                  sds isEmpty ifFalse:[sds first concreteStart: vb1 start.
+                                           sds last concreteEnd: vb2 end.
+                                           ].
+                  {true. sds}
+                ].
+)
+simSlotDecls = (
+
+^super simSlotDecls
+     wrapper:[:vb1 :vb2 :sds :vb3 :vb4  | 
+                  sds isEmpty ifFalse:[sds first concreteStart: vb1 start.
+                                           sds last concreteEnd: vb4 end.
+                                           ].
+                  {false. sds}
+                ].
+)
+superclassPrefix  = (
+	^super superclassPrefix
+		wrapper:[:p |  | sp |
+			sp:: p isNormalSendNode 
+				ifTrue:[p] (* an outer receiver *)
+				ifFalse:[(pseudoVariableNode: p token asSymbol) 
+					start: p start; end: p end (* a #self or #super token *)
+					].
+			sp.
+			]
+)
+tupleType = (
+
+
+^super tupleType
+   wrapper:[:lc :es :rc | 
+               ParameterizedTypeAST new generic: (TypeIdAST new name: #Tuple); 
+                                               arguments:  es;
+                                               start: lc start;
+                                               end: rc end
+              ].
+)
+unaryMsg ^ <MessageAST> = (
+	^super unaryMsg wrapper:
+		[:esend :u  | 
+		MessageAST new
+			send: u token asSymbol with: OrderedCollection new;
+			isEventual: (nil = esend) not;
+			start: u start;
+			end: u end].
+)
+variablePattern ^ <VariablePatternAST> = (
+^ super variablePattern
+	wrapper: [ :varTok | VariablePatternAST new
+					variableName: (varTok token at: 2); 
+					start: varTok start; end: varTok end ].
+)
+wildcardPattern ^ <WildcardPatternAST> = (
+^ super wildcardPattern
+	wrap: [ :wcTok | WildcardPatternAST new
+					start: wcTok start; end: wcTok end ].
+)
+'grammar'
+binaryExpression = (
+	^super binaryExpression wrapper:
+		[:ue :bmsgs | (* unaryExpression binaryMsg* *)
+		bmsgs inject: ue into:
+			[:receiverExpr :b <MessageAST> |
+				NormalSendAST new
+					to: receiverExpr send: b;
+					left: receiverExpr; right: b]]
+)
+binaryMsg ^ <MessageAST> = (
+	^super binaryMsg wrapper:
+		[:esend :b :e |
+		| args = {e}. |
+		MessageAST new 
+			send: b token with: args;
+			isEventual: (nil = esend) not;
+			start: b start;
+			right: e].
+)
+binaryMsgPattern = (
+
+^super binaryMsgPattern
+    wrapper:[:sel :p  |
+                | params |
+                 params:: OrderedCollection new add:p; yourself.
+                 MessagePatternAST new selector: sel token parameters: params ;
+                                              start: sel start; right: p            
+               ].
+)
+block = (
+
+^super block
+          wrapper:[:lb :params :cb :rb  |
+                      | ps |
+                                                                                                                                           
+                       ps::  params isNil ifTrue:[OrderedCollection new] ifFalse:[params].
+                       cb parameters: ps.
+                       BlockAST new body: cb;
+                                        start: lb start; end: rb end
+                     ].
+)
+blockParameter = (
+
+^super blockParameter
+    wrapper:[:c :v  | 
+                v concreteStart: c start.
+                v
+               ].
+                                
+)
+blockParameters = (
+
+^super blockParameters
+          wrapper:[:params :vb  | 
+                      self assert:[params isEmpty not] message: 'Assert failed'.
+                      params last concreteEnd: vb end. (* dubious *)
+                      params
+                     ].
+)
+cascadeMsg = (
+
+^super cascadeMsg
+    wrapper:[:sm :msg  | msg].
+                                
+                         
+)
+cascadedMessageExpression ^ <CascadedSendAST> = (
+
+^super cascadedMessageExpression
+          wrapper:[:p <ExpressionAST> 
+				:msgs <Tuple[Tuple[List[MessageAST], List[MessageAST], MessageAST], List[MessageAST]]>  |
+				| 
+				se <SendAST> 
+				unaries <List[MessageAST]> 
+				binaries <List[MessageAST]> 
+				kwMsg <MessageAST> 
+				cascade  <List[MessageAST]> 
+				unarySend <ExpressionAST>  
+				binarySend <ExpressionST> 
+				|
+				(* primary [msgCascade] *)
+				msgs isNil 
+					ifTrue:[p]
+					ifFalse:[
+							unaries:: msgs first first.
+							binaries:: msgs first at: 2.
+							kwMsg:: msgs first last.
+							cascade:: msgs last.
+							unarySend:: sendMessages: unaries to: p.
+							binarySend:: sendMessages: binaries to: unarySend.
+							se:: kwMsg isNil 
+								ifTrue:[binarySend] 
+								ifFalse:[sendMessages: {kwMsg} to: binarySend].
+                       				cascade inject: se into:[:e  <SendAST> :m  <MessageASAT> |
+                                                     CascadedSendAST new to: e cascade: m;
+													left: e;  right: m                
+                                                    ]  
+							]
+]      
+                     
+)
+category = (
+
+^super category
+          wrapper:[:cn :ms  |
+                      | end |
+                       end:: ms isEmpty ifTrue:[cn end] ifFalse:[ms last end].
+                       CategoryAST new name: cn value asSymbol; methods: ms;
+                                            start: cn start; end: end
+                     ].
+)
+classDeclaration ^ <ClassDeclarationAST> = (
+	^super classDeclaration wrapper:
+		[:hdr :instSide :classSide |
+		| klassSide kat |
+		klassSide:: classSide isNil
+			ifTrue:
+				[SideAST new 
+					variables: OrderedCollection new
+					categories: OrderedCollection new]
+			ifFalse: [classSide].
+		ClassDeclarationAST new
+			header: hdr;
+			instanceSide: instSide;
+			classSide: klassSide;
+			start: hdr start;
+			end: (classSide isNil ifTrue: [instSide end] ifFalse: [classSide end])]
+)
+classDefinition = (
+halt.
+(* %Cleanup when NS1 and NS0  are gone *)
+(* Retained for compatibility with older Newsqueak versions. We renamed classDefinition to ClassDeclaration in the grammar, but there is code that needs to use older parsers, and hence uses the old protocol *)
+^compilationUnit
+)
+public classHeader ^ <ClassHeaderAST> = (
+	^super classHeader wrapper:
+		[:am :ckw :klassName :cons :eq :superClause :lp :cmnt :instVars :inits :rp | 
+		| vs kat start konstruktor superCall isSeq |
+		isSeq:: true.
+		kat:: nil.
+		start:: am isNil ifTrue: [ckw start] ifFalse: [am start].
+		konstruktor:: cons isNil 
+			ifTrue: [defaultConstructorPattern start: klassName end + 1; end: klassName end]
+			ifFalse: [cons].
+		superCall:: superClause isNil 
+			ifTrue: [defaultSuperCallAt: eq end + 1 ending: eq end] 
+			ifFalse: [superClause].
+		vs:: instVars isNil
+			ifTrue: [OrderedCollection new]
+			ifFalse: [isSeq:: instVars first. instVars last].
+		ClassHeaderAST new
+			name: klassName token asSymbol; 
+			constructor: konstruktor;
+			superclassName: superCall receiver message selector;
+			superclassCall: superCall receiver;
+			superConstructorCall: superCall message;
+			slots: vs; isSeq: isSeq; initExprs: inits; category: kat ;
+			classComment: cmnt;
+			inheritanceChain: {superCall};
+			accessModifier: (am isNil ifTrue: [#protected] ifFalse: [am token]);
+			start: start; end: rp end].
+)
+classSideDecl ^ <SideAST> = (
+	^super classSideDecl wrapper:
+		[:cn :lp :cats :rp  | 
+		SideAST new
+			variables: OrderedCollection new
+			categories: cats;
+			start: cn start; end: rp end]
+)
+codeBody ^ <CodeBodyAST> = (
+
+^super codeBody
+          wrapper:[:litMsgs :tmps :stmts |
+                      | ts ss start end  cstart cend isSeq | 
+				isSeq:: true.
+                       end:: nil.
+                       start:: end.
+                       ts:: tmps isNil ifTrue:[OrderedCollection new] ifFalse:[isSeq:: tmps first. tmps last].      
+                       ss:: stmts isNil ifTrue:[OrderedCollection new]  ifFalse:[stmts]. 
+                       ts isEmpty 
+				ifFalse:[cstart:: ts first concreteStart. start:: ts first start.
+					cend::  ts last concreteEnd. end::  ts last end.
+					].       
+                       ss isEmpty ifFalse:[start isNil 
+								ifTrue:[start:: ss first start]. 
+								end:: ss last end. 
+								cend:: ss last concreteEnd
+							].
+                       CodeBodyAST new temporaries: ts
+                                            statements: ss;
+							  literalMessages: (litMsgs select: [:e | e isMessageNode]);
+							  isSeq: isSeq;
+                                            start: start;
+                                            end: end;
+					    		  concreteStart:  cstart;
+                                            concreteEnd: cend
+                     ].
+)
+public compilationUnit = (
+	^super compilationUnit wrapper: [:lid :u :e | u] (* throw out end-of-input indicator *) 
+)
+public doItExpression = (
+	(* throw out end-of-input indicator *) 
+	^super doItExpression wrapper: [:cb :end | cb]
+)
+expression = (
+	^super expression wrapper:
+		[:setters :msg |
+		| e setSend args setSelector |
+		e:: msg.
+		setters isNil ifFalse:
+			[setters size to: 1 by: -1 do: 
+				[:index |
+				| setter = setters at: index. |
+				args:: OrderedCollection new add: e; yourself.
+				setSelector:: setter token asString.
+				setSend:: MessageAST new
+					send: (setSelector copyFrom: 1 to: setSelector size -1) asSymbol with: args;
+					start: setter start; end: setter end;
+					right: e.
+				e:: self hereSetterSendFromMsg: setSend]].
+		e].
+)
+furtherStatements = (
+
+^super furtherStatements
+     wrapper:[:d :stmts  | stmts].
+)
+keywordExpression ^ <NormalSendAST> = (
+
+^super keywordExpression
+     wrapper:[:bo :msg <MessageAST> |
+                  msg isNil 
+                       ifTrue:[bo]
+                       ifFalse:[NormalSendAST new to: bo send: msg; left: bo; right: msg]
+                ].
+)
+keywordHereSend = (
+
+^super keywordHereSend
+          wrap:[:msg  |
+                  self hereSendFromMsg: msg                               
+                 ].
+)
+keywordMsg ^ <MessageAST> = (
+	^super keywordMsg wrapper:
+		[:esend :kws  |
+		| sel <String> args <List[Expression]> |
+		args:: OrderedCollection new.
+		sel:: kws inject: '' into:
+			[:s <String> :kwd | 
+			args add: (kwd at:2). 
+			s, (kwd at:1) token].
+		MessageAST new
+			send: sel asSymbol with: args;
+			isEventual: (nil = esend) not;
+			start: kws first first start;
+			right: args last].
+)
+keywordMsgPattern ^ <MessagePatternAST> = (
+
+^super keywordMsgPattern
+     wrap:[:kws  |
+             | sel  params |
+              params:: OrderedCollection new.
+              self assert:[kws isEmpty not] message: 'Assert failed'.
+              sel:: kws inject: '' into:[:s  :kwp | 
+                                           params add: kwp last.
+                                           s, kwp first token
+                                          ].
+              MessagePatternAST new selector: sel asSymbol parameters: params  ;
+                                          start: kws first first start;
+                                          right: params last
+            ].
+)
+messagePattern ^ <MessagePattern> = (
+
+^super messagePattern
+    wrapper:[:pt :rt :tp  |
+                tp isNil ifTrue:[rt isNil ifFalse:[pt end: rt concreteEnd]]
+                         ifFalse:[pt end: tp concreteEnd].
+                                 
+                pt returnType: rt; typePattern: tp                    
+               ].
+)
+method ^ <MethodAST> = (
+halt.
+^super method
+     wrapper:[:msg :cb :ei  |
+                   cb parameters: msg parameters.
+                   MethodAST new pattern: msg 
+                                      body: cb
+                                      accessModifier: #public;
+                                      start: msg start;
+                                      right: cb                             
+                ].
+)
+public methodDecl ^ <MethodAST> = (
+	^super methodDecl wrapper:
+		[:am :msg :eq :lp :cb :rp  |
+		cb parameters: msg parameters.
+		MethodAST new
+			pattern: msg 
+			body: cb
+			accessModifier: (nil = am ifTrue: [#protected] ifFalse: [am token]);
+			start: (nil = am ifTrue: [msg start] ifFalse: [am start]);
+			end: rp end]
+)
+mixinApplication ^ <MixinApplicationAST> = (
+
+	^super mixinApplication wrapper:
+		[:cp <ClassPrefixAST> :mixinOp <Token> :me <Expression> |
+				(MixinApplicationAST prefix: cp mixin: me) left:  cp; right: me
+		]
+)
+nestedClassDecl = (
+	halt.
+^super nestedClassDecl 
+   wrapper:[:accessModifier  :classDeclaration  |
+	accessModifier ifNil: [
+			(* According to the language spec the accessModifier is #protected if not otherwise specified. *)
+			classDeclaration accessModifier: #protected
+		] ifNotNil: [
+			classDeclaration accessModifier: accessModifier first token ].
+	classDeclaration ]
+)
+parenthesizedExpression = (
+
+^super parenthesizedExpression
+    wrapper:[:l :e :r  | 
+                e concreteStart: l start; concreteEnd: r end.
+                e
+               ].
+)
+returnStatement ^ <ReturnStatAST> = (
+	^super returnStatement wrapper:
+		[:r :e :od |
+		OrderedCollection new
+			add: (ReturnStatAST new expression: e; start: r start; right: e); yourself]
+)
+sideDecl ^ <SideAST> = (
+	^super sideDecl wrapper:
+		[:lp :classes :categories :rp |
+		NSSideAST new
+			variables: OrderedCollection new
+			categories: categories;
+			nestedClasses: classes;
+			start: lp start; end: rp end]
+)
+slotDecl ^ <VarDeclAST> = (
+
+^super slotDecl
+    wrapper:[:n :t  | 
+                | end |
+                end:: t isNil ifTrue:[n end] ifFalse:[t concreteEnd].
+                (VarDeclAST name: n token asSymbol type: t)
+                                   start: n start; end: end 
+               ].
+)
+slotDef = (
+	^super slotDef wrapper: 
+		[:am :sd :init  |   
+		| start end slotClass expr msg | 
+		start:: am isNil ifTrue: [sd start] ifFalse: [am start].
+		init isNil
+			ifTrue: 
+				[end:: sd end. 
+				slotClass:: MutableSlotDefAST]
+			ifFalse:
+				[end:: init last concreteEnd. 
+				expr:: init at: 2. 
+				slotClass:: (init at: 1) token = #'::='
+					ifTrue: [MutableSlotDefAST] 
+					ifFalse: [ImmutableSlotDefAST]].
+		slotClass new
+			accessModifier: (am isNil ifTrue: [#protected] ifFalse: [am token]);
+			slotDecl: sd; 
+			initializer: expr;
+			start: start;
+			end: end].
+)
+slotName = (
+	(* change to create a here send *)
+	^super slotName wrap:
+		[:n | | msg sn |
+		sn:: n token asSymbol.
+		(sn = #self or: [sn = #super or: [sn = #outer]])
+			ifTrue: [(pseudoVariableNode: sn) start: n start; end: n end]
+			ifFalse: 
+				[msg:: MessageAST new 
+					send: sn with: OrderedCollection new;
+					start: n start; end: n end.
+				hereSendFromMsg: msg]].
+)
+statementSequence = (
+
+^super statementSequence
+     wrapper:[:e :rst  |
+                  rst isNil
+                    ifTrue:[OrderedCollection new add:e; yourself]
+                    ifFalse:[OrderedCollection new add:e; addAll: rst; yourself]                
+                ].
+)
+superclassClause = (
+
+^super superclassClause
+    wrapper:[:sp :sn :msg |  | constructorCall  sc |
+	sc:: sp isNil 
+		ifTrue:[hereSendFromMsg: sn] 
+	      ifFalse:[
+			NormalSendAST new receiver: sp; 
+				message: (MessageAST new send: sn selector with: {}); 
+	                         start: sp start; end: sn end.
+		].
+	constructorCall:: msg isNil (* default constructor is 'new' *)
+	                            ifTrue:[defaultConstructorCall start: sn start; end: sn end]
+	                            ifFalse:[msg].
+	NormalSendAST new receiver: sc; message: constructorCall; 
+	                         start: sc start; end: constructorCall end
+	]
+)
+symbolConstant = (
+
+^super symbolConstant
+     wrapper:[:h :s  | s start: h start].
+)
+toplevelClass = (
+	^super toplevelClass wrapper:
+		[:cat :cd |
+		| kat |
+		cat isNil ifFalse:
+			[cd header category: cat value.
+			cd start: cat start].
+		cd]
+)
+tuple = (
+
+^super tuple
+   wrapper:[:lc :es :rc | 
+               TupleAST new elements: es; start: lc start; end: rc end
+              ].
+)
+unaryExpression ^ <ExpressionAST> = (
+
+^super unaryExpression
+     wrapper:[:o <ExpressionAST>  :s <List[MessageAST]> |
+                 self assert:[s isNil not] message: 'Assert failed'.
+                 s inject: o into:[:e <ExpressionAST> :umsg <MessageAST> |
+                                    NormalSendAST new to: e 
+                                                            send: umsg;
+                                                            start: e start;
+                                                            end: umsg end
+                                   ]                
+                ].
+)
+unaryMsgPattern ^ <MessagePatternAST> = (
+
+^super unaryMsgPattern
+          wrap:[:sel   <Symbol> |
+                   MessagePatternAST new selector: sel token asSymbol parameters: OrderedCollection new;
+                                               start: sel start; end: sel end
+                 ].
+)
+'lexical'
+accessModifier = (
+	^super accessModifier wrapper: [:am :ws | am]
+)
+decimalNum ^ <Number> = (
+	^super decimalNum wrapper:
+		[:sgn :ip <List[Character]> :fp <Number> :ep <Integer> | 
+		| sum <Number>  | 
+		sum:: computeDigits: ip.
+		nil = fp ifFalse: [sum:: sum + fp].
+		nil = sgn ifFalse: [sum:: -1 * sum].
+		nil = ep ifFalse: [sum:: sum * (10 ** ep)].
+		sum]
+)
+exponent ^ <Integer> = (
+	^super exponent wrapper:
+		[:e :sgn :ds <List[Character]> | 
+		| exp <Integer> |
+		exp:: computeDigits: ds.
+		sgn isNil ifTrue: [exp] ifFalse: [-1*exp]].
+)
+extendedFraction ^ <List[Character]> = ( 
+	^super extendedFraction wrapper:[:period  :ds  | ds]
+)
+fraction ^ <Number> = ( 
+	^super fraction wrapper: [:period :ds | computeFraction: ds]
+)
+number = (
+	^super number wrap: [:t | NumberAST new value: t token; start: t start; end: t end].
+)
+radix ^ <Integer> = (
+
+| exp <Integer> |
+ 
+^super radix wrapper:[:ds  :r  | computeDigits: ds]
+)
+radixNum = (
+	^super radixNum wrapper:
+		[:r <Integer> :sgn :ip <List[Character]> :fp <List[Character]> :ep <Integer> | 
+		| sum <Number> |
+		assert: [ip isEmpty not] message: 'internal error: integer part is empty'.
+		sum:: computeDigits: ip radix: r.
+		nil = fp ifFalse: [sum:: sum + (computeFraction: fp radix: r)].
+		nil = sgn ifFalse: [sum:: -1 * sum].
+		nil = ep ifFalse: [sum:: sum * (10 ** ep)].
+		sum]
+)
+public string = (
+	^super string wrap: [:t | StringAST new value: t token; start: t start; end: t end]. 
+)
+symbol = (
+	^super symbol wrap: [:t | SymbolAST new value: t token asSymbol; start: t start; end: t end].
+)
+'parsing'
+public parse: input inContext: context ifError: blk = (
+ 
+	[ super parse: input inContext: context ifError: blk ]
+		on: ParserError
+		do: [ :ex | ^blk value: ex message with: ex position ]
+)
+'private'
+computeDigits: ds <List[Character]> ^ <Integer>= (
+	| s ::= 0. |
+	ds do: [:d | s:: (10 * s) + (d - 48)].
+	^s
+)
+computeFraction: ds <List[Character]> ^ <Number>= (
+	| 
+	numerator ::= 0. 
+	denominator ::= 1.
+	|
+	ds do: [:d | 
+		numerator:: (10 * numerator) + (d - 48).
+		denominator:: 10 * denominator].
+	^numerator / denominator
+)
+defaultConstructorCall ^ <MessageAST> = (
+
+(* default constructor is 'new' *)
+^MessageAST new send: defaultConstructorSelector with: {}
+)
+defaultConstructorPattern ^ <MessagePatternAST> = (
+
+(* default constructor is 'new' *)
+^MessagePatternAST new selector: defaultConstructorSelector parameters: {}
+)
+defaultConstructorSelector ^ <Symbol> = (
+
+(* default constructor is 'new' *)
+^#new
+)
+defaultSuperCallAt: start <Integer> ending: end  <Integer> ^ <NormalSendAST> = (
+
+
+| objId |
+
+objId:: hereSendFromMsg: (MessageAST new send: #Object with:{}; start: start; end: end).
+^NormalSendAST new receiver: objId; message: (defaultConstructorCall start: start; end: end)
+)
+hereNode ^<VariableAST> = (
+	(* Generates an AST representing the implicit receiver. We use a string so that we can represent a name that is not a legal identier *)
+	
+	^VariableAST new name: #'@here'; start: 0; end: 0.
+)
+hereSendFromMsg: msg = (
+
+(* Build an implicit here send with the message msg *)
+
+^NormalSendAST new to: hereNode  
+                          send: msg;
+                          start: msg start; end: msg end
+)
+pseudoVariableNode: psvName = (
+	(* generate a an AST representing self; used for implicit self sends *)
+	self assert: [{#self. #super. #outer.} includes: psvName] message: 'Assert failed'.
+	^VariableAST new name: psvName asSymbol; start: 0; end: 0.
+)
+'types'
+blockReturnType = (
+
+
+^super blockReturnType
+   wrapper:[:h :rt | rt].
+)
+blockType = (
+
+	(* BlockTypeAST formals:return: *)
+	^super blockType wrapper:
+		[:lb :tas :rb | 
+			(tas isEmpty ifTrue: [
+				(BlockTypeAST
+					formals: {}
+					return: nil)
+			] ifFalse: [
+				(BlockTypeAST
+					formals: (tas asArray allButLast: 1)
+					return: tas last)
+			])
+			start: lb start;
+			end: rb end
+		(* GenericInvocationAST new 
+			generic: (TypeIdAST new name: #Block); 
+			arguments:  tas;
+			start: lb start;
+			end: rb end *)]
+)
+newBlockTypeArgList = (
+
+
+^super newBlockTypeArgList
+   wrapper:[:tas :rt | 
+               | targs |
+                 targs:: tas collect:[:p | p last].
+                 rt isNil ifTrue:[targs addLast: (TypeIdAST new name: #Object)]
+                          ifFalse:[targs add: rt].
+                 targs
+
+              ].
+)
+nonEmptyBlockTypeArgList = (
+
+
+^super nonEmptyBlockTypeArgList
+   wrapper:[:tas :rt | 
+               | targs |
+                 targs:: OrderedCollection new addAll:tas; yourself.
+                 rt isNil ifTrue:[targs addLast: (TypeIdAST new name: #Object)]
+                          ifFalse:[targs add: rt last].
+                 targs
+
+              ].
+)
+parenthesizedTypeExpression = (
+
+
+^super parenthesizedTypeExpression
+   wrapper:[:lp :te :rp | 
+               te concreteStart: lp start; concreteEnd: rp end.
+               te
+               ].
+)
+returnType = (
+
+^super returnType 
+   wrapper:[:h :rt | 
+               rt concreteStart: h start.
+               rt
+              ].
+)
+type = (
+
+
+^super type 
+   wrapper:[:lb :te :rb |
+               te concreteStart: lb start; concreteEnd: rb end.
+               te
+              ]
+)
+typeArguments ^  <{List[TypeExpr]. Token}> = (
+
+
+^super typeArguments 
+   wrapper:[:lb <Token>  :tas <List[TypeExpr]> :rb <Token>  |   
+                 {tas. rb}
+              ]
+)
+typeExpr = (
+
+
+^super typeExpr 
+   wrapper:[:lOperand :msg | 
+               | operator rOperand |
+                 msg isNil ifTrue:[ lOperand] 
+                            ifFalse:[BinaryTypeOpAST new leftOperand: lOperand; 
+                                                                 operator: msg first token; 
+                                                                 rightOperand: msg last ;
+                                                                 start: lOperand start;
+                                                                 end: msg last end
+                                     ]
+              ]
+)
+typePrimary ^ <TypeIdAST | GenericInvocationAST> = (
+
+
+^super typePrimary
+   wrapper:[:g <Token> :tas <{List[TypeExpr]. Token}>  | 
+               | tid <TypeIdAST>  |
+                tid:: TypeIdAST new name: g token; start: g start; end: g end.
+                tas isNil ifTrue:[tid]
+                          ifFalse:[ParameterizedTypeAST new generic: tid; 
+                                                                   arguments: tas first; 
+                                                                   start: g start;
+                                                                   end: tas last end
+                                   ]
+             ]
+         
+)
+typeTerm ^ <TypeExpression> = (
+
+
+^super typeTerm 
+   wrapper:[:operand :operators | 
+               operators inject: operand into:[:te <TypeExpression> :op | 
+                                                    UnaryTypeOpAST new operand: te; operator: op token;
+                                                                               start: te start; end: op end
+                                                  ] 
+              ]
+)
+) : (
+)
+) : (
+)

@@ -1,0 +1,14 @@
+Newspeak3
+'Benchmarks'
+class NLRImmediate usingPlatform: p = ()
+('as yet unclassified'
+public bench = (
+	1 to: 10000 do: [:i | self nlr].
+)
+nlr = (
+	self run: [^2].
+	^1
+)
+run: block = (
+	block value
+)) : ()

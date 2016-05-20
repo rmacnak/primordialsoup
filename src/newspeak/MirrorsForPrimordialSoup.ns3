@@ -1,0 +1,1214 @@
+Newspeak3
+'NS2PrimordialSoup'
+class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns = (|
+(* TODO: These need to be real identity collections for schema changes. *)
+private IdentityMap = platform collections IdentityDictionary.
+
+private List = platform collections ArrayList.
+private WeakMap = platform kernel WeakMap.
+private InstanceMixin = ik InstanceMixin.
+private ClassMixin = ik ClassMixin.
+private Metaclass = ik Metaclass.
+private reflectees = WeakMap new.
+
+private cachedPlatform = platform.
+private internalKernel = ik.
+private namespace = ns.
+private intermediatesX
+private compilerX
+|) (
+public class ActivationMirror reflecting: activationToken = () (
+) : (
+)
+class AtomicInstaller = (|
+private updateMixinsAndClasses <IdentityMap[OldObject,NewObject]>
+private updateInstances <IdentityMap[OldObject,NewObject]>
+private existingClasses <IdentityMap[HierarchyDepth,Set[Class]]>
+|) (
+'as yet unclassified'
+allInstVarNamesOf: cls = (
+	nil = cls ifTrue: [^{}].
+	^(allInstVarNamesOf: (superclassOf: cls)) , ((mixinOf: cls) _slots collect: [:slotDesc | slotDesc at: 1])
+)
+in: collection lastIndexOf: element = (
+	collection size to: 1 by: -1 do: [:index | (collection at: index) = element ifTrue: [^index]].
+	^0
+)
+'private'
+private cleanup = (
+	updateMixinsAndClasses: nil.
+	updateInstances: nil.
+	existingClasses: nil.
+)
+private installAll = (
+	| updateCount oldObjects newObjects index |
+	updateCount:: updateMixinsAndClasses size + updateInstances size.
+	oldObjects:: Array new: updateCount.
+	newObjects:: Array new: updateCount.
+	index: 1.
+	updateInstances keysAndValuesDo: 
+		[:old :new | 
+		oldObjects at: index put: old.
+		newObjects at: index put: new.
+		index: index + 1].
+	(* Put updated mixins and classes last, so A -> C follows B -> C (see class comment). *)
+	updateMixinsAndClasses keysAndValuesDo: 
+		[:old :new | 
+		oldObjects at: index put: old.
+		newObjects at: index put: (updateInstances at: old ifAbsent: [new]). (* Follow B to avoid B -> C, A -> B. *)
+		index: index + 1].
+	updateCount = 0 ifTrue: [^self].
+	elementsOf: oldObjects forwardIdentityToElementsOf: newObjects.
+)
+private setup = (
+	updateMixinsAndClasses: IdentityMap new.
+	updateInstances: IdentityMap new.
+	existingClasses: IdentityMap new.
+)
+'private-classes'
+private depthFor: klassArg <Class> ^<Integer> = (
+	| klass depth |
+	depth: 0.
+	klass: klassArg.
+	[nil = klass] whileFalse: 
+		[klass:: superclassOf: klass. 
+		depth: depth + 1].
+	^depth
+)
+private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<Boolean> = (
+	| oldCls newCls oldMixin newMixin oldSlots newSlots |
+	oldCls:: oldClass.
+	newCls:: newClass.
+	[nil = oldClass] whileFalse:
+		[oldMixin:: mixinOf: oldCls.
+		 newMixin:: mixinOf: newCls.
+		 oldMixin = newMixin ifTrue: [^false].
+		 oldSlots:: oldMixin _slots.
+		 newSlots:: newMixin _slots.
+		 oldSlots size = newSlots size ifFalse: [^true].
+		 1 to: oldSlots size do: 
+			[:index | ((oldSlots at: index) at: 1) = ((newSlots at: index) at: 1) ifFalse: [^true]].
+		 oldCls:: superclassOf: oldCls.
+		 newCls:: superclassOf: newCls].
+	^false
+)
+private processExistingClass: oldClass <Class> = (
+	
+	| oldSuperclass newSuperclass oldMixin newMixin oldEnclosingObject newClass |
+	oldSuperclass:: superclassOf: oldClass.
+	newSuperclass:: updateMixinsAndClasses at: oldSuperclass ifAbsent: [oldSuperclass].
+
+	oldMixin:: mixinOf: oldClass.
+	newMixin:: updateMixinsAndClasses at: oldMixin ifAbsent: [oldMixin].
+	
+	oldEnclosingObject:: enclosingObjectOf: oldClass.
+
+	newClass:: newMixin 
+		apply: newSuperclass 
+		withName: newMixin _name
+		enclosingObject: oldEnclosingObject.
+	
+	updateMixinsAndClasses at: oldClass put: newClass.
+	updateMixinsAndClasses at: (classOf: oldClass) put: (classOf: newClass).
+)
+private processExistingClasses = (
+	| maxDepth ::= 0. |
+	(* Process superclasses before subclasses. Create all new classes before remapping any instances. Remap instances in any order. *)
+	existingClasses keysAndValuesDo: 
+		[:inheritanceDepth :classes | 
+		inheritanceDepth > maxDepth ifTrue: 
+			[maxDepth:: inheritanceDepth]].
+
+	0 to: maxDepth do: 
+		[:inheritanceDepth |
+		(existingClasses at: inheritanceDepth ifAbsent: [{}]) do:
+			[:oldClass <Class> | processExistingClass: oldClass]].
+
+	existingClasses keysAndValuesDo:
+		[:inheritanceDepth :classes | 
+		classes do:
+			[:oldClass <Class> | processInstancesOf: oldClass]].
+)
+private sortClass: app <Class> = (
+	| classes depth subclasses |
+	nil = app ifTrue: [^self]. (* InstanceMixin>>applications and Class>>subclasses are weak. *)
+	
+	depth:: depthFor: app.
+	classes:: existingClasses at: depth ifAbsentPut: [List new].
+	classes add: app.
+	
+	(* :todo:
+	subclasses:: subclassesOf: app.
+	nil = subclasses ifFalse: 
+		[subclasses do: [:subclass | sortClass: subclass]]. *)
+)
+'private-instances'
+private processInstancesOf: oldClass <Class> = (
+	| 
+	newClass <Class> = updateMixinsAndClasses at: oldClass.
+	oldSlotNames <Array[Symbol]>
+	newSlotCount <Integer>
+	remapIndices <Array[Integer]>
+	|
+	(layoutHasChangedBetween: oldClass and: newClass) ifFalse: [^self].
+	
+	(* Heuristic: choose the latter slot if a slot name is duplicated to favor overriding slots. *)
+	oldSlotNames:: allInstVarNamesOf: oldClass.
+	remapIndices:: (allInstVarNamesOf: newClass) collect:
+		[:newSlotName | in: oldSlotNames lastIndexOf: newSlotName].
+	newSlotCount:: remapIndices size.
+	'remapping with ' out.
+	1 to: remapIndices size do: [:newIndex | 
+		(newIndex printString, '<-', (remapIndices at: newIndex) printString) out].
+
+	(allInstancesOf: oldClass) do: 
+		[:oldInstance |
+		(* Avoid A -> D (see class comment). *)
+		(updateMixinsAndClasses includesKey: oldInstance) ifFalse:
+			[ | newInstance = allocate: newClass. |
+			(* Copy state from oldInstance to newInstance. *)
+			1 to: newSlotCount do: [:newIndex |
+				| oldIndex value |
+				oldIndex:: remapIndices at: newIndex.
+				0 = oldIndex ifFalse: [
+					value:: slotOf: oldInstance at: oldIndex.
+					slotOf: newInstance at: newIndex put: value]]. 
+
+			updateInstances at: oldInstance put: newInstance]].
+)
+'private-mixins'
+private methodDictionaryFor: mixin <AbstractMixin> from: imixin <IntermediateMixin> ^<MethodDictionary> = (
+	| cmethods |
+	cmethods:: imixin methods collect:
+		[:imethod <IntermediateMethod> | 
+		imethod methodMixin: mixin.
+		imethod compiledMethod].
+	^cmethods asArray
+)
+private noteUpdateOf: existingMixin <InstanceMixin | nil> to: newMixin <InstanceMixin> = (
+	| applications <WeakArray> |
+	nil = existingMixin ifTrue: [^self].
+	
+	updateMixinsAndClasses at: existingMixin put: newMixin.
+	updateMixinsAndClasses at: existingMixin _classMixin put: newMixin _classMixin.
+	
+	applications:: existingMixin _applications.
+	nil = applications ifFalse: 
+		[applications do: [:application <Class> | sortClass: application]].
+)
+private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<InstanceMixin> = (
+	
+	|
+	mixin <Mixin>
+	classMixin <ClassMixin>
+	existingMixin <Mixin>
+	nested
+	|
+
+	mixin:: InstanceMixin new.
+	classMixin:: ClassMixin new.
+	
+	mixin _headerSource: classDecl headerSource.
+	mixin _primaryFactorySelector: classDecl factoryName.
+	assert: [classDecl factoryName isNil not] message: 'Missing factory name'.
+	mixin _name: classDecl simpleName.
+	mixin _classMixin: classMixin.
+	mixin _methods: (methodDictionaryFor: mixin from: classDecl instanceSide).
+	mixin _slots: (classDecl instanceSide slots collect:
+		[:s <IntermediateSlotDeclaration> | {s simpleName. s isMutable. s accessModifier}]) asArray.
+	
+	classMixin _instanceMixin: mixin.
+	classMixin _methods: (methodDictionaryFor: classMixin from: classDecl classSide).
+	
+	existingMixin:: classDecl existingMixin.
+	noteUpdateOf: existingMixin to: mixin.
+	
+	nil = existingMixin ifFalse:
+		[(* If this is the top-most thing changed in this installation and not a top level class, the enclosingMixin won't otherwise be set and would incorrectly end up nil. *)
+		mixin _enclosingMixin: existingMixin _enclosingMixin.
+		mixin _classMixin _enclosingMixin: existingMixin _enclosingMixin].
+	
+	nested:: classDecl instanceSide nestedClasses collect:
+		[:nestedClassDecl <IntermediateClassDeclaration> |
+		| nestedMixin <InstanceMixin> |
+		nestedMixin:: processClassDeclaration: nestedClassDecl.
+		nestedMixin _enclosingMixin: mixin.
+		nestedMixin _classMixin _enclosingMixin: mixin.
+		nestedMixin].
+	mixin _nestedMixins: nested asArray.
+	^mixin
+)
+'public access'
+public install: classDecls <List[IntermediateClassDeclaration]> = (
+	
+	| results |
+	setup.
+	results:: classDecls collect: [:classDecl | processClassDeclaration: classDecl].
+	processExistingClasses.
+	installAll.
+	cleanup.
+
+	^results (* <List[InstanceMixin]> *)
+)
+) : (
+)
+public class ClassDeclarationBuilder fromIntermediate: ir = (|
+private intermediate <IntermediateClassDeclaration> = ir.
+|) (
+'as yet unclassified'
+public accessModifier ^<Symbol> = (
+	(* halt. incrementalScopeFor: *)
+	(* bogus *)
+	nil = intermediate existingMixin ifTrue: [^#public].
+	^intermediate existingMixin accessModifier
+)
+public classSide ^<MixinBuilder> = (
+	| ir builder |
+	ir:: intermediate classSide.
+	builder:: ir builder.
+	nil = builder ifTrue:
+		[builder:: MixinBuilder fromIntermediate: ir.
+		 ir builder: builder].
+	^builder
+)
+public enclosingClass ^<ClassDeclarationBuilder> = (
+	| enclosingIntermediate |
+	enclosingIntermediate:: intermediate enclosingClass.
+	nil = enclosingIntermediate ifTrue: [^nil].
+	nil = enclosingIntermediate builder ifTrue: [^halt].
+	^enclosingIntermediate builder
+)
+public install = (
+	| installer newMixin |
+	installer:: AtomicInstaller new.
+	(* :bogus: find outermost changed class declaration *)
+	newMixin:: (installer install: {intermediate}) first.
+	^ClassDeclarationMirror reflecting: newMixin
+)
+public instanceSide ^<MixinBuilder> = (
+	| ir builder |
+	ir:: intermediate instanceSide.
+	builder:: ir builder.
+	nil = builder ifTrue:
+		[builder:: MixinBuilder fromIntermediate: ir.
+		 ir builder: builder].
+	^builder
+)
+public name = (
+	^intermediate simpleName
+)
+public prvtIntermediate = (
+	(* :bogus: squeak compatibility *)
+	^intermediate
+)
+) : (
+'as yet unclassified'
+public fromSource: source <String> ^<ClassDeclarationBuilder> = (
+	^self fromUnitSource: 'Newspeak3 ''Uncategorized'' ', source
+)
+public fromUnitSource: source <String> ^<ClassDeclarationBuilder> = (
+	| ir <IntermediateClassDeclaration> builder |
+	ir:: compiler compileClassSource: source within: nil.
+	builder:: self fromIntermediate: ir.
+	ir builder: builder.
+	^builder
+)
+)
+private class ClassDeclarationMirror reflecting: mxn = (| mixin <InstanceMixin> = mxn. |) (
+'as yet unclassified'
+public accessModifier ^<Symbol> = (
+	(* halt. incrementalScopeFor: *)
+	^mixin _accessModifier
+)
+public applyToObject ^<ClassMirror> = (
+	nil = mixin _enclosingMixin ifFalse: [^notTopLevel].
+	^ClassMirror reflecting: (mixin apply: Object withName: mixin _name enclosingObject: nil)
+)
+public asBuilder ^<ClassDeclarationBuilder> = (
+	| ec ir builder |
+	nil = mixin _enclosingMixin ifFalse: [unimplemented].
+	ec:: nil.
+	ir:: buildIntermediateFor: mixin within: ec.
+	builder:: ClassDeclarationBuilder fromIntermediate: ir.
+	ir builder: builder.
+	ir existingMixin: mixin.
+	^builder
+)
+public classSide ^<MixinMirror> = (
+	^MixinMirror reflecting: mixin _classMixin
+)
+public definingMixin ^<MixinMirror> = (
+	| em = mixin _enclosingMixin. |
+	nil = em ifTrue: [^nil].
+	^MixinMirror reflecting: em
+)
+public enclosingClass ^<ClassDeclarationMirror> = (
+	| em = mixin _enclosingMixin. |
+	nil = em ifTrue: [^nil].
+	^ClassDeclarationMirror reflecting: em
+)
+public instanceSide ^<MixinMirror> = (
+	^MixinMirror reflecting: mixin
+)
+public name = (
+	^mixin _name
+)
+public printString = (
+	^'ClassDeclarationMirror:',simpleName.
+)
+public simpleName = (
+	^mixin _name
+)
+) : (
+)
+public class ClassMirror reflecting: behavior = (|
+public reflectee <Behavior> = behavior.
+|(isBehavior: behavior) ifFalse: [^Error new signal].
+reflectees at: self put: behavior) (
+'as yet unclassified'
+public = other ^<Boolean> = (
+	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
+	^other isKindOfClassMirror
+)
+public enclosingObject ^<ObjectMirror> = (
+	^ObjectMirror reflecting: (enclosingObjectOf: reflectee)
+)
+public hash ^<Integer> = (
+	^(identityHashOf: reflectee) hash bitXor: class hash
+)
+public isKindOfClassMirror ^<Boolean> = (
+	^true
+)
+public isMeta ^<Boolean> = (
+	^Metaclass = (classOf: reflectee)
+)
+public methods ^<Collection[MethodMirror]> = (
+	| cls <Behavior> results <Collection[MethodMirror]> |
+	cls:: reflectee.
+	results:: List new.
+	[nil = cls] whileFalse:
+		[(methodsOf: cls) do: 
+			[:method <Method> | 
+			method isSynthetic ifFalse:
+				[results add: (MethodMirror reflecting: method)]].
+		cls:: superclassOf: cls].
+	^MirrorGroup wrapping: results.
+)
+public mixin ^<MixinMirror> = (
+	^MixinMirror reflecting: (mixinOf: reflectee)
+)
+public nestedClasses = (
+	| cls <Behavior> results <Collection[ClassDeclarationMirror]> |
+	cls:: reflectee.
+	results:: List new.
+	[nil = cls] whileFalse:
+		[(mixinOf: cls) _nestedMixins do: 
+			[:nestedMixin <InstanceMixin> | 
+			results add: (ClassDeclarationMirror reflecting: nestedMixin)].
+		cls:: superclassOf: cls].
+	^MirrorGroup wrapping: results
+)
+public slots ^<Collection[SlotDeclarationMirror]> = (
+	| cls <Behavior> classes result <Collection[SlotDeclarationMirror]> |
+	cls:: reflectee.
+	classes:: List new.
+	result:: List new.
+	[nil = cls] whileFalse: 
+		[classes add: cls.
+		cls:: superclassOf: cls].
+	classes size to: 1 by: -1 do: 
+		[:index |
+		cls:: classes at: index.
+		(mixinOf: cls) _slots do: 
+			[:slotDescriptor |
+			| name isMutable accessModifier |
+			name:: slotDescriptor at: 1.
+			isMutable:: slotDescriptor at: 2.
+			accessModifier:: slotDescriptor at: 3.
+			(name indexOf: '`') = 0 ifTrue:
+				[(* Not synthetic. *)
+				result add: (SlotDeclarationMirror 
+					name: name 
+					isMutable: isMutable 
+					accessModifier: accessModifier
+					mixin: self mixin)]]].
+	^MirrorGroup wrapping: result
+)
+public superclass ^<ClassMirror> = (
+	| s = superclassOf: reflectee. |
+	nil = s ifTrue: [^nil].
+	^ClassMirror reflecting: s
+)
+) : (
+)
+public class MethodBuilder reflecting: ir in: builder = (|
+private intermediate = ir.
+public definingMixin = builder.
+|) (
+'as yet unclassified'
+public accessModifier = (
+	^intermediate accessModifier
+)
+public name = (
+	^intermediate selector
+)
+) : (
+)
+private class MethodMirror reflecting: m = (| 
+	method <Method> = m.
+|reflectees at: self put: m) (
+'as yet unclassified'
+public = other ^<Boolean> = (
+	(is: method identicalTo: (reflectees at: other)) ifFalse: [^false].
+	^other isKindOfMethodMirror
+)
+public accessModifier ^<Symbol> = (
+	^method accessModifier
+)
+public definingMixin ^<MixinMirror> = (
+	^MixinMirror reflecting: method mixin
+)
+public hash ^<Integer> = (
+	^(identityHashOf: method) hash bitXor: class hash
+)
+public isKindOfMethodMirror ^<Boolean> = (
+	^true
+)
+public name = (
+	^method selector
+)
+) : (
+)
+private class MirrorGroup wrapping: collection = (|
+mirrors = collection.
+|) (
+'as yet unclassified'
+public collect: blk <[:Mirror]> = (
+	^mirrors collect: blk
+)
+public do: blk <[:Mirror]> = (
+	mirrors do: blk
+)
+public includesMirrorNamed: name = (
+	mirrors do: [:mirror | mirror name = name ifTrue: [^true]].
+	^false
+)
+public reject: blk <[:Mirror]> = (
+	^mirrors reject: blk
+)
+) : (
+)
+private class MixinBuilder fromIntermediate: ir = (|
+private intermediate <IntermediateMixin> = ir.
+private methodsX
+private nestedClassesX
+private slotsX
+|) (
+'as yet unclassified'
+public declaration ^<ClassDeclarationBuilder> = (
+	^intermediate declaration builder
+)
+public isKindOfMixinMirror ^<Boolean> = (
+	^true
+)
+public methods = (
+	nil = methodsX ifTrue:
+		[methodsX:: MutableMethodGroup fromIntermediate: intermediate].
+	^methodsX
+)
+public nestedClasses = (
+	nil = nestedClassesX ifTrue:
+		[nestedClassesX:: MutableNestedClassGroup fromIntermediate: intermediate].
+	^nestedClassesX
+)
+public slots = (
+	nil = slotsX ifTrue:
+		[slotsX:: MutableSlotGroup fromIntermediate: intermediate].
+	^slotsX
+)
+) : (
+)
+private class MixinMirror reflecting: mxn = (|
+mixin <AbstractMixin> = mxn.
+|reflectees at: self put: mxn) (
+'as yet unclassified'
+public = other ^<Boolean> = (
+	(mixin = (reflectees at: other)) ifFalse: [^false].
+	^other isKindOfMixinMirror
+)
+public declaration ^<ClassDeclarationMirror> = (
+	^ClassDeclarationMirror reflecting: 
+		(mixin isMeta ifTrue: [mixin _instanceMixin] ifFalse: [mixin])
+)
+public enclosingMixin ^<ClassDeclarationMirror> = (
+	| em = mixin _enclosingMixin. |
+	nil = em ifTrue: [^nil].
+	^MixinMirror reflecting: em
+)
+public hash ^<Integer> = (
+	^mixin hash bitXor: class hash
+)
+public isKindOfMixinMirror ^<Boolean> = (
+	^true
+)
+public isMeta ^<Boolean> = (
+	^mixin isMeta
+)
+public methods ^<Collection[MethodMirror]> = (
+	| results = List new. |
+	mixin _methods do: 
+		[:method | 
+		method isSynthetic ifFalse:
+			[results add: (MethodMirror reflecting: method)]].
+	^MirrorGroup wrapping: results.
+)
+public name ^<String> = (
+	^mixin _name
+)
+public nestedClasses ^<Collection[ClassDeclarationMirror]> = (
+	| results <Collection[ClassDeclarationMirror]> |
+	mixin isMeta ifTrue: [^MirrorGroup wrapping: {}].
+	results:: List new.
+	mixin _nestedMixins do:
+		[:nestedMixin <InstanceMixin> | 
+		results add: (ClassDeclarationMirror reflecting: nestedMixin)].
+	^MirrorGroup wrapping: results
+)
+public slots ^<Collection[SlotDeclarationMirror]> = (
+	| results = List new. |
+	mixin isMeta ifTrue: [^MirrorGroup wrapping: {}].
+	mixin _slots do: [:slotDescriptor | 
+		| slotName isMutable accessModifier |
+		slotName:: slotDescriptor at: 1.
+		isMutable:: slotDescriptor at: 2.
+		accessModifier:: slotDescriptor at: 3.
+		0 = (slotName indexOf: '`') ifTrue: (* not synthetic *)
+			[results add: (SlotDeclarationMirror 
+				name: slotName 
+				isMutable: isMutable 
+				accessModifier: accessModifier
+				mixin: self)]].
+	^MirrorGroup wrapping: results.
+)
+) : (
+)
+private class MutableMethodGroup fromIntermediate: ir = (|
+private intermediate <IntermediateMixin> = ir.
+|) (
+'as yet unclassified'
+public addFromSource: source <String> = (
+	| 
+	result <LowLevelMethodMirror>
+	cat
+	newM
+	|
+	result:: compiler
+		compileMethodSource: source 
+		within: intermediate builder.
+
+	result category: #'as yet unclassified'.
+
+	intermediate checkNameConflictsForMethod: result selector.
+	
+	intermediate methods removeAllSuchThat: 
+		[:ea | ea selector = result selector].
+	intermediate methods add: result.
+	
+	^MethodBuilder reflecting: result in: intermediate builder
+)
+public do: action = (
+	intermediate methods do: 
+		[:intermediateMethod |
+		action value: (MethodBuilder 
+			reflecting: intermediateMethod
+			in: intermediate builder)].
+)
+public removeMirrorNamed: name <Symbol> = (
+	intermediate methods removeAllSuchThat:
+		[:imethod | imethod isSynthetic not and: [imethod selector = name]].
+)
+) : (
+)
+private class MutableNestedClassGroup fromIntermediate: ir = (|
+private intermediate <IntermediateMixin> = ir.
+|) (
+'as yet unclassified'
+public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
+	| result <IntermediateClassDeclaration> builder |
+	
+	result:: compiler 
+		compileClassSource: source
+		within: intermediate.
+		
+	intermediate checkNameConflictsForNestedClass: result simpleName.
+	
+	intermediate nestedClasses add: result.
+	
+	builder:: ClassDeclarationBuilder fromIntermediate: result.
+	result builder: builder.
+	^builder
+)
+public do: action = (
+	intermediate nestedClasses do: 
+		[:intermediateClassDeclaration |
+		| builder |
+		builder:: intermediateClassDeclaration builder.
+		nil = builder ifTrue:
+			[builder:: ClassDeclarationBuilder fromIntermediate: intermediateClassDeclaration.
+			intermediateClassDeclaration builder: builder.
+			
+			(* :bogus: also find existingMixin *)
+			].
+		action value: builder].
+)
+public removeMirrorNamed: name <Symbol> = (
+	| nestedIntermediate victimName |
+	nestedIntermediate:: intermediate nestedClasses detect: [:nested | nested simpleName = name] ifNone: [^self].
+	(* Remove nested mixin *)
+	intermediate nestedClasses remove: nestedIntermediate.
+
+	(* Remove nested class accessor *)
+	intermediate methods remove: 
+		(intermediate methods detect: [:e | e selector = nestedIntermediate simpleName]).
+
+	(* Remove slot and slot accessors *)	
+	victimName: nestedIntermediate simpleName.
+	intermediate slots remove:
+		(intermediate slots detect: [:e | e name = (victimName,'`slot')]).
+	intermediate methods remove: 
+		(intermediate methods detect: [:e | e selector = (victimName,'`slot')]).
+	intermediate methods remove: 
+		(intermediate methods detect: [:e | e selector = (victimName,'`slot:')]).
+	intermediate methods remove: 
+		(intermediate methods detect: [:e | e selector = ('init`', victimName,'`slot:')]).
+
+	(* Indices can change if the victim's slot is not the last one *)
+	compiler generateSlotAccessorsFor: intermediate declaration.
+)
+) : (
+)
+private class MutableSlotGroup fromIntermediate: ir = (|
+private intermediate <IntermediateMixin> = ir.
+|) (
+'as yet unclassified'
+public do: action = (
+	intermediate slots do: 
+		[:intermediateSlot |
+		action value: (SlotDeclarationMirror 
+			name: intermediateSlot name
+			isMutable: intermediateSlot isMutable
+			accessModifier: intermediateSlot accessModifier 
+			mixin: intermediate builder)].
+)
+) : (
+)
+public class ObjectMirror reflecting: object = (|
+public reflectee = object.
+|reflectees at: self put: reflectee) (
+'as yet unclassified'
+public = other ^<Boolean> = (
+	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
+	^other isKindOfObjectMirror
+)
+public evaluate: expression <String>
+ifCompilerError: compilationErrorHandler <[:Error]> 
+ifError: evalErrorHandler <[:Error]> ^<ObjectMirror> = (
+	
+	(* Evaluate [expression] with the reflectee as the receiver. If [expression] cannot be compiled, activate [compilationErrorHandler] with the exception. If the evaluation of [expression] raises an error, activate [evalErrorHandler] with the error. Otherwise return an ObjectMirror on the result of [expression]. *)
+	
+	| cls mxn mtdMirror result |
+	[cls:: classOf: reflectee.
+	mxn:: (ClassMirror reflecting: cls) mixin.
+	mtdMirror:: compiler
+		compileExpressionSource: expression
+		inContext: nil
+		inMixin: mxn. 
+		
+	mtdMirror category: #DoIts.
+	mtdMirror methodMixin: (mixinOf: cls).
+	mtdMirror compiledMethod source: expression.
+	(* :todo: at: #debugInfo put: mtdMirror debugInfo *)]
+			on: Error
+			do: [:e | ^compilationErrorHandler cull: e ].
+	
+	[result:: 
+		object: reflectee 
+		executeMethod: mtdMirror compiledMethod
+		with: {}]
+			on: Error
+			do: [:e | ^evalErrorHandler cull: e].
+
+	^ObjectMirror reflecting: result
+)
+public getClass ^<ClassMirror> = (
+	^ClassMirror reflecting: (classOf: reflectee)
+)
+public getSlot: name = (
+	| index raw |
+	index:: indexOfSlotNamed: name in: (classOf: reflectee).
+	raw:: slotOf: reflectee at: index.
+	^ObjectMirror reflecting: raw	
+)
+public hash ^<Integer> = (
+	^(identityHashOf: reflectee) hash bitXor: class hash
+)
+private indexOfSlotNamed: name in: startCls = (
+	| cls index |
+	cls:: startCls.
+	index:: 1.
+	[nil = cls] whileFalse: 
+		[(mixinOf: cls) _slots do: 
+			[:slotDescriptor |
+			(slotDescriptor at: 1) = name ifTrue: [^index].
+			index:: 1 + index].
+		cls:: (superclassOf: cls)].
+	^ -1
+)
+public isKindOfObjectMirror ^<Boolean> = (
+	^true
+)
+public setSlot: name to: value = (
+	| index raw |
+	index:: indexOfSlotNamed: name in: (classOf: reflectee).
+	slotOf: reflectee at: index put: value.
+)
+) : (
+)
+private class Simulator = (|
+currentActivation
+|) (
+'as yet unclassified'
+activate: targetMethod receiver: messageReceiver with: arguments = (
+	| prim newActivation |
+	prim:: targetMethod primitive.
+	(doPrimitive) ifTrue: [^whichcontext].
+	
+	newActivation:: Activation new.
+	newActivation sender: self.
+	newActivation bci: 1.
+	newActivation method: targetMethod.
+	newActivation closure: nil.
+	newActivation receiver: messageReceiver.
+	
+	arguments do: [:arg | newActivation push: arg].
+	targetMethod numTemps timesRepeat: [newActivation push: nil].
+	^newActivation
+)
+doPrimitive = (
+	(* simulation guard *)
+	
+	(* Closure value, etc *)
+	(* perform *)
+	(* executeMethod *)
+	
+)
+implicitReceiverSend: selectorOffset numArgs: numArgs ^<Activation> = (
+	| selector candidateReceiver candidateMixin candidateMixinApplication |
+	selector:: method literals at: selectorOffset + 1.
+	candidateReceiver:: receiver.
+	candidateMixin:: method mixin.
+	[candidateMixinApplication::
+		findApplicationOf: candidateMixin 
+		startingAt: (classOf: candidateReceiver).
+	(behavior: candidateMixinApplication hasSelector: selector) ifTrue:
+		[^sendLexical: selector to: candidateReceiver numArgs: numArgs wrt: candidateMixin].
+	candidateMixin:: candidateMixin enclosingMixin.
+	nil = candidateMixin ifTrue:
+		[^sendProtected: selector to: receiver numArgs: numArgs startingAt: (classOf: receiver)].
+	candidateReceiver:: candidateMixinApplication _enclosingObject.
+	] repeat.
+)
+interpretNext1Byte: byte extA: extA extB: extB ^<Activation> = (
+	byte <= 15 ifTrue: [^self pushReceiverVariable: byte].
+	byte <= 31 ifTrue: [^self pushLiteralVariable: (byte bitAnd: 15)].
+	byte <= 63 ifTrue: [^self pushLiteral: (byte bitAnd: 31)].
+	byte <= 71 ifTrue: [^self pushTemporary: (byte bitAnd: 7)].
+	byte <= 75 ifTrue: [^self pushTemporary: (byte bitAnd: 7) + 8].
+	byte <= 76 ifTrue: [^self pushReceiver].
+	byte <= 77 ifTrue: [^self pushSpecial: extB].
+	byte <= 78 ifTrue: [^self pushInteger: 0].
+	byte <= 79 ifTrue: [^self pushInteger: 1].
+	byte <= 95 ifTrue: [^self commonArithmeticSend: (byte bitAnd: 15)].
+	byte <= 111 ifTrue: [^self commonSend: (byte bitAnd: 15)].
+	byte <= 127 ifTrue: [^self ordinarySend: (byte bitAnd: 15) numArgs: 0].
+	byte <= 143 ifTrue: [^self ordinarySend: (byte bitAnd: 15) numArgs: 1].
+	byte <= 159 ifTrue: [^self ordinarySend: (byte bitAnd: 15) numArgs: 2].
+	byte <= 175 ifTrue: [^self implicitReceiverSend: (byte bitAnd: 15) numArgs: 0].
+	byte <= 183 ifTrue: [^self popIntoReceiverVariable: (byte bitAnd: 7)].
+	byte <= 191 ifTrue: [^self popIntoTemporary: (byte bitAnd: 7)].
+	byte <= 199 ifTrue: [^self jump: (byte bitAnd: 7) + 1].
+	byte <= 207 ifTrue: [^self popJumpTrue: (byte bitAnd: 7) + 1].
+	byte <= 215 ifTrue: [^self popJumpFalse: (byte bitAnd: 7) + 1].
+	byte <= 216 ifTrue: [^self methodReturnReceiver].
+	byte <= 217 ifTrue: [^self methodReturnTop].
+	byte <= 218 ifTrue: [^self blockReturnTop].
+	byte <= 219 ifTrue: [^self dup].
+	byte <= 220 ifTrue: [^self pop].
+	byte <= 221 ifTrue: [^self nop].
+	byte <= 222 ifTrue: [^self break].
+	byte <= 223 ifTrue: [^self unassigned].
+)
+interpretNext2Byte: byte1 byte: byte2 extA: extA extB: extB ^<Activation> = (
+	byte1 <= 224 ifTrue: [
+		extA = 0 ifFalse: [halt].
+		^self interpretNextInstructionExtA: byte2 extB: extB].
+	byte1 <= 225 ifTrue: [
+		extB = 0 ifFalse: [halt].
+		^self interpretNextInstructionExtA: extA extB: byte2].
+	
+	byte1 <= 226 ifTrue: [^self pushReceiverVariable: (extA << 8) + byte2].
+	byte1 <= 227 ifTrue: [^self pushLiteralVariable: (extA << 8) + byte2].
+	byte1 <= 228 ifTrue: [^self pushLiteral: (extA << 8) + byte2].
+	byte1 <= 229 ifTrue: [^self pushInteger: (extB << 8) + byte2].
+	byte1 <= 230 ifTrue: [^self pushTemporary: extB].
+	byte1 <= 231 ifTrue: [^self _pushconsemptyarray].
+	byte1 <= 232 ifTrue: [^self storeIntoReceiverVariable: (extA << 8) + byte2].
+	byte1 <= 233 ifTrue: [^self storeIntoLiteralVariable: (extA << 8) + byte2].
+	byte1 <= 234 ifTrue: [^self storeIntoTemporary: (extA << 8) + byte2].
+	byte1 <= 235 ifTrue: [^self popIntoReceiverVariable: (extA << 8) + byte2].
+	byte1 <= 236 ifTrue: [^self popIntoLiteralVariable: (extA << 8) + byte2].
+	byte1 <= 237 ifTrue: [^self popIntoTemporary: (extA << 8) + byte2].
+	byte1 <= 238 ifTrue: [
+		^self ordinarySend: (extA << 5) + (byte2 >> 3) 
+		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
+	byte1 <= 239 ifTrue: [
+		^self staticSuperSend: (extA << 5) + (byte2 >> 3) 
+		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
+	byte1 <= 240 ifTrue: [
+		^self implicitReceiverSend: (extA << 5) + (byte2 >> 3) 
+		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
+	byte1 <= 241 ifTrue: [
+		^self superSend: (extA << 5) + (byte2 >> 3) 
+		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
+	byte1 <= 242 ifTrue: [^self jump: (extB << 8) + byte2].
+	byte1 <= 243 ifTrue: [^self popJumpTrue: (extB << 8) + byte2].
+	byte1 <= 244 ifTrue: [^self popJumpFalse: (extB << 8) + byte2].
+	byte1 <= 245 ifTrue: [
+		^self selfSend: (extA << 5) + (byte2 >> 3) 
+		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
+	(* 246, 247, 248 *) ^self unassigned
+)
+interpretNext3Byte: byte1 byte: byte2 byte: byte3 extA: extA extB: extB ^<Activation> = (
+	byte1 <= 249 ifTrue: [^self callPrimitive: byte3 << 8 + byte2].
+	byte1 <= 250 ifTrue: [^self pushRemoteTemp: byte2 inVector: byte3].
+	byte1 <= 251 ifTrue: [^self storeIntoRemoteTemp: byte2 inVector: byte3].
+	byte1 <= 252 ifTrue: [^self popIntoRemoteTemp: byte2 inVector: byte3].
+	byte1 <= 253 ifTrue: [
+		^self pushClosureNumCopied: ((byte2 >> 3) bitAnd: 7) + ((extA // 16) << 3)
+		numArgs: (byte2 bitAnd: 7) + ((extA \\ 16) << 3)
+		blockSize: (extB << 8) + byte3].
+	byte1 <= 254 ifTrue: [
+		^self outerSend: (extA << 5) + (byte2 >> 3) 
+		numArgs: (extB << 3) + (byte2 bitAnd: 7)
+		depth: byte3].
+	
+	(* 255 *)
+	^self unassigned
+)
+public interpretNextInstruction ^<Activation> = (
+	(* Answer the new active context. *)
+	^self interpretNextInstructionExtA: 0 extB: 0 
+)
+interpretNextInstructionExtA: extA extB: extB ^<Activation> = (
+	| byte byte2 byte3 |
+	byte:: method bytecode at: bci.
+	byte <= 223 ifTrue: 
+		[bci:: bci + 1. 
+		 ^interpretNext1Byte: byte extA: extA extB: extB].
+
+	byte2:: method bytecode at: bci + 1.
+	byte <= 248 ifTrue: 
+		[bci:: bci + 2.
+		^interpretNext2Byte: byte byte: byte2 extA: extA extB: extB].
+
+	byte3:: method bytecode at: bci + 2.
+	bci:: bci + 3.
+	^interpretNext3Byte: byte byte: byte2 byte: byte3 extA: extA extB: extB
+)
+jump: delta ^<Activation> = (
+	self bci: self bci + delta.
+	^self
+)
+popIntoReceiverVariable: offset ^<Activation> = (
+	slotOf: receiver at: offset put: self pop.
+	^self
+)
+popIntoRemoteTemp: offset inVector: vectorOffset ^<Activation> = (
+	| vector = self tempAt: 1 + vectorOffset. |
+	vector at: 1 + offset put: self pop.
+	^self
+)
+popIntoTemporary: offset ^<Activation> = (
+	self tempAt: 1 + offset put: self pop.
+	^self
+)
+popJumpFalse: delta ^<Activation> = (
+	| bool = pop. |
+	true == bool ifTrue: 
+		[^self].
+	false == bool ifTrue:
+		[self bci: self bci + delta.
+		^self].
+	^doMustBeBoolean
+)
+popJumpTrue: delta ^<Activation> = (
+	| bool = pop. |
+	true == bool ifTrue: 
+		[self bci: self bci + delta.
+		^self].
+	false == bool ifTrue:
+		[^self].
+	^doMustBeBoolean
+)
+pushClosureNumCopied: numCopied numArgs: numArgs blockSize: blockSize ^<Activation> = (
+	| newClosure |
+	newClosure:: Closure numCopied: numCopied numArgs: numArgs method: method initialBCI: bci.
+	1 to: numCopied do: [:index | primclosure: newClosured copiedAt: index put: self popreverseorder].
+
+	self push: newClosure.
+	self bci: self bci + blockSize.
+)
+pushEmptyArray: size ^<Activation> = (
+	self push: (Array new: size).
+	^self
+)
+pushLiteral: offset ^<Activation> = (
+	self push: (self method literals at: 1 + offset).
+	^self
+)
+pushLiteralVariable: offset ^<Activation> = (
+	self push: (self method literals at: 1 + offset) value.
+	^self
+)
+pushReceiver ^<Activation> = (
+	self push: receiver.
+	^self
+)
+pushReceiverVariable: offset ^<Activation> = (
+	self push: (slotOf: receiver at: offset).
+	^self
+)
+pushRemoteTemp: offset inVector: vectorOffset ^<Activation> = (
+	| vector = self tempAt: 1 + vectorOffset. |
+	self push: (vector at: 1 + offset).
+	^self
+)
+pushSpecial: extB ^<Activation> = (
+	extB < 0 ifTrue: [^pushEnclosingObject: 0 - extB].
+	
+	0 = extB ifTrue: [self push: false. ^self].
+	1 = extB ifTrue: [self push: true. ^self].
+	2 = extB ifTrue: [self push: nil. ^self].
+	3 = extB ifTrue: [self push: self (* thisContext *). ^self].
+	
+	unassigned.
+)
+pushTemporary: offset ^<Activation> = (
+	self push: (self tempAt: 1 + offset).
+	^self
+)
+sendDnu: selector to: messageReceiver arguments: arguments = (
+	| lookupClass message dnuMethod |
+	lookupClass:: classOf: messageReceiver.
+	message:: Message selector: selector arguments: arguments.
+	[nil = lookupClass] whileFalse:
+		[ dnuMethod:: behavior: lookupClass methodAt: #doesNotUnderstand:.
+		  nil = dnuMethod ifFalse: 
+			[^activate: dnuMethod receiver: messageReciever arguments: {message} ].
+		lookupClass:: superclassOf: lookupClass.
+		].
+	error: 'Recursive doesNotUnderstand:'
+)
+sendLexical: selector to: messageReceiver numArgs: numArgs wrt: mixin = (
+	| mixinApplication targetMethod |
+	mixinApplication:: findApplicationOf: mixin startingAt: (classOf: messageReceiver).
+	targetMethod:: behavior: mixinApplication methodAt: selector.
+	((nil = method) not and: [method isPrivate]) ifTrue:
+		[^activate: method receiver: messageReceiver args: numargs].
+	^sendProtected: selector to: messageReceiver numArgs: numArgs startingAt: (classOf: messageReceiver)
+)
+sendProtected: selector to: messageReceiver numArgs: numArgs startingAt: mixinApp = (
+	| lookupClass targetMethod |
+	lookupClass:: mixinApp.
+	[nil = lookupClass] whileFalse:
+		[targetMethod:: behavior: lookupClass at: selector.
+		((nil = targetMethod not) and: [method isPrivate not])
+			ifTrue: [^activate: method receiver: receiver arguments: arguments].
+		lookupClass:: superclassOf: lookupClass].
+	^sendDnu: selector to: receiver arguments: arguments.
+)
+storeIntoReceiverVariable: offset ^<Activation> = (
+	slotOf: receiver at: offset put: self top.
+	^self
+)
+storeIntoRemoteTemp: offset inVector: vectorOffset ^<Activation> = (
+	| vector = self tempAt: 1 + vectorOffset. |
+	vector at: 1 + offset put: self top.
+	^self
+)
+storeIntoTemporary: offset ^<Activation> = (
+	self tempAt: 1 + offset put: self top.
+	^self
+)
+) : (
+)
+private class SlotDeclarationMirror name: n isMutable: m accessModifier: a mixin: mxn = (|
+public name = n.
+public isMutable = m.
+public accessModifier = a.
+public definingMixin = mxn.
+|) (
+) : (
+)
+'as yet unclassified'
+private allInstancesOf: cls = (
+	(* :literalmessage: primitive: 96 *)
+	halt.
+)
+private allocate: cls = (
+	(* :literalmessage: primitive: 34 *)
+	halt.
+)
+buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec = (
+	
+	mixin _methods do: 
+		[:method |
+		|
+		selector = method selector.
+		imethod = intermediates IntermediateMethod new.
+		|
+		imethod method: method.
+		imethod methodMixin: mixin.
+		imethod selector: selector.
+		imethod accessModifier: method accessModifier.
+		imethod isSynthetic: method isSynthetic.
+		imethod category: 42.
+		imethod isSynthetic ifTrue: 
+			[imethod isNestedClassAccessor: (isNestedClassAccessorSelector: selector forMixin: mixin).
+			imethod isConstructor: (isConstructorSelector: selector forMixin: mixin)].
+		i methods add: imethod].
+	
+	mixin isMeta ifTrue: [^self].
+	
+	mixin _slots do:
+		[:tuple |
+		| slot = intermediates IntermediateSlotDeclaration new. |
+		slot name: (tuple at: 1).
+		slot isMutable: (tuple at: 2).
+		slot accessModifier: (tuple at: 3).
+		i slots add: slot.].
+	
+	mixin _nestedMixins do:
+		[:nestedMixin <InstanceMixin> |
+		i nestedClasses add: (buildIntermediateFor: nestedMixin within: ec)].
+)
+buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClassDeclaration> = (
+	| i = intermediates IntermediateClassDeclaration new. |
+	i simpleName: mixin _name.
+	i headerSource: mixin _headerSource.
+	i factoryName: mixin _primaryFactorySelector.
+	i comment: nil.
+	i category: 42.
+	i enclosingClass: ec.
+	buildIntermediate: i instanceSide from: mixin within: i.
+	buildIntermediate: i classSide from: mixin _classMixin within: i.
+	^i
+)
+private classOf: object = (
+	(* :literalmessage: primitive: 85 *)
+	primitiveFailed: 'Mirror classOf:'.
+)
+private compiler = (
+	nil = compilerX ifTrue: [constructCompiler].
+	^compilerX
+)
+private constructCompiler = (
+	| parserLib grammar asts parsing compilation |
+	parserLib:: namespace CombinatorialParsing 
+		usingPlatform: cachedPlatform.
+	grammar:: namespace NewspeakGrammar 
+		usingPlatform: cachedPlatform
+		parsers: parserLib.
+	asts:: namespace NewspeakASTs 
+		usingLib: cachedPlatform.
+	parsing:: namespace NewspeakParsing 
+		usingPlatform: cachedPlatform
+		grammar: grammar
+		asts: asts.
+	intermediatesX:: namespace Intermediates 
+		usingPlatform: cachedPlatform
+		internalKernel: internalKernel.
+	compilation:: namespace Newspeak2SqueakCompilation 
+		usingPlatform: cachedPlatform 
+		newspeakParser: parsing 
+		intermediates: intermediatesX.
+	compilerX:: compilation Compiler new.
+)
+private elementsOf: old forwardIdentityToElementsOf: new = (
+	(* :literalmessage: primitive: 98 *)
+	halt.
+)
+private enclosingObjectOf: behavior = (
+	^self slotOf: behavior at: 3
+)
+private identityHashOf: a = (
+	(* :literalmessage: primitive: 87 *)
+	halt.
+)
+private intermediates = (
+	nil = intermediatesX ifTrue: [constructCompiler].
+	^intermediatesX
+)
+private is: a identicalTo: b = (
+	(* :literalmessage: primitive: 86 *)
+	halt.
+)
+private isBehavior: object = (
+	| cls |
+	cls:: classOf: object.
+	Metaclass = cls ifTrue: [^true (* [object] is a metaclass *)].
+	cls:: classOf: cls.
+	Metaclass = cls ifTrue: [^true (* [object] is a class *)].
+	cls:: classOf: cls.
+	assert: [Metaclass = cls] message: ''.
+	^false
+)
+isConstructorSelector: selector forMixin: mixin <AbstractMixin> = (
+	mixin isMeta ifFalse: [^false].
+	^mixin _instanceMixin _primaryFactorySelector = selector
+)
+isNestedClassAccessorSelector: selector forMixin: mixin <AbstractMixin> = (
+	mixin isMeta ifTrue: [^false].
+	#BOGUS. (* Consult namer *)
+	(selector endsWith: '`slot') ifTrue: [^true].
+	mixin _nestedMixins do: [:nestedMixin | nestedMixin _name = selector ifTrue: [^true]].
+	^false
+)
+private methodsOf: behavior = (
+	^self slotOf: behavior at: 2
+)
+private mixinOf: behavior = (
+	^self slotOf: behavior at: 4
+)
+private object: object executeMethod: method with: arguments = (
+	(* :literalmessage: primitive: 95 *)
+	primitiveFailed: 'executeMethod'.
+)
+qualifiedNameFor: mixin = (
+	(* :bogus: *)
+	nil = mixin _enclosingMixin ifTrue: [^mixin _name].
+	^(qualifiedNameFor: mixin _enclosingMixin) , '`', mixin _name
+)
+private slotOf: object at: index = (
+	(* :literalmessage: primitive: 35 *)
+	primitiveFailed: 'Mirror slotOf:at:'.
+)
+private slotOf: object at: index put: value = (
+	(* :literalmessage: primitive: 36 *)
+	primitiveFailed: 'Mirror slotOf:at:put:'.
+)
+private superclassOf: behavior = (
+	^self slotOf: behavior at: 1
+)
+) : (
+)

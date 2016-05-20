@@ -1,0 +1,9 @@
+Newspeak3
+'NS2PrimordialSoup'
+class PrimordialFuelTestApp = () (
+'as yet unclassified'
+public main = (
+	^42
+)
+) : (
+)

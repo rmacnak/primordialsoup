@@ -1,0 +1,453 @@
+Newspeak3
+'NS2PrimordialSoup'
+class CollectionsForPrimordialSoup usingInternalKernel: ik = (|
+public Collection = ik Collection.
+|) (
+public class ArrayList new: initialCapacity = Collection (|
+protected size_ ::= 0.
+protected data ::= Array new: initialCapacity.
+|) (
+'as yet unclassified'
+public , other = (
+	| result = ArrayList new: self size + other size + 1. |
+	self do: [:element | result addLast: element].
+	other do: [:element | result addLast: element].
+	^result
+)
+public add: element <E> ^<E> = (
+	^self addLast: element
+)
+public addAll: collection = (
+	collection do: [:element | self addLast: element].
+)
+public addFirst: element <E> ^<E> = (
+	| oldData newData |
+	oldData:: data.
+	size_ >= oldData size 
+		ifTrue: [data:: newData:: Array new: (data size * 2 + 1)]
+		ifFalse: [newData:: oldData].
+	size_ to: 1 by: -1 do: [:oldIndex | 
+		newData at: 1 + oldIndex put: (oldData at: oldIndex)].
+	newData at: 1 put: element.
+	size_:: size_ + 1.
+	^element
+)
+public addLast: element <E> ^<E> = (
+	size_ >= data size ifTrue: 
+		[data:: data copyWithSize: (data size * 2 + 1)].
+	size_:: size_ + 1.
+	data at: size_ put: element.
+	^element
+)
+public asArray ^<Array[E]> = (
+	^data copyWithSize: size_
+)
+public at: index <Integer> ^<E> = (
+	index > size_ ifTrue: [Error signal: 'Out of bounds'].
+	^data at: index
+)
+public at: index <Integer> put: value <E> ^<E> = (
+	index > size_ ifTrue: [Error signal: 'Out of bounds'].
+	^data at: index put: value
+)
+public do: action <[:E]> = (
+	1 to: size_ do: [:index | action value: (data at: index)].
+)
+public first ^<E> = (
+	^self at: 1
+)
+public include: element <E> ^<E> = (
+	1 to: size_ do: 
+		[:index | (data at: index) = element ifTrue: [^element]].
+	^self addLast: element
+)
+public indexOf: element <E> ^<Integer> = (
+	1 to: size_ do: [:index | (data at: index) = element ifTrue: [^index]].
+	^0
+)
+public isEmpty ^<Boolean> = (
+	^0 = size_
+)
+public isKindOfList ^<Boolean> = (
+	^true
+)
+public keysAndValuesDo: action <[:Integer :E]> = (
+	1 to: size_ do: [:index | action value: index value: (data at: index)].
+)
+public last ^<E> = (
+	^self at: size
+)
+protected newForCollectUsingAdd: capacity  = (
+	^ArrayList new: capacity
+)
+public readStream = (
+	^ReadStream over: self
+)
+public remove: element <E> ^<E> = (
+	^self remove: element ifAbsent: [missingElement]
+)
+public remove: element <E> ifAbsent: onAbsent <X def> ^<E | X> = (
+	1 to: size_ do: 
+		[:index |
+		(data at: index) = element ifTrue: 
+			[index to: size_ - 1 do: 
+				[:j |
+				data at: j put: (data at: j + 1)].
+			data at: size_ put: nil.
+			size_:: size_ - 1.
+			^element]].
+	^onAbsent value.
+)
+public removeAllSuchThat: predicate <[:E | Boolean]> = (
+	| writeBackIndex ::= 1. |
+	1 to: size_ do: 
+		[:index | 
+		| element = data at: index. |
+		(predicate value: element) ifFalse: 
+			[data at: writeBackIndex put: element.
+			 writeBackIndex:: 1 + writeBackIndex]].
+	writeBackIndex to: size_ do: 
+		[:index | data at: index put: nil].
+	size_:: writeBackIndex - 1.	
+)
+public removeFirst ^<E> = (
+	| oldFirst |
+	0 = size_ ifTrue: [^errorEmpty].
+	oldFirst:: data at: 1.
+	1 to: size_ - 1 do: [:index | data at: index put: (data at: 1 + index)].
+	data at: size_ put: nil.
+	size_:: size_ - 1.
+	^oldFirst
+)
+public removeLast ^<E> = (
+	| element = self at: size_. |
+	data at: size_ put: nil.
+	size_:: size_ - 1.
+	^element
+)
+public size ^<Integer> = (
+	^size_
+)
+) : (
+'as yet unclassified'
+public new = (
+	^self new: 4 (* Even, since odd-sized arrays waste a slot on the heap. *)
+)
+public withAll: collection = (
+	^(ArrayList new: collection size) addAll: collection; yourself
+)
+)
+class HashAssociation = (|
+public key
+public value
+|) (
+) : (
+)
+public class HashMap initialCapacity: n = Collection (|
+protected size_ ::= 0.
+protected table ::= Array new: n.
+|) (
+'as yet unclassified'
+public at: key <K> ^<V> = (
+	^self at: key ifAbsent: [errorKeyNotFound: key].
+)
+public at: key <K> ifAbsent: onAbsent <X def> ^<K | X> = (
+	| entry |
+	entry:: table at: (scanFor: key).
+	nil = entry ifTrue: [^onAbsent value].
+	^entry value
+)
+public at: key <K> ifAbsentPut: valueGenerator <[V]> ^<V> = (
+	| index entry |
+	index:: scanFor: key.
+	entry:: table at: index.
+	nil = entry ifTrue: 
+		[entry:: HashAssociation new.
+		 entry key: key.
+		 entry value: valueGenerator value.
+		 self atNewIndex: index put: entry].
+	^entry value
+)
+public at: key <K> put: value <V> ^<V> = (
+	| index entry |
+	index:: scanFor: key.
+	entry:: table at: index.
+	nil = entry
+		ifTrue:
+			[entry:: HashAssociation new.
+			 entry key: key.
+			 entry value: value.
+			 self atNewIndex: index put: entry]
+		ifFalse: [entry value: value].
+	^value
+)
+atNewIndex: index put: entry = (
+	table at: index put: entry.
+	size_:: 1 + size_.
+	(table size * 3) < (size_ * 4) ifTrue: [grow].
+)
+public collect: transform <[:V | W]> ^<List[W]> = (
+	| result = ArrayList new: size_. |
+	1 to: table size do: [:index |
+		| entry = table at: index. |
+		nil = entry ifFalse: [result add: (transform value: entry value)]].
+	^result
+)
+public do: action <[:V]> = (
+	table do: [:entry | nil = entry ifFalse: [action value: entry value]].
+)
+fixCollisionsAfter: start <Integer> = (
+	| index ::= start. entry |
+	[index:: index \\ table size + 1.
+	 entry:: table at: index.
+	 nil = entry] whileFalse: 
+		[ | newIndex = self scanFor: entry key. |
+		 newIndex = index ifFalse: 
+			[table at: newIndex put: entry.
+			 table at: index put: nil]].
+)
+grow = (
+	| oldTable = table. |
+	table:: Array new: oldTable size << 1.
+	1 to: oldTable size do: [:index |
+		| entry = oldTable at: index. |
+		nil = entry ifFalse: 
+			[table at: (scanForEmptySlotFor: entry key) put: entry]]
+)
+public includesKey: key <K> ^<Boolean> = (
+	| entry |
+	entry:: table at: (scanFor: key).
+	^(nil = entry) not
+)
+public isEmpty ^<Boolean> = (
+	^0 = size_
+)
+public keys ^<Set[K]> = (
+	| result = HashSet new. |
+	1 to: table size do: [:index |
+		| entry = table at: index. |
+		nil = entry ifFalse: [result add: entry key]].
+	^result
+)
+public keysAndValuesDo: action <[:K :V]> = (
+	table do: 
+		[:entry | nil = entry ifFalse: 
+			[action value: entry key value: entry value]].
+)
+public reject: predicate <[:V | Boolean]> ^<List[V]> = (
+	| result = ArrayList new: size_. |
+	1 to: table size do: [:index |
+		| entry = table at: index. |
+		nil = entry ifFalse: 
+			[ | element = entry value. |
+			(predicate value: element) ifFalse: 
+				[result add: element]]].
+	^result
+)
+public removeKey: key <K> ^<V> = (
+	^self removeKey: key ifAbsent: [errorKeyNotFound: key]
+)
+public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^<V | X> = (
+	| index entry oldValue |
+	index:: scanFor: key.
+	entry:: table at: index.
+	nil = entry ifTrue: [^onAbsent value].
+	table at: index put: nil.
+	self fixCollisionsAfter: index.
+	size_:: size_ - 1.
+	^entry value
+)
+scanFor: key <K> ^<Integer> = (
+	| index start |
+	index:: start:: key hash \\ table size + 1.
+	[ 
+		| element |
+		(nil = (element:: table at: index) or: [key = element key])
+			ifTrue: [ ^index ].
+		(index:: index \\ table size + 1) = start] whileFalse.
+	self errorNoFreeSpace
+)
+scanForEmptySlotFor: key = (
+	| index start |
+	index:: start:: key hash \\ table size + 1.
+	[ 
+		nil = (table at: index) ifTrue: [ ^index ].
+		(index:: index \\ table size + 1) = start] whileFalse.
+	self errorNoFreeSpace
+)
+public select: predicate <[:V | Boolean]> ^<List[V]> = (
+	| result = ArrayList new: size_. |
+	1 to: table size do: [:index |
+		| entry = table at: index. |
+		nil = entry ifFalse: 
+			[ | element = entry value. |
+			(predicate value: element) ifTrue: 
+				[result add: element]]].
+	^result
+)
+public size ^<Integer> = (
+	^size_
+)
+public values ^<List[V]> = (
+	| result = ArrayList new: size_. |
+	1 to: table size do: [:index |
+		| entry = table at: index. |
+		nil = entry ifFalse: [result add: entry value]].
+	^result
+)
+) : (
+'as yet unclassified'
+public new = (
+	^self initialCapacity: 6
+)
+)
+public class HashSet initialCapacity: n = Collection (|
+protected size_ ::= 0.
+protected table ::= Array new: n.
+|) (
+'as yet unclassified'
+public add: element <E> ^<E> = (
+	| index entry |
+	index:: scanFor: element.
+	entry:: table at: index.
+	nil = entry ifTrue: [self atNewIndex: index put: element].
+	^element
+)
+public addAll: collection = (
+	collection do: [:element | self add: element].
+)
+atNewIndex: index put: entry = (
+	table at: index put: entry.
+	size_:: 1 + size_.
+	(table size * 3) < (size_ * 4) ifTrue: [grow].
+)
+public do: action <[:E]> = (
+	table do: [:entry | nil = entry ifFalse: [action value: entry]].
+)
+fixCollisionsAfter: start <Integer> = (
+	| index ::= start. element |
+	[index:: index \\ table size + 1.
+	 element:: table at: index.
+	 nil = element] whileFalse: 
+		[ | newIndex = self scanFor: element. |
+		 newIndex = index ifFalse: 
+			[table at: newIndex put: element.
+			 table at: index put: nil]].
+)
+grow = (
+	| oldTable = table. |
+	table:: Array new: oldTable size << 1.
+	1 to: oldTable size do: [:index |
+		| entry = oldTable at: index. |
+		nil = entry ifFalse: 
+			[table at: (scanForEmptySlotFor: entry) put: entry]]
+)
+public include: element <E> ^<E> = (
+	^self add: element
+)
+public include: element <E> ifNew: onNew ^<E> = (
+	| index entry |
+	index:: scanFor: element.
+	entry:: table at: index.
+	nil = entry ifTrue:
+		[self atNewIndex: index put: element.
+		 onNew value].
+	^element
+)
+public includes: element <E> ^<Boolean> = (
+	^(nil = (table at: (scanFor: element))) not
+)
+public isEmpty ^<Boolean> = (
+	^0 = size_
+)
+public isKindOfSet ^<Boolean> = (
+	^true
+)
+public remove: element <E> ^<E> = (
+	^self remove: element ifAbsent: [missingElement: element].
+)
+public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
+	| index entry |
+	index:: scanFor: element.
+	entry:: table at: index.
+	nil = entry ifTrue: [^onAbsent value].
+	table at: index put: nil.
+	fixCollisionsAfter: index.
+	size_:: size_ - 1.
+	^element
+)
+public removeAll: collection <Collection[E]> = (
+	collection do: [:element | self remove: element].
+)
+public removeAllSuchThat: predicate <[:E | Boolean]> = (
+	| oldTable = table copy. |
+	oldTable do: [:entry | 
+		nil = entry ifFalse: 
+			[(predicate value: entry) ifTrue: 
+				[self remove: entry]]].
+)
+scanFor: element <K> ^<Integer> = (
+	| index start |
+	index:: start:: element hash \\ table size + 1.
+	[ 
+		| entry |
+		(nil = (entry:: table at: index) or: [ element = entry ])
+			ifTrue: [ ^index ].
+		(index:: index \\ table size + 1) = start ] whileFalse.
+	self errorNoFreeSpace
+)
+scanForEmptySlotFor: key = (
+	| index start |
+	index:: start:: key hash \\ table size + 1.
+	[ 
+		nil = (table at: index) ifTrue: [ ^index ].
+		(index:: index \\ table size + 1) = start] whileFalse.
+	self errorNoFreeSpace
+)
+public size ^<Integer> = (
+	^size_
+)
+) : (
+'as yet unclassified'
+public new = (
+	^self initialCapacity: 6
+)
+)
+class ReadStream over: c = (|
+protected previousIndex ::= 0.
+protected collection  = c.
+|) (
+'as yet unclassified'
+public atEnd ^<Boolean> = (
+	^previousIndex >= collection size
+)
+public next ^<Boolean> = (
+	previousIndex < collection size
+		ifTrue: [previousIndex:: 1 + previousIndex. ^collection at: previousIndex]
+		ifFalse: [^nil]
+)
+public peek ^<Boolean> = (
+	(1 + previousIndex) <= collection size
+		ifTrue: [^collection at: 1 + previousIndex]
+		ifFalse: [^nil]
+)
+) : (
+)
+'as yet unclassified'
+public Dictionary = (
+	^HashMap
+)
+public IdentityDictionary = (
+	^HashMap
+)
+public IdentitySet = (
+	^HashSet
+)
+public OrderedCollection = (
+	^ArrayList
+)
+public Set = (
+	^HashSet
+)
+) : (
+)

@@ -1,0 +1,47 @@
+Newspeak3
+'NS2PrimordialSoup'
+class TestRunner packageUsing: manifest = (|
+Minitest = manifest Minitest.
+testConfigs = {
+	manifest KernelTestsConfiguration packageTestsUsing: manifest.
+	manifest KernelWeakTestsPrimordialSoupConfiguration packageTestsUsing: manifest.
+	manifest MinitestTestsConfiguration packageTestsUsing: manifest.
+	manifest AccessModifierTestingConfiguration packageTestsUsing: manifest.
+	manifest ActorsTestingConfigurationForPrimordialSoup packageTestsUsing: manifest.
+	manifest CollectionsTestingConfiguration packageTestsUsing: manifest.
+	manifest PrimordialFuelTestingConfiguration packageTestsUsing: manifest.
+	manifest MirrorTestingConfiguration packageTestsUsing: manifest.
+	(* manifest MirrorBuilderTestingConfiguration packageTestsUsing: manifest.
+	manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest. *)
+}.
+|) (
+'as yet unclassified'
+public main: platform args: args = (
+	| stopwatch minitest testModules tester |
+	stopwatch:: platform kernel Stopwatch new start.
+	minitest:: Minitest usingPlatform: platform.
+	testModules:: platform collections ArrayList new.
+	testConfigs do: 
+		[:testConfig |
+		testModules addAll: 
+			(testConfig testModulesUsingPlatform: platform minitest: minitest)].
+	tester:: minitest Tester testModules: testModules asArray.
+	tester prepare.
+	[tester atEnd] whileFalse: 
+		[ | result |
+		tester peekSelector out.
+		result:: tester step.
+		result isError ifTrue: ['error' out. result exception out.].
+		result isFailure ifTrue: ['failure' out. result description out.]].
+	
+	(tester successes size printString, ' successes, ',
+	tester failures size printString, ' failures, ',
+	tester errors size printString, ' errors, ',
+	stopwatch elapsedMilliseconds asString, ' ms') out.
+	'' out.
+	
+	tester failures size = 0 ifFalse: [testsFailed].
+	tester errors size = 0 ifFalse: [testsFailed].
+)
+) : (
+)

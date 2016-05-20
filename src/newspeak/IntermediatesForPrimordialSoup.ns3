@@ -1,0 +1,206 @@
+Newspeak3
+'NS2PrimordialSoup'
+class IntermediatesForPrimordialSoup usingPlatform: p internalKernel: k = (|
+private List = p collections OrderedCollection.
+private Map = p collections Dictionary.
+private Method = k Method.
+|) (
+public class IntermediateClassDeclaration = (|
+public simpleName
+public headerSource
+public factoryName
+public comment
+public category
+public instanceSide = IntermediateMixin for: self isMeta: false.
+public classSide = IntermediateMixin for: self isMeta: true.
+public enclosingClass <IntermediateMixin>
+public builder <ClassDeclarationBuilder>
+public existingMixin
+|) (
+'as yet unclassified'
+public printOn: stream = (
+	stream nextPutAll: 'IntermediateClassDeclaration:'; nextPutAll: simpleName.
+)
+) : (
+)
+public class IntermediateMethod = (|
+public method <CompiledMethod>
+public debugInfo
+public maxStack <Integer>
+public maxLocals <Integer>
+public argCount <Integer>
+public literals <OrderedCollection[Object]>
+public bytes <OrderedCollection[Byte]> ::= List new. 
+public selector <Symbol>
+public methodMixin <AbstractMixin>
+public source <String>
+public pragmas
+public psPrimitive ::= 0.
+public accessModifier <Symbol>
+
+public metadata = Map new.
+
+public category
+public isSlotAccessor ::= false.
+public isSuperConstructor ::= false.
+public isNestedClassAccessor ::= false.
+public isConstructor ::= false.
+public isSynthetic ::= false.
+public isSubinitializer ::= false.
+public builder
+|) (
+'as yet unclassified'
+public bci ^<Integer> = (
+	^bytes size
+)
+public byte: b <Integer> = (
+	assert: [0 <= b and: [b <= 255]] message: 'Bytecode out of range'.
+	bytes add: b  
+)
+public byteAt: index <Integer> ^<Integer> = (
+	^bytes at: index
+)
+public byteAt: index <Integer> put: datum <Integer> = (
+	bytes at: index put: datum  
+)
+public compiledMethod ^<CompiledMethod> = (
+	| bc |
+	method isNil ifFalse: [^method].
+
+	assert: [argCount <= maxLocals] message: ''.
+		
+	method:: Method new.
+	method header: 
+		(Method
+			headerForAccessModifier: accessModifier
+			primitive: psPrimitive
+			numTemps: maxLocals
+			numArgs: argCount).
+	
+	method literals: literals asArray.
+
+	bc:: ByteArray new: bytes size.
+	1 to: bytes size do: [:index | bc at: index put: (bytes at: index)].
+	method bytecode: bc.
+	method mixin: methodMixin.
+	method selector: selector.
+	
+	isSynthetic 
+		ifTrue: 
+			[method source: nil]
+		ifFalse: 
+			[assert: [source isString] message: 'Missing source'. 
+			 method source: source].
+
+	literals:: nil.
+	bytes:: nil.
+	
+	^method
+)
+public printOn: stream = (
+	stream nextPutAll: 'IntermediateMethod:'; nextPutAll: simpleName.
+)
+public simpleName = (
+	^selector
+)
+) : (
+)
+public class IntermediateMixin for: d isMeta: m = (|
+public declaration <IntermediateClassDeclaration> = d.
+public isMeta <Boolean> = m.
+public slots <List[IntermediateSlotDeclaration]> = List new.
+public methods <List[IntermediateMethod]> = List new.
+public nestedClasses <List[IntermediateClassDeclaration]> = List new.
+public builder <MixinBuilder>
+|) (
+'as yet unclassified'
+public checkNameConflictsForMethod: selector <Symbol> = (
+	nestedClasses do: 
+		[:nestedClass |
+		nestedClass name = selector ifTrue:
+			[^Error signal: 'Class already has nested class named ', selector]].
+	slots do:
+		[:slot |
+		slot name = selector ifTrue:
+			[^Error signal: 'Class already has slot named ', selector].
+		(slot isMutable and: [(slot name, ':') = selector]) ifTrue:
+			[^Error signal: 'Class already has mutable slot named ', selector]].
+	isMeta ifTrue: 
+		[declaration factoryName = selector ifTrue:
+			[^Error signal: 'Class already has primary factory named ', selector]].
+)
+public checkNameConflictsForNestedClass: klassName <Symbol> = (
+	methods do:
+		[:method |
+		method isSynthetic ifFalse:
+			[method selector = klassName ifTrue:
+				[^Error signal: 'Class already has method named ', klassName]]].
+	slots do:
+		[:slot |
+		slot name = klassName ifTrue:
+			[^Error signal: 'Class already has slot named ', klassName]].
+)
+public checkNameConflictsForSlot: slotName <Symbol> mutable: isMutable <Boolean> = (
+	nestedClasses do: 
+		[:nestedClass |
+		nestedClass name = slotName ifTrue:
+			[^Error signal: 'Class already has nested class named ', slotName]].	
+	methods do:
+		[:method |
+		method selector = slotName ifTrue:
+			[^Error signal: 'Class already has method named ', slotName]].
+	isMutable ifFalse: [^self].
+	methods do:
+		[:method |
+		method selector = (slotName, ':') ifTrue:
+			[^Error signal: 'Class already has method named ', method selector]].
+)
+public printOn: stream = (
+	stream nextPutAll: 'IntermediateMixin:'; nextPutAll: declaration qualifiedName.
+	isMeta ifTrue: [stream nextPutAll: ' class'].
+)
+) : (
+)
+public class IntermediateSlotDeclaration = (|
+public name
+public isMutable
+public accessModifier
+|) (
+'as yet unclassified'
+public generateGetterForSlot: index <Integer> ^<IntermediateMethod> = (
+	| method = IntermediateMethod new. |
+      method accessModifier: accessModifier.
+      method method: (Method newGetterForSlot: name at: index accessModifier: accessModifier).
+	method selector: method method selector.
+	method isSynthetic: true; isSlotAccessor: true.
+	(name endsWith: '`slot') ifTrue: [method isNestedClassAccessor: true].
+	^method
+)
+public generateInitializerForSlot: index <Integer> ^<IntermediateMethod> = (
+	| method = IntermediateMethod new. |
+      method accessModifier: #private.
+      method method: (Method newInitializerForSlot: name at: index).
+	method selector: method method selector.
+	method isSynthetic: true; isSlotAccessor: true.
+	(name endsWith: '`slot') ifTrue: [method isNestedClassAccessor: true].
+	^method
+)
+public generateSetterForSlot: index <Integer> ^<IntermediateMethod> = (
+	| method = IntermediateMethod new. |
+      method accessModifier: accessModifier.
+      method method: (Method newSetterForSlot: name at: index accessModifier: accessModifier).
+	method selector: method method selector.
+	method isSynthetic: true; isSlotAccessor: true.
+	(name endsWith: '`slot') ifTrue: [method isNestedClassAccessor: true].
+	^method
+)
+public printOn: stream = (
+	stream nextPutAll: 'IntermediateSlotDeclaration:'; nextPutAll: simpleName.
+)
+public simpleName = (
+	^name
+)
+) : (
+)
+) : (
+)

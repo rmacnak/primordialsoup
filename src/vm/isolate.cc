@@ -1,0 +1,231 @@
+// Copyright (c) 2013, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+#include "vm/isolate.h"
+
+#include <string>
+
+#include "vm/heap.h"
+#include "vm/interpreter.h"
+#include "vm/lockers.h"
+#include "vm/os_thread.h"
+#include "vm/snapshot.h"
+#include "vm/thread_pool.h"
+
+namespace psoup {
+
+Monitor* Isolate::isolates_list_monitor_ = NULL;
+Isolate* Isolate::isolates_list_head_ = NULL;
+
+
+void Isolate::InitOnce() {
+  isolates_list_monitor_ = new Monitor();
+}
+
+
+void Isolate::Cleanup() {
+  delete isolates_list_monitor_;
+}
+
+
+void Isolate::AddIsolateToList(Isolate* isolate) {
+  MonitorLocker ml(isolates_list_monitor_);
+  ASSERT(isolate != NULL);
+  ASSERT(isolate->next_ == NULL);
+  isolate->next_ = isolates_list_head_;
+  isolates_list_head_ = isolate;
+}
+
+
+void Isolate::RemoveIsolateFromList(Isolate* isolate) {
+  MonitorLocker ml(isolates_list_monitor_);
+  ASSERT(isolate != NULL);
+  if (isolate == isolates_list_head_) {
+    isolates_list_head_ = isolate->next_;
+    return;
+  }
+  Isolate* previous = NULL;
+  Isolate* current = isolates_list_head_;
+  while (current != NULL) {
+    if (current == isolate) {
+      ASSERT(previous != NULL);
+      previous->next_ = current->next_;
+      return;
+    }
+    previous = current;
+    current = current->next_;
+  }
+  UNREACHABLE();
+}
+
+
+void Isolate::InterruptAll() {
+  MonitorLocker ml(isolates_list_monitor_);
+  OS::PrintErr("Got SIGINT\n");
+  Isolate* current = isolates_list_head_;
+  while (current != NULL) {
+    OS::Print("Interrupting %" Px "\n", reinterpret_cast<uword>(current));
+    current->Interrupt();
+    current = current->next_;
+  }
+}
+
+
+void Isolate::Interrupt() {
+  interpreter_->Interrupt();
+  queue_->Interrupt();
+}
+
+
+void Isolate::Interrupted() {
+  {
+    MonitorLocker ml(isolates_list_monitor_);
+    OS::Print("%" Px " interrupted: \n", reinterpret_cast<uword>(this));
+    heap_->PrintStack();
+  }
+  Finish();
+  UNREACHABLE();
+}
+
+
+Isolate::Isolate(ThreadPool* pool) :
+    heap_(NULL),
+    interpreter_(NULL),
+    queue_(NULL),
+    pool_(pool),
+    next_(NULL),
+    environment_() {
+  heap_ = new Heap(this);
+  {
+    Deserializer deserializer(heap_);
+    deserializer.Deserialize();
+  }
+  interpreter_ = new Interpreter(heap_, this);
+  queue_ = new MessageQueue(this);
+
+  AddIsolateToList(this);
+}
+
+
+Isolate::~Isolate() {
+  RemoveIsolateFromList(this);
+  delete heap_;
+  delete interpreter_;
+  delete queue_;
+}
+
+
+void Isolate::InitMain(int argc, const char** argv) {
+  const intptr_t kSkippedArgs = 2;  // VM name, snapshot name
+  Array* message =
+      heap_->AllocateArray(argc - kSkippedArgs);  // SAFEPOINT
+  {
+    HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
+    for (intptr_t i = kSkippedArgs; i < argc; i++) {
+      const char* cstr = argv[i];
+      intptr_t len = strlen(cstr);
+      ByteString* string = heap_->AllocateByteString(len);  // SAFEPOINT
+      memcpy(string->element_addr(0), cstr, len);
+      message->set_element(i - kSkippedArgs, string);
+    }
+  }
+
+  InitMessage(message);
+}
+
+
+void Isolate::InitChild(uint8_t* data, intptr_t length) {
+  ByteArray* message = heap_->AllocateByteArray(length);  // SAFEPOINT
+  memcpy(message->element_addr(0), data, length);
+
+  InitMessage(message);
+}
+
+
+void Isolate::InitMessage(Object* message) {
+  HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
+  Scheduler* scheduler = heap_->object_store()->scheduler();
+  HandleScope h2(heap_, reinterpret_cast<Object**>(&scheduler));
+
+  Behavior* cls = scheduler->Klass(heap_);
+  ByteString* selector = heap_->object_store()->start();
+  Method* method = interpreter_->MethodAt(cls, selector);
+
+  HandleScope h3(heap_, reinterpret_cast<Object**>(&method));
+
+  Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
+
+  Object* nil = heap_->object_store()->nil_obj();
+  new_activation->set_sender(static_cast<Activation*>(nil));
+  new_activation->set_bci(SmallInteger::New(1));
+  new_activation->set_method(method);
+  new_activation->set_closure(static_cast<Closure*>(nil));
+  new_activation->set_receiver(scheduler);
+  new_activation->set_stack_depth(0);
+
+  new_activation->Push(message);  // Argument.
+
+  intptr_t num_temps = method->NumTemps();
+  for (intptr_t i = 0; i < num_temps; i++) {
+    new_activation->Push(nil);
+  }
+
+  heap_->set_activation(new_activation);
+}
+
+
+void Isolate::Interpret() {
+  if (setjmp(environment_) == 0) {
+    interpreter_->Interpret();
+    UNREACHABLE();
+  }
+}
+
+
+void Isolate::Finish() {
+  longjmp(environment_, 1);
+}
+
+
+class SpawnIsolateTask : public ThreadPool::Task {
+ public:
+  SpawnIsolateTask(ThreadPool* pool, uint8_t* data, intptr_t length) :
+    pool_(pool), data_(data), length_(length) {
+  }
+
+  virtual void Run() {
+    if (TRACE_ISOLATES) {
+      intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
+      OS::Print("Starting isolate on thread %" Pd "\n", id);
+    }
+    Isolate* child_isolate = new Isolate(pool_);
+
+    child_isolate->InitChild(data_, length_);
+    free(data_);
+    data_ = NULL;
+    length_ = 0;
+
+    child_isolate->Interpret();
+
+    if (TRACE_ISOLATES) {
+      intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
+      OS::Print("Finishing isolate on thread %" Pd "\n", id);
+    }
+    delete child_isolate;
+  }
+
+ private:
+  ThreadPool* pool_;
+  uint8_t* data_;
+  intptr_t length_;
+
+  DISALLOW_COPY_AND_ASSIGN(SpawnIsolateTask);
+};
+
+
+void Isolate::Spawn(uint8_t* data, intptr_t length) {
+  pool_->Run(new SpawnIsolateTask(pool_, data, length));
+}
+
+}  // namespace psoup
