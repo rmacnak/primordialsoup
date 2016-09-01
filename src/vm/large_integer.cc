@@ -32,7 +32,7 @@ LargeInteger* LargeInteger::Expand(Object* integer, Heap* H) {
   result->set_negative(value < 0);
   uint64_t absolute_value;
   if (value < 0) {
-    absolute_value = static_cast<uint64_t>(-value);
+    absolute_value = -static_cast<uint64_t>(value);
   } else {
     absolute_value = static_cast<uint64_t>(value);
   }
@@ -70,7 +70,7 @@ Object* LargeInteger::Reduce(LargeInteger* large, Heap* H) {
       return large;
     }
 
-    int64_t value = -static_cast<int64_t>(absolute_value);
+    int64_t value = static_cast<int64_t>(-absolute_value);
     if (SmallInteger::IsSmiValue(value)) {
       return SmallInteger::New(value);
     }
@@ -1073,7 +1073,8 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
   norm_div[0] = divisor->digit(0) << normalize_shift;
 
   digit_t* norm_rem = new digit_t[m + 1];
-  norm_rem[m] = dividend->digit(m-1) >> inv_normalize_shift;
+  norm_rem[m] = static_cast<ddigit_t>(dividend->digit(m-1)) >>
+      inv_normalize_shift;
   for (intptr_t i = m - 1; i > 0; i--) {
     norm_rem[i] = (dividend->digit(i) << normalize_shift) |
         (static_cast<ddigit_t>(dividend->digit(i - 1)) >>

@@ -38,8 +38,8 @@ Deserializer::~Deserializer() {
     delete clusters_[i];
   }
 
-  delete clusters_;
-  delete back_refs_;
+  delete[] clusters_;
+  delete[] back_refs_;
 }
 
 

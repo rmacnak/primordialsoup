@@ -54,7 +54,7 @@ Heap::Heap(Isolate* isolate) :
 Heap::~Heap() {
   to_.Free();
   from_.Free();
-  delete class_table_;
+  delete[] class_table_;
 }
 
 
