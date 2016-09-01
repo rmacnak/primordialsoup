@@ -754,10 +754,28 @@ public numerator <Integer> = num.
 public denominator <Integer> = denom.
 |) (
 'as yet unclassified'
+public < other ^<Boolean> = (
+	other isFraction ifTrue:
+		[^(numerator * other denominator) < (other numerator * denominator)].
+
+	other isInteger ifTrue:
+		[^(numerator) < (other * denominator)].
+
+	halt
+)
 public = other ^<Boolean> = (
 	other isFraction ifFalse: [^false].
 	numerator = other numerator ifFalse: [^false].
 	^denominator = other denominator
+)
+public > other ^<Boolean> = (
+	other isFraction ifTrue:
+		[^(numerator * other denominator) > (other numerator * denominator)].
+
+	other isInteger ifTrue:
+		[^(numerator) > (other * denominator)].
+
+	halt
 )
 public addFromNumber: left = (
 	^(left * denominator + numerator) / denominator
@@ -793,6 +811,9 @@ public numerator: numerator <Integer> denominator: denominator <Integer> ^<Fract
 	gcd:: numerator gcd: denominator.
 	numer:: numerator // gcd.
 	denom:: denominator // gcd.
+	0 > denom ifTrue:
+		[numer:: 0 - numer.
+		 denom:: 0 - denom].
 	1 = denom ifTrue: [^numer].
 	^Fraction reducedNumerator: numer denominator: denom
 )
@@ -998,7 +1019,7 @@ public first ^<E> = (
 )
 ) : (
 )
-public class LargeInteger = () (
+public class LargeInteger _cannotInstantiate = Integer () (
 ) : (
 )
 public class MediumInteger _cannotInstantiate = Integer () (

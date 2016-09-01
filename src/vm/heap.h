@@ -215,6 +215,19 @@ class Heap {
     return result;
   }
 
+  LargeInteger* AllocateLargeInteger(intptr_t capacity) {
+    const intptr_t heap_size =
+        AllocationSize(capacity * sizeof(digit_t) + sizeof(LargeInteger));
+    uword raw = Allocate(heap_size);
+    Object* obj = Object::InitializeObject(raw, kBigintCid, heap_size);
+    LargeInteger* result = static_cast<LargeInteger*>(obj);
+    result->set_capacity(capacity);
+    ASSERT(result->IsLargeInteger());
+    ASSERT(result->HeapSize() == heap_size);
+    ASSERT(result->HeapSizeFromClass() == heap_size);
+    return result;
+  }
+
   Float64* AllocateFloat64() {
     const intptr_t heap_size = AllocationSize(sizeof(Float64));
     uword raw = Allocate(heap_size);

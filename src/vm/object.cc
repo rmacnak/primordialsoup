@@ -27,8 +27,12 @@ intptr_t Object::HeapSizeFromClass() {
   case kSmiCid:
     UNREACHABLE();
   case kMintCid:
+    return AllocationSize(sizeof(MediumInteger));
   case kFloat64Cid:
-    UNIMPLEMENTED();
+    return AllocationSize(sizeof(Float64));
+  case kBigintCid:
+    return AllocationSize(sizeof(LargeInteger) +
+        sizeof(digit_t) * LargeInteger::Cast(this)->capacity());
   case kByteArrayCid:
     return AllocationSize(sizeof(ByteArray) +
                           sizeof(uint8_t) * ByteArray::Cast(this)->Size());
@@ -73,6 +77,7 @@ void Object::Pointers(Object*** from, Object*** to) {
   case kSmiCid:
     UNREACHABLE();
   case kMintCid:
+  case kBigintCid:
   case kFloat64Cid:
   case kByteArrayCid:
   case kByteStringCid:
@@ -130,6 +135,12 @@ const char* Object::ToCString(Heap* heap) {
   case kMintCid: {
     int r = asprintf(&result, "a Mint(%" Pd64 ")",
                      static_cast<MediumInteger*>(this)->value());
+    ASSERT(r != -1);
+    return result;
+  }
+  case kBigintCid: {
+    int r = asprintf(&result, "a LargeInteger(%" Pd "digits)",
+                     static_cast<LargeInteger*>(this)->size());
     ASSERT(r != -1);
     return result;
   }

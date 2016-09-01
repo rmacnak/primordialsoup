@@ -30,6 +30,7 @@ def BuildVM(outdir, ARCH, DEBUG):
     'heap',
     'interpreter',
     'isolate',
+    'large_integer',
     'lookup_cache',
     'main',
     'message',

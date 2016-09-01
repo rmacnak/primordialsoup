@@ -540,6 +540,7 @@ void ActivationCluster::ReadEdges(Deserializer* d, Heap* h) {
   }
 }
 
+
 void SmallIntegerCluster::ReadNodes(Deserializer* d, Heap* h) {
   intptr_t num_objects = d->ReadUint16();
   if (TRACE_FUEL) {
@@ -563,6 +564,42 @@ void SmallIntegerCluster::ReadNodes(Deserializer* d, Heap* h) {
     }
   }
   ASSERT(d->next_back_ref() == back_ref_stop_);
+
+  intptr_t num_large = d->ReadUint16();
+  for (intptr_t i = 0; i < num_large; i++) {
+    bool negative = d->ReadUint8();
+    intptr_t bytes = d->ReadUint16();
+    intptr_t digits = (bytes + (sizeof(digit_t) - 1)) / sizeof(digit_t);
+    intptr_t full_digits = bytes / sizeof(digit_t);
+
+    LargeInteger* object = h->AllocateLargeInteger(digits);
+    object->set_negative(negative);
+    object->set_size(digits);
+
+    for (intptr_t j = 0; j < full_digits; j++) {
+      digit_t digit = 0;
+      for (intptr_t shift = 0;
+           shift < static_cast<intptr_t>(kDigitBits);
+           shift += 8) {
+        digit = digit | (d->ReadUint8() << shift);
+      }
+      object->set_digit(j, digit);
+    }
+
+    if (full_digits != digits) {
+      intptr_t leftover_bytes = bytes % sizeof(digit_t);
+      ASSERT(leftover_bytes != 0);
+      digit_t digit = 0;
+      for (intptr_t shift = 0;
+           shift < (leftover_bytes * 8);
+           shift += 8) {
+        digit = digit | (d->ReadUint8() << shift);
+      }
+      object->set_digit(digits - 1, digit);
+    }
+
+    d->RegisterBackRef(object);
+  }
 }
 
 

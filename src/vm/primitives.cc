@@ -15,18 +15,14 @@
 #include "vm/heap.h"
 #include "vm/interpreter.h"
 #include "vm/isolate.h"
+#include "vm/math.h"
 #include "vm/object.h"
 #include "vm/os.h"
 #include "vm/port.h"
 #include "vm/thread_pool.h"
 
-#define H heap
-#define A heap->activation()
-#define nil heap->object_store()->nil_obj()
-#define RETURN_BOOL(cbool)                                                     \
-  A->PopNAndPush(num_args + 1, (cbool) ? H->object_store()->true_obj()         \
-                                       : H->object_store()->false_obj());      \
-  return kSuccess;                                                             \
+#define A H->activation()
+#define nil H->object_store()->nil_obj()
 
 namespace psoup {
 
@@ -169,7 +165,103 @@ const bool kFailure = false;
 
 
 #define DEFINE_PRIMITIVE(name)                                                 \
-  static bool primitive##name(intptr_t num_args, Heap* heap, Interpreter* I)
+  static bool primitive##name(intptr_t num_args, Heap* H, Interpreter* I)
+
+#define IS_SMI_OP(left, right)                                                 \
+  left->IsSmallInteger() && right->IsSmallInteger()                            \
+
+#define IS_MINT_OP(left, right)                                                \
+  (left->IsSmallInteger() || left->IsMediumInteger()) &&                       \
+  (right->IsSmallInteger() || right->IsMediumInteger())                        \
+
+#define IS_LINT_OP(left, right)                                                \
+  (left->IsSmallInteger() ||                                                   \
+    left->IsMediumInteger() ||                                                 \
+    left->IsLargeInteger()) &&                                                 \
+  (right->IsSmallInteger() ||                                                  \
+    right->IsMediumInteger() ||                                                \
+    right->IsLargeInteger())                                                   \
+
+#define IS_FLOAT_OP(left, right)                                               \
+  (left->IsFloat64() || right->IsFloat64())                                    \
+
+#define SMI_VALUE(integer)                                                     \
+  static_cast<SmallInteger*>(integer)->value()                                 \
+
+#define MINT_VALUE(integer)                                                    \
+  (integer->IsSmallInteger()                                                   \
+     ? static_cast<SmallInteger*>(integer)->value()                            \
+     : static_cast<MediumInteger*>(integer)->value())                          \
+
+#define LINT_VALUES                                                            \
+  LargeInteger* large_left;                                                    \
+  LargeInteger* large_right;                                                   \
+  {                                                                            \
+    HandleScope h1(H, reinterpret_cast<Object**>(&right));                     \
+    large_left = LargeInteger::Expand(left, H);                                \
+    HandleScope h2(H, reinterpret_cast<Object**>(&large_left));                \
+    large_right = LargeInteger::Expand(right, H);                              \
+  }                                                                            \
+
+#define FLOAT_VALUE(raw_float, number)                                         \
+  if (number->IsSmallInteger()) {                                              \
+    raw_float = static_cast<SmallInteger*>(number)->value();                   \
+  } else if (number->IsMediumInteger()) {                                      \
+    raw_float = static_cast<MediumInteger*>(number)->value();                  \
+  } else if (number->IsFloat64()) {                                            \
+    raw_float = static_cast<Float64*>(number)->value();                        \
+  } else if (number->IsLargeInteger()) {                                       \
+    UNIMPLEMENTED();                                                           \
+    raw_float = 0.0;                                                           \
+  } else {                                                                     \
+    return kFailure;                                                           \
+  }                                                                            \
+
+#define FLOAT_VALUE_OR_FALSE(raw_float, number)                                \
+  if (number->IsSmallInteger()) {                                              \
+    raw_float = static_cast<SmallInteger*>(number)->value();                   \
+  } else if (number->IsMediumInteger()) {                                      \
+    raw_float = static_cast<MediumInteger*>(number)->value();                  \
+  } else if (number->IsFloat64()) {                                            \
+    raw_float = static_cast<Float64*>(number)->value();                        \
+  } else if (number->IsLargeInteger()) {                                       \
+    UNIMPLEMENTED();                                                           \
+    raw_float = 0.0;                                                           \
+  } else {                                                                     \
+    RETURN_BOOL(false);                                                        \
+  }                                                                            \
+
+#define RETURN_SMI(raw_integer)                                                \
+  ASSERT(SmallInteger::IsSmiValue(raw_integer));                               \
+  A->PopNAndPush(num_args + 1, SmallInteger::New(raw_integer));                \
+  return kSuccess;                                                             \
+
+#define RETURN_MINT(raw_integer)                                               \
+  if (SmallInteger::IsSmiValue(raw_integer)) {                                 \
+    A->PopNAndPush(num_args + 1, SmallInteger::New(raw_integer));              \
+    return kSuccess;                                                           \
+  } else {                                                                     \
+    MediumInteger* result = H->AllocateMediumInteger();                        \
+    result->set_value(raw_integer);                                            \
+    A->PopNAndPush(num_args + 1, result);                                      \
+    return kSuccess;                                                           \
+  }                                                                            \
+
+#define RETURN_LINT(large_integer)                                             \
+  Object* result = LargeInteger::Reduce(large_integer, H);                     \
+  A->PopNAndPush(num_args + 1, result);                                        \
+  return kSuccess;                                                             \
+
+#define RETURN_FLOAT(raw_float)                                                \
+  Float64* result = H->AllocateFloat64();                                      \
+  result->set_value(raw_float);                                                \
+  A->PopNAndPush(num_args + 1, result);                                        \
+  return kSuccess;                                                             \
+
+#define RETURN_BOOL(raw_bool)                                                  \
+  A->PopNAndPush(num_args + 1, (raw_bool) ? H->object_store()->true_obj()      \
+                                          : H->object_store()->false_obj());   \
+  return kSuccess;                                                             \
 
 
 DEFINE_PRIMITIVE(Unimplemented) {
@@ -178,490 +270,548 @@ DEFINE_PRIMITIVE(Unimplemented) {
 }
 
 
-static intptr_t SmalltalkDiv(intptr_t cleft, intptr_t cright) {
-  ASSERT(cright != 0);
-  intptr_t cresult;
-  if (cleft > 0) {
-    if (cright > 0) {
-      cresult = cleft / cright;
-    } else {
-      intptr_t pos_right = 0 - cright;
-      cresult = 0 - (cleft + (pos_right - 1)) / pos_right;
-    }
-  } else {
-    intptr_t pos_left = 0 - cleft;
-    if (cright > 0) {
-      cresult = 0 - ((pos_left + (cright - 1)) / cright);
-    } else {
-      intptr_t pos_right = 0 - cright;
-      cresult = pos_left / pos_right;
-    }
-  }
-  return cresult;
-}
-
-
-static int64_t SmalltalkDiv64(int64_t cleft, int64_t cright) {
-  ASSERT(cright != 0);
-  int64_t cresult;
-  if (cleft > 0) {
-    if (cright > 0) {
-      cresult = cleft / cright;
-    } else {
-      int64_t pos_right = 0 - cright;
-      cresult = 0 - (cleft + (pos_right - 1)) / pos_right;
-    }
-  } else {
-    int64_t pos_left = 0 - cleft;
-    if (cright > 0) {
-      cresult = 0 - ((pos_left + (cright - 1)) / cright);
-    } else {
-      int64_t pos_right = 0 - cright;
-      cresult = pos_left / pos_right;
-    }
-  }
-  return cresult;
-}
-
-
-static intptr_t SmalltalkMod(intptr_t cleft, intptr_t cright) {
-  ASSERT(cright != 0);
-  intptr_t cresult = cleft % cright;
-  if (cright < 0) {
-    if (cresult > 0) {
-      cresult = cresult + cright;
-    }
-  } else {
-    if (cresult < 0) {
-      cresult = cresult + cright;
-    }
-  }
-  return cresult;
-}
-
-
-static int64_t SmalltalkMod64(int64_t cleft, int64_t cright) {
-  ASSERT(cright != 0);
-  if ((cright == -1) && (cleft == kMinInt64)) {
-    return 0;
-  }
-  int64_t cresult = cleft % cright;
-  if (cright < 0) {
-    if (cresult > 0) {
-      cresult = cresult + cright;
-    }
-  } else {
-    if (cresult < 0) {
-      cresult = cresult + cright;
-    }
-  }
-  return cresult;
-}
-
-
-enum BinaryOp {
-  kAdd,
-  kSubtract,
-  kMultiply,
-  kDivide,
-  kDiv,
-  kMod,
-  kQuo,
-  kRem,
-  kBitAnd,
-  kBitOr,
-  kBitXor,
-};
-
-
-// TODO(rmacnak): Replace this with a macro as gcc fails to inline it and
-// fold away the constant argument.
-static bool DoBinaryOp(BinaryOp op, Heap* heap) {
-  const intptr_t num_args = 1;
-  Object* left = A->Stack(1);
-  Object* right = A->Stack(0);
-  if (left->IsSmallInteger() && right->IsSmallInteger()) {
-    intptr_t cleft = static_cast<SmallInteger*>(left)->value();
-    intptr_t cright = static_cast<SmallInteger*>(right)->value();
-    intptr_t cresult;
-    switch (op) {
-    case kAdd: cresult = cleft + cright; break;
-    case kSubtract: cresult = cleft - cright; break;
-    case kMultiply: {
-      int64_t cresult = static_cast<int64_t>(cleft) *
-                        static_cast<int64_t>(cright);
-      if (SmallInteger::IsSmiValue(cresult)) {
-        A->PopNAndPush(num_args + 1, SmallInteger::New(cresult));
-        return kSuccess;
-      } else {
-        MediumInteger* result = H->AllocateMediumInteger();  // SAFEPOINT
-        result->set_value(cresult);
-        A->PopNAndPush(num_args + 1, result);
-        return kSuccess;
-      }
-      break;
-    }
-    case kDivide: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      if (cleft % cright != 0) {
-        return kFailure;
-      }
-      cresult = cleft / cright; break;
-    }
-    case kDiv: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      cresult = SmalltalkDiv(cleft, cright); break;
-    }
-    case kMod: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      cresult = SmalltalkMod(cleft, cright); break;
-    }
-    case kQuo: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      cresult = cleft / cright; break;
-    }
-    case kRem: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      cresult = cleft % cright; break;
-    }
-    case kBitAnd: cresult = cleft & cright; break;
-    case kBitOr: cresult = cleft | cright; break;
-    case kBitXor: cresult = cleft ^ cright; break;
-    default:
-      UNREACHABLE();
-      return kFailure;
-    }
-    if (SmallInteger::IsSmiValue(cresult)) {
-      A->PopNAndPush(num_args + 1, SmallInteger::New(cresult));
-      return kSuccess;
-    } else {
-      MediumInteger* result = H->AllocateMediumInteger();  // SAFEPOINT
-      result->set_value(cresult);
-      A->PopNAndPush(num_args + 1, result);
-      return kSuccess;
-    }
-  }
-  if ((left->IsSmallInteger() || left->IsMediumInteger()) &&
-      (right->IsSmallInteger() || right->IsMediumInteger())) {
-    int64_t cleft = left->IsSmallInteger()
-        ? static_cast<SmallInteger*>(left)->value()
-        : static_cast<MediumInteger*>(left)->value();
-    int64_t cright = right->IsSmallInteger()
-        ? static_cast<SmallInteger*>(right)->value()
-        : static_cast<MediumInteger*>(right)->value();
-    int64_t cresult;
-    switch (op) {
-    case kAdd: cresult = cleft + cright; break;
-    case kSubtract: cresult = cleft - cright; break;
-    case kMultiply: cresult = cleft * cright; break;
-    case kDivide: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      if (cleft % cright != 0) {
-        return kFailure;
-      }
-      cresult = cleft / cright; break;
-    }
-    case kDiv: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      cresult = SmalltalkDiv64(cleft, cright); break;
-    }
-    case kMod: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      cresult = SmalltalkMod64(cleft, cright); break;
-    }
-    case kQuo: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      cresult = cleft / cright; break;
-    }
-    case kRem: {
-      if (cright == 0) {
-        return kFailure;
-      }
-      if ((cright == -1) && (cleft == kMinInt64)) {
-        cresult = 0;
-      } else {
-        cresult = cleft % cright;
-      }
-      break;
-    }
-    case kBitAnd: cresult = cleft & cright; break;
-    case kBitOr: cresult = cleft | cright; break;
-    case kBitXor: cresult = cleft ^ cright; break;
-    default:
-      UNREACHABLE();
-      return kFailure;
-    }
-    if (SmallInteger::IsSmiValue(cresult)) {
-      A->PopNAndPush(num_args + 1, SmallInteger::New(cresult));
-      return kSuccess;
-    } else {
-      MediumInteger* result = H->AllocateMediumInteger();  // SAFEPOINT
-      result->set_value(cresult);
-      A->PopNAndPush(num_args + 1, result);
-      return kSuccess;
-    }
-  }
-  if (left->IsFloat64() || right->IsFloat64()) {
-    double cleft, cright;
-    if (left->IsSmallInteger()) {
-      cleft = static_cast<SmallInteger*>(left)->value();
-    } else if (left->IsMediumInteger()) {
-      cleft = static_cast<MediumInteger*>(left)->value();
-    } else if (left->IsFloat64()) {
-      cleft = static_cast<Float64*>(left)->value();
-    } else {
-      UNIMPLEMENTED();
-      return kFailure;
-    }
-    if (right->IsSmallInteger()) {
-      cright = static_cast<SmallInteger*>(right)->value();
-    } else if (right->IsMediumInteger()) {
-      cright = static_cast<MediumInteger*>(right)->value();
-    } else if (right->IsFloat64()) {
-      cright = static_cast<Float64*>(right)->value();
-    } else {
-      return kFailure;
-    }
-    double cresult;
-    switch (op) {
-    case kAdd: cresult = cleft + cright; break;
-    case kSubtract: cresult = cleft - cright; break;
-    case kMultiply: cresult = cleft * cright; break;
-    case kDivide: {
-      if (cright == 0.0) {
-        return kFailure;
-      }
-      cresult = cleft / cright; break;
-    }
-    case kDiv: {
-      if (cright == 0.0) {
-        return kFailure;
-      }
-      cresult = floor(cleft / cright); break;
-      // TODO(rmacnak): Should we answer an Integer instead of a Float?
-    }
-    default:
-      UNREACHABLE();
-      return kFailure;
-    }
-    Float64* result = H->AllocateFloat64();  // SAFEPOINT
-    result->set_value(cresult);
-    A->PopNAndPush(num_args + 1, result);
-    return kSuccess;
-  }
-
-  return kFailure;
-}
-
-
-enum CompareOp {
-  kEqual,
-  kLess,
-  kGreater,
-  kLessEqual,
-  kGreaterEqual,
-};
-
-
-static bool DoCompareOp(CompareOp op, Heap* heap) {
-  const intptr_t num_args = 1;
-  Object* left = A->Stack(1);
-  Object* right = A->Stack(0);
-  if (left->IsSmallInteger() && right->IsSmallInteger()) {
-    intptr_t cleft = static_cast<SmallInteger*>(left)->value();
-    intptr_t cright = static_cast<SmallInteger*>(right)->value();
-    bool cresult;
-    switch (op) {
-    case kEqual: cresult = cleft == cright; break;
-    case kLess: cresult = cleft < cright; break;
-    case kGreater: cresult = cleft > cright; break;
-    case kLessEqual: cresult = cleft <= cright; break;
-    case kGreaterEqual: cresult = cleft >= cright; break;
-    default:
-      UNREACHABLE();
-      return kFailure;
-    }
-    RETURN_BOOL(cresult);
-  }
-  if ((left->IsSmallInteger() || left->IsMediumInteger()) &&
-      (right->IsSmallInteger() || right->IsMediumInteger())) {
-    int64_t cleft = left->IsSmallInteger()
-        ? static_cast<SmallInteger*>(left)->value()
-        : static_cast<MediumInteger*>(left)->value();
-    int64_t cright = right->IsSmallInteger()
-        ? static_cast<SmallInteger*>(right)->value()
-        : static_cast<MediumInteger*>(right)->value();
-    bool cresult;
-    switch (op) {
-    case kEqual: cresult = cleft == cright; break;
-    case kLess: cresult = cleft < cright; break;
-    case kGreater: cresult = cleft > cright; break;
-    case kLessEqual: cresult = cleft <= cright; break;
-    case kGreaterEqual: cresult = cleft >= cright; break;
-    default:
-      UNREACHABLE();
-      return kFailure;
-    }
-    RETURN_BOOL(cresult);
-  }
-  if (left->IsFloat64() || right->IsFloat64()) {
-    double cleft, cright;
-    if (left->IsSmallInteger()) {
-      cleft = static_cast<SmallInteger*>(left)->value();
-    } else if (left->IsMediumInteger()) {
-      cleft = static_cast<MediumInteger*>(left)->value();
-    } else if (left->IsFloat64()) {
-      cleft = static_cast<Float64*>(left)->value();
-    } else {
-      UNIMPLEMENTED();
-      return kFailure;
-    }
-    if (right->IsSmallInteger()) {
-      cright = static_cast<SmallInteger*>(right)->value();
-    } else if (right->IsMediumInteger()) {
-      cright = static_cast<MediumInteger*>(right)->value();
-    } else if (right->IsFloat64()) {
-      cright = static_cast<Float64*>(right)->value();
-    } else {
-      if (op == kEqual) {
-        RETURN_BOOL(false);
-      } else {
-        return kFailure;
-      }
-    }
-    bool cresult;
-    switch (op) {
-    case kEqual: cresult = cleft == cright; break;
-    case kLess: cresult = cleft < cright; break;
-    case kGreater: cresult = cleft > cright; break;
-    case kLessEqual: cresult = cleft <= cright; break;
-    case kGreaterEqual: cresult = cleft >= cright; break;
-    default:
-      UNREACHABLE();
-      return kFailure;
-    }
-    RETURN_BOOL(cresult);
-  }
-
-  if (op == kEqual) {
-    RETURN_BOOL(false);
-  }
-
-  return kFailure;
-}
-
-
 DEFINE_PRIMITIVE(Number_add) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kAdd, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    intptr_t raw_result = raw_left + raw_right;  // Cannot overflow.
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    int64_t raw_result;
+    if (Math::AddHasOverflow64(raw_left, raw_right, &raw_result)) {
+      // Fall through to large integer operation.
+    } else {
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    LargeInteger* large_result = LargeInteger::Add(large_left, large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    double raw_result = raw_left + raw_right;
+    RETURN_FLOAT(raw_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_subtract) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kSubtract, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    intptr_t raw_result = raw_left - raw_right;  // Cannot overflow.
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    int64_t raw_result;
+    if (Math::SubtractHasOverflow64(raw_left, raw_right, &raw_result)) {
+      // Fall through to large integer operation.
+    } else {
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    LargeInteger* large_result =
+        LargeInteger::Subtract(large_left, large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    double raw_result = raw_left - raw_right;
+    RETURN_FLOAT(raw_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_multiply) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kMultiply, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+#if defined(ARCH_IS_32_BIT)
+    int64_t raw_left = SMI_VALUE(left);
+    int64_t raw_right = SMI_VALUE(right);
+    int64_t raw_result = raw_left * raw_right;  // Cannot overflow.
+    RETURN_MINT(raw_result);
+#elif defined(ARCH_IS_64_BIT)
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    intptr_t raw_result;
+    if (Math::MultiplyHasOverflow(raw_left, raw_right, &raw_result)) {
+      // Fall through to large integer operation.
+    } else {
+      RETURN_MINT(raw_result);
+    }
+#else
+#error Unimplemented
+#endif
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    int64_t raw_result;
+    if (Math::MultiplyHasOverflow64(raw_left, raw_right, &raw_result)) {
+      // Fall through to large integer operation.
+    } else {
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    LargeInteger* large_result =
+        LargeInteger::Multiply(large_left, large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    double raw_result = raw_left * raw_right;
+    RETURN_FLOAT(raw_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_divide) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kDivide, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    if ((raw_left % raw_right) != 0) {
+      return kFailure;  // Inexact division.
+    }
+    intptr_t raw_result = raw_left / raw_right;
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    if ((raw_right == -1) && (raw_left == kMinInt64)) {
+      // Overflow. Fall through to large integer operation.
+    } else {
+      if ((raw_left % raw_right) != 0) {
+        return kFailure;  // Inexact division.
+      }
+      int64_t raw_result = raw_left / raw_right;
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    if (large_right->size() == 0) {
+      return kFailure;  // Division by zero.
+    }
+    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kExact,
+                                                      LargeInteger::kQuoitent,
+                                                      large_left,
+                                                      large_right, H);
+    if (large_result == NULL) {
+      return kFailure;  // Inexact division.
+    }
+    RETURN_LINT(large_result);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    if (raw_right == 0.0) {
+      return kFailure;  // Division by zero.
+    }
+    double raw_result = raw_left / raw_right;
+    RETURN_FLOAT(raw_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_div) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kDiv, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    intptr_t raw_result = Math::FloorDiv(raw_left, raw_right);
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    if ((raw_right == -1) && (raw_left == kMinInt64)) {
+      // Overflow. Fall through to large integer operation.
+    } else {
+      int64_t raw_result = Math::FloorDiv64(raw_left, raw_right);
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    if (large_right->size() == 0) {
+      return kFailure;  // Division by zero.
+    }
+    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kFloored,
+                                                      LargeInteger::kQuoitent,
+                                                      large_left,
+                                                      large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    // TODO(rmacnak): Return result as float or integer?
+    double raw_result = floor(raw_left / raw_right);
+    RETURN_FLOAT(raw_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_mod) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kMod, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    intptr_t raw_result = Math::FloorMod(raw_left, raw_right);
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    if ((raw_right == -1) && (raw_left == kMinInt64)) {
+      // Overflow. Fall through to large integer operation.
+    } else {
+      int64_t raw_result = Math::FloorMod64(raw_left, raw_right);
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    if (large_right->size() == 0) {
+      return kFailure;  // Division by zero.
+    }
+    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kFloored,
+                                                      LargeInteger::kRemainder,
+                                                      large_left,
+                                                      large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_quo) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kQuo, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    intptr_t raw_result = Math::TruncDiv(raw_left, raw_right);
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    if ((raw_right == -1) && (raw_left == kMinInt64)) {
+      // Overflow. Fall through to large integer operation.
+    } else {
+      int64_t raw_result = Math::TruncDiv64(raw_left, raw_right);
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    if (large_right->size() == 0) {
+      return kFailure;  // Division by zero.
+    }
+    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kTruncated,
+                                                      LargeInteger::kQuoitent,
+                                                      large_left,
+                                                      large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_rem) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kRem, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    intptr_t raw_result = Math::TruncMod(raw_left, raw_right);
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    if (raw_right == 0) {
+      return kFailure;  // Division by zero.
+    }
+    if ((raw_right == -1) && (raw_left == kMinInt64)) {
+      // Overflow. Fall through to large integer operation.
+    } else {
+      int64_t raw_result = Math::TruncMod64(raw_left, raw_right);
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    if (large_right->size() == 0) {
+      return kFailure;  // Division by zero.
+    }
+    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kTruncated,
+                                                      LargeInteger::kRemainder,
+                                                      large_left,
+                                                      large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_equal) {
-  ASSERT(num_args == 1);
-  return DoCompareOp(kEqual, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    RETURN_BOOL(raw_left == raw_right);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    RETURN_BOOL(raw_left == raw_right);
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    RETURN_BOOL(LargeInteger::Compare(large_left, large_right) == 0);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE_OR_FALSE(raw_right, right);
+    RETURN_BOOL(raw_left == raw_right);
+  }
+
+  RETURN_BOOL(false);
 }
 
 
 DEFINE_PRIMITIVE(Number_less) {
-  ASSERT(num_args == 1);
-  return DoCompareOp(kLess, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    RETURN_BOOL(raw_left < raw_right);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    RETURN_BOOL(raw_left < raw_right);
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    RETURN_BOOL(LargeInteger::Compare(large_left, large_right) > 0);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    RETURN_BOOL(raw_left < raw_right);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_greater) {
-  ASSERT(num_args == 1);
-  return DoCompareOp(kGreater, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    RETURN_BOOL(raw_left > raw_right);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    RETURN_BOOL(raw_left > raw_right);
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    RETURN_BOOL(LargeInteger::Compare(large_left, large_right) < 0);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    RETURN_BOOL(raw_left > raw_right);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_lessOrEqual) {
-  ASSERT(num_args == 1);
-  return DoCompareOp(kLessEqual, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    RETURN_BOOL(raw_left <= raw_right);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    RETURN_BOOL(raw_left <= raw_right);
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    RETURN_BOOL(LargeInteger::Compare(large_left, large_right) >= 0);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    RETURN_BOOL(raw_left <= raw_right);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_greaterOrEqual) {
-  ASSERT(num_args == 1);
-  return DoCompareOp(kGreaterEqual, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    RETURN_BOOL(raw_left >= raw_right);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    RETURN_BOOL(raw_left >= raw_right);
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    RETURN_BOOL(LargeInteger::Compare(large_left, large_right) <= 0);
+  }
+
+  if (IS_FLOAT_OP(left, right)) {
+    double raw_left, raw_right;
+    FLOAT_VALUE(raw_left, left);
+    FLOAT_VALUE(raw_right, right);
+    RETURN_BOOL(raw_left >= raw_right);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Number_asInteger) {
   ASSERT(num_args == 0);
-  Object* rcvr = A->Stack(0);
-  if (rcvr->IsFloat64()) {
-    double crcvr = static_cast<Float64*>(rcvr)->value();
-    int64_t cresult = trunc(crcvr);
-    if (SmallInteger::IsSmiValue(cresult)) {
-      A->PopNAndPush(num_args + 1, SmallInteger::New(cresult));
-      return kSuccess;
-    } else {
-      MediumInteger* result = H->AllocateMediumInteger();  // SAFEPOINT
-      result->set_value(cresult);
-      A->PopNAndPush(num_args + 1, result);
-      return kSuccess;
-    }
+  Object* receiver = A->Stack(0);
+  if (receiver->IsFloat64()) {
+    double raw_receiver = static_cast<Float64*>(receiver)->value();
+    int64_t raw_result = trunc(raw_receiver);
+    // TODO(rmacnak): May require LargeInteger.  Infinities and NaNs.
+    RETURN_MINT(raw_result);
   }
   UNIMPLEMENTED();
   return kFailure;
@@ -670,20 +820,14 @@ DEFINE_PRIMITIVE(Number_asInteger) {
 
 DEFINE_PRIMITIVE(Number_asDouble) {
   ASSERT(num_args == 0);
-  Object* rcvr = A->Stack(0);
-  if (rcvr->IsSmallInteger()) {
-    intptr_t intvalue = static_cast<SmallInteger*>(rcvr)->value();
-    Float64* result = H->AllocateFloat64();  // SAFEPOINT
-    result->set_value(static_cast<double>(intvalue));
-    A->PopNAndPush(num_args + 1, result);
-    return kSuccess;
+  Object* receiver = A->Stack(0);
+  if (receiver->IsSmallInteger()) {
+    intptr_t raw_receiver = static_cast<SmallInteger*>(receiver)->value();
+    RETURN_FLOAT(static_cast<double>(raw_receiver));
   }
-  if (rcvr->IsMediumInteger()) {
-    int64_t intvalue = static_cast<MediumInteger*>(rcvr)->value();
-    Float64* result = H->AllocateFloat64();  // SAFEPOINT
-    result->set_value(static_cast<double>(intvalue));
-    A->PopNAndPush(num_args + 1, result);
-    return kSuccess;
+  if (receiver->IsMediumInteger()) {
+    int64_t raw_receiver = static_cast<MediumInteger*>(receiver)->value();
+    RETURN_FLOAT(static_cast<double>(raw_receiver));
   }
   UNIMPLEMENTED();
   return kFailure;
@@ -691,68 +835,80 @@ DEFINE_PRIMITIVE(Number_asDouble) {
 
 
 DEFINE_PRIMITIVE(Integer_bitAnd) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kBitAnd, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    intptr_t raw_result = raw_left & raw_right;
+    RETURN_SMI(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    int64_t raw_result = raw_left & raw_right;
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    LargeInteger* large_result = LargeInteger::And(large_left, large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Integer_bitOr) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kBitOr, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    intptr_t raw_result = raw_left | raw_right;
+    RETURN_SMI(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    int64_t raw_result = raw_left | raw_right;
+    RETURN_MINT(raw_result);  // In fact, we know it can't be Smi.
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    LargeInteger* large_result = LargeInteger::Or(large_left, large_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Integer_bitXor) {
-  ASSERT(num_args == 1);
-  return DoBinaryOp(kBitXor, heap);
-}
-
-
-enum ShiftOp {
-  kLeft,
-  kRight,
-};
-
-
-static bool DoShiftOp(ShiftOp op, Heap* heap) {
-  const intptr_t num_args = 1;
   Object* left = A->Stack(1);
   Object* right = A->Stack(0);
-  if ((left->IsSmallInteger() || left->IsMediumInteger()) &&
-      (right->IsSmallInteger() || right->IsMediumInteger())) {
-    int64_t cleft = left->IsSmallInteger()
-        ? static_cast<SmallInteger*>(left)->value()
-        : static_cast<MediumInteger*>(left)->value();
-    int64_t cright = right->IsSmallInteger()
-        ? static_cast<SmallInteger*>(right)->value()
-        : static_cast<MediumInteger*>(right)->value();
-    if (cright < 0) {
-      return kFailure;
-    }
-    int64_t cresult;
-    switch (op) {
-    case kLeft:
-      cresult = cleft << cright;
-      break;
-    case kRight:
-      if (cright >= 64) {
-        cright = 63;
-      }
-      cresult = cleft >> cright;
-      break;
-    default:
-      UNREACHABLE();
-      return kFailure;
-    }
-    if (SmallInteger::IsSmiValue(cresult)) {
-      A->PopNAndPush(num_args + 1, SmallInteger::New(cresult));
-      return kSuccess;
-    } else {
-      MediumInteger* result = H->AllocateMediumInteger();  // SAFEPOINT
-      result->set_value(cresult);
-      A->PopNAndPush(num_args + 1, result);
-      return kSuccess;
-    }
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    intptr_t raw_result = raw_left ^ raw_right;
+    RETURN_SMI(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    int64_t raw_result = raw_left ^ raw_right;
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LINT_VALUES;
+    LargeInteger* large_result = LargeInteger::Xor(large_left, large_right, H);
+    RETURN_LINT(large_result);
   }
 
   return kFailure;
@@ -760,14 +916,129 @@ static bool DoShiftOp(ShiftOp op, Heap* heap) {
 
 
 DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
-  ASSERT(num_args == 1);
-  return DoShiftOp(kLeft, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (false && IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right < 0) {
+      return kFailure;
+    }
+    // bit length is for wrong size
+    if (Utils::BitLength(raw_left) + raw_right < kSmiBits) {
+      intptr_t raw_result = raw_left << raw_right;
+      ASSERT((raw_result >> raw_right) == raw_left);
+      RETURN_SMI(raw_result);
+    }
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    if (raw_right < 0) {
+      return kFailure;
+    }
+    if (Utils::BitLength(raw_left) <= (63 - raw_right)) {
+      int64_t raw_result = raw_left << raw_right;
+      ASSERT(raw_result >> raw_right == raw_left);
+      RETURN_MINT(raw_result);
+    }
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LargeInteger* large_left = LargeInteger::Expand(left, H);
+    right = A->Stack(0);
+    if (right->IsLargeInteger()) {
+      if (static_cast<LargeInteger*>(right)->negative()) {
+        return kFailure;
+      }
+      FATAL("Out of memory.");
+    }
+    if (right->IsMediumInteger()) {
+      int64_t raw_right = MINT_VALUE(right);
+      if (raw_right < 0) {
+        return kFailure;
+      }
+      FATAL("Out of memory.");
+    }
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right < 0) {
+      return kFailure;
+    }
+    LargeInteger* large_result =
+        LargeInteger::ShiftLeft(large_left, raw_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  return kFailure;
 }
 
 
 DEFINE_PRIMITIVE(Integer_bitShiftRight) {
-  ASSERT(num_args == 1);
-  return DoShiftOp(kRight, heap);
+  Object* left = A->Stack(1);
+  Object* right = A->Stack(0);
+  if (IS_SMI_OP(left, right)) {
+    intptr_t raw_left = SMI_VALUE(left);
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right < 0) {
+      return kFailure;
+    }
+    if (raw_right > kSmiBits) {
+      raw_right = kSmiBits;
+    }
+    intptr_t raw_result = raw_left >> raw_right;
+    RETURN_SMI(raw_result);
+  }
+
+  if (IS_MINT_OP(left, right)) {
+    int64_t raw_left = MINT_VALUE(left);
+    int64_t raw_right = MINT_VALUE(right);
+    if (raw_right < 0) {
+      return kFailure;
+    }
+    if (raw_right > 63) {
+      raw_right = 63;
+    }
+    int64_t raw_result = raw_left >> raw_right;
+    RETURN_MINT(raw_result);
+  }
+
+  if (IS_LINT_OP(left, right)) {
+    LargeInteger* large_left = LargeInteger::Expand(left, H);
+    right = A->Stack(0);
+    if (right->IsLargeInteger()) {
+      if (static_cast<LargeInteger*>(right)->negative()) {
+        return kFailure;
+      }
+      // Shift leaves only sign bit.
+      intptr_t raw_result = large_left->negative() ? -1 : 0;
+      RETURN_SMI(raw_result);
+    }
+    if (right->IsMediumInteger()) {
+      int64_t raw_right = MINT_VALUE(right);
+      if (raw_right < 0) {
+        return kFailure;
+      }
+      // Shift leaves only sign bit.
+      intptr_t raw_result = large_left->negative() ? -1 : 0;
+      RETURN_SMI(raw_result);
+    }
+    intptr_t raw_right = SMI_VALUE(right);
+    if (raw_right < 0) {
+      return kFailure;
+    }
+    intptr_t left_bits = large_left->size() * sizeof(digit_t) * kBitsPerByte;
+    if (raw_right >= left_bits) {
+      intptr_t raw_result = large_left->negative() ? -1 : 0;
+      RETURN_SMI(raw_result);
+    }
+
+    LargeInteger* large_result =
+        LargeInteger::ShiftRight(large_left, raw_right, H);
+    RETURN_LINT(large_result);
+  }
+
+  return kFailure;
 }
 
 
@@ -777,11 +1048,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
   if (!rcvr->IsFloat64()) {                                     \
     return kFailure;                                            \
   }                                                             \
-  double c_result = func(rcvr->value());                        \
-  Float64* result = H->AllocateFloat64();  /* SAFEPOINT */      \
-  result->set_value(c_result);                                  \
-  A->PopNAndPush(num_args + 1, result);                         \
-  return kSuccess;                                              \
+  RETURN_FLOAT(func(rcvr->value()));                            \
 
 
 #define FLOAT_FUNCTION_2(func)                                  \
@@ -794,11 +1061,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
   if (!arg->IsFloat64()) {                                      \
     return kFailure;                                            \
   }                                                             \
-  double c_result = func(rcvr->value(), arg->value());          \
-  Float64* result = H->AllocateFloat64();  /* SAFEPOINT */      \
-  result->set_value(c_result);                                  \
-  A->PopNAndPush(num_args + 1, result);                         \
-  return kSuccess;                                              \
+  RETURN_FLOAT(func(rcvr->value(), arg->value()));              \
 
 
 DEFINE_PRIMITIVE(Double_floor) { FLOAT_FUNCTION_1(floor); }
@@ -1920,7 +2183,11 @@ DEFINE_PRIMITIVE(Number_printString) {
     double value = static_cast<Float64*>(receiver)->value();
     DoubleToCString(value, buffer, sizeof(buffer));
     length = strlen(buffer);
-    // length = snprintf(buffer, sizeof(buffer), "%lf", value);
+  } else if (receiver->IsLargeInteger()) {
+    LargeInteger* large = static_cast<LargeInteger*>(receiver);
+    ByteString* result = LargeInteger::PrintString(large, H);
+    A->PopNAndPush(num_args + 1, result);
+    return kSuccess;
   } else {
     UNIMPLEMENTED();
   }
@@ -1947,7 +2214,7 @@ DEFINE_PRIMITIVE(unwindProtect) {
 
 
 template<typename L, typename R>
-static bool StringEquals(L* left, R* right, Heap* heap, intptr_t num_args) {
+static bool StringEquals(L* left, R* right, Heap* H, intptr_t num_args) {
   if (left->size() != right->size()) {
     RETURN_BOOL(false);
   }
@@ -1977,11 +2244,11 @@ DEFINE_PRIMITIVE(String_equals) {
     if (right->IsByteString()) {
       return StringEquals(static_cast<ByteString*>(left),
                           static_cast<ByteString*>(right),
-                          heap, num_args);
+                          H, num_args);
     } else if (right->IsWideString()) {
       return StringEquals(static_cast<ByteString*>(left),
                           static_cast<WideString*>(right),
-                          heap, num_args);
+                          H, num_args);
     } else {
       RETURN_BOOL(false);
     }
@@ -1989,11 +2256,11 @@ DEFINE_PRIMITIVE(String_equals) {
     if (right->IsByteString()) {
       return StringEquals(static_cast<WideString*>(left),
                           static_cast<ByteString*>(right),
-                          heap, num_args);
+                          H, num_args);
     } else if (right->IsWideString()) {
       return StringEquals(static_cast<WideString*>(left),
                           static_cast<WideString*>(right),
-                          heap, num_args);
+                          H, num_args);
     } else {
       RETURN_BOOL(false);
     }
@@ -2421,8 +2688,13 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
     UNREACHABLE();
   }
 
-  int n = fwrite(bytes->element_addr(0), 1, bytes->Size(), f);
-  if (n != bytes->Size()) UNREACHABLE();
+  intptr_t length = bytes->Size();
+  int start = 0;
+  while (start != length) {
+    int written = fwrite(bytes->element_addr(start), 1, length - start, f);
+    ASSERT(written != -1);
+    start += written;
+  }
   fflush(f);
   fclose(f);
 
@@ -2460,8 +2732,12 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   intptr_t length = st.st_size;
 
   ByteArray* result = H->AllocateByteArray(length);  // SAFEPOINT
-  int n = fread(result->element_addr(0), 1, length, f);
-  if (n != length) UNREACHABLE();
+  int start = 0;
+  while (start != length) {
+    int read = fread(result->element_addr(start), 1, length - start, f);
+    ASSERT(read != -1);
+    start += read;
+  }
 
   fclose(f);
   free(cfilename);

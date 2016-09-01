@@ -150,6 +150,9 @@ class Object {
   bool IsMediumInteger() const {
     return IsHeapObject() && (cid() == kMintCid);
   }
+  bool IsLargeInteger() const {
+    return IsHeapObject() && (cid() == kBigintCid);
+  }
   bool IsFloat64() const {
     return IsHeapObject() && (cid() == kFloat64Cid);
   }
@@ -338,6 +341,9 @@ class ForwardingCorpse {
 
 class SmallInteger : public Object {
  public:
+  static const int64_t kMinValue = kSmiMin;
+  static const int64_t kMaxValue = kSmiMax;
+
   static SmallInteger* New(intptr_t value) {
     return reinterpret_cast<SmallInteger*>(value << kSmiTagShift);
   }
@@ -348,7 +354,7 @@ class SmallInteger : public Object {
   }
 
   static bool IsSmiValue(int64_t v) {
-    return (v >= kSmiMin) && (v <= kSmiMax);
+    return (v >= kMinValue) && (v <= kMaxValue);
   }
 
 #if defined(ARCH_IS_32_BIT)
@@ -365,6 +371,9 @@ class MediumInteger : public Object {
   HEAP_OBJECT_IMPLEMENTATION(MediumInteger);
 
  public:
+  static const int64_t kMinValue = kMinInt64;
+  static const int64_t kMaxValue = kMaxInt64;
+
   int64_t value() const {
     return ptr()->value_;
   }
@@ -377,21 +386,97 @@ class MediumInteger : public Object {
 };
 
 
+#if defined(ARCH_IS_32_BIT)
+typedef uint16_t digit_t;
+typedef uint32_t ddigit_t;
+typedef int32_t sddigit_t;
+#elif defined(ARCH_IS_64_BIT)
+typedef uint32_t digit_t;
+typedef uint64_t ddigit_t;
+typedef int64_t sddigit_t;
+#else
+#error Unexpected architecture word size
+#endif
+const ddigit_t kDigitBits = sizeof(digit_t) * kBitsPerByte;
+const ddigit_t kDigitShift = sizeof(digit_t) * kBitsPerByte;
+const ddigit_t kDigitBase = static_cast<ddigit_t>(1) << kDigitBits;
+const ddigit_t kDigitMask = kDigitBase - static_cast<ddigit_t>(1);
+
 class LargeInteger : public Object {
   HEAP_OBJECT_IMPLEMENTATION(LargeInteger);
 
  public:
+  enum DivOperationType {
+    kTruncated,
+    kFloored,
+    kExact,
+  };
+
+  enum DivResultType {
+    kQuoitent,
+    kRemainder
+  };
+
+  static LargeInteger* Expand(Object* integer, Heap* H);
+  static Object* Reduce(LargeInteger* integer, Heap* H);
+
+  static intptr_t Compare(LargeInteger* left, LargeInteger* right);
+
+  static LargeInteger* Add(LargeInteger* left,
+                           LargeInteger* right, Heap* H);
+  static LargeInteger* Subtract(LargeInteger* left,
+                                LargeInteger* right, Heap* H);
+  static LargeInteger* Multiply(LargeInteger* left,
+                                LargeInteger* right, Heap* H);
+  static LargeInteger* Divide(DivOperationType op_type,
+                              DivResultType result_type,
+                              LargeInteger* left,
+                              LargeInteger* right,
+                              Heap* H);
+
+  static LargeInteger* And(LargeInteger* left,
+                           LargeInteger* right, Heap* H);
+  static LargeInteger* Or(LargeInteger* left,
+                          LargeInteger* right, Heap* H);
+  static LargeInteger* Xor(LargeInteger* left,
+                           LargeInteger* right, Heap* H);
+  static LargeInteger* ShiftRight(LargeInteger* left,
+                                  intptr_t raw_right, Heap* H);
+  static LargeInteger* ShiftLeft(LargeInteger* left,
+                                 intptr_t raw_right, Heap* H);
+
+  static ByteString* PrintString(LargeInteger* large, Heap* H);
+
   bool negative() const {
     return ptr()->negative_;
   }
   void set_negative(bool v) {
     ptr()->negative_ = v;
   }
+  intptr_t size() {
+    return ptr()->size_;
+  }
+  void set_size(intptr_t value) {
+    ptr()->size_ = value;
+  }
+  intptr_t capacity() {
+    return ptr()->capacity_;
+  }
+  void set_capacity(intptr_t value) {
+    ptr()->capacity_ = value;
+  }
+  digit_t digit(intptr_t index) {
+    return ptr()->digits_[index];
+  }
+  void set_digit(intptr_t index, digit_t value) {
+    ptr()->digits_[index] = value;
+  }
 
  private:
-  intptr_t negative_;
-  intptr_t digit_size_;
-  uintptr_t digits_[];
+  intptr_t capacity_;
+  intptr_t negative_;  // TODO(rmacnak): Use a header bit?
+  intptr_t size_;
+  digit_t digits_[];
 };
 
 

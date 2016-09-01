@@ -238,9 +238,22 @@ public adoptInstances = (
 public readEdges = (
 )
 public readNodes = (
-	| count = stream uint16. |
+	| count |
+	count:: stream uint16.
 	count timesRepeat:
 		[registerBackRef: stream int64].
+
+	(* :todo: Add use direct diget accessors. *)
+	count:: stream uint16.
+	count timesRepeat:
+		[ | negative digitLength integer |
+		negative:: stream uint8 = 1.
+		digitLength:: stream uint16.
+		integer:: 0.
+		0 to: digitLength - 1 << 3 by: 8 do: 
+			[:shift | integer:: integer bitOr: (stream uint8 << shift)].
+		negative ifTrue: [integer:: 0 - integer].
+		registerBackRef: integer].
 )
 ) : (
 )
@@ -807,10 +820,14 @@ public writeNodes = (
 )
 class IntegerCluster = (|
 objects = List new.
+large = List new.
 |) (
 'as yet unclassified'
 public analyze: object = (
-	objects add: object.
+	(* :todo: Separate large integers into their own cluster. *)
+	LargeInteger = (classOf: object)
+		ifTrue: [large add: object]
+		ifFalse: [objects add: object].
 )
 public writeEdges = (
 )
@@ -820,6 +837,28 @@ public writeNodes = (
 	objects do: [:object |
 		registerBackRef: object.
 		stream int64: object].
+	
+	(* :todo: Add use direct diget accessors. *)
+	stream uint16: large size.
+	large do: [:object | | abs tmp digitLength |
+		registerBackRef: object.
+		object < 0 
+			ifTrue: 
+				[stream uint8: 1.
+				abs:: 0 - object]
+			ifFalse:
+				[stream uint8: 0.
+				abs:: object].
+		tmp:: abs.
+		digitLength:: 0.
+		[0 = tmp] whileFalse: 
+			[digitLength:: digitLength + 1.
+			 tmp:: tmp >> 8].
+		stream uint16: digitLength.
+		tmp:: abs.
+		digitLength timesRepeat:
+			[stream uint8: (tmp bitAnd: 255).
+			 tmp:: tmp >> 8]].
 )
 ) : (
 )
@@ -1241,10 +1280,14 @@ public writeNodes = (
 )
 class IntegerCluster = (|
 objects = List new.
+large = List new.
 |) (
 'as yet unclassified'
 public analyze: object = (
-	objects add: object.
+	(* :todo: Separate large integers into their own cluster. *)
+	LargeInteger = (classOf: object)
+		ifTrue: [large add: object]
+		ifFalse: [objects add: object].
 )
 public writeEdges = (
 )
@@ -1254,6 +1297,28 @@ public writeNodes = (
 	objects do: [:object |
 		registerBackRef: object.
 		stream int64: object].
+	
+	(* :todo: Add use direct diget accessors. *)
+	stream uint16: large size.
+	large do: [:object | | abs tmp digitLength |
+		registerBackRef: object.
+		object < 0 
+			ifTrue: 
+				[stream uint8: 1.
+				abs:: 0 - object]
+			ifFalse:
+				[stream uint8: 0.
+				abs:: object].
+		tmp:: abs.
+		digitLength:: 0.
+		[0 = tmp] whileFalse: 
+			[digitLength:: digitLength + 1.
+			 tmp:: tmp >> 8].
+		stream uint16: digitLength.
+		tmp:: abs.
+		digitLength timesRepeat:
+			[stream uint8: (tmp bitAnd: 255).
+			 tmp:: tmp >> 8]].
 )
 ) : (
 )

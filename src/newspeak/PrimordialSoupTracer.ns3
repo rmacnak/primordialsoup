@@ -584,21 +584,32 @@ public writeNodes = (
 )
 class SmallIntegerCluster for: cls = (|
 	klass = cls.
-	objects = List new.
+	small = List new.
+	large = List new.
 |) (
 'as yet unclassified'
 public analyze: object = (
-	objects add: object.
+
+	(object between:  -9223372036854775808 and:  9223372036854775807)
+		ifTrue: [small add: object]
+		ifFalse: [large add: object].	
 )
 public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kSmiCid negated.
-	stream uint16: objects size.	
+	stream uint16: small size.	
 	{'Nodes smi'. stream position} out.
-	objects do: [:object |
+	small do: [:object |
 		registerBackRef: object.
 		on: stream int64: object].
+
+	stream uint16: large size.
+	large do: [:object |
+		registerBackRef: object.
+		stream nextPut: ((object < 0) ifTrue: [1] ifFalse: [0]).
+		stream uint16: object digitLength.
+		1 to: object digitLength do: [:i | stream nextPut: (object digitAt: i)]].
 )
 ) : (
 )

@@ -5,17 +5,18 @@
 #ifndef VM_FLAGS_H_
 #define VM_FLAGS_H_
 
-#define RECYCLE_ACTIVATIONS true
-#define WEAK_CLASS_TABLE true
-#define STATIC_PREDICTION_BYTECODES true
 #define LOOKUP_CACHE true
+#define RECYCLE_ACTIVATIONS true
+#define STATIC_PREDICTION_BYTECODES false
+#define WEAK_CLASS_TABLE true
 
 #define REPORT_GC false
+#define TEST_SLOW_PATH false
+#define TRACE_BECOME false
+#define TRACE_DNU false
+#define TRACE_FUEL false
 #define TRACE_ISOLATES false
 #define TRACE_PRIMITIVES false
-#define TRACE_DNU false
 #define TRACE_SPECIAL_CONTROL false
-#define TRACE_FUEL false
-#define TRACE_BECOME true
 
 #endif  // VM_FLAGS_H_

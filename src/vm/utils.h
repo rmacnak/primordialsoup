@@ -23,6 +23,30 @@ class Utils {
     return RoundDown(x + n - 1, n);
   }
 
+  static inline int HighestBit(int64_t v) {
+    uint64_t x = static_cast<uint64_t>((v > 0) ? v : -v);
+#if defined(__GNUC__)
+    ASSERT(sizeof(long long) == sizeof(int64_t));  // NOLINT
+    return 64 - __builtin_clzll(x);
+#else
+    uint64_t t;
+    int r = 0;
+    if ((t = x >> 32) != 0) { x = t; r += 32; }
+    if ((t = x >> 16) != 0) { x = t; r += 16; }
+    if ((t = x >> 8) != 0) { x = t; r += 8; }
+    if ((t = x >> 4) != 0) { x = t; r += 4; }
+    if ((t = x >> 2) != 0) { x = t; r += 2; }
+    if (x > 1) r += 1;
+    return r;
+#endif
+  }
+
+  static int BitLength(int64_t value) {
+    // Flip bits if negative (-1 becomes 0).
+    value ^= value >> (8 * sizeof(value) - 1);
+    return (value == 0) ? 0 : (Utils::HighestBit(value) + 1);
+  }
+
   template<typename T>
   static inline bool IsPowerOfTwo(T x) {
     return ((x & (x - 1)) == 0) && (x != 0);

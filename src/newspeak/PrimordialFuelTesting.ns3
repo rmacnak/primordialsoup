@@ -60,6 +60,27 @@ public testHelloApp = (
 	after:: roundTrip: before.
 	assert: after main equals: 42.
 )
+public testLargeIntegers = (
+	assert: (roundTrip: -1 << 63 - 1) equals: -1 << 63 - 1. (* largestNegativeLargeInteger *)
+	assert: (roundTrip: 1 << 63) equals: 1 << 63. (* smallestPositiveLargeInteger *)
+
+	assert: (roundTrip: 16rABABABABABABABAB) equals: 16rABABABABABABABAB.
+	assert: (roundTrip: 16r7373737373737373) equals: 16r7373737373737373.
+	
+	assert: (roundTrip: 0 - 16rABABABABABABABAB) equals: 0 - 16rABABABABABABABAB.
+	assert: (roundTrip: 0 - 16r7373737373737373) equals: 0 -16r7373737373737373.
+)
+public testMediumIntegers = (
+	assert: (roundTrip: -1 << 31) equals: -1 << 31. (* minInt32 *)
+	assert: (roundTrip: -1 << 62) equals: -1 << 62. (* minInt63 *)
+	assert: (roundTrip: -1 << 63) equals: -1 << 63. (* minInt63 *)
+	
+	assert: (roundTrip: 1 << 31 - 1) equals: 1 << 31 - 1. (* maxInt32 *)
+	assert: (roundTrip: 1 << 62 - 1) equals: 1 << 62 - 1. (* maxInt63 *)
+	assert: (roundTrip: 1 << 63 - 1) equals: 1 << 63 - 1. (* maxInt64 *)
+	
+	assert: (roundTrip: 16r6996699669966996) equals: 16r6996699669966996.
+)
 public testOddballs = (
 	assert: (roundTrip: nil) equals: nil.
 	assert: (roundTrip: false) equals: false.
