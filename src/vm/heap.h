@@ -356,7 +356,7 @@ class Heap {
 
   Isolate* isolate() const { return isolate_; }
 
-  int32_t NextIdentityHash() { return identity_hash_random_.NextUInt32(); }
+  uint32_t NextIdentityHash() { return identity_hash_random_.NextUInt32(); }
 
  private:
   void FlipSpaces();

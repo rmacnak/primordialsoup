@@ -47,7 +47,6 @@ def BuildVM(cxx, arch, os, debug):
     '-Wextra',
     '-Wnon-virtual-dtor',
     '-Wvla',
-    '-Wno-conversion-null',
     '-Wno-unused-parameter',
     '-fno-rtti',
     '-fno-exceptions',

@@ -12,21 +12,21 @@ Heap::Heap(Isolate* isolate) :
     to_(),
     from_(),
     scan_(0),
-    ephemeron_list_(0),
-    weak_list_(0),
-    class_table_(0),
+    ephemeron_list_(NULL),
+    weak_list_(NULL),
+    class_table_(NULL),
     class_table_capacity_(0),
     class_table_top_(0),
 #if WEAK_CLASS_TABLE
     class_table_free_(0),
 #endif
-    object_store_(0),
-    current_activation_(0),
+    object_store_(NULL),
+    current_activation_(NULL),
 #if RECYCLE_ACTIVATIONS
-    recycle_list_(0),
+    recycle_list_(NULL),
 #endif
 #if LOOKUP_CACHE
-    lookup_cache_(0),
+    lookup_cache_(NULL),
 #endif
     handles_(),
     handles_top_(0),

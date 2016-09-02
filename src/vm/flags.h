@@ -7,7 +7,7 @@
 
 #define LOOKUP_CACHE true
 #define RECYCLE_ACTIVATIONS true
-#define STATIC_PREDICTION_BYTECODES false
+#define STATIC_PREDICTION_BYTECODES true
 #define WEAK_CLASS_TABLE true
 
 #define REPORT_GC false
