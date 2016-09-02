@@ -10,8 +10,7 @@
 
 namespace psoup {
 
-/// DEFINE_FLAG(int, worker_timeout_millis, 5000,
-///     "Free workers when they have been idle for this amount of time.");
+// Free workers when they have been idle for this amount of time.
 #define FLAG_worker_timeout_millis 5000
 
 ThreadPool::ThreadPool()
@@ -433,9 +432,6 @@ void ThreadPool::Worker::Main(uword args) {
   ThreadId id = os_thread->id();
   ThreadJoinId join_id = os_thread->join_id();
   ThreadPool* pool;
-
-  // Set the thread's stack_base based on the current stack pointer.
-  os_thread->set_stack_base(Thread::GetCurrentStackPointer());
 
   {
     MonitorLocker ml(&worker->monitor_);

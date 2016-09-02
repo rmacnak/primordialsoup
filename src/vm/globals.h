@@ -190,4 +190,10 @@ private:                                                                       \
 #define PRINTF_ATTRIBUTE(string_index, first_to_check)
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#define NORETURN_ATTRIBUTE __attribute__((noreturn))
+#else
+#define NORETURN_ATTRIBUTE
+#endif
+
 #endif  // VM_GLOBALS_H_

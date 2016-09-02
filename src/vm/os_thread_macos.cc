@@ -108,9 +108,6 @@ int OSThread::Start(const char* name,
   int result = pthread_attr_init(&attr);
   RETURN_ON_PTHREAD_FAILURE(result);
 
-  result = pthread_attr_setstacksize(&attr, OSThread::GetMaxStackSize());
-  RETURN_ON_PTHREAD_FAILURE(result);
-
   ThreadStartData* data = new ThreadStartData(name, function, parameter);
 
   pthread_t tid;
@@ -152,12 +149,6 @@ void OSThread::SetThreadLocal(ThreadLocalKey key, uword value) {
 }
 
 
-intptr_t OSThread::GetMaxStackSize() {
-  const int kStackSize = (128 * kWordSize * KB);
-  return kStackSize;
-}
-
-
 ThreadId OSThread::GetCurrentThreadId() {
   return pthread_self();
 }
@@ -192,30 +183,6 @@ ThreadId OSThread::ThreadIdFromIntPtr(intptr_t id) {
 
 bool OSThread::Compare(ThreadId a, ThreadId b) {
   return pthread_equal(a, b) != 0;
-}
-
-
-void OSThread::GetThreadCpuUsage(ThreadId thread_id, int64_t* cpu_usage) {
-  ASSERT(thread_id == GetCurrentThreadId());
-  ASSERT(cpu_usage != NULL);
-  // TODO(johnmccutchan): Enable this after fixing issue with macos directory
-  // watcher.
-  const bool get_cpu_usage = false;
-  if (get_cpu_usage) {
-    mach_msg_type_number_t count = THREAD_BASIC_INFO_COUNT;
-    thread_basic_info_data_t info_data;
-    thread_basic_info_t info = &info_data;
-    mach_port_t thread_port = mach_thread_self();
-    kern_return_t r = thread_info(thread_port, THREAD_BASIC_INFO,
-                                  (thread_info_t)info, &count);
-    mach_port_deallocate(mach_task_self(), thread_port);
-    if (r == KERN_SUCCESS) {
-      *cpu_usage = (info->user_time.seconds * kMicrosecondsPerSecond) +
-                   info->user_time.microseconds;
-      return;
-    }
-  }
-  *cpu_usage = 0;
 }
 
 

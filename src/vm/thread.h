@@ -33,10 +33,6 @@ class Thread : public BaseThread {
     return reinterpret_cast<Thread*>(thread);
   }
 
-  // Returns the current C++ stack pointer. Equivalent taking the address of a
-  // stack allocated local, but plays well with AddressSanitizer.
-  static uword GetCurrentStackPointer();
-
   // OSThread corresponding to this thread.
   OSThread* os_thread() const { return os_thread_; }
   void set_os_thread(OSThread* os_thread) {

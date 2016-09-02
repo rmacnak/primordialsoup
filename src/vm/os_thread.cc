@@ -25,7 +25,6 @@ OSThread::OSThread() :
     trace_id_(OSThread::GetCurrentThreadTraceId()),
     name_(NULL),
     thread_list_next_(NULL),
-    stack_base_(0),
     thread_(NULL) {
 }
 

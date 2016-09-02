@@ -79,26 +79,6 @@ class OSThread : public BaseThread {
     name_ = strdup(name);
   }
 
-  uword stack_base() const { return stack_base_; }
-  void set_stack_base(uword stack_base) { stack_base_ = stack_base; }
-
-  // Retrieve the stack address bounds for profiler.
-  bool GetProfilerStackBounds(uword* lower, uword* upper) const {
-    uword stack_upper = stack_base_;
-    if (stack_upper == 0) {
-      return false;
-    }
-    uword stack_lower = stack_upper - GetSpecifiedStackSize();
-    *lower = stack_lower;
-    *upper = stack_upper;
-    return true;
-  }
-
-  // Used to temporarily disable or enable thread interrupts.
-  void DisableThreadInterrupts();
-  void EnableThreadInterrupts();
-  bool ThreadInterruptsEnabled();
-
   // The currently executing thread, or NULL if not yet initialized.
   static OSThread* Current() {
     BaseThread* thread = GetCurrentTLS();
@@ -117,13 +97,6 @@ class OSThread : public BaseThread {
   }
   static void SetCurrent(OSThread* current);
 
-  // TODO(5411455): Use flag to override default value and Validate the
-  // stack size by querying OS.
-  static uword GetSpecifiedStackSize() {
-    ASSERT(OSThread::kStackSizeBuffer < OSThread::GetMaxStackSize());
-    uword stack_size = OSThread::GetMaxStackSize() - OSThread::kStackSizeBuffer;
-    return stack_size;
-  }
   static BaseThread* GetCurrentTLS() {
     return reinterpret_cast<BaseThread*>(OSThread::GetThreadLocal(thread_key_));
   }
@@ -147,12 +120,10 @@ class OSThread : public BaseThread {
   }
   static ThreadId GetCurrentThreadId();
   static void SetThreadLocal(ThreadLocalKey key, uword value);
-  static intptr_t GetMaxStackSize();
   static void Join(ThreadJoinId id);
   static intptr_t ThreadIdToIntPtr(ThreadId id);
   static ThreadId ThreadIdFromIntPtr(intptr_t id);
   static bool Compare(ThreadId a, ThreadId b);
-  static void GetThreadCpuUsage(ThreadId thread_id, int64_t* cpu_usage);
 
   // Called at VM startup and shutdown.
   static void InitOnce();
@@ -161,8 +132,6 @@ class OSThread : public BaseThread {
 
   static void DisableOSThreadCreation();
   static void EnableOSThreadCreation();
-
-  static const intptr_t kStackSizeBuffer = (4 * KB * kWordSize);
 
   static const ThreadId kInvalidThreadId;
   static const ThreadJoinId kInvalidThreadJoinId;
@@ -201,7 +170,6 @@ class OSThread : public BaseThread {
   // All |Thread|s are registered in the thread list.
   OSThread* thread_list_next_;
 
-  uword stack_base_;
   Thread* thread_;
 
   // thread_list_lock_ cannot have a static lifetime because the order in which
