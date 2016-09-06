@@ -5,9 +5,9 @@ import platform
 
 OPT = '-O3'
 WARNINGS = '-Wall -Wextra -Wnon-virtual-dtor -Wvla -Wno-conversion-null -Wno-unused-parameter'
-FEATURES = '-g3 -fno-rtti -fno-exceptions -fstack-protector'
+FEATURES = '-g3 -fno-rtti -fno-exceptions -fstack-protector -fpic'
 DEFINES = '-D_FORTIFY_SOURCE=2'
-LDFLAGS = ''
+LDFLAGS = '-fPIE'
 if platform.system() == 'Linux':
   LDFLAGS += ' -Wl,-z,relro,-z,now -Wl,--gc-section -Wl,-z,noexecstack'
 elif platform.system() == 'Darwin':
