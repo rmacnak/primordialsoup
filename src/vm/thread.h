@@ -6,7 +6,6 @@
 #define VM_THREAD_H_
 
 #include "vm/assert.h"
-#include "vm/atomic.h"
 #include "vm/bitfield.h"
 #include "vm/globals.h"
 #include "vm/os_thread.h"

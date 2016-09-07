@@ -3,25 +3,96 @@
 import os
 import platform
 
-OPT = '-O3'
-WARNINGS = '-Wall -Wextra -Wnon-virtual-dtor -Wvla -Wno-conversion-null -Wno-unused-parameter'
-FEATURES = '-g3 -fno-rtti -fno-exceptions -fstack-protector -fpic'
-DEFINES = '-D_FORTIFY_SOURCE=2'
-LDFLAGS = '-fPIE'
-if platform.system() == 'Linux':
-  LDFLAGS += ' -Wl,-z,relro,-z,now -Wl,--gc-section -Wl,-z,noexecstack'
-elif platform.system() == 'Darwin':
-  LDFLAGS += ' -dead_strip'
-
-def BuildVM(outdir, ARCH, DEBUG):
+def BuildVM(cxx, arch, os, debug):
   env = Environment()
-  env['CC'] = os.environ.get('CC', 'gcc')
-  env['CXX'] = os.environ.get('CXX', 'g++')
-  env['CCFLAGS'] = ' '.join([ARCH, OPT, WARNINGS, FEATURES, DEFINES, DEBUG])
-  env['LINKFLAGS'] = ' '.join([ARCH, LDFLAGS])
-  env['LIBS'] = ['pthread', 'm', 'stdc++']
-  env['CPPPATH'] = [os.environ.get('I'), 'src']
-  
+  env['CXX'] = cxx
+
+  outdir = 'out/'
+  if debug:
+    env['CCFLAGS'] += ['-DDEBUG']
+    outdir += 'Debug'
+  else:
+    env['CCFLAGS'] += ['-DNDEBUG']
+    outdir += 'Release'
+
+  if os == 'android':
+    outdir += 'Android'
+    
+  if arch == 'ia32':
+    env['CCFLAGS'] += ['-m32']
+    env['LINKFLAGS'] += ['-m32']
+    outdir += 'IA32/'
+  elif arch == 'x64':
+    env['CCFLAGS'] += ['-m64']
+    env['LINKFLAGS'] += ['-m64']
+    outdir += 'X64/'
+  elif arch == 'arm':
+    outdir += 'ARM/'
+  elif arch == 'arm64':
+    outdir += 'ARM64/'
+  elif arch == 'mips':
+    env['CCFLAGS'] += ['-EL']
+    env['LINKFLAGS'] += ['-EL']
+    outdir += 'MIPS/'
+  elif arch == 'mips64':
+    env['CCFLAGS'] += ['-EL']
+    env['LINKFLAGS'] += ['-EL']
+    outdir += 'MIPS64/'
+
+  env['CCFLAGS'] += [
+    '-O3',
+    '-g3',
+    '-Werror',
+    '-Wall',
+    '-Wextra',
+    '-Wnon-virtual-dtor',
+    '-Wvla',
+    '-Wno-conversion-null',
+    '-Wno-unused-parameter',
+    '-fno-rtti',
+    '-fno-exceptions',
+    '-fstack-protector',
+    '-fpic',
+    '-D_FORTIFY_SOURCE=2',
+  ]
+
+  if os == 'macos':
+    env['LINKFLAGS'] += [
+      '-fPIE',
+      '-dead_strip',
+    ]
+    env['LIBS'] = [
+      'm',
+      'stdc++',
+      'pthread',
+    ]
+  if os == 'linux':
+    env['LINKFLAGS'] += [
+      '-fPIE',
+      '-Wl,-z,relro,-z,now',
+      '-Wl,--gc-sections',
+      '-Wl,-z,noexecstack',
+    ]
+    env['LIBS'] = [
+      'm',
+      'stdc++',
+      'pthread',
+    ]
+  elif os == 'android':
+    env['LINKFLAGS'] += [
+      '-pie',
+      '-Wl,-z,relro,-z,now',
+      '-Wl,--gc-sections',
+      '-Wl,-z,noexecstack',
+    ]
+    env['LIBS'] = [
+      'm',
+      'stdc++',
+      'log',
+    ]
+
+  env['CPPPATH'] = ['src']
+
   objects = []
 
   vm_ccs = [
@@ -35,9 +106,11 @@ def BuildVM(outdir, ARCH, DEBUG):
     'main',
     'message',
     'object',
+    'os_android',
     'os_linux',
     'os_macos',
     'os_thread',
+    'os_thread_android',
     'os_thread_linux',
     'os_thread_macos',
     'port',
@@ -45,6 +118,7 @@ def BuildVM(outdir, ARCH, DEBUG):
     'snapshot',
     'thread',
     'thread_pool',
+    'virtual_memory_android',
     'virtual_memory_linux',
     'virtual_memory_macos',
   ]
@@ -66,13 +140,14 @@ def BuildVM(outdir, ARCH, DEBUG):
                           'src/double-conversion/' + cc + '.cc')
 
   program = env.Program(outdir + 'primordialsoup', objects)
+  return str(program[0])
 
 
-def BuildSnapshots(outdir, vm):
+def BuildSnapshots(outdir, host_vm):
   nssources = Glob('src/newspeak/*.ns3')
 
   snapshots = []
-  cmd = vm + ' snapshots/compiler.vfuel $SOURCES'
+  cmd = host_vm + ' snapshots/compiler.vfuel $SOURCES'
   snapshots += [outdir + 'HelloApp.vfuel']
   cmd += ' RuntimeForPrimordialSoup HelloApp ' + outdir + 'HelloApp.vfuel'
   snapshots += [outdir + 'TestRunner.vfuel']
@@ -83,33 +158,50 @@ def BuildSnapshots(outdir, vm):
   cmd += ' RuntimeWithBuildersForPrimordialSoup CompilerApp ' + outdir + 'CompilerApp.vfuel'
 
   Command(target=snapshots, source=nssources, action=cmd)
-  Requires(snapshots, vm)
+  Requires(snapshots, host_vm)
   Depends(snapshots, 'snapshots/compiler.vfuel')
 
 
-machine = platform.machine()
-if machine == 'x86_64':
-  BuildVM('out/DebugX64/', '-m64', '-DDEBUG')
-  BuildVM('out/ReleaseX64/', '-m64', '-DNDEBUG')
-  BuildVM('out/DebugIA32/', '-m32', '-DDEBUG')
-  BuildVM('out/ReleaseIA32/', '-m32', '-DNDEBUG')
-  BuildSnapshots('out/snapshots/', 'out/ReleaseX64/primordialsoup')
-elif machine == 'i386':
-  BuildVM('out/DebugIA32/', '-m32', '-DDEBUG')
-  BuildVM('out/ReleaseIA32/', '-m32', '-DNDEBUG')
-  BuildSnapshots('out/snapshots/', 'out/ReleaseIA32/primordialsoup')
-elif machine == 'aarch64':
-  BuildVM('out/DebugARM64/', '', '-DDEBUG')
-  BuildVM('out/ReleaseARM64/', '', '-DNDEBUG')
-  BuildSnapshots('out/snapshots/', 'out/ReleaseARM64/primordialsoup')
-elif machine == 'armv7l' or machine == 'armv6l':
-  BuildVM('out/DebugARM/', '', '-DDEBUG')
-  BuildVM('out/ReleaseARM/', '', '-DNDEBUG')
-  BuildSnapshots('out/snapshots/', 'out/ReleaseARM/primordialsoup')
-elif machine == 'mips':
-  BuildVM('out/DebugMIPS/', '', '-DDEBUG')
-  BuildVM('out/ReleaseMIPS/', '', '-DNDEBUG')
-  BuildSnapshots('out/snapshots/', 'out/ReleaseMIPS/primordialsoup')
-else:
-  print("No configuration for " + machine)
-  Exit(1)
+def Main():
+  target_os = ARGUMENTS.get('os', None)
+  host_os = None
+  if platform.system() == 'Linux':
+    host_os = 'linux'
+  elif platform.system() == 'Darwin':
+    host_os = 'macos'
+
+  target_cxx = ARGUMENTS.get('cxx_target', None);
+  host_cxx = None
+  if platform.system() == 'Linux':
+    host_cxx = 'g++'
+  elif platform.system() == 'Darwin':
+    host_cxx = 'clang++'
+  host_cxx = ARGUMENTS.get('cxx_host', host_cxx)    
+
+  target_arch = ARGUMENTS.get('arch', None)
+  host_arch = None
+  if platform.machine() == 'x86_64':
+    host_arch = 'x64'
+  elif platform.machine() == 'i386':
+    host_arch = 'ia32'
+  elif platform.machine() == 'aarch64':
+    host_arch = 'arm64'
+  elif platform.machine() == 'armv7l':
+    host_arch = 'arm'
+  elif platform.machine() == 'mips':
+    host_arch = 'mips'
+
+  # Always build for the host so we can create the snapshots.
+  BuildVM(host_cxx, host_arch, host_os, True)
+  host_vm = BuildVM(host_cxx, host_arch, host_os, False)
+  BuildSnapshots('out/snapshots/', host_vm)
+
+  if (target_os != None and host_os != target_os) or (target_arch != None and host_arch != target_arch):
+    # If cross compiling, also build for the target.
+    BuildVM(target_cxx, target_arch, target_os, True)
+    BuildVM(target_cxx, target_arch, target_os, False)
+  elif host_arch == 'x64' and target_arch == None:
+    BuildVM(host_cxx, 'ia32', host_os, True)
+    BuildVM(host_cxx, 'ia32', host_os, False)
+
+Main()

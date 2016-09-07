@@ -53,31 +53,6 @@ int OS::NumberOfAvailableProcessors() {
 }
 
 
-void OS::SleepMicros(int64_t micros) {
-  struct timespec req;  // requested.
-  struct timespec rem;  // remainder.
-  int64_t seconds = micros / kMicrosecondsPerSecond;
-  if (seconds > kMaxInt32) {
-    // Avoid truncation of overly large sleep values.
-    seconds = kMaxInt32;
-  }
-  micros = micros - seconds * kMicrosecondsPerSecond;
-  int64_t nanos = micros * kNanosecondsPerMicrosecond;
-  req.tv_sec = static_cast<int32_t>(seconds);
-  req.tv_nsec = static_cast<long>(nanos);  // NOLINT (long used in timespec).
-  while (true) {
-    int r = nanosleep(&req, &rem);
-    if (r == 0) {
-      break;
-    }
-    // We should only ever see an interrupt error.
-    ASSERT(errno == EINTR);
-    // Copy remainder into requested and repeat.
-    req = rem;
-  }
-}
-
-
 void OS::DebugBreak() {
   __builtin_trap();
 }

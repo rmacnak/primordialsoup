@@ -3,16 +3,16 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"
-#if defined(TARGET_OS_LINUX)
+#if defined(TARGET_OS_ANDROID)
 
 #include "vm/os.h"
 
-#include <errno.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
+#include <android/log.h>  // NOLINT
+#include <errno.h>  // NOLINT
+#include <time.h>  // NOLINT
+#include <sys/time.h>  // NOLINT
+#include <sys/types.h>  // NOLINT
+#include <unistd.h>  // NOLINT
 
 #include "vm/assert.h"
 
@@ -72,6 +72,8 @@ void OS::Print(const char* format, ...) {
   va_list args;
   va_start(args, format);
   VFPrint(stdout, format, args);
+  // Forward to the Android log for remote access.
+  __android_log_vprint(ANDROID_LOG_INFO, "PrimordialSoup", format, args);
   va_end(args);
 }
 
@@ -80,6 +82,8 @@ void OS::PrintErr(const char* format, ...) {
   va_list args;
   va_start(args, format);
   VFPrint(stderr, format, args);
+  // Forward to the Android log for remote access.
+  __android_log_vprint(ANDROID_LOG_ERROR, "PrimordialSoup", format, args);
   va_end(args);
 }
 
@@ -95,6 +99,4 @@ void OS::Exit(int code) {
 
 }  // namespace psoup
 
-#endif  // linux
-
-
+#endif  // defined(TARGET_OS_ANDROID)

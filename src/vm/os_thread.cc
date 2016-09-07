@@ -4,7 +4,6 @@
 
 #include "vm/os_thread.h"
 
-#include "vm/atomic.h"
 #include "vm/lockers.h"
 #include "vm/thread.h"
 

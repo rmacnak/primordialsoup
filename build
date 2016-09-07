@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 case $(uname -s) in
-  Darwin) scons -Q --jobs $(sysctl -n hw.ncpu) ;;
-  Linux) scons -Q --jobs $(nproc) ;;
+  Darwin) scons -Q --jobs $(sysctl -n hw.ncpu) "$@" ;;
+  Linux) scons -Q --jobs $(nproc) "$@" ;;
   *) echo Unknown OS $(uname -s)
 esac
