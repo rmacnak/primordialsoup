@@ -636,7 +636,7 @@ class ByteString : public Object {
     if (hash() == 0) {
       // FNV-1a hash
       intptr_t length = Size();
-      intptr_t h = length + 1;
+      uintptr_t h = length + 1;
       for (intptr_t i = 0; i < length; i++) {
         h = h ^ element(i);
         h = h * 16777619;
@@ -693,7 +693,7 @@ class WideString : public Object {
     if (hash() == 0) {
       // FNV-1a hash
       intptr_t length = Size();
-      intptr_t h = length + 1;
+      uintptr_t h = length + 1;
       for (intptr_t i = 0; i < length; i++) {
         h = h ^ element(i);
         h = h * 16777619;
