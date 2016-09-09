@@ -4,8 +4,6 @@
 
 #include "vm/isolate.h"
 
-#include <string>
-
 #include "vm/heap.h"
 #include "vm/interpreter.h"
 #include "vm/lockers.h"

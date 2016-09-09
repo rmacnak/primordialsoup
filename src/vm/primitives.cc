@@ -8,8 +8,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <string>
-
 #include "vm/assert.h"
 #include "vm/double_conversion.h"
 #include "vm/heap.h"

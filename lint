@@ -1,4 +1,3 @@
-\
-#!/bin/sh -ex
+#!/bin/sh -e
 # This script requires Chromium's Depot Tools to be on your PATH.
-cpplint.py --root=src --filter=-readability/fn_size src/vm/*.cc src/vm/*.h
+cpplint.py --root=src --filter=-readability/fn_size,-build/include_what_you_use src/vm/*.cc src/vm/*.h
