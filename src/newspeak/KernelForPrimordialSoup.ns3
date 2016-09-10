@@ -168,8 +168,18 @@ public new = (
 	primitiveFailed: 'Activation class new'
 )
 )
-class ArgumentError = Exception () (
+class ArgumentError value: v = Exception (|
+	argument = v.
+|) (
+'as yet unclassified'
+public printString = (
+	^'ArgumentError: ', argument printString
+)
 ) : (
+'as yet unclassified'
+public new = (
+	^self value: nil
+)
 )
 public class Behavior = (|
 private superclass <Behavior> (* Must be slot 1, known to the VM. *)
@@ -196,11 +206,11 @@ public class ByteArray _cannotInstantiate = Collection () (
 'as yet unclassified'
 public at: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 47 *)
-	^ArgumentError new signal
+	^(ArgumentError value: index) signal
 )
 public at: index <Integer> put: value <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 48 *)
-	^ArgumentError new signal
+	^(ArgumentError value: index) signal
 )
 public copyWithSize: newSize <Integer> ^<ByteArray> = (
 	| 
@@ -228,14 +238,14 @@ public size ^<Integer> = (
 'as yet unclassified'
 public new: size <Integer> ^<ByteArray> = (
 	(* :literalmessage: primitive: 46 *)
-	^ArgumentError new signal
+	^(ArgumentError value: size) signal
 )
 )
 public class ByteString _cannotInstantiate = () (
 'as yet unclassified'
 public , other <String> ^<String> = (
 	(* :literalmessage: primitive: 115 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public = other = (
 	(* :literalmessage: primitive: 114 *)
@@ -250,7 +260,7 @@ public asSymbol ^<String> = (
 )
 public at: index <Integer> ^<String> = (
 	(* :literalmessage: primitive: 51 *)
-	^ArgumentError new signal
+	^(ArgumentError value: index) signal
 )
 public copyFrom: start to: stop = (
 	(* :literalmessage: primitive: 121 *)
@@ -258,7 +268,7 @@ public copyFrom: start to: stop = (
 )
 public endsWith: other <String> ^<Boolean> = (
 	(* :literalmessage: primitive: 118 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public first ^<String> = (
 	^self at: 1
@@ -295,7 +305,7 @@ public printString = (
 )
 public runeAt: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 122 *)
-	^ArgumentError new signal
+	^(ArgumentError value: index) signal
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 53 *)
@@ -303,13 +313,13 @@ public size ^<Integer> = (
 )
 public startsWith: other <String> ^<Boolean> = (
 	(* :literalmessage: primitive: 117 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 ) : (
 'as yet unclassified'
 public fromRune: rune <Integer> ^<String> = (
 	(* :literalmessage: primitive: 123 *)
-	^ArgumentError new signal
+	^(ArgumentError value: rune) signal
 )
 public fromRunes: runes <Array[Integer]> ^<String> = (
 	(* :literalmessage: primitive: 124 *)
@@ -683,12 +693,18 @@ public | alternative <Boolean> ^<Boolean> = (
 )
 public class Float _cannotInstantiate = Number () (
 'as yet unclassified'
+public addFromFraction: left = (
+	^left asFloat + self
+)
 public asFloat ^<Float> = (
 	^self
 )
 public ceiling ^<Float> = (
 	(* :literalmessage: primitive: 22 *)
 	primitiveFailed: 'Number ceiling'.
+)
+public divideFromFraction: left = (
+	^left asFloat / self
 )
 public floor ^<Float> = (
 	(* :literalmessage: primitive: 21 *)
@@ -707,11 +723,17 @@ public isInfinite ^<Boolean> = (
 	halt.
 )
 public isNaN ^<Boolean> = (
-	halt.
+	^(self = self) not
+)
+public multiplyFromFraction: left = (
+	^left asFloat * self
 )
 public rounded ^<Float> = (
 	(* :literalmessage: primitive: 125 *)
 	primitiveFailed: 'Number rounded'.
+)
+public subtractFromFraction: left = (
+	^left asFloat - self
 )
 'functions'
 public cos ^<Float> = (
@@ -746,7 +768,7 @@ public tan ^<Float> = (
 'as yet unclassified'
 public parse: string <String> ^<Float> = (
 	(* :literalmessage: primitive: 132 *)
-	^ArgumentError new signal
+	^(ArgumentError value: string) signal
 )
 )
 public class Fraction reducedNumerator: num denominator: denom = Number (|
@@ -754,28 +776,70 @@ public numerator <Integer> = num.
 public denominator <Integer> = denom.
 |) (
 'as yet unclassified'
-public < other ^<Boolean> = (
+public * other <Number> ^<Number> = (
+	other isFraction ifFalse: [^other multiplyFromFraction: self].
+	^Fraction 
+		numerator: numerator * other numerator
+		denominator: denominator * other denominator
+)
+public + other <Number> ^<Number> = (
+	other isFraction ifFalse: [^other addFromFraction: self].
+	^Fraction 
+		numerator: (numerator * other denominator) + (other numerator * denominator) 
+		denominator: denominator * other denominator
+)
+public - other <Number> ^<Number> = (
+	other isFraction ifFalse: [^other subtractFromFraction: self].
+	^Fraction 
+		numerator: (numerator * other denominator) - (other numerator * denominator) 
+		denominator: denominator * other denominator
+)
+public / other <Number> ^<Number> = (
+	other isFraction ifFalse: [^other divideFromFraction: self].
+	^Fraction 
+		numerator: numerator * other denominator
+		denominator: denominator * other numerator
+)
+public < other <Number> ^<Boolean> = (
 	other isFraction ifTrue:
 		[^(numerator * other denominator) < (other numerator * denominator)].
-
 	other isInteger ifTrue:
 		[^(numerator) < (other * denominator)].
-
-	halt
+	other isFloat ifTrue:
+		[^self asFloat < other].
+	^(ArgumentError value: other) signal
+)
+public <= other <Number> ^<Boolean> = (
+	other isFraction ifTrue:
+		[^(numerator * other denominator) <= (other numerator * denominator)].
+	other isInteger ifTrue:
+		[^(numerator) <= (other * denominator)].
+	other isFloat ifTrue:
+		[^self asFloat <= other].
+	^(ArgumentError value: other) signal
 )
 public = other ^<Boolean> = (
 	other isFraction ifFalse: [^false].
 	numerator = other numerator ifFalse: [^false].
 	^denominator = other denominator
 )
-public > other ^<Boolean> = (
+public > other <Number> ^<Boolean> = (
 	other isFraction ifTrue:
 		[^(numerator * other denominator) > (other numerator * denominator)].
-
 	other isInteger ifTrue:
 		[^(numerator) > (other * denominator)].
-
-	halt
+	other isFloat ifTrue:
+		[^self asFloat > other].
+	^(ArgumentError value: other) signal
+)
+public >= other <Number> ^<Boolean> = (
+	other isFraction ifTrue:
+		[^(numerator * other denominator) >= (other numerator * denominator)].
+	other isInteger ifTrue:
+		[^(numerator) >= (other * denominator)].
+	other isFloat ifTrue:
+		[^self asFloat >= other].
+	^(ArgumentError value: other) signal
 )
 public addFromNumber: left = (
 	^(left * denominator + numerator) / denominator
@@ -784,10 +848,21 @@ public asFloat ^<Float> = (
 	^numerator asFloat / denominator asFloat
 )
 public asInteger ^<Integer> = (
-	halt.
+	^self truncated
 )
 public asString = (
 	^'(', numerator asString, '/', denominator asString, ')'
+)
+public ceiling ^<Integer> = (
+	^0 <= numerator 
+		ifTrue: [1 + self truncated]
+		ifFalse: [self truncated].
+)
+public divideFromNumber: left = (
+	^(left * denominator) / numerator
+)
+public floor ^<Integer> = (
+	^numerator // denominator
 )
 public hash ^<Integer> = (
 	(* :todo: This is a poor hash. *)
@@ -798,6 +873,14 @@ public isFraction ^<Boolean> = (
 )
 public multiplyFromNumber: left = (
 	^(left * numerator) / denominator
+)
+public rounded ^<Integer> = (
+	^0 <= numerator 
+		ifTrue: [(2 * numerator + denominator) quo: (2 * denominator)]
+		ifFalse: [(2 * numerator - denominator) quo: (2 * denominator)].
+)
+public subtractFromNumber: left = (
+	^(left * denominator - numerator) / denominator
 )
 public truncated ^<Integer> = (
 	^numerator quo: denominator
@@ -935,38 +1018,44 @@ class Integer = Number () (
 'as yet unclassified'
 public / other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 4 *)
-	other isInteger ifFalse: [^ArgumentError new signal].
-	0 = other ifTrue: [^ArgumentError new signal].
+	other isInteger ifFalse: [^other divideFromNumber: self].
+	0 = other ifTrue: [^(ArgumentError value: other) signal].
 	^Fraction numerator: self denominator: other
 )
 public << other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 19 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public >> other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 20 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
+)
+public addFromFraction: left = (
+	^(left numerator + (self * left denominator)) / left denominator
 )
 public asInteger ^<Integer> = (
 	^self
 )
 public bitAnd: other <Integer> ^<Integer>  = (
 	(* :literalmessage: primitive: 16 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public bitInvert ^<Integer> = (
 	^-1 - self
 )
 public bitOr: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 17 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public bitXor: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 18 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public ceiling = (
 	^self
+)
+public divideFromFraction: left = (
+	^left numerator / (left denominator * self)
 )
 public floor = (
 	^self
@@ -989,18 +1078,24 @@ public inverseMod: modulus <Integer> ^<Integer> = (
 public isInteger ^<Boolean> = (
 	^true
 )
+public multiplyFromFraction: left = (
+	^(left numerator * self) / left denominator
+)
 public raisedTo: exponent mod: modulus = (
 	halt.
 )
 public rounded = (
 	^self
 )
+public subtractFromFraction: left = (
+	^(left numerator - (self * left denominator)) / left denominator
+)
 public timesRepeat: action <[]> ^<Integer> = (
 	1 to: self do: [:ignore | action value].
 )
 public | other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 17 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 ) : (
 'as yet unclassified'
@@ -1164,23 +1259,27 @@ public raisedTo: other = (
 'comparison'
 public < other = (
 	(* :literalmessage: primitive: 10 *)
-	^ArgumentError new signal
+	other isFraction ifTrue: [^other >= self].
+	^(ArgumentError value: other) signal
 )
 public <= other = (
 	(* :literalmessage: primitive: 12 *)
-	^ArgumentError new signal
+	other isFraction ifTrue: [^other > self].
+	^(ArgumentError value: other) signal
 )
 public = other = (
 	(* :literalmessage: primitive: 9 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public > other = (
 	(* :literalmessage: primitive: 11 *)
-	^ArgumentError new signal
+	other isFraction ifTrue: [^other <= self].
+	^(ArgumentError value: other) signal
 )
 public >= other = (
 	(* :literalmessage: primitive: 13 *)
-	^ArgumentError new signal
+	other isFraction ifTrue: [^other < self].
+	^(ArgumentError value: other) signal
 )
 public between: min <Number> and: max <Number> ^<Boolean> = (
 	^self <= max and: [self >= min]
@@ -1250,33 +1349,33 @@ public + other <Number> ^<Number> = (
 public - other <Number> ^<Number> = (
 	(*Answer the difference of the argument from the receiver*)
 	(* :literalmessage: primitive: 2 *)
-	^ArgumentError new signal
+	^other subtractFromNumber: self
 )
 public / other <Number> ^<Number> = (
 	(* Answer the receiver divided by the argument.
 	 'Exact' division. For integer division see // and quo: *)
 	(* :literalmessage: primitive: 4 *)
-	^ArgumentError new signal
+	^other divideFromNumber: self
 )
 public // other <Number> ^<Number> = (
 	(* Answer the receiver divided by the argument, rounded to nearest integer toward negative infinity.  The remainder of this division is given by \\ *)
 	(* :literalmessage: primitive: 5 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public \\ other <Number> ^<Number> = (
 	(*Answer the remainder of division rounded to the nearest integer toward negative inifinity.  The quoitent of this division is given by // *)
 	(* :literalmessage: primitive: 6 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public quo: other = (
 	(* Answer the receiver divided by the argument, rounded to nearest integer toward zero. The remainder of this division is given by rem: *)
 	(* :literalmessage: primitive: 7 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 public rem: other = (
 	(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
 	(* :literalmessage: primitive: 8 *)
-	^ArgumentError new signal
+	^(ArgumentError value: other) signal
 )
 'testing'
 public isFloat ^<Boolean> = (
@@ -1418,11 +1517,11 @@ public class WeakArray _cannotInstantiate = Collection () (
 'as yet unclassified'
 public at: index <Integer> ^<E> = (
 	(* :literalmessage: primitive: 43 *)
-	^ArgumentError new signal
+	^(ArgumentError value: index) signal
 )
 public at: index <Integer> put: value <E> ^<E> = (
 	(* :literalmessage: primitive: 44 *)
-	^ArgumentError new signal
+	^(ArgumentError value: index) signal
 )
 public copyWith: newElement <E> ^<Array[E]> = (
 	| 
@@ -1447,7 +1546,7 @@ public size ^<Integer> = (
 'as yet unclassified'
 public new: size <Integer> ^<WeakArray[E]> = (
 	(* :literalmessage: primitive: 42 *)
-	^ArgumentError new signal
+	^(ArgumentError value: size) signal
 )
 )
 public class WeakMap = (|
@@ -1567,11 +1666,11 @@ public asArray ^<Array[E]> = (
 )
 public at: index <Integer> ^<E> = (
 	(* :literalmessage: primitive: 39 *)
-	^ArgumentError new signal
+	^(ArgumentError value: index) signal
 )
 public at: index <Integer> put: value <E> ^<E> = (
 	(* :literalmessage: primitive: 40 *)
-	^ArgumentError new signal
+	^(ArgumentError value: index) signal
 )
 public collect: transform <[:E | F]> ^<Array[F]> = (
 	| results = Array new: size. |
@@ -1638,7 +1737,7 @@ public size ^<Integer> = (
 'as yet unclassified'
 public new: size <Integer> ^<Array[E]> = (
 	(* :literalmessage: primitive: 38 *)
-	^ArgumentError new signal
+	^(ArgumentError value: size) signal
 )
 )
 public class _Object = (
