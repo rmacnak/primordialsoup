@@ -209,8 +209,7 @@ const bool kFailure = false;
   } else if (number->IsFloat64()) {                                            \
     raw_float = static_cast<Float64*>(number)->value();                        \
   } else if (number->IsLargeInteger()) {                                       \
-    UNIMPLEMENTED();                                                           \
-    raw_float = 0.0;                                                           \
+    raw_float = LargeInteger::AsDouble(static_cast<LargeInteger*>(number));    \
   } else {                                                                     \
     return kFailure;                                                           \
   }                                                                            \
@@ -452,9 +451,6 @@ DEFINE_PRIMITIVE(Number_divide) {
     double raw_left, raw_right;
     FLOAT_VALUE(raw_left, left);
     FLOAT_VALUE(raw_right, right);
-    if (raw_right == 0.0) {
-      return kFailure;  // Division by zero.
-    }
     double raw_result = raw_left / raw_right;
     RETURN_FLOAT(raw_result);
   }
@@ -807,9 +803,13 @@ DEFINE_PRIMITIVE(Number_asInteger) {
   Object* receiver = A->Stack(0);
   if (receiver->IsFloat64()) {
     double raw_receiver = static_cast<Float64*>(receiver)->value();
-    int64_t raw_result = trunc(raw_receiver);
-    // TODO(rmacnak): May require LargeInteger.  Infinities and NaNs.
-    RETURN_MINT(raw_result);
+    Object* result;
+    if (LargeInteger::FromDouble(raw_receiver, &result, H)) {
+      A->PopNAndPush(num_args + 1, result);
+      return kSuccess;
+    } else {
+      return kFailure;
+    }
   }
   UNIMPLEMENTED();
   return kFailure;
@@ -826,6 +826,9 @@ DEFINE_PRIMITIVE(Number_asDouble) {
   if (receiver->IsMediumInteger()) {
     int64_t raw_receiver = static_cast<MediumInteger*>(receiver)->value();
     RETURN_FLOAT(static_cast<double>(raw_receiver));
+  }
+  if (receiver->IsLargeInteger()) {
+    RETURN_FLOAT(LargeInteger::AsDouble(static_cast<LargeInteger*>(receiver)));
   }
   UNIMPLEMENTED();
   return kFailure;

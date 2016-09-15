@@ -4,6 +4,8 @@
 
 // Henry S. Warren, Jr. "Hacker's Delight." (2nd Edition) Addison-Wesley. 2012.
 
+#include <math.h>
+
 #include "vm/assert.h"
 #include "vm/heap.h"
 #include "vm/object.h"
@@ -1262,5 +1264,305 @@ ByteString* LargeInteger::PrintString(LargeInteger* large, Heap* H) {
   return result;
 }
 
+
+double LargeInteger::AsDouble(LargeInteger* integer) {
+  intptr_t used = integer->size();
+  ASSERT(used >= kMintDigits);
+  ASSERT(used >= 2);
+  const intptr_t kBitsPerDigit = kDigitBits;
+
+  static const int kPhysicalSignificandSize = 52;
+  // The significand size has an additional hidden bit.
+  static const int kSignificandSize = kPhysicalSignificandSize + 1;
+  static const int kExponentBias = 0x3FF + kPhysicalSignificandSize;
+  static const int kMaxExponent = 0x7FF - kExponentBias;
+  static const uint64_t kOne64 = 1;
+  static const uint64_t kInfinityBits =
+      PSOUP_2PART_UINT64_C(0x7FF00000, 00000000);
+
+  // A double is composed of an exponent e and a significand s. Its value equals
+  // s * 2^e. The significand has 53 bits of which the first one must always be
+  // 1 (at least for then numbers we are working with here) and is therefore
+  // omitted. The physical size of the significand is thus 52 bits.
+  // The exponent has 11 bits and is biased by 0x3FF + 52. For example an
+  // exponent e = 10 is written as 0x3FF + 52 + 10 (in the 11 bits that are
+  // reserved for the exponent).
+  // When converting the given bignum to a double we have to pay attention to
+  // the rounding. In particular we have to decide which double to pick if an
+  // input lies exactly between two doubles. As usual with double operations
+  // we pick the double with an even significand in such cases.
+  //
+  // General approach of this algorithm: Get 54 bits (one more than the
+  // significand size) of the bigint. If the last bit is then 1, then (without
+  // knowledge of the remaining bits) we could have a half-way number.
+  // If the second-to-last bit is odd then we know that we have to round up:
+  // if the remaining bits are not zero then the input lies closer to the higher
+  // double. If the remaining bits are zero then we have a half-way case and
+  // we need to round up too (rounding to the even double).
+  // If the second-to-last bit is even then we need to look at the remaining
+  // bits to determine if any of them is not zero. If that's the case then the
+  // number lies closer to the next-higher double. Otherwise we round the
+  // half-way case down to even.
+
+  if (((used - 1) * kBitsPerDigit) > (kMaxExponent + kSignificandSize)) {
+    // Does not fit into a double.
+    const double infinity = bit_cast<double>(kInfinityBits);
+    return integer->negative() ? -infinity : infinity;
+  }
+
+  intptr_t digit_index = used - 1;
+  // In order to round correctly we need to look at half-way cases. Therefore we
+  // get kSignificandSize + 1 bits. If the last bit is 1 then we have to look
+  // at the remaining bits to know if we have to round up.
+  int needed_bits = kSignificandSize + 1;
+  // ASSERT((kBitsPerDigit < needed_bits) && (2 * kBitsPerDigit >= needed_bits));
+  bool discarded_bits_were_zero = true;
+
+  const digit_t firstDigit = integer->digit(digit_index--);
+  ASSERT(firstDigit > 0);
+  uint64_t twice_significand_floor = firstDigit;
+  intptr_t twice_significant_exponent = (digit_index + 1) * kBitsPerDigit;
+  needed_bits -= Utils::HighestBit(firstDigit) + 1;
+
+  while (needed_bits >= kBitsPerDigit) {
+    twice_significand_floor <<= kBitsPerDigit;
+    twice_significand_floor |= integer->digit(digit_index--);
+    twice_significant_exponent -= kBitsPerDigit;
+    needed_bits -= kBitsPerDigit;
+  }
+  if (needed_bits > 0) {
+    ASSERT(needed_bits <= kBitsPerDigit);
+    uint32_t digit = integer->digit(digit_index--);
+    int discarded_bits_count = kBitsPerDigit - needed_bits;
+    twice_significand_floor <<= needed_bits;
+    twice_significand_floor |= digit >> discarded_bits_count;
+    twice_significant_exponent -= needed_bits;
+    uint64_t discarded_bits_mask = (kOne64 << discarded_bits_count) - 1;
+    discarded_bits_were_zero = ((digit & discarded_bits_mask) == 0);
+  }
+  ASSERT((twice_significand_floor >> kSignificandSize) == 1);
+
+  // We might need to round up the significand later.
+  uint64_t significand = twice_significand_floor >> 1;
+  const intptr_t exponent = twice_significant_exponent + 1;
+
+  if (exponent >= kMaxExponent) {
+    // Infinity.
+    // Does not fit into a double.
+    const double infinity = bit_cast<double>(kInfinityBits);
+    return integer->negative() ? -infinity : infinity;
+  }
+
+  if ((twice_significand_floor & 1) == 1) {
+    bool round_up = false;
+
+    if ((significand & 1) != 0 || !discarded_bits_were_zero) {
+      // Even if the remaining bits are zero we still need to round up since we
+      // want to round to even for half-way cases.
+      round_up = true;
+    } else {
+      // Could be a half-way case. See if the remaining bits are non-zero.
+      for (intptr_t i = 0; i <= digit_index; i++) {
+        if (integer->digit(i) != 0) {
+          round_up = true;
+          break;
+        }
+      }
+    }
+
+    if (round_up) {
+      significand++;
+      // It might be that we just went from 53 bits to 54 bits.
+      // Example: After adding 1 to 1FFF..FF (with 53 bits set to 1) we have
+      // 2000..00 (= 2 ^ 54). When adding the exponent and significand together
+      // this will increase the exponent by 1 which is exactly what we want.
+    }
+  }
+
+  ASSERT(((significand >> (kSignificandSize - 1)) == 1) ||
+         (significand == (kOne64 << kSignificandSize)));
+  // The significand still has the hidden bit. We simply decrement the biased
+  // exponent by one instead of playing around with the significand.
+  const uint64_t biased_exponent = exponent + kExponentBias - 1;
+  // Note that we must use the plus operator instead of bit-or.
+  const uint64_t double_bits =
+      (biased_exponent << kPhysicalSignificandSize) + significand;
+
+  const double value = bit_cast<double>(double_bits);
+  return integer->negative() ? -value : value;
+}
+
+
+// We assume that doubles and uint64_t have the same endianness.
+static uint64_t double_to_uint64(double d) { return bit_cast<uint64_t>(d); }
+
+// Helper functions for doubles.
+class DoubleInternals {
+ public:
+  static const int kSignificandSize = 53;
+
+  explicit DoubleInternals(double d) : d64_(double_to_uint64(d)) {}
+
+  // Returns the double's bit as uint64.
+  uint64_t AsUint64() const {
+    return d64_;
+  }
+
+  int Exponent() const {
+    if (IsDenormal()) return kDenormalExponent;
+
+    uint64_t d64 = AsUint64();
+    int biased_e =
+        static_cast<int>((d64 & kExponentMask) >> kPhysicalSignificandSize);
+    return biased_e - kExponentBias;
+  }
+
+  uint64_t Significand() const {
+    uint64_t d64 = AsUint64();
+    uint64_t significand = d64 & kSignificandMask;
+    if (!IsDenormal()) {
+      return significand + kHiddenBit;
+    } else {
+      return significand;
+    }
+  }
+
+  // Returns true if the double is a denormal.
+  bool IsDenormal() const {
+    uint64_t d64 = AsUint64();
+    return (d64 & kExponentMask) == 0;
+  }
+
+  // We consider denormals not to be special.
+  // Hence only Infinity and NaN are special.
+  bool IsSpecial() const {
+    uint64_t d64 = AsUint64();
+    return (d64 & kExponentMask) == kExponentMask;
+  }
+
+  int Sign() const {
+    uint64_t d64 = AsUint64();
+    return (d64 & kSignMask) == 0? 1: -1;
+  }
+
+ private:
+  static const uint64_t kSignMask = PSOUP_2PART_UINT64_C(0x80000000, 00000000);
+  static const uint64_t kExponentMask =
+      PSOUP_2PART_UINT64_C(0x7FF00000, 00000000);
+  static const uint64_t kSignificandMask =
+      PSOUP_2PART_UINT64_C(0x000FFFFF, FFFFFFFF);
+  static const uint64_t kHiddenBit = PSOUP_2PART_UINT64_C(0x00100000, 00000000);
+  static const int kPhysicalSignificandSize = 52;  // Excludes the hidden bit.
+  static const int kExponentBias = 0x3FF + kPhysicalSignificandSize;
+  static const int kDenormalExponent = -kExponentBias + 1;
+
+  const uint64_t d64_;
+};
+
+
+static LargeInteger* NewFromShiftedInt64(int64_t value,
+                                         intptr_t shift,
+                                         Heap* H) {
+  bool negative;
+  uint64_t abs_value;
+  if (value < 0) {
+    negative = true;
+    abs_value = -value;
+  } else {
+    negative = false;
+    abs_value = value;
+  }
+  intptr_t digit_shift = shift / kDigitBits;
+  intptr_t bit_shift_up = shift % kDigitBits;
+  intptr_t bit_shift_down = kDigitBits - bit_shift_up;
+
+  if (bit_shift_up == 0) {
+    // This case is singled out not for performance but to avoid
+    // the undefined behavior of digit_t >> kDigitBits.
+    intptr_t result_size = kMintDigits + digit_shift;
+    LargeInteger* result = H->AllocateLargeInteger(result_size);
+
+    for (intptr_t i = 0; i < digit_shift; i++) {
+      result->set_digit(i, 0);
+    }
+    for (intptr_t i = digit_shift; i < result_size; i++) {
+      digit_t d = (abs_value >> (kDigitBits * (i - digit_shift))) & kDigitMask;
+      result->set_digit(i, d);
+    }
+
+    result->set_negative(negative);
+    result->set_size(result_size);
+    Verify(result);
+    return result;
+  }
+
+  intptr_t result_size = kMintDigits + digit_shift + 1;
+  LargeInteger* result = H->AllocateLargeInteger(result_size);
+
+  for (intptr_t i = 0; i < digit_shift; i++) {
+    result->set_digit(i, 0);
+  }
+  digit_t carry = 0;
+  for (intptr_t i = digit_shift; i < result_size - 1; i++) {
+    digit_t d = (abs_value >> (kDigitBits * (i - digit_shift))) & kDigitMask;
+    result->set_digit(i, (d << bit_shift_up) | carry);
+    carry = d >> bit_shift_down;
+  }
+  result->set_digit(result_size - 1, carry);
+
+  if (carry == 0) {
+    result->set_size(result_size - 1);
+  } else {
+    result->set_size(result_size);
+  }
+
+  result->set_negative(negative);
+  Verify(result);
+  return result;
+}
+
+
+bool LargeInteger::FromDouble(double raw_value, Object** result, Heap* H) {
+  if (isinf(raw_value) || isnan(raw_value)) {
+    return false;
+  }
+  if ((-1.0 < raw_value) && (raw_value < 1.0)) {
+    *result = SmallInteger::New(0);
+    return true;
+  }
+  DoubleInternals internals = DoubleInternals(raw_value);
+  ASSERT(!internals.IsSpecial());  // Only Infinity and NaN are special.
+  uint64_t significand = internals.Significand();
+  intptr_t exponent = internals.Exponent();
+  if (exponent <= 0) {
+    significand >>= -exponent;
+    exponent = 0;
+  } else if (exponent <= 10) {
+    // A double significand has at most 53 bits. The following shift will
+    // hence not overflow, and yield an integer of at most 63 bits.
+    significand <<= exponent;
+    exponent = 0;
+  }
+  // A significand has at most 63 bits (after the shift above).
+  // The cast to int64_t is hence safe.
+  int64_t ival = static_cast<int64_t>(significand);
+  if (internals.Sign() < 0) {
+    ival = -ival;
+  }
+  if (exponent == 0) {
+    // The double fits in a Smi or Mint.
+    if (SmallInteger::IsSmiValue(ival)) {
+      *result = SmallInteger::New(ival);
+    } else {
+      MediumInteger* mint = H->AllocateMediumInteger();
+      mint->set_value(ival);
+      *result = mint;
+    }
+    return true;
+  }
+  LargeInteger* lint = NewFromShiftedInt64(ival, exponent, H);
+  *result = Reduce(lint, H);
+  return true;
+}
 
 }  // namespace psoup

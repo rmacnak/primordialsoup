@@ -18,8 +18,6 @@ class OS {
 
   static int NumberOfAvailableProcessors();
 
-  static void SleepMicros(int64_t micros);
-
   static void DebugBreak();
 
   static void Print(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);

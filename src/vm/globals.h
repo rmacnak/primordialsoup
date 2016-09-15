@@ -177,6 +177,44 @@ private:                                                                       \
 #endif  // !defined(DISALLOW_ALLOCATION)
 
 
+// The type-based aliasing rule allows the compiler to assume that
+// pointers of different types (for some definition of different)
+// never alias each other. Thus the following code does not work:
+//
+// float f = foo();
+// int fbits = *(int*)(&f);
+//
+// The compiler 'knows' that the int pointer can't refer to f since
+// the types don't match, so the compiler may cache f in a register,
+// leaving random data in fbits.  Using C++ style casts makes no
+// difference, however a pointer to char data is assumed to alias any
+// other pointer. This is the 'memcpy exception'.
+//
+// The bit_cast function uses the memcpy exception to move the bits
+// from a variable of one type to a variable of another type. Of
+// course the end result is likely to be implementation dependent.
+// Most compilers (gcc-4.2 and MSVC 2005) will completely optimize
+// bit_cast away.
+//
+// There is an additional use for bit_cast. Recent gccs will warn when
+// they see casts that may result in breakage due to the type-based
+// aliasing rule. If you have checked that there is no breakage you
+// can use bit_cast to cast one pointer type to another. This confuses
+// gcc enough that it can no longer see that you have cast one pointer
+// type to another thus avoiding the warning.
+template <class D, class S>
+inline D bit_cast(const S& source) {
+  // Compile time assertion: sizeof(D) == sizeof(S). A compile error
+  // here means your D and S have different sizes.
+  PSOUP_UNUSED typedef char VerifySizesAreEqual[sizeof(D) == sizeof(S) ? 1 : -1];
+
+  D destination;
+  // This use of memcpy is safe: source and destination cannot overlap.
+  memcpy(&destination, &source, sizeof(destination));
+  return destination;
+}
+
+
 #if defined(TARGET_OS_LINUX) || defined(TARGET_OS_MACOS)
 // Tell the compiler to do printf format string checking if the
 // compiler supports it; see the 'format' attribute in

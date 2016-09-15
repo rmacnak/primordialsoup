@@ -447,6 +447,9 @@ class LargeInteger : public Object {
 
   static ByteString* PrintString(LargeInteger* large, Heap* H);
 
+  static double AsDouble(LargeInteger* integer);
+  static bool FromDouble(double raw_value, Object** result, Heap* H);
+
   bool negative() const {
     return ptr()->negative_;
   }

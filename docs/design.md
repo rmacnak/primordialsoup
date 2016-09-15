@@ -26,8 +26,6 @@ The objects of a handful of classes have special representations, and their cids
 
 SmallIntegers represent signed 31-/63-bit values on 32-/64-bit architectures respectively, MediumIntegers represent signed 64-bit values, and LargeIntegers represent values with greater magnitude.
 
-(LargeIntegers are not yet implemented. Overflow currently wraps as in C.)
-
 The variable-length objects (ByteArray, ByteString, WideString, Array, WeakArray, Closure) have a length field encoded as a SmallInteger. This allows bounds checks and length access to happen without checking for an overflow field and without converting the length or index. Each of these classes has its own set of accessing primitives, so there is no need to check a format field as in Squeak, the class check for method lookup was enough.
 
 ## Garbage Collector

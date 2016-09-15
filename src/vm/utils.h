@@ -27,7 +27,8 @@ class Utils {
     uint64_t x = static_cast<uint64_t>((v > 0) ? v : -v);
 #if defined(__GNUC__)
     ASSERT(sizeof(long long) == sizeof(int64_t));  // NOLINT
-    return 64 - __builtin_clzll(x);
+    if (v == 0) return 0;
+    return 63 - __builtin_clzll(x);
 #else
     uint64_t t;
     int r = 0;
