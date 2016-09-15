@@ -38,6 +38,14 @@ def BuildVM(cxx, arch, os, debug):
     env['CCFLAGS'] += ['-EL']
     env['LINKFLAGS'] += ['-EL']
     outdir += 'MIPS64/'
+  elif arch == 'riscv32':
+    env['CCFLAGS'] += ['-m32']
+    env['LINKFLAGS'] += ['-m32']
+    outdir += 'RISCV32/'
+  elif arch == 'riscv64':
+    env['CCFLAGS'] += ['-m64']
+    env['LINKFLAGS'] += ['-m64']
+    outdir += 'RISCV64/'
 
   env['CCFLAGS'] += [
     '-O3',
@@ -189,6 +197,10 @@ def Main():
     host_arch = 'arm'
   elif platform.machine() == 'mips':
     host_arch = 'mips'
+  elif platform.machine() == 'riscv32':
+    host_arch = 'riscv32'
+  elif platform.machine() == 'riscv64':
+    host_arch = 'riscv64'
 
   # Always build for the host so we can create the snapshots.
   BuildVM(host_cxx, host_arch, host_os, True)

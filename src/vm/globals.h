@@ -38,13 +38,13 @@
 
 
 #if defined(_M_X64) || defined(__x86_64__) \
-  || defined(__aarch64__) || defined(__mips64)
+    || defined(__aarch64__) || defined(__mips64) || defined(__riscv64)
 #define ARCH_IS_64_BIT 1
 #elif defined(_M_IX86) || defined(__i386__) \
-    || defined(__arm__) || defined(__mips__)
+    || defined(__arm__) || defined(__mips__) || defined(__riscv32)
 #define ARCH_IS_32_BIT 1
 #else
-#error unknown arch
+#error Unknown architecture.
 #endif
 
 
