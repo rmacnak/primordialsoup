@@ -11,7 +11,6 @@ namespace psoup {
 Heap::Heap(Isolate* isolate) :
     to_(),
     from_(),
-    scan_(0),
     ephemeron_list_(NULL),
     weak_list_(NULL),
     class_table_(NULL),
@@ -93,12 +92,13 @@ void Heap::Scavenge() {
   ProcessClassTableStrong();
 #endif
 
-  while (scan_ < to_.top_) {
-    ProcessToSpace();
-    ASSERT(scan_ == to_.top_);
+  uword scan = to_.object_start();
+  while (scan < to_.top_) {
+    scan = ProcessToSpace(scan);
+    ASSERT(scan == to_.top_);
     ProcessEphemeronListScavenge();
   }
-  ASSERT(scan_ == to_.top_);
+  ASSERT(scan == to_.top_);
 
   // Weak references.
   ProcessEphemeronListMourn();
@@ -155,7 +155,6 @@ void Heap::FlipSpaces() {
 
   to_.ResetTop();
   ASSERT((to_.top_ & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
-  scan_ = to_.top_;
 
   ephemeron_list_ = 0;
 }
@@ -192,9 +191,9 @@ void Heap::ForwardRoots() {
 }
 
 
-void Heap::ProcessToSpace() {
-  while (scan_ < to_.top_) {
-    Object* obj = Object::FromAddr(scan_);
+uword Heap::ProcessToSpace(uword scan) {
+  while (scan < to_.top_) {
+    Object* obj = Object::FromAddr(scan);
     intptr_t cid = obj->cid();
     ScavengeClass(cid);
     if (cid == kWeakArrayCid) {
@@ -209,8 +208,9 @@ void Heap::ProcessToSpace() {
         ScavengePointer(p);
       }
     }
-    scan_ += obj->HeapSize();
+    scan += obj->HeapSize();
   }
+  return scan;
 }
 
 

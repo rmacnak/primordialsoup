@@ -5,8 +5,6 @@
 #ifndef VM_HEAP_H_
 #define VM_HEAP_H_
 
-#include <string.h>
-
 #include "vm/assert.h"
 #include "vm/globals.h"
 #include "vm/utils.h"
@@ -366,7 +364,7 @@ class Heap {
 #else
   void ProcessClassTableStrong();
 #endif
-  void ProcessToSpace();
+  uword ProcessToSpace(uword scan);
   void ScavengePointer(Object** p);
   void ScavengeClass(intptr_t cid);
 
@@ -420,7 +418,6 @@ class Heap {
 
   Semispace to_;
   Semispace from_;
-  uword scan_;
 
   Ephemeron* ephemeron_list_;
   WeakArray* weak_list_;
