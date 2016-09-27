@@ -127,9 +127,6 @@ const bool kFailure = false;
   V(104, flushCache)                                                           \
   V(105, collectGarbage)                                                       \
   V(107, processExit)                                                          \
-  V(108, createThread)                                                         \
-  V(109, threadExit)                                                           \
-  V(110, threadReceive)                                                        \
   V(111, Number_printString)                                                   \
   V(112, simulationGuard)                                                      \
   V(113, unwindProtect)                                                        \
@@ -1735,14 +1732,7 @@ DEFINE_PRIMITIVE(Object_identical) {
   ASSERT(num_args == 1 || num_args == 2);
   Object* left = A->Stack(1);
   Object* right = A->Stack(0);
-  Object* result;
-  if (left == right) {
-    result = H->object_store()->true_obj();
-  } else {
-    result = H->object_store()->false_obj();
-  }
-  A->PopNAndPush(num_args + 1, result);
-  return kSuccess;
+  RETURN_BOOL(left == right);
 }
 
 
@@ -2143,26 +2133,6 @@ DEFINE_PRIMITIVE(processExit) {
   OS::Exit(code->value());
   UNREACHABLE();
   return kFailure;
-}
-
-
-DEFINE_PRIMITIVE(createThread) { UNIMPLEMENTED(); return kSuccess; }
-
-
-DEFINE_PRIMITIVE(threadExit) {
-  UNIMPLEMENTED();
-
-  UNREACHABLE();
-  A->Drop(num_args);
-  return kFailure;
-}
-
-
-DEFINE_PRIMITIVE(threadReceive) {
-  UNIMPLEMENTED();
-
-  A->PopNAndPush(num_args + 1, SmallInteger::New(0));
-  return kSuccess;
 }
 
 
