@@ -222,8 +222,7 @@ const bool kFailure = false;
   } else if (number->IsFloat64()) {                                            \
     raw_float = static_cast<Float64*>(number)->value();                        \
   } else if (number->IsLargeInteger()) {                                       \
-    UNIMPLEMENTED();                                                           \
-    raw_float = 0.0;                                                           \
+    raw_float = LargeInteger::AsDouble(static_cast<LargeInteger*>(number));    \
   } else {                                                                     \
     RETURN_BOOL(false);                                                        \
   }                                                                            \
