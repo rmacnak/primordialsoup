@@ -151,7 +151,7 @@ def BuildVM(cxx, arch, os, debug):
 
 
 def BuildSnapshots(outdir, host_vm):
-  nssources = Glob('src/newspeak/*.ns3')
+  nssources = Glob('src/newspeak/*.ns')
 
   snapshots = []
   cmd = host_vm + ' snapshots/compiler.vfuel $SOURCES'

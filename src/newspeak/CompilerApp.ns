@@ -23,7 +23,7 @@ public _main: platform args: args = (
 	|
 	
 	s:: Stopwatch new start.
-	[(args at: index) endsWith: '.ns3'] whileTrue:
+	[(args at: index) endsWith: '.ns'] whileTrue:
 		[ | source builder klass |
 		('Compiling ', (args at: index)) out.
 		source:: readFileAsString: (args at: index) using: platform.
@@ -136,7 +136,7 @@ public parentMain: platform args: args = (
 	workLists:: Array new: n.
 	1 to: n do: [:i | workLists at: i put: List new].
 
-	[(args at: index) endsWith: '.ns3'] whileTrue:
+	[(args at: index) endsWith: '.ns'] whileTrue:
 		[(workLists at: index \\ n + 1) add: (args at: index).
 		index:: index + 1].
 	workLists do: [:workList | 
