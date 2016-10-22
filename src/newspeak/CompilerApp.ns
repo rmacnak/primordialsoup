@@ -23,7 +23,7 @@ public _main: platform args: args = (
 	|
 	
 	s:: Stopwatch new start.
-	[(args at: index) endsWith: '.ns'] whileTrue:
+	[(args at: index) endsWith: '.ns3'] whileTrue:
 		[ | source builder klass |
 		('Compiling ', (args at: index)) out.
 		source:: readFileAsString: (args at: index) using: platform.

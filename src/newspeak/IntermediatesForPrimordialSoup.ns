@@ -16,8 +16,28 @@ public classSide = IntermediateMixin for: self isMeta: true.
 public enclosingClass <IntermediateMixin>
 public builder <ClassDeclarationBuilder>
 public existingMixin
+public accessor <IntermediateMethod>
+public factory <IntermediateMethod>
+public initializers <List[IntermediateMethod]>
 |) (
 'as yet unclassified'
+public accessModifier ^<Symbol> = (
+	isTopLevel ifTrue: [^#public].
+	^accessor accessModifier
+)
+public addSyntheticSlotsTo: slots = (
+	| slot = IntermediateSlotDeclaration new. |
+	slot name: (simpleName, '`slot') asSymbol.
+	slot isMutable: true.
+	slot accessModifier: #private.
+	slots add: slot.
+)
+public isTopLevel = (
+	nil = enclosingClass ifFalse: [^false].	
+	(* No enclosing class computed yet, but might be just be deferred. *)
+	nil = existingMixin ifTrue: [^true (* New class declarations are eagerly computed. *)].
+	^nil = existingMixin _enclosingMixin
+)
 public printOn: stream = (
 	stream nextPutAll: 'IntermediateClassDeclaration:'; nextPutAll: simpleName.
 )
@@ -41,12 +61,7 @@ public accessModifier <Symbol>
 public metadata = Map new.
 
 public category
-public isSlotAccessor ::= false.
-public isSuperConstructor ::= false.
-public isNestedClassAccessor ::= false.
-public isConstructor ::= false.
 public isSynthetic ::= false.
-public isSubinitializer ::= false.
 public builder
 |) (
 'as yet unclassified'
@@ -97,8 +112,11 @@ public compiledMethod ^<CompiledMethod> = (
 	
 	^method
 )
+public name = (
+	^selector
+)
 public printOn: stream = (
-	stream nextPutAll: 'IntermediateMethod:'; nextPutAll: simpleName.
+	stream nextPutAll: 'IntermediateMethod:'; nextPutAll: name.
 )
 public simpleName = (
 	^selector
@@ -108,16 +126,32 @@ public simpleName = (
 public class IntermediateMixin for: d isMeta: m = (|
 public declaration <IntermediateClassDeclaration> = d.
 public isMeta <Boolean> = m.
-public slots <List[IntermediateSlotDeclaration]> = List new.
+public slots <List[IntermediateSlotDeclaration]> ::= List new.
 public methods <List[IntermediateMethod]> = List new.
 public nestedClasses <List[IntermediateClassDeclaration]> = List new.
 public builder <MixinBuilder>
 |) (
 'as yet unclassified'
+public assembleMethods = (
+	| assembledMethods = List new. |
+	assembledMethods addAll: methods.
+	assembleSlots do: [:slot | slot addSyntheticMethodsTo: assembledMethods].
+	nestedClasses do: [:nestedClass | assembledMethods add: nestedClass accessor].
+	isMeta
+		ifTrue: [assembledMethods add: declaration factory]
+		ifFalse: [assembledMethods addAll: declaration initializers].
+	^assembledMethods
+)
+public assembleSlots = (
+	| assembledSlots = List new. |
+	assembledSlots addAll: slots.
+	nestedClasses do: [:nestedClass | nestedClass addSyntheticSlotsTo: assembledSlots].
+	^assembledSlots
+)
 public checkNameConflictsForMethod: selector <Symbol> = (
 	nestedClasses do: 
 		[:nestedClass |
-		nestedClass name = selector ifTrue:
+		nestedClass simpleName = selector ifTrue:
 			[^Error signal: 'Class already has nested class named ', selector]].
 	slots do:
 		[:slot |
@@ -167,13 +201,18 @@ public isMutable
 public accessModifier
 |) (
 'as yet unclassified'
+public addSyntheticMethodsTo: methods = (
+	| index = 1. |
+	methods add: (generateInitializerForSlot: index).
+	methods add: (generateGetterForSlot: index).
+	isMutable ifTrue: [methods add: (generateSetterForSlot: index)].
+)
 public generateGetterForSlot: index <Integer> ^<IntermediateMethod> = (
 	| method = IntermediateMethod new. |
       method accessModifier: accessModifier.
       method method: (Method newGetterForSlot: name at: index accessModifier: accessModifier).
 	method selector: method method selector.
-	method isSynthetic: true; isSlotAccessor: true.
-	(name endsWith: '`slot') ifTrue: [method isNestedClassAccessor: true].
+	method isSynthetic: true.
 	^method
 )
 public generateInitializerForSlot: index <Integer> ^<IntermediateMethod> = (
@@ -181,8 +220,7 @@ public generateInitializerForSlot: index <Integer> ^<IntermediateMethod> = (
       method accessModifier: #private.
       method method: (Method newInitializerForSlot: name at: index).
 	method selector: method method selector.
-	method isSynthetic: true; isSlotAccessor: true.
-	(name endsWith: '`slot') ifTrue: [method isNestedClassAccessor: true].
+	method isSynthetic: true.
 	^method
 )
 public generateSetterForSlot: index <Integer> ^<IntermediateMethod> = (
@@ -190,8 +228,7 @@ public generateSetterForSlot: index <Integer> ^<IntermediateMethod> = (
       method accessModifier: accessModifier.
       method method: (Method newSetterForSlot: name at: index accessModifier: accessModifier).
 	method selector: method method selector.
-	method isSynthetic: true; isSlotAccessor: true.
-	(name endsWith: '`slot') ifTrue: [method isNestedClassAccessor: true].
+	method isSynthetic: true.
 	^method
 )
 public printOn: stream = (

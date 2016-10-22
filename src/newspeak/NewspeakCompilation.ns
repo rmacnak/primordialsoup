@@ -1344,20 +1344,21 @@ public new ^<Instance> = (
 )
 )
 'as yet unclassified'
+public Scope = (
+	^outer NewspeakCompilation Scope
+)
 checkForReservedWord: selector = (
 	(namer isReservedWord: selector) ifTrue:
 		[Error signal: '"', selector, '" is a reserved word'].
+)
+public compileClassHeader: source <String>
+ within: enclosingDeclIR <IntermediateClassDeclaration> = (
+	subclassResponsibility
 )
 setterSelectorFor: slot <SlotDefAST | InstanceVariableMirror> ^<Symbol> = (
 	subclassResponsibility
 )
 'compiler entry'
-public compileClassHeader: source <String>
- of: classDeclMirror <ClassDeclarationBuilder>
- into: oldNested <IntermediateClassDeclaration>
- within: enclosingDeclIR <IntermediateClassDeclaration> = (
-	subclassResponsibility
-)
 public compileClassSource: source <ReadStream> within: enclosing <MixinMirror> ^<IntermediateClassDeclaration> = (
 	subclassResponsibility
 )
@@ -1437,15 +1438,12 @@ public setterSelectorFor: slot <SlotDefAST | InstanceVariableMirror> ^<Symbol> =
 public setterTemp = (
 	^#'@setterTemp'
 )
-public slotNameForNestedClassNamed: ncn <String> ^<String> = (
-	^mixinSlotNameFor: ncn.
-)
 public syntheticNameSeparator = (
 	^'`'
 )
 ) : (
 )
-class Scope = ((* A generic scope facility. *)|
+public class Scope = ((* A generic scope facility. *)|
 public superScope <Scope>
 bindings <Map[Symbol, SymbolTableEntry]> = Dictionary new.
 |) (

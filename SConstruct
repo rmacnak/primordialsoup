@@ -158,7 +158,7 @@ def BuildSnapshots(outdir, host_vm):
   snapshots += [outdir + 'HelloApp.vfuel']
   cmd += ' RuntimeForPrimordialSoup HelloApp ' + outdir + 'HelloApp.vfuel'
   snapshots += [outdir + 'TestRunner.vfuel']
-  cmd += ' RuntimeForPrimordialSoup TestRunner ' + outdir + 'TestRunner.vfuel'
+  cmd += ' RuntimeWithBuildersForPrimordialSoup TestRunner ' + outdir + 'TestRunner.vfuel'
   snapshots += [outdir + 'BenchmarkRunner.vfuel']
   cmd += ' RuntimeForPrimordialSoup BenchmarkRunner ' + outdir + 'BenchmarkRunner.vfuel'
   snapshots += [outdir + 'CompilerApp.vfuel']

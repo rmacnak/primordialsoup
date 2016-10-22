@@ -11,8 +11,8 @@ testConfigs = {
 	manifest CollectionsTestingConfiguration packageTestsUsing: manifest.
 	manifest PrimordialFuelTestingConfiguration packageTestsUsing: manifest.
 	manifest MirrorTestingConfiguration packageTestsUsing: manifest.
-	(* manifest MirrorBuilderTestingConfiguration packageTestsUsing: manifest.
-	manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest. *)
+	manifest MirrorBuilderTestingConfiguration packageTestsUsing: manifest.
+	(* manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest. *)
 }.
 |) (
 'as yet unclassified'

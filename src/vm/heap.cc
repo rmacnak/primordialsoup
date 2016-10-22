@@ -160,6 +160,23 @@ void Heap::FlipSpaces() {
 }
 
 
+static void ForwardClass(Heap* heap, Object* object) {
+  ASSERT(object->IsHeapObject());
+  Behavior* old_class = heap->ClassAt(object->cid());
+  if (old_class->IsForwardingCorpse()) {
+    Behavior* new_class = static_cast<Behavior*>(
+        reinterpret_cast<ForwardingCorpse*>(old_class)->target());
+    ASSERT(!new_class->IsForwardingCorpse());
+    new_class->AssertCouldBeBehavior();
+    if (new_class->id() == heap->object_store()->nil_obj()) {
+      ASSERT(old_class->id()->IsSmallInteger());
+      new_class->set_id(old_class->id());
+    }
+    object->set_cid(new_class->id()->value());
+  }
+}
+
+
 static void ForwardPointer(Object** p) {
   Object* old_target = *p;
   if (old_target->IsForwardingCorpse()) {
@@ -218,11 +235,14 @@ void Heap::ForwardToSpace() {
   uword scan = to_.object_start();
   while (scan < to_.top_) {
     Object* obj = Object::FromAddr(scan);
-    Object** from;
-    Object** to;
-    obj->Pointers(&from, &to);
-    for (Object** p = from; p <= to; p++) {
-      ForwardPointer(p);
+    if (!obj->IsForwardingCorpse()) {
+      ForwardClass(this, obj);
+      Object** from;
+      Object** to;
+      obj->Pointers(&from, &to);
+      for (Object** p = from; p <= to; p++) {
+        ForwardPointer(p);
+      }
     }
     scan += obj->HeapSize();
   }
@@ -241,7 +261,27 @@ void Heap::ProcessClassTableStrong() {
 
 void Heap::ForwardClassTable() {
   for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
-    ForwardPointer(&class_table_[i]);
+    Behavior* old_class = static_cast<Behavior*>(class_table_[i]);
+    if (!old_class->IsForwardingCorpse()) {
+      continue;
+    }
+
+    Behavior* new_class = static_cast<Behavior*>(
+        reinterpret_cast<ForwardingCorpse*>(old_class)->target());
+    ASSERT(!new_class->IsForwardingCorpse());
+
+    ASSERT(old_class->id()->IsSmallInteger());
+    ASSERT(new_class->id()->IsSmallInteger());
+    if (old_class->id() == new_class->id()) {
+      class_table_[i] = new_class;
+    } else {
+#if WEAK_CLASS_TABLE
+      class_table_[i] = SmallInteger::New(class_table_free_);
+      class_table_free_ = i;
+#else
+      class_table_[i] = SmallInteger::New(0);
+#endif
+    }
   }
 }
 
@@ -568,8 +608,8 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
   }
 
   ForwardRoots();
+  ForwardToSpace();  // Using old class table.
   ForwardClassTable();
-  ForwardToSpace();
 
 #if LOOKUP_CACHE
   lookup_cache_->Clear();

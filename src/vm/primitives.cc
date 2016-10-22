@@ -2014,6 +2014,14 @@ DEFINE_PRIMITIVE(Behavior_allInstances) {
   if (!cls->IsRegularObject()) {
     UNREACHABLE();
   }
+  if (cls->id() == nil) {
+    // Class not yet registered: no instance has been allocated.
+    Array* result = H->AllocateArray(0);  // SAFEPOINT
+    A->PopNAndPush(num_args + 1, result);
+    return kSuccess;
+  }
+
+  ASSERT(cls->id()->IsSmallInteger());
   intptr_t cid = cls->id()->value();
   if (cid == kIllegalCid) {
     UNREACHABLE();
@@ -2029,7 +2037,7 @@ DEFINE_PRIMITIVE(Behavior_allInstances) {
   ASSERT(num_instances == num_instances2);
   // Note that if a GC happens there may be fewer instances than
   // we initially counted. TODO(rmacnak): truncate result.
-  OS::PrintErr("Found %" Pd " instances of %" Pd "\n", num_instances, cid);
+  // OS::PrintErr("Found %" Pd " instances of %" Pd "\n", num_instances, cid);
 
   A->PopNAndPush(num_args + 1, result);
   return kSuccess;

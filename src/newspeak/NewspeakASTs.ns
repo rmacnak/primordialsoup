@@ -142,7 +142,7 @@ public classHeaderNode: node = (
 		isSeq: node isSeq;
 		classComment: node classComment;
 		category: node category;
-		inheritanceChain: (node inheritanceChain collect:[:send | send apply: self]);
+		inheritanceChain: (node inheritanceChain collect: [:send | send apply: self]);
 		initExprs: (node initExprs collect: [ :ie | ie apply: self ])
 )
 public classNode: aNode = (
@@ -1034,7 +1034,7 @@ public apply: aTool = (
 ) : (
 )
 public class SlotDefAST = AST (| 
-	public slotDecl <SlotDeclarationAST>
+	public slotDecl <VariableAST>
 	public initializer <ExpressionAST>
 	public accessModifier
 |) (
@@ -1083,7 +1083,7 @@ public class TypeIdAST = AST (|
 	public name <Symbol>
 |) (
 'as yet unclassified'
-public isTypeNode = (
+public isTypeNode ^ <Boolean> = (
 	^ true
 )
 'visiting'

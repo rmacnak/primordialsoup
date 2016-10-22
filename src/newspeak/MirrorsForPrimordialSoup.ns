@@ -6,6 +6,7 @@ private IdentityMap = platform collections IdentityDictionary.
 
 private List = platform collections ArrayList.
 private WeakMap = platform kernel WeakMap.
+private StringBuilder = platform kernel StringBuilder.
 private InstanceMixin = ik InstanceMixin.
 private ClassMixin = ik ClassMixin.
 private Metaclass = ik Metaclass.
@@ -14,6 +15,7 @@ private reflectees = WeakMap new.
 private cachedPlatform = platform.
 private internalKernel = ik.
 private namespace = ns.
+private grammarX
 private intermediatesX
 private compilerX
 |) (
@@ -24,6 +26,7 @@ class AtomicInstaller = (|
 private updateMixinsAndClasses <IdentityMap[OldObject,NewObject]>
 private updateInstances <IdentityMap[OldObject,NewObject]>
 private existingClasses <IdentityMap[HierarchyDepth,Set[Class]]>
+private newExistingMixins <Map[IntermediateClassDeclaration,InstanceMixin]>
 |) (
 'as yet unclassified'
 allInstVarNamesOf: cls = (
@@ -39,6 +42,7 @@ private cleanup = (
 	updateMixinsAndClasses: nil.
 	updateInstances: nil.
 	existingClasses: nil.
+	newExistingMixins: nil.
 )
 private installAll = (
 	| updateCount oldObjects newObjects index |
@@ -61,9 +65,10 @@ private installAll = (
 	elementsOf: oldObjects forwardIdentityToElementsOf: newObjects.
 )
 private setup = (
-	updateMixinsAndClasses: IdentityMap new.
-	updateInstances: IdentityMap new.
-	existingClasses: IdentityMap new.
+	updateMixinsAndClasses:: IdentityMap new.
+	updateInstances:: IdentityMap new.
+	existingClasses:: IdentityMap new.
+	newExistingMixins:: IdentityMap new. (* Regular Map okay here. *)
 )
 'private-classes'
 private depthFor: klassArg <Class> ^<Integer> = (
@@ -157,9 +162,13 @@ private processInstancesOf: oldClass <Class> = (
 	remapIndices:: (allInstVarNamesOf: newClass) collect:
 		[:newSlotName | in: oldSlotNames lastIndexOf: newSlotName].
 	newSlotCount:: remapIndices size.
-	'remapping with ' out.
+
+	(* 'remapping with ' out.
+	(((allInstVarNamesOf: oldClass) inject: '' into: [:a :b | a, ' ', b])
+	, ' -> ',
+	((allInstVarNamesOf: newClass) inject: '' into: [:a :b | a, ' ', b]))out.
 	1 to: remapIndices size do: [:newIndex | 
-		(newIndex printString, '<-', (remapIndices at: newIndex) printString) out].
+		(newIndex printString, '<-', (remapIndices at: newIndex) printString) out]. *)
 
 	(allInstancesOf: oldClass) do: 
 		[:oldInstance |
@@ -179,10 +188,18 @@ private processInstancesOf: oldClass <Class> = (
 'private-mixins'
 private methodDictionaryFor: mixin <AbstractMixin> from: imixin <IntermediateMixin> ^<MethodDictionary> = (
 	| cmethods |
-	cmethods:: imixin methods collect:
+	cmethods:: imixin assembleMethods collect:
 		[:imethod <IntermediateMethod> | 
 		imethod methodMixin: mixin.
 		imethod compiledMethod].
+	
+	1 to: cmethods size do: [:i |
+		i + 1 to: cmethods size do: [:j |
+			(cmethods at: i) selector = (cmethods at: j) selector ifTrue: 
+				['---conflicting methods' out.
+				cmethods do: [:cmethod | cmethod selector out].
+				conflictingMethods]]].
+	
 	^cmethods asArray
 )
 private noteUpdateOf: existingMixin <InstanceMixin | nil> to: newMixin <InstanceMixin> = (
@@ -209,12 +226,13 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	classMixin:: ClassMixin new.
 	
 	mixin _headerSource: classDecl headerSource.
+	mixin _accessModifier: classDecl accessModifier.
 	mixin _primaryFactorySelector: classDecl factoryName.
 	assert: [classDecl factoryName isNil not] message: 'Missing factory name'.
 	mixin _name: classDecl simpleName.
 	mixin _classMixin: classMixin.
 	mixin _methods: (methodDictionaryFor: mixin from: classDecl instanceSide).
-	mixin _slots: (classDecl instanceSide slots collect:
+	mixin _slots: (classDecl instanceSide assembleSlots collect:
 		[:s <IntermediateSlotDeclaration> | {s simpleName. s isMutable. s accessModifier}]) asArray.
 	
 	classMixin _instanceMixin: mixin.
@@ -223,7 +241,10 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	existingMixin:: classDecl existingMixin.
 	noteUpdateOf: existingMixin to: mixin.
 	
-	nil = existingMixin ifFalse:
+	nil = existingMixin 
+		ifTrue:
+		[newExistingMixins at: classDecl put: mixin]
+		ifFalse:
 		[(* If this is the top-most thing changed in this installation and not a top level class, the enclosingMixin won't otherwise be set and would incorrectly end up nil. *)
 		mixin _enclosingMixin: existingMixin _enclosingMixin.
 		mixin _classMixin _enclosingMixin: existingMixin _enclosingMixin].
@@ -246,6 +267,9 @@ public install: classDecls <List[IntermediateClassDeclaration]> = (
 	results:: classDecls collect: [:classDecl | processClassDeclaration: classDecl].
 	processExistingClasses.
 	installAll.
+	newExistingMixins keysAndValuesDo:
+		[:classDecl :mixin | classDecl existingMixin: mixin]. 
+	
 	cleanup.
 
 	^results (* <List[InstanceMixin]> *)
@@ -254,13 +278,11 @@ public install: classDecls <List[IntermediateClassDeclaration]> = (
 )
 public class ClassDeclarationBuilder fromIntermediate: ir = (|
 private intermediate <IntermediateClassDeclaration> = ir.
+public header <ClassHeaderBuilder> = ClassHeaderBuilder fromIntermediate: ir.
 |) (
 'as yet unclassified'
 public accessModifier ^<Symbol> = (
-	(* halt. incrementalScopeFor: *)
-	(* bogus *)
-	nil = intermediate existingMixin ifTrue: [^#public].
-	^intermediate existingMixin accessModifier
+	^intermediate accessModifier
 )
 public classSide ^<MixinBuilder> = (
 	| ir builder |
@@ -272,18 +294,64 @@ public classSide ^<MixinBuilder> = (
 	^builder
 )
 public enclosingClass ^<ClassDeclarationBuilder> = (
-	| enclosingIntermediate |
-	enclosingIntermediate:: intermediate enclosingClass.
-	nil = enclosingIntermediate ifTrue: [^nil].
-	nil = enclosingIntermediate builder ifTrue: [^halt].
-	^enclosingIntermediate builder
+	| enclosingIR enclosingNested enclosingBuilder |
+	enclosingIR:: intermediate enclosingClass.
+	nil = enclosingIR ifFalse: 
+		[^enclosingIR declaration builder].
+	nil = intermediate existingMixin ifTrue: 
+		[intermediate isTopLevel ifFalse: [halt]. ^nil].
+	nil = intermediate existingMixin _enclosingMixin ifTrue: 
+		[intermediate isTopLevel ifFalse: [halt]. ^nil].
+	
+	enclosingIR:: buildIntermediateFor: intermediate existingMixin _enclosingMixin within: nil.
+	
+	(* Patch up link *)
+	intermediate enclosingClass: enclosingIR instanceSide.
+	
+	(* Patch down link and accessor. *)
+	enclosingNested:: enclosingIR instanceSide nestedClasses.
+	1 to: enclosingNested size do: [:i |
+		(enclosingNested at: i) simpleName = intermediate simpleName ifTrue:
+			[intermediate accessor: (enclosingNested at: i) accessor.
+			 enclosingNested at: i put: intermediate]].
+	
+	enclosingBuilder:: ClassDeclarationBuilder fromIntermediate: enclosingIR.
+	enclosingIR builder: enclosingBuilder.
+	^enclosingBuilder
 )
-public install = (
-	| installer newMixin |
+public headerFromSource: newHeader <String> = (
+	| prefix newIR |
+
+	(* only top-level classes can specify categories *)
+	prefix:: intermediate isTopLevel
+		ifTrue: [ 'Newspeak3 ''category'' ' ]
+		ifFalse: [ ' ' ].
+
+	self enclosingClass. (* For side effect. *)
+	newIR:: compiler
+		compileClassHeader: (prefix, newHeader)
+		within: intermediate enclosingClass.
+
+	(* :todo: checkForSlotConflicts: newIR. *)
+	assert: [intermediate simpleName = newIR simpleName] message: ''.
+
+	intermediate headerSource: newIR headerSource.
+	intermediate factoryName: newIR factoryName.
+	intermediate comment: newIR comment.
+	intermediate accessor: newIR accessor.
+	intermediate factory: newIR factory.
+	intermediate initializers: newIR initializers.
+	intermediate instanceSide slots: newIR instanceSide slots.
+)
+public install ^<ClassDeclarationMirror> = (
+	| installer outermost |
 	installer:: AtomicInstaller new.
-	(* :bogus: find outermost changed class declaration *)
-	newMixin:: (installer install: {intermediate}) first.
-	^ClassDeclarationMirror reflecting: newMixin
+	outermost:: intermediate.
+	[nil = outermost enclosingClass] whileFalse: 
+		[outermost:: outermost enclosingClass declaration]. 
+	installer install: {outermost}.
+	nil = intermediate existingMixin ifTrue: [halt].
+	^ClassDeclarationMirror reflecting: intermediate existingMixin
 )
 public instanceSide ^<MixinBuilder> = (
 	| ir builder |
@@ -297,9 +365,22 @@ public instanceSide ^<MixinBuilder> = (
 public name = (
 	^intermediate simpleName
 )
-public prvtIntermediate = (
-	(* :bogus: squeak compatibility *)
-	^intermediate
+public source ^<String> = (
+	| sb = StringBuilder new. |
+	to: sb writeClassDeclaration: intermediate.
+	^sb asString
+)
+private to: sb writeClassDeclaration: declIR = (
+	sb add: declIR headerSource.
+	sb writeln: ' ('.
+	declIR instanceSide nestedClasses do:
+		[:nestedIR | to: sb writeClassDeclaration: nestedIR].
+	declIR instanceSide methods do:
+		[:method | sb writeln: method source].
+	sb writeln: ') : ('.
+	declIR classSide methods do:
+		[:method | sb writeln: method source].
+	sb writeln: ')'.
 )
 ) : (
 'as yet unclassified'
@@ -317,7 +398,6 @@ public fromUnitSource: source <String> ^<ClassDeclarationBuilder> = (
 private class ClassDeclarationMirror reflecting: mxn = (| mixin <InstanceMixin> = mxn. |) (
 'as yet unclassified'
 public accessModifier ^<Symbol> = (
-	(* halt. incrementalScopeFor: *)
 	^mixin _accessModifier
 )
 public applyToObject ^<ClassMirror> = (
@@ -326,12 +406,11 @@ public applyToObject ^<ClassMirror> = (
 )
 public asBuilder ^<ClassDeclarationBuilder> = (
 	| ec ir builder |
-	nil = mixin _enclosingMixin ifFalse: [unimplemented].
-	ec:: nil.
+	(* nil = mixin _enclosingMixin ifFalse: [unimplemented]. *)
+	ec:: nil. (* Intermediates for enclosing class (if any) computed lazily. *)
 	ir:: buildIntermediateFor: mixin within: ec.
 	builder:: ClassDeclarationBuilder fromIntermediate: ir.
 	ir builder: builder.
-	ir existingMixin: mixin.
 	^builder
 )
 public classSide ^<MixinMirror> = (
@@ -357,7 +436,78 @@ public printString = (
 	^'ClassDeclarationMirror:',simpleName.
 )
 public simpleName = (
+	(* halt. TestEnvironment classAccessorName *)
 	^mixin _name
+)
+public source ^<String> = (
+	| sb = StringBuilder new. |
+	to: sb writeClassDeclaration: mixin.
+	^sb asString
+)
+private to: sb writeClassDeclaration: instanceMixin = (
+	sb add: instanceMixin _headerSource.
+	sb writeln: ' ('.
+	instanceMixin _nestedMixins do:
+		[:nestedMixin | to: sb writeClassDeclaration: nestedMixin].
+	instanceMixin _methods do:
+		[:method | method isSynthetic ifFalse:
+			[sb writeln: method source]].
+	sb writeln: ') : ('.
+	instanceMixin _classMixin _methods do:
+		[:method | method isSynthetic ifFalse:
+			[sb writeln: method source]].
+	sb writeln: ')'.
+)
+) : (
+)
+private class ClassHeaderBuilder fromIntermediate: ir = (|
+private intermediate <IntermediateClassDeclaration> = ir.
+|) (
+'as yet unclassified'
+public name = (
+	^intermediate simpleName
+)
+public name: newName <String> = (
+	| token newClassSource newIR |
+
+	intermediate builder enclosingClass. (* For side effect. *)
+
+	(* check for name conflict with sibling members *)
+	intermediate isTopLevel ifFalse:
+		[ | existing |
+		existing:: intermediate enclosingClass nestedClasses 
+			detect: [:nested | nested simpleName = newName]
+			ifNone: [nil].
+		(nil = existing or: [existing = intermediate builder])
+			ifFalse: [^Error signal: 'A sibling already exists with the name ', newName]].
+
+	(* patch header source with the new name *)
+	token:: (grammar TypedNS3Grammar new classHeader parseString: source) at: 3.
+	newClassSource::
+		(intermediate isTopLevel
+			(* only top-level classes can specify categories *)
+			ifTrue: [ 'Newspeak3 ''Category'' ' ]
+			ifFalse: [ ' ' ]),
+		(source copyFrom: 1 to: token start - 1) ,
+		newName,
+		(source copyFrom: token end + 1 to: source size).
+
+	(* compile etc *)
+	newIR:: compiler
+		compileClassHeader: newClassSource
+		within: intermediate enclosingClass.
+		
+	intermediate simpleName: newIR simpleName.
+	intermediate headerSource: newIR headerSource.
+	intermediate factoryName: newIR factoryName.
+	intermediate comment: newIR comment.
+	intermediate accessor: newIR accessor.
+	intermediate factory: newIR factory.
+	intermediate initializers: newIR initializers.
+	intermediate instanceSide slots: newIR instanceSide slots.
+)
+public source ^<String> = (
+	^intermediate headerSource
 )
 ) : (
 )
@@ -598,23 +748,21 @@ private intermediate <IntermediateMixin> = ir.
 'as yet unclassified'
 public addFromSource: source <String> = (
 	| 
-	result <LowLevelMethodMirror>
-	cat
-	newM
+	imethod <IntermediateMethod>
 	|
-	result:: compiler
+	imethod:: compiler
 		compileMethodSource: source 
 		within: intermediate builder.
 
-	result category: #'as yet unclassified'.
+	imethod category: #'as yet unclassified'.
 
-	intermediate checkNameConflictsForMethod: result selector.
+	intermediate checkNameConflictsForMethod: imethod selector.
 	
 	intermediate methods removeAllSuchThat: 
-		[:ea | ea selector = result selector].
-	intermediate methods add: result.
+		[:ea | ea selector = imethod selector].
+	intermediate methods add: imethod.
 	
-	^MethodBuilder reflecting: result in: intermediate builder
+	^MethodBuilder reflecting: imethod in: intermediate builder
 )
 public do: action = (
 	intermediate methods do: 
@@ -634,18 +782,20 @@ private intermediate <IntermediateMixin> = ir.
 |) (
 'as yet unclassified'
 public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
-	| result <IntermediateClassDeclaration> builder |
+	| idecl <IntermediateClassDeclaration> builder |
 	
-	result:: compiler 
+	idecl:: compiler 
 		compileClassSource: source
 		within: intermediate.
 		
-	intermediate checkNameConflictsForNestedClass: result simpleName.
+	intermediate checkNameConflictsForNestedClass: idecl simpleName.
 	
-	intermediate nestedClasses add: result.
+	intermediate nestedClasses removeAllSuchThat: 
+		[:nestedIR | nestedIR simpleName = idecl simpleName].
+	intermediate nestedClasses add: idecl.
 	
-	builder:: ClassDeclarationBuilder fromIntermediate: result.
-	result builder: builder.
+	builder:: ClassDeclarationBuilder fromIntermediate: idecl.
+	idecl builder: builder.
 	^builder
 )
 public do: action = (
@@ -662,28 +812,9 @@ public do: action = (
 		action value: builder].
 )
 public removeMirrorNamed: name <Symbol> = (
-	| nestedIntermediate victimName |
-	nestedIntermediate:: intermediate nestedClasses detect: [:nested | nested simpleName = name] ifNone: [^self].
-	(* Remove nested mixin *)
-	intermediate nestedClasses remove: nestedIntermediate.
-
-	(* Remove nested class accessor *)
-	intermediate methods remove: 
-		(intermediate methods detect: [:e | e selector = nestedIntermediate simpleName]).
-
-	(* Remove slot and slot accessors *)	
-	victimName: nestedIntermediate simpleName.
-	intermediate slots remove:
-		(intermediate slots detect: [:e | e name = (victimName,'`slot')]).
-	intermediate methods remove: 
-		(intermediate methods detect: [:e | e selector = (victimName,'`slot')]).
-	intermediate methods remove: 
-		(intermediate methods detect: [:e | e selector = (victimName,'`slot:')]).
-	intermediate methods remove: 
-		(intermediate methods detect: [:e | e selector = ('init`', victimName,'`slot:')]).
-
-	(* Indices can change if the victim's slot is not the last one *)
-	compiler generateSlotAccessorsFor: intermediate declaration.
+	| nestedIntermediate |
+	intermediate nestedClasses removeAllSuchThat:
+		[:inested | inested simpleName = name].
 )
 ) : (
 )
@@ -1070,7 +1201,8 @@ private allocate: cls = (
 	halt.
 )
 buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec = (
-	
+	| initializers = List new. |
+
 	mixin _methods do: 
 		[:method |
 		|
@@ -1083,12 +1215,26 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 		imethod accessModifier: method accessModifier.
 		imethod isSynthetic: method isSynthetic.
 		imethod category: 42.
-		imethod isSynthetic ifTrue: 
-			[imethod isNestedClassAccessor: (isNestedClassAccessorSelector: selector forMixin: mixin).
-			imethod isConstructor: (isConstructorSelector: selector forMixin: mixin)].
-		i methods add: imethod].
+		(isSubinitializerSelector: selector) ifTrue:
+			[initializers add: imethod].
+		imethod isSynthetic ifFalse:
+			[i methods add: imethod]].
 	
-	mixin isMeta ifTrue: [^self].
+	mixin isMeta ifTrue:
+		[ | factoryName factoryM factoryIR |
+		factoryName:: mixin _instanceMixin _primaryFactorySelector.
+		factoryM:: mixin _methods detect: [:ea | ea selector = factoryName].
+		factoryIR:: intermediates IntermediateMethod new.
+		factoryIR method: factoryM.
+		factoryIR methodMixin: mixin.
+		factoryIR selector: factoryName.
+		factoryIR accessModifier: factoryM accessModifier.
+		factoryIR isSynthetic: true.
+		factoryIR category: nil.
+		i declaration factory: factoryIR.
+		^self].
+
+	i declaration initializers: initializers.
 	
 	mixin _slots do:
 		[:tuple |
@@ -1096,11 +1242,28 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 		slot name: (tuple at: 1).
 		slot isMutable: (tuple at: 2).
 		slot accessModifier: (tuple at: 3).
-		i slots add: slot.].
+		(isSyntheticSlotSelector: slot name) ifFalse: 
+			[i slots add: slot]].
 	
 	mixin _nestedMixins do:
 		[:nestedMixin <InstanceMixin> |
-		i nestedClasses add: (buildIntermediateFor: nestedMixin within: ec)].
+		| 
+		nestedIR <IntermediateClassDeclaration> 
+		accessorM <Method> 
+		accessorIR <IntermediateMethod>
+		|
+		nestedIR:: buildIntermediateFor: nestedMixin within: ec.
+		i nestedClasses add: nestedIR.
+		
+		accessorM:: mixin _methods detect: [:ea | ea selector = nestedIR simpleName].
+		accessorIR:: intermediates IntermediateMethod new.
+		accessorIR method: accessorM.
+		accessorIR methodMixin: mixin.
+		accessorIR selector: nestedIR simpleName.
+		accessorIR accessModifier: accessorM accessModifier.
+		accessorIR isSynthetic: true.
+		accessorIR category: nil.
+		nestedIR accessor: accessorIR].
 )
 buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClassDeclaration> = (
 	| i = intermediates IntermediateClassDeclaration new. |
@@ -1110,6 +1273,7 @@ buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClass
 	i comment: nil.
 	i category: 42.
 	i enclosingClass: ec.
+	i existingMixin: mixin.
 	buildIntermediate: i instanceSide from: mixin within: i.
 	buildIntermediate: i classSide from: mixin _classMixin within: i.
 	^i
@@ -1123,17 +1287,17 @@ private compiler = (
 	^compilerX
 )
 private constructCompiler = (
-	| parserLib grammar asts parsing compilation |
+	| parserLib asts parsing compilation |
 	parserLib:: namespace CombinatorialParsing 
 		usingPlatform: cachedPlatform.
-	grammar:: namespace NewspeakGrammar 
+	grammarX:: namespace NewspeakGrammar 
 		usingPlatform: cachedPlatform
 		parsers: parserLib.
 	asts:: namespace NewspeakASTs 
 		usingLib: cachedPlatform.
 	parsing:: namespace NewspeakParsing 
 		usingPlatform: cachedPlatform
-		grammar: grammar
+		grammar: grammarX
 		asts: asts.
 	intermediatesX:: namespace Intermediates 
 		usingPlatform: cachedPlatform
@@ -1150,6 +1314,10 @@ private elementsOf: old forwardIdentityToElementsOf: new = (
 )
 private enclosingObjectOf: behavior = (
 	^self slotOf: behavior at: 3
+)
+private grammar = (
+	nil = grammarX ifTrue: [constructCompiler].
+	^grammarX
 )
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
@@ -1173,16 +1341,13 @@ private isBehavior: object = (
 	assert: [Metaclass = cls] message: ''.
 	^false
 )
-isConstructorSelector: selector forMixin: mixin <AbstractMixin> = (
-	mixin isMeta ifFalse: [^false].
-	^mixin _instanceMixin _primaryFactorySelector = selector
-)
-isNestedClassAccessorSelector: selector forMixin: mixin <AbstractMixin> = (
-	mixin isMeta ifTrue: [^false].
-	#BOGUS. (* Consult namer *)
-	(selector endsWith: '`slot') ifTrue: [^true].
-	mixin _nestedMixins do: [:nestedMixin | nestedMixin _name = selector ifTrue: [^true]].
+private isSubinitializerSelector: selector = (
+	(selector startsWith: 'mixinInitializer`') ifTrue: [^true].
+	(selector startsWith: 'initializer`') ifTrue: [^true].
 	^false
+)
+private isSyntheticSlotSelector: selector = (
+	^selector endsWith: '`slot'
 )
 private methodsOf: behavior = (
 	^self slotOf: behavior at: 2
