@@ -284,6 +284,16 @@ public header <ClassHeaderBuilder> = ClassHeaderBuilder fromIntermediate: ir.
 public accessModifier ^<Symbol> = (
 	^intermediate accessModifier
 )
+private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> = (
+	
+	newIntermediate instanceSide slots do:
+		[:slot <IntermediateSlotDeclaration> | 
+		intermediate instanceSide
+			checkNameConflictsForSlot: slot name
+			mutable: slot isMutable].
+		
+	intermediate classSide checkNameConflictsForFactory: newIntermediate factoryName.
+)
 public classSide ^<MixinBuilder> = (
 	| ir builder |
 	ir:: intermediate classSide.
@@ -332,7 +342,7 @@ public headerFromSource: newHeader <String> = (
 		compileClassHeader: (prefix, newHeader)
 		within: intermediate enclosingClass.
 
-	(* :todo: checkForSlotConflicts: newIR. *)
+	checkForHeaderConflicts: newIR.
 	assert: [intermediate simpleName = newIR simpleName] message: ''.
 
 	intermediate headerSource: newIR headerSource.

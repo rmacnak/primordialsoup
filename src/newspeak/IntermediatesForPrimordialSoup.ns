@@ -148,6 +148,13 @@ public assembleSlots = (
 	nestedClasses do: [:nestedClass | nestedClass addSyntheticSlotsTo: assembledSlots].
 	^assembledSlots
 )
+public checkNameConflictsForFactory: selector <Symbol> = (
+	assert: [isMeta] message: ''.
+	methods do:
+		[:method |
+		method selector = selector ifTrue:
+			[^Error signal: 'Class already has method named ', selector]].
+)
 public checkNameConflictsForMethod: selector <Symbol> = (
 	nestedClasses do: 
 		[:nestedClass |
@@ -177,7 +184,7 @@ public checkNameConflictsForNestedClass: klassName <Symbol> = (
 public checkNameConflictsForSlot: slotName <Symbol> mutable: isMutable <Boolean> = (
 	nestedClasses do: 
 		[:nestedClass |
-		nestedClass name = slotName ifTrue:
+		nestedClass simpleName = slotName ifTrue:
 			[^Error signal: 'Class already has nested class named ', slotName]].	
 	methods do:
 		[:method |
