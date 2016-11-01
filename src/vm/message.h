@@ -5,8 +5,6 @@
 #ifndef VM_MESSAGE_H_
 #define VM_MESSAGE_H_
 
-#include <pthread.h>
-
 #include "vm/os_thread.h"
 #include "vm/lockers.h"
 #include "vm/port.h"

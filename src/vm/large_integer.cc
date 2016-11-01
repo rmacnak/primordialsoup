@@ -1315,7 +1315,8 @@ double LargeInteger::AsDouble(LargeInteger* integer) {
   // get kSignificandSize + 1 bits. If the last bit is 1 then we have to look
   // at the remaining bits to know if we have to round up.
   int needed_bits = kSignificandSize + 1;
-  // ASSERT((kBitsPerDigit < needed_bits) && (2 * kBitsPerDigit >= needed_bits));
+  // ASSERT((kBitsPerDigit < needed_bits) &&
+  //        (2 * kBitsPerDigit >= needed_bits));
   bool discarded_bits_were_zero = true;
 
   const digit_t firstDigit = integer->digit(digit_index--);

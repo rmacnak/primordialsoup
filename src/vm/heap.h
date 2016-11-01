@@ -9,7 +9,6 @@
 #include "vm/globals.h"
 #include "vm/utils.h"
 #include "vm/object.h"
-#include "vm/message.h"
 #include "vm/os.h"
 #include "vm/random.h"
 #include "vm/flags.h"

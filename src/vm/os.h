@@ -22,6 +22,7 @@ class OS {
 
   static void Print(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);
   static void PrintErr(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);
+  static char* PrintStr(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);
 
   static void Abort();
 

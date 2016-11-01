@@ -3,67 +3,103 @@
 import os
 import platform
 
-def BuildVM(cxx, arch, os, debug):
-  env = Environment()
-  env['CXX'] = cxx
-
-  outdir = 'out/'
-  if debug:
-    env['CCFLAGS'] += ['-DDEBUG']
-    outdir += 'Debug'
+def BuildVM(cxx, arch, target_os, debug):
+  if target_os == 'windows' and arch == 'ia32':
+    env = Environment(TARGET_ARCH='x86')
+  elif target_os == 'windows' and arch == 'x64':
+    env = Environment(TARGET_ARCH='x86_64')    
   else:
-    env['CCFLAGS'] += ['-DNDEBUG']
-    outdir += 'Release'
+    env = Environment()
+    env['CXX'] = cxx
 
-  if os == 'android':
-    outdir += 'Android'
+  configname = ''
+  if debug:
+    if target_os == 'windows':
+      env['CCFLAGS'] += ['/DDEBUG=1']
+    else:
+      env['CCFLAGS'] += ['-DDEBUG']
+    configname += 'Debug'
+  else:
+    if target_os == "windows":
+      env['CCFLAGS'] += ['/DNDEBUG']
+    else:
+      env['CCFLAGS'] += ['-DNDEBUG']
+    configname += 'Release'
+
+  if target_os == 'android':
+    configname += 'Android'
     
   if arch == 'ia32':
-    env['CCFLAGS'] += ['-m32']
-    env['LINKFLAGS'] += ['-m32']
-    outdir += 'IA32/'
+    if target_os == 'windows':
+      env['LINKFLAGS'] += ['/MACHINE:X86']
+    else:
+      env['CCFLAGS'] += ['-m32']
+      env['LINKFLAGS'] += ['-m32']
+    configname += 'IA32'
   elif arch == 'x64':
-    env['CCFLAGS'] += ['-m64']
-    env['LINKFLAGS'] += ['-m64']
-    outdir += 'X64/'
+    if target_os == 'windows':
+      env['LINKFLAGS'] += ['/MACHINE:X64']
+    else:
+      env['CCFLAGS'] += ['-m64']
+      env['LINKFLAGS'] += ['-m64']
+    configname += 'X64'
   elif arch == 'arm':
-    outdir += 'ARM/'
+    configname += 'ARM'
   elif arch == 'arm64':
-    outdir += 'ARM64/'
+    configname += 'ARM64'
   elif arch == 'mips':
     env['CCFLAGS'] += ['-EL']
     env['LINKFLAGS'] += ['-EL']
-    outdir += 'MIPS/'
+    configname += 'MIPS'
   elif arch == 'mips64':
     env['CCFLAGS'] += ['-EL']
     env['LINKFLAGS'] += ['-EL']
-    outdir += 'MIPS64/'
+    configname += 'MIPS64'
   elif arch == 'riscv32':
     env['CCFLAGS'] += ['-m32']
     env['LINKFLAGS'] += ['-m32']
-    outdir += 'RISCV32/'
+    configname += 'RISCV32'
   elif arch == 'riscv64':
     env['CCFLAGS'] += ['-m64']
     env['LINKFLAGS'] += ['-m64']
-    outdir += 'RISCV64/'
+    configname += 'RISCV64'
 
-  env['CCFLAGS'] += [
-    '-O3',
-    '-g3',
-    '-Werror',
-    '-Wall',
-    '-Wextra',
-    '-Wnon-virtual-dtor',
-    '-Wvla',
-    '-Wno-unused-parameter',
-    '-fno-rtti',
-    '-fno-exceptions',
-    '-fstack-protector',
-    '-fpic',
-    '-D_FORTIFY_SOURCE=2',
-  ]
+  outdir = os.path.join('out', configname)
+  
+  if target_os == "windows":
+    env['CCFLAGS'] += [
+      '/O2',
+      '/Z7',  # Debug symbols
+      '/WX',  # Warnings as errors
+      '/W3',  # Most warnings
+      '/wd4200',  # Zero-sized array in struct
+      '/wd4996',  # Deprecated POSIX names
+      '/wd4244',  # Implicit narrowing conversion
+      '/wd4800',  # Implicit bool conversion
+      '/wd4146',  # Negating unsigned type
+      '/D_HAS_EXCEPTIONS=0',
+      '/DSTRICT',
+      '/D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES=1',
+      '/D_CRT_SECURE_CPP_OVERLOAD_STANDARD_NAMES_COUNT=1'
+    ]
+  else:
+    env['CCFLAGS'] += [
+      '-O3',
+      '-g3',
+      '-Werror',
+      '-Wall',
+      '-Wextra',
+      '-Wnon-virtual-dtor',
+      '-Wvla',
+      '-Wno-unused-parameter',
+      '-fno-rtti',
+      '-fno-exceptions',
+      '-fstack-protector',
+      '-fpic',
+      '-D_FORTIFY_SOURCE=2',
+    ]    
 
-  if os == 'macos':
+  if target_os == 'macos':
     env['LINKFLAGS'] += [
       '-fPIE',
       '-dead_strip',
@@ -73,7 +109,7 @@ def BuildVM(cxx, arch, os, debug):
       'stdc++',
       'pthread',
     ]
-  if os == 'linux':
+  elif target_os == 'linux':
     env['LINKFLAGS'] += [
       '-fPIE',
       '-Wl,-z,relro,-z,now',
@@ -85,7 +121,7 @@ def BuildVM(cxx, arch, os, debug):
       'stdc++',
       'pthread',
     ]
-  elif os == 'android':
+  elif target_os == 'android':
     env['LINKFLAGS'] += [
       '-pie',
       '-Wl,-z,relro,-z,now',
@@ -96,6 +132,12 @@ def BuildVM(cxx, arch, os, debug):
       'm',
       'stdc++',
       'log',
+    ]
+  elif target_os == 'windows':
+    env['LINKFLAGS'] += [
+      '/DYNAMICBASE',  # Address space layout randomization
+      '/NXCOMPAT',
+      '/DEBUG',  # Debug symbols
     ]
 
   env['CPPPATH'] = ['src']
@@ -116,10 +158,12 @@ def BuildVM(cxx, arch, os, debug):
     'os_android',
     'os_linux',
     'os_macos',
+    'os_win',
     'os_thread',
     'os_thread_android',
     'os_thread_linux',
     'os_thread_macos',
+    'os_thread_win',
     'port',
     'primitives',
     'snapshot',
@@ -128,9 +172,11 @@ def BuildVM(cxx, arch, os, debug):
     'virtual_memory_android',
     'virtual_memory_linux',
     'virtual_memory_macos',
+    'virtual_memory_win',
   ]
   for cc in vm_ccs:
-    objects += env.Object(outdir + 'vm/' + cc + '.o', 'src/vm/' + cc + '.cc')
+    objects += env.Object(os.path.join(outdir, 'vm', cc + '.o'),
+                          os.path.join('src', 'vm', cc + '.cc'))
 
   double_conversion_ccs = [
     'bignum',
@@ -143,30 +189,38 @@ def BuildVM(cxx, arch, os, debug):
     'strtod',
   ]
   for cc in double_conversion_ccs:
-    objects += env.Object(outdir + 'double-conversion/' + cc + '.o',
-                          'src/double-conversion/' + cc + '.cc')
+    objects += env.Object(os.path.join(outdir, 'double-conversion', cc + '.o'),
+                          os.path.join('src', 'double-conversion', cc + '.cc'))
 
-  program = env.Program(outdir + 'primordialsoup', objects)
+  program = env.Program(os.path.join(outdir, 'primordialsoup'), objects)
   return str(program[0])
 
 
 def BuildSnapshots(outdir, host_vm):
-  nssources = Glob('src/newspeak/*.ns')
-
+  nssources = Glob(os.path.join('src', 'newspeak', '*.ns'))
+  compilersnapshot = os.path.join('snapshots', 'compiler.vfuel')
   snapshots = []
-  cmd = host_vm + ' snapshots/compiler.vfuel $SOURCES'
-  snapshots += [outdir + 'HelloApp.vfuel']
-  cmd += ' RuntimeForPrimordialSoup HelloApp ' + outdir + 'HelloApp.vfuel'
-  snapshots += [outdir + 'TestRunner.vfuel']
-  cmd += ' RuntimeWithBuildersForPrimordialSoup TestRunner ' + outdir + 'TestRunner.vfuel'
-  snapshots += [outdir + 'BenchmarkRunner.vfuel']
-  cmd += ' RuntimeForPrimordialSoup BenchmarkRunner ' + outdir + 'BenchmarkRunner.vfuel'
-  snapshots += [outdir + 'CompilerApp.vfuel']
-  cmd += ' RuntimeWithBuildersForPrimordialSoup CompilerApp ' + outdir + 'CompilerApp.vfuel'
+  cmd = host_vm + ' ' + compilersnapshot + ' $SOURCES'
+  
+  helloout = os.path.join(outdir, 'HelloApp.vfuel')
+  snapshots += [helloout]
+  cmd += ' RuntimeForPrimordialSoup HelloApp ' + helloout
+
+  testout = os.path.join(outdir, 'TestRunner.vfuel')
+  snapshots += [testout]
+  cmd += ' RuntimeWithBuildersForPrimordialSoup TestRunner ' + testout
+
+  benchmarkout = os.path.join(outdir, 'BenchmarkRunner.vfuel')
+  snapshots += [benchmarkout]
+  cmd += ' RuntimeForPrimordialSoup BenchmarkRunner ' + benchmarkout
+
+  compilerout = os.path.join(outdir, 'CompilerApp.vfuel')
+  snapshots += [compilerout]
+  cmd += ' RuntimeWithBuildersForPrimordialSoup CompilerApp ' + compilerout
 
   Command(target=snapshots, source=nssources, action=cmd)
   Requires(snapshots, host_vm)
-  Depends(snapshots, 'snapshots/compiler.vfuel')
+  Depends(snapshots, compilersnapshot)
 
 
 def Main():
@@ -176,6 +230,8 @@ def Main():
     host_os = 'linux'
   elif platform.system() == 'Darwin':
     host_os = 'macos'
+  elif platform.system() == 'Windows':
+    host_os = 'windows'
 
   target_cxx = ARGUMENTS.get('cxx_target', None);
   host_cxx = None
@@ -183,11 +239,14 @@ def Main():
     host_cxx = 'g++'
   elif platform.system() == 'Darwin':
     host_cxx = 'clang++'
+  elif platform.system() == 'Windows':
+    host_cxx = 'cl'
   host_cxx = ARGUMENTS.get('cxx_host', host_cxx)    
 
   target_arch = ARGUMENTS.get('arch', None)
   host_arch = None
-  if platform.machine() == 'x86_64':
+  if (platform.machine() == 'x86_64' or
+      platform.machine() == 'AMD64'):
     host_arch = 'x64'
   elif platform.machine() == 'i386':
     host_arch = 'ia32'
@@ -201,13 +260,17 @@ def Main():
     host_arch = 'riscv32'
   elif platform.machine() == 'riscv64':
     host_arch = 'riscv64'
+  else:
+    print (platform.machine());
+    raise "Unknown machine"
 
   # Always build for the host so we can create the snapshots.
   BuildVM(host_cxx, host_arch, host_os, True)
   host_vm = BuildVM(host_cxx, host_arch, host_os, False)
   BuildSnapshots('out/snapshots/', host_vm)
 
-  if (target_os != None and host_os != target_os) or (target_arch != None and host_arch != target_arch):
+  if ((target_os != None and host_os != target_os) or
+      (target_arch != None and host_arch != target_arch)):
     # If cross compiling, also build for the target.
     BuildVM(target_cxx, target_arch, target_os, True)
     BuildVM(target_cxx, target_arch, target_os, False)

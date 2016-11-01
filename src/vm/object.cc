@@ -4,9 +4,6 @@
 
 #include "vm/object.h"
 
-#include <stdlib.h>
-#include <strings.h>
-
 #include "vm/heap.h"
 
 namespace psoup {
@@ -24,6 +21,7 @@ intptr_t Object::HeapSizeFromClass() {
 
   switch (cid()) {
   case kIllegalCid:
+  case kForwardingCorpseCid:
   case kSmiCid:
     UNREACHABLE();
   case kMintCid:
@@ -117,7 +115,7 @@ void Object::Pointers(Object*** from, Object*** to) {
 
 
 const char* Object::ToCString(Heap* heap) {
-  char* result = 0;
+  char* result = NULL;
   intptr_t length;
   Object* cls;
   Object* cls2;
@@ -125,37 +123,21 @@ const char* Object::ToCString(Heap* heap) {
 
   switch (ClassId()) {
   case kIllegalCid:
+  case kForwardingCorpseCid:
     UNREACHABLE();
-  case kSmiCid: {
-    int r = asprintf(&result, "a Smi(%" Pd ")",
-                     static_cast<SmallInteger*>(this)->value());
-    ASSERT(r != -1);
-    return result;
-  }
-  case kMintCid: {
-    int r = asprintf(&result, "a Mint(%" Pd64 ")",
-                     static_cast<MediumInteger*>(this)->value());
-    ASSERT(r != -1);
-    return result;
-  }
-  case kBigintCid: {
-    int r = asprintf(&result, "a LargeInteger(%" Pd "digits)",
-                     static_cast<LargeInteger*>(this)->size());
-    ASSERT(r != -1);
-    return result;
-  }
-  case kFloat64Cid: {
-    int r = asprintf(&result, "a Float(%lf)",
-                     Float64::Cast(this)->value());
-    ASSERT(r != -1);
-    return result;
-  }
-  case kByteArrayCid: {
-    int r = asprintf(&result, "a ByteArray(%" Pd ")",
-                     ByteArray::Cast(this)->Size());
-    ASSERT(r != 1);
-    return result;
-  }
+  case kSmiCid:
+    return OS::PrintStr("a Smi(%" Pd ")",
+                        static_cast<SmallInteger*>(this)->value());
+  case kMintCid:
+    return OS::PrintStr("a Mint(%" Pd64 ")",
+                        static_cast<MediumInteger*>(this)->value());
+  case kBigintCid:
+    return OS::PrintStr("a LargeInteger(%" Pd "digits)",
+                        static_cast<LargeInteger*>(this)->size());
+  case kFloat64Cid:
+    return OS::PrintStr("a Float(%lf)", Float64::Cast(this)->value());
+  case kByteArrayCid:
+    return OS::PrintStr("a ByteArray(%" Pd ")", ByteArray::Cast(this)->Size());
   case kByteStringCid:
     length = ByteString::Cast(this)->Size();
     result = reinterpret_cast<char*>(malloc(length + 14));
@@ -181,18 +163,10 @@ const char* Object::ToCString(Heap* heap) {
       }
     }
     return result;
-  case kArrayCid: {
-    int r = asprintf(&result, "an Array(%" Pd ")",
-                     Array::Cast(this)->Size());
-    ASSERT(r != -1);
-    return result;
-  }
-  case kWeakArrayCid: {
-    int r = asprintf(&result, "a WeakArray(%" Pd ")",
-                     WeakArray::Cast(this)->Size());
-    ASSERT(r != -1);
-    return result;
-  }
+  case kArrayCid:
+    return OS::PrintStr("an Array(%" Pd ")", Array::Cast(this)->Size());
+  case kWeakArrayCid:
+    return OS::PrintStr("a WeakArray(%" Pd ")", WeakArray::Cast(this)->Size());
   case kEphemeronCid:
     return strdup("an Ephemeron");
   case kActivationCid:

@@ -5,6 +5,10 @@
 #ifndef VM_GLOBALS_H_
 #define VM_GLOBALS_H_
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif  // defined(_WIN32)
+
 #include <stddef.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -206,7 +210,8 @@ template <class D, class S>
 inline D bit_cast(const S& source) {
   // Compile time assertion: sizeof(D) == sizeof(S). A compile error
   // here means your D and S have different sizes.
-  PSOUP_UNUSED typedef char VerifySizesAreEqual[sizeof(D) == sizeof(S) ? 1 : -1];
+  PSOUP_UNUSED
+  typedef char VerifySizesAreEqual[sizeof(D) == sizeof(S) ? 1 : -1];
 
   D destination;
   // This use of memcpy is safe: source and destination cannot overlap.

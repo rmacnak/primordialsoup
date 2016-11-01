@@ -30,21 +30,6 @@ class PrimordialSoup {
       OS::Exit(-1);
     }
 
-    if (false) {
-      OS::PrintErr("sizeof(Heap) %" Pd "\n", sizeof(Heap));
-      OS::PrintErr("sizeof(Isolate) %" Pd "\n", sizeof(Isolate));
-      OS::PrintErr("sizeof(Interpreter) %" Pd "\n", sizeof(Interpreter));
-      OS::PrintErr("sizeof(LookupCache) %" Pd "\n", sizeof(LookupCache));
-      OS::PrintErr("sizeof(ThreadPool) %" Pd "\n", sizeof(ThreadPool));
-      OS::PrintErr("sizeof(pthread_mutex_t) %" Pd "\n",
-                   sizeof(pthread_mutex_t));
-      OS::PrintErr("sizeof(pthread_cond_t) %" Pd "\n", sizeof(pthread_cond_t));
-      OS::PrintErr("sizeof(jmp_buf) %" Pd "\n", sizeof(jmp_buf));
-      OS::PrintErr("sizeof(Monitor) %" Pd "\n", sizeof(Monitor));
-      OS::PrintErr("sizeof(OSThread) %" Pd "\n", sizeof(OSThread));
-      OS::PrintErr("sizeof(Thread) %" Pd "\n", sizeof(Thread));
-    }
-
     OS::InitOnce();
     OSThread::InitOnce();
     Primitives::InitOnce();

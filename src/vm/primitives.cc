@@ -6,7 +6,6 @@
 
 #include <math.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include "vm/assert.h"
 #include "vm/double_conversion.h"
@@ -14,6 +13,7 @@
 #include "vm/interpreter.h"
 #include "vm/isolate.h"
 #include "vm/math.h"
+#include "vm/message.h"
 #include "vm/object.h"
 #include "vm/os.h"
 #include "vm/port.h"
@@ -2094,7 +2094,7 @@ DEFINE_PRIMITIVE(print) {
     OS::Print("%.*s\n", static_cast<int>(string->Size()), cstr);
   } else if (message->IsWideString()) {
     WideString* string = static_cast<WideString*>(message);
-    COMPILE_ASSERT(sizeof(wchar_t) == sizeof(uint32_t));
+    // COMPILE_ASSERT(sizeof(wchar_t) == sizeof(uint32_t));
     const wchar_t* cstr =
         reinterpret_cast<const wchar_t*>(string->element_addr(0));
     OS::PrintErr("[%.*ls]\n", static_cast<int>(string->Size()), cstr);
@@ -2660,17 +2660,18 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
   char* cfilename = reinterpret_cast<char*>(malloc(filename->Size() + 1));
   memcpy(cfilename, filename->element_addr(0), filename->Size());
   cfilename[filename->Size()] = 0;
-  FILE* f = fopen(cfilename, "w");
+  FILE* f = fopen(cfilename, "wb");
   if (f == NULL) {
-    OS::PrintErr("Cannot open %s\n", cfilename);
-    UNREACHABLE();
+    FATAL1("Cannot open %s\n", cfilename);
   }
 
-  intptr_t length = bytes->Size();
-  int start = 0;
+  size_t length = bytes->Size();
+  size_t start = 0;
   while (start != length) {
-    int written = fwrite(bytes->element_addr(start), 1, length - start, f);
-    ASSERT(written != -1);
+    size_t written = fwrite(bytes->element_addr(start), 1, length - start, f);
+    if (written == 0) {
+      FATAL1("Failed to write '%s'\n", cfilename);
+    }
     start += written;
   }
   fflush(f);
@@ -2699,7 +2700,7 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   char* cfilename = reinterpret_cast<char*>(malloc(filename->Size() + 1));
   memcpy(cfilename, filename->element_addr(0), filename->Size());
   cfilename[filename->Size()] = 0;
-  FILE* f = fopen(cfilename, "r");
+  FILE* f = fopen(cfilename, "rb");
   if (f == NULL) {
     FATAL1("Failed to stat '%s'\n", cfilename);
   }
@@ -2707,14 +2708,18 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   if (fstat(fileno(f), &st) != 0) {
     FATAL1("Failed to stat '%s'\n", cfilename);
   }
-  intptr_t length = st.st_size;
+  size_t length = st.st_size;
 
   ByteArray* result = H->AllocateByteArray(length);  // SAFEPOINT
-  int start = 0;
-  while (start != length) {
-    int read = fread(result->element_addr(start), 1, length - start, f);
-    ASSERT(read != -1);
-    start += read;
+  size_t start = 0;
+  size_t remaining = length;
+  while (remaining > 0) {
+    size_t bytes_read = fread(result->element_addr(start), 1, remaining, f);
+    if (bytes_read == 0) {
+      FATAL1("Failed to read '%s'\n", cfilename);
+    }
+    start += bytes_read;
+    remaining -= bytes_read;
   }
 
   fclose(f);

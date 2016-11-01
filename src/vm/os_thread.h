@@ -64,7 +64,7 @@ class OSThread : public BaseThread {
   }
 
   ThreadId trace_id() const {
-    ASSERT(trace_id_ != OSThread::kInvalidThreadJoinId);
+    ASSERT(trace_id_ != OSThread::kInvalidThreadId);
     return trace_id_;
   }
 

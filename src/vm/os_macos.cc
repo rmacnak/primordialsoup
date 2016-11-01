@@ -79,6 +79,26 @@ void OS::PrintErr(const char* format, ...) {
 }
 
 
+char* OS::PrintStr(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  va_list measure_args;
+  va_copy(measure_args, args);
+  intptr_t len = vsnprintf(NULL, 0, format, measure_args);
+  va_end(measure_args);
+
+  char* buffer = reinterpret_cast<char*>(malloc(len + 1));
+
+  va_list print_args;
+  va_copy(print_args, args);
+  int r = vsnprintf(buffer, len + 1, format, print_args);
+  ASSERT(r >= 0);
+  va_end(print_args);
+  va_end(args);
+  return buffer;
+}
+
+
 void OS::Abort() {
   abort();
 }

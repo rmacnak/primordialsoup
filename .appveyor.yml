@@ -1,0 +1,12 @@
+environment:
+  matrix:
+    - PYTHON: "C:\\Python27"
+platform:
+  - x64
+install:
+  - SET PATH=%PYTHON%;%PYTHON%/Scripts;%PATH%
+  - easy_install scons
+build_script:
+  - build.bat
+test_script:
+  - test.bat

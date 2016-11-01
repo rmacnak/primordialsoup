@@ -18,7 +18,11 @@ void Snapshot::InitOnce(const char* filename) {
 
 
 void Snapshot::Shutdown() {
+  // TODO(rmacnak): File and anonymous mappings are freed differently on
+  // Windows.
+#if !defined(TARGET_OS_WINDOWS)
   isolate_snapshot_.Free();
+#endif
 }
 
 
