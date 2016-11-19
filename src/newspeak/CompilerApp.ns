@@ -14,17 +14,19 @@ protected doesNotUnderstand: message = (
 'as yet unclassified'
 public childMain: platform args: args = (
 	|
-	List = platform collections OrderedCollection.
+	List = platform collections List.
 	Stopwatch = platform kernel Stopwatch.
 	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
 	Port = platform actors Port.
 	replyPort = Port fromId: (args at: 2).
-	s
-	source builder klass
+	stopwatch
+	source 
+	builder 
+	klass
 	result = List new.
 	|
 	
-	s:: Stopwatch new start.
+	stopwatch:: Stopwatch new start.
 	3 to: args size do: [:index |
 		('Compiling ', (args at: index)) out.
 		source:: readFileAsString: (args at: index) using: platform.
@@ -32,12 +34,12 @@ public childMain: platform args: args = (
 		klass:: builder install applyToObject reflectee.
 		result add: klass].
 
-	('Worker done in ', s elapsedMilliseconds printString, ' ms') out.
+	('Worker done in ', stopwatch elapsedMilliseconds printString, ' ms') out.
 	replyPort send: result asArray.
 )
 decodeUtf8: bytes using: platform = (
 	| 
-	runes = platform collections OrderedCollection new.
+	runes = platform collections List new.
 	position ::= 0.
 	a b c d
 	|
@@ -78,21 +80,22 @@ public main: platform args: args = (
 )
 public parentMain: platform args: args = (
 	|
-	List = platform collections OrderedCollection.
+	List = platform collections List.
 	Stopwatch = platform kernel Stopwatch.
 	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
 	Snapshotter = platform victoryFuel Snapshotter.
-	namespace = platform collections Dictionary new.
+	namespace = platform collections Map new.
 	manifest = Manifest forNamespace: namespace.
 	Port = platform actors Port.
 	receivePort = Port new.
 	n = 4. 
 	workLists
-	s index ::= 1.
+	stopwatch 
+	index ::= 1.
 	outstanding ::= 0.
 	|
 	
-	s:: Stopwatch new start.
+	stopwatch:: Stopwatch new start.
 	workLists:: Array new: n.
 	1 to: n do: [:i | workLists at: i put: List new].
 
@@ -110,7 +113,7 @@ public parentMain: platform args: args = (
 		klasses do: [:klass | 
 		('Got ', klass name) out.
 		namespace at: klass name put: klass]].
-	('Compiled in ', s elapsedMilliseconds printString, ' ms') out.
+	('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out.
 
 
 	[(index + 2) <= args size] whileTrue: 
@@ -125,11 +128,11 @@ public parentMain: platform args: args = (
 		runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.	
 		app:: (namespace at: appName) packageUsing: manifest.
 	
-		s:: Stopwatch new start.
+		stopwatch:: Stopwatch new start.
 		bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
 		writeBytes: bytes toFileNamed: snapshotName.
 	
-		('Serialized in ', s elapsedMilliseconds printString, ' ms') out].
+		('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out].
 )
 private readFileAsBytes: n = (
 	(* :literalmessage: primitive: 130 *)

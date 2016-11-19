@@ -10,7 +10,7 @@ compilerApp = manifest CompilerApp packageUsing: manifest.
 evalApp = manifest EvalApp packageUsing: manifest.
 |) (
 class Tracer usingPlatform: p with: runtime source: ks = (|
-List = p collections OrderedCollection.
+List = p collections List.
 IdentityMap = p squeak IdentityDictionary.
 SmallInteger = p squeak SmallInteger.
 LargePositiveInteger = p squeak LargePositiveInteger.
@@ -834,7 +834,7 @@ public serialize: app to: filename = (
 	| root |
 	patchImplementationBase.
 	buildReplacements.
-	root:: psoup buildObjectStoreWithApp: app platform: platform symbols: symbolsPlaceholder.
+	root:: psoup buildObjectStoreWithApplication: app platform: platform symbols: symbolsPlaceholder.
 	serialize: root.
 	
 	FileStream forceNewFileNamed: filename do: [:stm |

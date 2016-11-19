@@ -3,13 +3,19 @@ Newspeak3
 class CollectionsForPrimordialSoup usingInternalKernel: ik = (|
 public Collection = ik Collection.
 |) (
-public class ArrayList new: initialCapacity = Collection (|
+class HashAssociation = (|
+public key
+public value
+|) (
+) : (
+)
+public class List new: initialCapacity = Collection (|
 protected size_ ::= 0.
 protected data ::= Array new: initialCapacity.
 |) (
 'as yet unclassified'
 public , other = (
-	| result = ArrayList new: self size + other size + 1. |
+	| result = List new: self size + other size + 1. |
 	self do: [:element | result addLast: element].
 	other do: [:element | result addLast: element].
 	^result
@@ -78,7 +84,7 @@ public last ^<E> = (
 	^self at: size
 )
 protected newForCollectUsingAdd: capacity  = (
-	^ArrayList new: capacity
+	^List new: capacity
 )
 public readStream = (
 	^ReadStream over: self
@@ -134,16 +140,10 @@ public new = (
 	^self new: 4 (* Even, since odd-sized arrays waste a slot on the heap. *)
 )
 public withAll: collection = (
-	^(ArrayList new: collection size) addAll: collection; yourself
+	^(List new: collection size) addAll: collection; yourself
 )
 )
-class HashAssociation = (|
-public key
-public value
-|) (
-) : (
-)
-public class HashMap initialCapacity: n = Collection (|
+public class Map initialCapacity: n = Collection (|
 protected size_ ::= 0.
 protected table ::= Array new: n.
 |) (
@@ -187,7 +187,7 @@ atNewIndex: index put: entry = (
 	(table size * 3) < (size_ * 4) ifTrue: [grow].
 )
 public collect: transform <[:V | W]> ^<List[W]> = (
-	| result = ArrayList new: size_. |
+	| result = List new: size_. |
 	1 to: table size do: [:index |
 		| entry = table at: index. |
 		nil = entry ifFalse: [result add: (transform value: entry value)]].
@@ -223,7 +223,7 @@ public isEmpty ^<Boolean> = (
 	^0 = size_
 )
 public keys ^<Set[K]> = (
-	| result = HashSet new. |
+	| result = Set new. |
 	1 to: table size do: [:index |
 		| entry = table at: index. |
 		nil = entry ifFalse: [result add: entry key]].
@@ -235,7 +235,7 @@ public keysAndValuesDo: action <[:K :V]> = (
 			[action value: entry key value: entry value]].
 )
 public reject: predicate <[:V | Boolean]> ^<List[V]> = (
-	| result = ArrayList new: size_. |
+	| result = List new: size_. |
 	1 to: table size do: [:index |
 		| entry = table at: index. |
 		nil = entry ifFalse: 
@@ -276,7 +276,7 @@ scanForEmptySlotFor: key = (
 	self errorNoFreeSpace
 )
 public select: predicate <[:V | Boolean]> ^<List[V]> = (
-	| result = ArrayList new: size_. |
+	| result = List new: size_. |
 	1 to: table size do: [:index |
 		| entry = table at: index. |
 		nil = entry ifFalse: 
@@ -289,7 +289,7 @@ public size ^<Integer> = (
 	^size_
 )
 public values ^<List[V]> = (
-	| result = ArrayList new: size_. |
+	| result = List new: size_. |
 	1 to: table size do: [:index |
 		| entry = table at: index. |
 		nil = entry ifFalse: [result add: entry value]].
@@ -301,7 +301,27 @@ public new = (
 	^self initialCapacity: 6
 )
 )
-public class HashSet initialCapacity: n = Collection (|
+class ReadStream over: c = (|
+protected previousIndex ::= 0.
+protected collection  = c.
+|) (
+'as yet unclassified'
+public atEnd ^<Boolean> = (
+	^previousIndex >= collection size
+)
+public next ^<Boolean> = (
+	previousIndex < collection size
+		ifTrue: [previousIndex:: 1 + previousIndex. ^collection at: previousIndex]
+		ifFalse: [^nil]
+)
+public peek ^<Boolean> = (
+	(1 + previousIndex) <= collection size
+		ifTrue: [^collection at: 1 + previousIndex]
+		ifFalse: [^nil]
+)
+) : (
+)
+public class Set initialCapacity: n = Collection (|
 protected size_ ::= 0.
 protected table ::= Array new: n.
 |) (
@@ -413,41 +433,12 @@ public new = (
 	^self initialCapacity: 6
 )
 )
-class ReadStream over: c = (|
-protected previousIndex ::= 0.
-protected collection  = c.
-|) (
 'as yet unclassified'
-public atEnd ^<Boolean> = (
-	^previousIndex >= collection size
-)
-public next ^<Boolean> = (
-	previousIndex < collection size
-		ifTrue: [previousIndex:: 1 + previousIndex. ^collection at: previousIndex]
-		ifFalse: [^nil]
-)
-public peek ^<Boolean> = (
-	(1 + previousIndex) <= collection size
-		ifTrue: [^collection at: 1 + previousIndex]
-		ifFalse: [^nil]
-)
-) : (
-)
-'as yet unclassified'
-public Dictionary = (
-	^HashMap
-)
-public IdentityDictionary = (
-	^HashMap
+public IdentityMap = (
+	^Map
 )
 public IdentitySet = (
-	^HashSet
-)
-public OrderedCollection = (
-	^ArrayList
-)
-public Set = (
-	^HashSet
+	^Set
 )
 ) : (
 )

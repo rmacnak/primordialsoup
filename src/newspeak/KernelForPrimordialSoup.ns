@@ -596,8 +596,7 @@ private invokeNextHandler = (
 					^handler return: handlerResult]]].
 		handler:: handler sender].
 	
-	self out.
-	exitWithTraceFrom: signalActivation sender.
+	theScheduler unhandledException: self from: signalActivation sender.
 	UNREACHABLE.
 )
 private is: handlerExceptionClass interestedIn: signaledExceptionClass = (
@@ -1829,7 +1828,7 @@ protected Float = (
 )
 protected Integer = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
-	^outer KernelForPrimordialSoup ByteString
+	^outer KernelForPrimordialSoup Integer
 )
 protected Object = (
 	^outer KernelForPrimordialSoup _Object
@@ -1852,9 +1851,9 @@ public printString ^<String> = (
 ) : (
 )
 'as yet unclassified'
-public buildObjectStoreWithApp: app platform: platform symbols: symbols = (
+public buildObjectStoreWithApplication: app platform: platform symbols: symbols = (
 	symbolTable:: symbols.
-	theScheduler:: platform actors buildSchedulerWithApp: app platform: platform.
+	theScheduler:: platform actors buildSchedulerForApplication: app platform: platform.
 	objectStore:: {
 		nil.
 		false.
@@ -1907,19 +1906,8 @@ private enclosingObjectOf: behavior = (
 private enclosingObjectOf: behavior put: value = (
 	^self slotOf: behavior at: 3 put: value
 )
-private exit: code = (
-	(* :literalmessage: primitive: 107 *)
-	halt
-)
 private exitWithTrace = (
 	(* :literalmessage: primitive: 103 *)
-)
-private exitWithTraceFrom: startingCtxt = (
-	| ctxt ::= startingCtxt. |
-	[nil = ctxt] whileFalse: 
-		[ctxt out. 
-		 ctxt:: ctxt sender].
-	exit: -1.
 )
 private formatOf: behavior = (
 	^self slotOf: behavior at: 6

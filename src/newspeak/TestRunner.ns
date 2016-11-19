@@ -20,7 +20,7 @@ public main: platform args: args = (
 	| stopwatch minitest testModules tester |
 	stopwatch:: platform kernel Stopwatch new start.
 	minitest:: Minitest usingPlatform: platform.
-	testModules:: platform collections ArrayList new.
+	testModules:: platform collections List new.
 	testConfigs do: 
 		[:testConfig |
 		testModules addAll: 

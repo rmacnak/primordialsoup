@@ -2,7 +2,7 @@ Newspeak3
 'Actors'
 class ActorsForPrimordialSoup usingPlatform: p = (|
 private WeakMap = p kernel WeakMap.
-private List = p collections OrderedCollection.
+private List = p collections List.
 private Message = p kernel Message.
 
 public Promise = PromiseFactories new.
@@ -712,8 +712,8 @@ public isResolver ^<Boolean> = (
 )
 ) : (
 )
-class Scheduler app: a platform: p = (|
-app = a.
+class Scheduler application: a platform: p = (|
+application = a.
 platform = p.
 |) (
 'as yet unclassified'
@@ -727,6 +727,20 @@ public eventualSendTo: receiver selector: selector arguments: arguments = (
 	(* Sent from the compilation of an eventual send. *)
 	^(asInternalRef: receiver) eventualSend: selector arguments: arguments
 )
+private exit: code = (
+	(* :literalmessage: primitive: 107 *)
+	halt
+)
+public unhandledException: exception from: signalActivationSender = (
+	| activation |
+	'Unhandled exception: ' out.
+	exception out.
+	activation:: signalActivationSender.
+	[nil = activation] whileFalse: 
+		[activation out. 
+		 activation:: activation sender].
+	exit: -1.
+)
 'vm entry'
 private start: argvOrBytes = (
 
@@ -734,7 +748,7 @@ private start: argvOrBytes = (
 		ifTrue: 
 			[currentActor enqueueMessage:
 				(PendingDelivery
-					receiver: app
+					receiver: application
 					selector: #main:args:
 					arguments: {platform. argvOrBytes}
 					resolver: nil)]
@@ -744,7 +758,7 @@ private start: argvOrBytes = (
 			message:: deserializer deserialize: argvOrBytes.
 			currentActor enqueueMessage:
 				(PendingDelivery
-					receiver: app
+					receiver: application
 					selector: #main:args:
 					arguments: {platform. message}
 					resolver: nil)].
@@ -912,8 +926,8 @@ private asInternalRef: externalRefOrUnboxedNearRef = (
 		ifTrue: [internalRefs at: externalRefOrUnboxedNearRef]
 		ifFalse: [InternalNearRef wrapping: externalRefOrUnboxedNearRef]
 )
-public buildSchedulerWithApp: app platform: platform = (
-	^theScheduler:: Scheduler app: app platform: platform
+public buildSchedulerForApplication: app platform: platform = (
+	^theScheduler:: Scheduler application: app platform: platform
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)

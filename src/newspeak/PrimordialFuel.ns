@@ -1,7 +1,7 @@
 Newspeak3
 'NS2PrimordialSoup'
 class PrimordialFuel usingPlatform: p internalKernel: k = (|
-private List = p collections OrderedCollection.
+private List = p collections List.
 private Stopwatch = p kernel Stopwatch.
 
 (* Classes which require special handling. *)
@@ -1520,7 +1520,7 @@ public snapshotApp: app withRuntime: runtime = (
 	newKernel:: runtime InternalKernel new.
 	newPlatform:: runtime Platform internalKernel: newKernel.
 	objectStore:: newKernel 
-		buildObjectStoreWithApp: app 
+		buildObjectStoreWithApplication: app 
 		platform: newPlatform 
 		symbols: symbolTablePlaceholder.
 	

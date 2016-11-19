@@ -2,9 +2,9 @@ Newspeak3
 'NS2PrimordialSoup'
 class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns = (|
 (* TODO: These need to be real identity collections for schema changes. *)
-private IdentityMap = platform collections IdentityDictionary.
+private IdentityMap = platform collections IdentityMap.
 
-private List = platform collections ArrayList.
+private List = platform collections List.
 private WeakMap = platform kernel WeakMap.
 private StringBuilder = platform kernel StringBuilder.
 private InstanceMixin = ik InstanceMixin.
@@ -19,7 +19,44 @@ private grammarX
 private intermediatesX
 private compilerX
 |) (
-public class ActivationMirror reflecting: activationToken = () (
+class ActivationMirror reflecting: activation = (| private reflectee <Activation> = activation. |reflectees at: self put: activation) (
+'as yet unclassified'
+public closure ^<ObjectMirror> = (
+	| rawClosure = reflectee closure. |
+	nil = rawClosure ifTrue: [^nil].
+	^ObjectMirror reflecting: rawClosure
+)
+public enclosingActivation ^<ActivationMirror> = (
+	
+)
+public evaluate: expression ifCompilerError: x ifError: y = (
+	
+)
+localNamesAndValuesDo: x = (
+	
+)
+public message ^<MessageMirror> = (
+	(* If this activation is from an MNU, should this answer the original message or #doesNotUnderstand: ? *)
+	| 
+	numArgs = reflectee method numArgs. 
+	arguments = Array new: numArgs.
+	|
+	1 to: numArgs do: [:i | arguments at: i put: (ObjectMirror reflecting: (reflectee tempAt: i))].
+	^MessageMirror
+		selector: reflectee method selector
+		arguments: arguments	
+)
+public method ^<MethorMirror> = (
+	^MethodMirror reflecting: reflectee method
+)
+public receiver ^<ObjectMirror> = (
+	^ObjectMirror reflecting: reflectee receiver
+)
+public sender ^<ActivationMirror> = (
+	| senderActivation = reflectee sender. |
+	nil = senderActivation ifTrue: [^nil].
+	^ActivationMirror reflecting: senderActivation.
+)
 ) : (
 )
 class AtomicInstaller = (|
@@ -601,7 +638,7 @@ public superclass ^<ClassMirror> = (
 )
 ) : (
 )
-public class MethodBuilder reflecting: ir in: builder = (|
+private class MethodBuilder reflecting: ir in: builder = (|
 private intermediate = ir.
 public definingMixin = builder.
 |) (
@@ -853,7 +890,7 @@ public = other ^<Boolean> = (
 )
 public evaluate: expression <String>
 ifCompilerError: compilationErrorHandler <[:Error]> 
-ifError: evalErrorHandler <[:Error]> ^<ObjectMirror> = (
+ifError: evalErrorHandler <[:ObjectMirror[Error] :ActivationMirror]> ^<ObjectMirror> = (
 	
 	(* Evaluate [expression] with the reflectee as the receiver. If [expression] cannot be compiled, activate [compilationErrorHandler] with the exception. If the evaluation of [expression] raises an error, activate [evalErrorHandler] with the error. Otherwise return an ObjectMirror on the result of [expression]. *)
 	
@@ -891,7 +928,7 @@ public getSlot: name = (
 	^ObjectMirror reflecting: raw	
 )
 public hash ^<Integer> = (
-	^(identityHashOf: reflectee) hash bitXor: class hash
+	^(identityHashOf: reflectee) bitXor: class hash
 )
 private indexOfSlotNamed: name in: startCls = (
 	| cls index |
@@ -1199,6 +1236,34 @@ public isMutable = m.
 public accessModifier = a.
 public definingMixin = mxn.
 |) (
+) : (
+)
+class ThreadMirror = () (
+'as yet unclassified'
+restart: activation = (
+	
+)
+resume = (
+	
+)
+return: object from: activation = (
+	
+)
+stepInto: activation = (
+	
+)
+stepIntoBlock: activation = (
+	
+)
+stepOver: activation = (
+	
+)
+suspend = (
+	
+)
+terminate = (
+	
+)
 ) : (
 )
 'as yet unclassified'

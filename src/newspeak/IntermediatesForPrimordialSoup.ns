@@ -1,8 +1,8 @@
 Newspeak3
 'NS2PrimordialSoup'
 class IntermediatesForPrimordialSoup usingPlatform: p internalKernel: k = (|
-private List = p collections OrderedCollection.
-private Map = p collections Dictionary.
+private List = p collections List.
+private Map = p collections Map.
 private Method = k Method.
 |) (
 public class IntermediateClassDeclaration = (|

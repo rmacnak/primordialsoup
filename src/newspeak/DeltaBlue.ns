@@ -2,7 +2,7 @@ Newspeak3
 'Benchmarks'
 class DeltaBlue usingPlatform: p = (
 (* One-way constraint solver, originally written in Smalltalk by John Maloney and Mario Wolczko. *)|
-private List = p collections OrderedCollection.
+private List = p collections List.
 
 private required = Strength name: 'required' value: 0.
 private strongPreferred = Strength name: 'strongPreferred' value: 1.

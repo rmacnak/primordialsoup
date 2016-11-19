@@ -23,7 +23,7 @@ Licensed under the Apache License, Version 2.0 (the ''License''); you may not us
 |) (
 class Benchmarking usingPlatform: p = (|
 private Stopwatch = p kernel Stopwatch.
-private List = p collections OrderedCollection.
+private List = p collections List.
 private cachedPlatform = p.
 |) (
 'as yet unclassified'

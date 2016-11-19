@@ -5,7 +5,7 @@ class Splay usingPlatform: p = (
 
 Copyright (c) 2012 Google Inc.
 Copyright (c) 2011, the Dart project authors.  Please see the AUTHORS file for details. All rights reserved. Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.*)|
-OrderedCollection = p collections OrderedCollection.
+List = p collections List.
 	
 kTreeSize = 8000.
 kTreeModifications = 80.
@@ -88,7 +88,7 @@ public at: key <Number> put: value = (
 )
 public exportKeys ^<List[Number]> = (
 	(* Returns a list with all the keys of the tree. *)
-	| result = OrderedCollection new. |
+	| result = List new. |
 	isEmpty ifFalse: [root traverse: [:node | result add: node key]].
 	^result
 )
