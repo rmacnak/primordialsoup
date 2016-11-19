@@ -12,46 +12,6 @@ protected doesNotUnderstand: message = (
 ) : (
 )
 'as yet unclassified'
-public _main: platform args: args = (
-	|
-	Stopwatch = platform kernel Stopwatch.
-	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
-	Snapshotter = platform victoryFuel Snapshotter.
-	namespace = platform collections Dictionary new.
-	manifest = Manifest forNamespace: namespace.
-	s index ::= 1.
-	|
-	
-	s:: Stopwatch new start.
-	[(args at: index) endsWith: '.ns3'] whileTrue:
-		[ | source builder klass |
-		('Compiling ', (args at: index)) out.
-		source:: readFileAsString: (args at: index) using: platform.
-		builder:: ClassDeclarationBuilder fromUnitSource: source.
-		klass:: builder install applyToObject reflectee.
-		namespace at: klass name put: klass.
-		index:: index + 1].
-	('Compiled in ', s elapsedMilliseconds printString, ' ms') out.
-
-
-	[(index + 2) <= args size] whileTrue: 
-		[ | runtimeName appName snapshotName runtime app fuel bytes |	
-		runtimeName:: args at: index.
-		appName:: args at: index + 1.
-		snapshotName:: args at: index + 2.
-		index:: index + 3.
-		('Runtime configuration: ', runtimeName) out.
-		('Application configuration: ', appName) out.
-	
-		runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.	
-		app:: (namespace at: appName) packageUsing: manifest.
-	
-		s:: Stopwatch new start.
-		bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
-		writeBytes: bytes toFileNamed: snapshotName.
-	
-		('Serialized in ', s elapsedMilliseconds printString, ' ms') out].
-)
 public childMain: platform args: args = (
 	|
 	List = platform collections OrderedCollection.
