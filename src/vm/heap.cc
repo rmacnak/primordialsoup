@@ -260,6 +260,8 @@ void Heap::ProcessClassTableStrong() {
 
 
 void Heap::ForwardClassTable() {
+  Object* nil = object_store()->nil_obj();
+
   for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
     Behavior* old_class = static_cast<Behavior*>(class_table_[i]);
     if (!old_class->IsForwardingCorpse()) {
@@ -271,10 +273,14 @@ void Heap::ForwardClassTable() {
     ASSERT(!new_class->IsForwardingCorpse());
 
     ASSERT(old_class->id()->IsSmallInteger());
-    ASSERT(new_class->id()->IsSmallInteger());
+    ASSERT(new_class->id()->IsSmallInteger() ||
+           new_class->id() == nil);
     if (old_class->id() == new_class->id()) {
       class_table_[i] = new_class;
     } else {
+      // new_class is not registered or registered with a different cid.
+      // Instances of old_class (if any) have already had their headers updated
+      // to the new cid, so release the old_class's cid.
 #if WEAK_CLASS_TABLE
       class_table_[i] = SmallInteger::New(class_table_free_);
       class_table_free_ = i;
