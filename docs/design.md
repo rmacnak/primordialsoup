@@ -44,7 +44,7 @@ Double parsing and printing uses the V8-derived [double-conversion library](http
 
 ## Isolates
 
-Primordial Soup allows creating multiple "isolates" in the same process. Isolates have separates heaps and communicate via message passing (byte arrays). Each isolate has its own thread of control and can run concurrently.
+Primordial Soup allows creating multiple "isolates" in the same process. Isolates have separate heaps and communicate via message passing (byte arrays). Each isolate has its own thread of control and can run concurrently with other isolates.
 
 Each isolate may contain multiple actors.
 
@@ -60,13 +60,13 @@ Also unlike Smalltalk images, these snapshots are not used to provide process pe
 
 A snapshot used to start the VM contains a complete graph. Its root object is an array containing all the objects known to the VM, including the classes with special formats, the #doesNotUnderstand:/#cannotReturn:/etc selectors, and the scheduler object. This array is known as the object store. (Its equivalent object in Squeak Smalltalk is known as the specialObjectsArray). The object store and the current activation record are the GC roots.
 
-A message between isolates uses the same snapshot format, but it contains a partial graph. A set of common objects known to the sender and receiver is implicitly used as the first nodes. The common objects are mostly the classes of literals and classes for the representation of compiled code.
+Messages between isolates use the same snapshot format, but they contain partial graphs. A set of common objects known to the sender and receiver is implicitly used as the first nodes. The common objects are mostly the classes of literals and classes for the representation of compiled code.
 
 ## Bytecode
 
 Primordial Soup uses the Newsqueak V4 bytecode of the [Cog VM](http://www.mirandabanda.org/cogblog/about-cog/), but only the subset required by Newspeak. A description of this bytecode set may be found in the class comment of EncoderForNewsqueakV4 in a [VMMaker](http://www.mirandabanda.org/cogblog/build-image/) or [Newspeak-on-Squeak](http://www.newspeaklanguage.org/downloads) image.
 
-Using this bytecode sets allows us to take advantage of the exiting Newspeak-on-Squeak bytecode compiler. Eventually we may use a modified bytecode set to make use of the opcode space occupied by Smalltalk-only bytecodes and to add VM-level support for eventual sends.
+Using this bytecode set allows us to take advantage of the existing Newspeak-on-Squeak bytecode compiler. Eventually we may use a modified bytecode set to make use of the opcode space occupied by Smalltalk-only bytecodes and to add VM-level support for eventual sends.
 
 ## Bootstraping
 

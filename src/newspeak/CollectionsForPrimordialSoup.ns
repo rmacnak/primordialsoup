@@ -336,13 +336,13 @@ public peek ^<Boolean> = (
 public class Set initialCapacity: n = Collection (|
 protected size_ ::= 0.
 protected table ::= Array new: n.
-|) (
+|1 to: n do: [:index | table at: index put: table]) (
 'as yet unclassified'
 public add: element <E> ^<E> = (
 	| index entry |
 	index:: scanFor: element.
 	entry:: table at: index.
-	nil = entry ifTrue: [self atNewIndex: index put: element].
+	table = entry ifTrue: [self atNewIndex: index put: element].
 	^element
 )
 public addAll: collection = (
@@ -354,24 +354,25 @@ atNewIndex: index put: entry = (
 	(table size * 3) < (size_ * 4) ifTrue: [grow].
 )
 public do: action <[:E]> = (
-	table do: [:entry | nil = entry ifFalse: [action value: entry]].
+	table do: [:entry | table = entry ifFalse: [action value: entry]].
 )
 fixCollisionsAfter: start <Integer> = (
 	| index ::= start. element |
 	[index:: index \\ table size + 1.
 	 element:: table at: index.
-	 nil = element] whileFalse: 
+	 table = element] whileFalse: 
 		[ | newIndex = self scanFor: element. |
 		 newIndex = index ifFalse: 
 			[table at: newIndex put: element.
-			 table at: index put: nil]].
+			 table at: index put: table]].
 )
 grow = (
 	| oldTable = table. |
 	table:: Array new: oldTable size << 1.
+	1 to: table size do: [:index | table at: index put: table].
 	1 to: oldTable size do: [:index |
 		| entry = oldTable at: index. |
-		nil = entry ifFalse: 
+		oldTable = entry ifFalse: 
 			[table at: (scanForEmptySlotFor: entry) put: entry]]
 )
 public include: element <E> ^<E> = (
@@ -381,13 +382,13 @@ public include: element <E> ifNew: onNew ^<E> = (
 	| index entry |
 	index:: scanFor: element.
 	entry:: table at: index.
-	nil = entry ifTrue:
+	table = entry ifTrue:
 		[self atNewIndex: index put: element.
 		 onNew value].
 	^element
 )
 public includes: element <E> ^<Boolean> = (
-	^(nil = (table at: (scanFor: element))) not
+	^(table = (table at: (scanFor: element))) not
 )
 public isEmpty ^<Boolean> = (
 	^0 = size_
@@ -402,8 +403,8 @@ public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
 	| index entry |
 	index:: scanFor: element.
 	entry:: table at: index.
-	nil = entry ifTrue: [^onAbsent value].
-	table at: index put: nil.
+	table = entry ifTrue: [^onAbsent value].
+	table at: index put: table.
 	fixCollisionsAfter: index.
 	size_:: size_ - 1.
 	^element
@@ -412,9 +413,12 @@ public removeAll: collection <Collection[E]> = (
 	collection do: [:element | self remove: element].
 )
 public removeAllSuchThat: predicate <[:E | Boolean]> = (
-	| oldTable = table copy. |
-	oldTable do: [:entry | 
-		nil = entry ifFalse: 
+	|
+	originalTable = table.
+	copyTable = table copy. 
+	|
+	copyTable do: [:entry | 
+		originalTable = entry ifFalse: 
 			[(predicate value: entry) ifTrue: 
 				[self remove: entry]]].
 )
@@ -423,7 +427,7 @@ scanFor: element <K> ^<Integer> = (
 	index:: start:: element hash \\ table size + 1.
 	[ 
 		| entry |
-		(nil = (entry:: table at: index) or: [ element = entry ])
+		(table = (entry:: table at: index) or: [ element = entry ])
 			ifTrue: [ ^index ].
 		(index:: index \\ table size + 1) = start ] whileFalse.
 	self errorNoFreeSpace
@@ -432,7 +436,7 @@ scanForEmptySlotFor: key = (
 	| index start |
 	index:: start:: key hash \\ table size + 1.
 	[ 
-		nil = (table at: index) ifTrue: [ ^index ].
+		table = (table at: index) ifTrue: [ ^index ].
 		(index:: index \\ table size + 1) = start] whileFalse.
 	self errorNoFreeSpace
 )

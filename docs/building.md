@@ -26,7 +26,7 @@ The VM and snapshots are built with
 
 ## Testing
 
-After building, the test suite and some benchmarks and be run with
+After building, the test suite and some benchmarks can be run with
 
 ```
 ./test
