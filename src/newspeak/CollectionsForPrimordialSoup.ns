@@ -134,6 +134,18 @@ public removeLast ^<E> = (
 public size ^<Integer> = (
 	^size_
 )
+public sort: comparison <[:E :E | Boolean]> = (
+	(* :todo: Merge or quick sort. *)
+	1 to: size do: 
+		[:i | | min ::= i. temp |
+		i + 1 to: size do: 
+			[:j | 
+			(comparison value: (self at: j) value: (self at: min)) 
+				ifTrue: [min:: j]].
+		temp:: self at: i.
+		self at: i put: (self at: min).
+		self at: min put: temp].
+)
 ) : (
 'as yet unclassified'
 public new = (

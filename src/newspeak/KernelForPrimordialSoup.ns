@@ -1705,10 +1705,6 @@ public copyWithSize: newSize <Integer> ^<Array[E]> = (
 public do: action <[:E]> = (
 	1 to: self size do: [:index | action value: (self at: index)].
 )
-public elementsForwardIdentityTo: otherArray = (
-	(* :literalmessage: primitive: 98 *)
-	halt
-)
 public first ^<E> = (
 	^self at: 1
 )
@@ -1731,6 +1727,18 @@ public last ^<E> = (
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 41 *)
 	primitiveFailed
+)
+public sort: comparison <[:E :E | Boolean]> = (
+	(* :todo: Merge or quick sort. *)
+	1 to: size do: 
+		[:i | | min ::= i. temp |
+		i + 1 to: size do: 
+			[:j | 
+			(comparison value: (self at: j) value: (self at: min)) 
+				ifTrue: [min:: j]].
+		temp:: self at: i.
+		self at: i put: (self at: min).
+		self at: min put: temp].
 )
 ) : (
 'as yet unclassified'
