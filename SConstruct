@@ -7,7 +7,7 @@ def BuildVM(cxx, arch, target_os, debug):
   if target_os == 'windows' and arch == 'ia32':
     env = Environment(TARGET_ARCH='x86')
   elif target_os == 'windows' and arch == 'x64':
-    env = Environment(TARGET_ARCH='x86_64')    
+    env = Environment(TARGET_ARCH='x86_64')
   else:
     env = Environment()
     env['CXX'] = cxx
@@ -28,7 +28,7 @@ def BuildVM(cxx, arch, target_os, debug):
 
   if target_os == 'android':
     configname += 'Android'
-    
+
   if arch == 'ia32':
     if target_os == 'windows':
       env['LINKFLAGS'] += ['/MACHINE:X86']
@@ -65,7 +65,7 @@ def BuildVM(cxx, arch, target_os, debug):
     configname += 'RISCV64'
 
   outdir = os.path.join('out', configname)
-  
+
   if target_os == "windows":
     env['CCFLAGS'] += [
       '/O2',
@@ -97,7 +97,7 @@ def BuildVM(cxx, arch, target_os, debug):
       '-fstack-protector',
       '-fpic',
       '-D_FORTIFY_SOURCE=2',
-    ]    
+    ]
 
   if target_os == 'macos':
     env['LINKFLAGS'] += [
@@ -201,7 +201,7 @@ def BuildSnapshots(outdir, host_vm):
   compilersnapshot = os.path.join('snapshots', 'compiler.vfuel')
   snapshots = []
   cmd = host_vm + ' ' + compilersnapshot + ' $SOURCES'
-  
+
   helloout = os.path.join(outdir, 'HelloApp.vfuel')
   snapshots += [helloout]
   cmd += ' RuntimeForPrimordialSoup HelloApp ' + helloout
@@ -241,7 +241,7 @@ def Main():
     host_cxx = 'clang++'
   elif platform.system() == 'Windows':
     host_cxx = 'cl'
-  host_cxx = ARGUMENTS.get('cxx_host', host_cxx)    
+  host_cxx = ARGUMENTS.get('cxx_host', host_cxx)
 
   target_arch = ARGUMENTS.get('arch', None)
   host_arch = None

@@ -916,11 +916,6 @@ public _primaryFactorySelector <Symbol>
 public _headerSource <String>
 |) (
 'as yet unclassified'
-private addApplication: newClass = (
-	nil = _applications
-		ifTrue: [_applications:: (WeakArray new: 1) at: 1 put: newClass; yourself]
-		ifFalse: [_applications:: _applications copyWith: newClass].
-)
 public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Object> = (
 	(* This message is sent by nested class accessors. *)
 
@@ -941,9 +936,9 @@ public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Ob
 	nameOf: newClass put: name.
 	
 	thisClassOf: newMetaclass put: newClass.
-	(* TODO: 
-	superclass addSubclass: newClass. *)
-	self addApplication: newClass.
+
+	_applications:: toWeakSet: _applications add: newClass.
+	subclassesOf: superclass put: (toWeakSet: (subclassesOf: superclass) add: newClass).
 		
 	^newClass
 )
@@ -1006,6 +1001,19 @@ public nestedMixins = (
 )
 public printString ^<String> = (
 	^_name, ' mixin'
+)
+private toWeakSet: set add: element = (
+	| newSet |
+	nil = set ifTrue: 
+		[newSet:: WeakArray new: 2.
+		newSet at: 1 put: element.
+		^newSet].
+	1 to: set size do:
+		[:index |
+		nil = (set at: index) ifTrue: 
+			[set at: index put: element. 
+			 ^set]].
+	^set copyWith: element
 )
 public value = (
 	(* bogus: polymorphic with method class association in Squeak. *)
@@ -1522,7 +1530,7 @@ public at: index <Integer> put: value <E> ^<E> = (
 	(* :literalmessage: primitive: 44 *)
 	^(ArgumentError value: index) signal
 )
-public copyWith: newElement <E> ^<Array[E]> = (
+public copyWith: newElement <E> ^<WeakArray[E]> = (
 	| 
 	newArray = WeakArray new: 1 + self size. 
 	|
@@ -2040,6 +2048,12 @@ private slotOf: object at: index = (
 private slotOf: object at: index put: value = (
 	(* :literalmessage: primitive: 36 *)
 	primitiveFailed: 'Mirror slotOf:at:put:'.
+)
+private subclassesOf: klass = (
+	^self slotOf: klass at: 8
+)
+private subclassesOf: klass put: value = (
+	^self slotOf: klass at: 8 put: value
 )
 private superclassOf: behavior = (
 	^self slotOf: behavior at: 1

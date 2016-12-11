@@ -111,7 +111,6 @@ public parentMain: platform args: args = (
 		[ | klasses |
 		klasses:: receivePort receive.
 		klasses do: [:klass | 
-		('Got ', klass name) out.
 		namespace at: klass name put: klass]].
 	('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out.
 
@@ -134,14 +133,14 @@ public parentMain: platform args: args = (
 	
 		('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out].
 )
-private readFileAsBytes: n = (
+private readFileAsBytes: filename = (
 	(* :literalmessage: primitive: 130 *)
 	halt.
 )
-private readFileAsString: n using: platform = (
-	^decodeUtf8: (readFileAsBytes: n) using: platform
+private readFileAsString: filename using: platform = (
+	^decodeUtf8: (readFileAsBytes: filename) using: platform
 )
-private writeBytes: b toFileNamed: n = (
+private writeBytes: bytes toFileNamed: filename = (
 	(* :literalmessage: primitive: 128 *)
 	halt.
 )

@@ -121,15 +121,15 @@ private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<
 	| oldCls newCls oldMixin newMixin oldSlots newSlots |
 	oldCls:: oldClass.
 	newCls:: newClass.
-	[nil = oldClass] whileFalse:
+	[nil = oldCls] whileFalse:
 		[oldMixin:: mixinOf: oldCls.
 		 newMixin:: mixinOf: newCls.
-		 oldMixin = newMixin ifTrue: [^false].
-		 oldSlots:: oldMixin _slots.
-		 newSlots:: newMixin _slots.
-		 oldSlots size = newSlots size ifFalse: [^true].
-		 1 to: oldSlots size do: 
-			[:index | ((oldSlots at: index) at: 1) = ((newSlots at: index) at: 1) ifFalse: [^true]].
+		 oldMixin = newMixin ifFalse:
+			[oldSlots:: oldMixin _slots.
+			 newSlots:: newMixin _slots.
+			 oldSlots size = newSlots size ifFalse: [^true].
+			 1 to: oldSlots size do: 
+				[:index | ((oldSlots at: index) at: 1) = ((newSlots at: index) at: 1) ifFalse: [^true]]].
 		 oldCls:: superclassOf: oldCls.
 		 newCls:: superclassOf: newCls].
 	^false
@@ -179,10 +179,9 @@ private sortClass: app <Class> = (
 	classes:: existingClasses at: depth ifAbsentPut: [List new].
 	classes add: app.
 	
-	(* :todo:
 	subclasses:: subclassesOf: app.
 	nil = subclasses ifFalse: 
-		[subclasses do: [:subclass | sortClass: subclass]]. *)
+		[subclasses do: [:subclass | sortClass: subclass]].
 )
 'private-instances'
 private processInstancesOf: oldClass <Class> = (
@@ -203,7 +202,7 @@ private processInstancesOf: oldClass <Class> = (
 	(* 'remapping with ' out.
 	(((allInstVarNamesOf: oldClass) inject: '' into: [:a :b | a, ' ', b])
 	, ' -> ',
-	((allInstVarNamesOf: newClass) inject: '' into: [:a :b | a, ' ', b]))out.
+	((allInstVarNamesOf: newClass) inject: '' into: [:a :b | a, ' ', b])) out.
 	1 to: remapIndices size do: [:newIndex | 
 		(newIndex printString, '<-', (remapIndices at: newIndex) printString) out]. *)
 
@@ -1446,6 +1445,9 @@ private slotOf: object at: index = (
 private slotOf: object at: index put: value = (
 	(* :literalmessage: primitive: 36 *)
 	primitiveFailed: 'Mirror slotOf:at:put:'.
+)
+private subclassesOf: klass = (
+	^self slotOf: klass at: 8
 )
 private superclassOf: behavior = (
 	^self slotOf: behavior at: 1
