@@ -37,7 +37,6 @@ class AlternatingParser either: p or: q = CombinatorialParser (|
 p <CombinatorialParser> ::= p.
 q <CombinatorialParser> ::= q.
 |) (
-'as yet unclassified'
 public compress = (
 	compressed ifTrue: [^self].
 	compressed: true.
@@ -55,7 +54,6 @@ class CharacterRangeParser between: c1 and: c2 = CombinatorialParser (|
 lowerBound <Character> = (c1 runeAt: 1).
 upperBound <Character> = (c2 runeAt: 1).
 |) (
-'as yet unclassified'
 public compress = (
 	^self
 )
@@ -71,7 +69,6 @@ public parseWithContext: ctxt ifError: onError = (
 class CombinatorialParser = (|
 compressed <Boolean> ::= false.
 |) (
-'as yet unclassified'
 public , p = (
 	^SequencingParser subparsers: {self. p}
 )
@@ -99,7 +96,6 @@ public | q = (
 ) : (
 )
 class EOIParser = CombinatorialParser () (
-'as yet unclassified'
 public compress = (
 	^self
 )
@@ -112,7 +108,6 @@ public parseWithContext: ctxt ifError: onError = (
 class ForwardReferenceParser = CombinatorialParser (|
 forwardee <CombinatorialParser>
 |) (
-'as yet unclassified'
 public bind: p = (
 	forwardee isNil ifFalse: [Error signal: 'Forward reference parser already bound'].
 	forwardee:: p.
@@ -129,7 +124,6 @@ class ParserContext over: s = (|
 	content <String> = s.
 	public position <Integer> ::= 0.
 |) (
-'as yet unclassified'
 public atEnd = (
 	^position >= content size
 )
@@ -143,7 +137,6 @@ public next = (
 class SequencingParser subparsers: ps = CombinatorialParser (|
 	subparsers <List[CombinatorialParser]> ::= ps.
 |) (
-'as yet unclassified'
 public , p = (
 	^SequencingParser subparsers: (subparsers copyWith: p)
 )
@@ -183,17 +176,16 @@ e2 bind: (number | parenExp).
 parenExp bind: (lparen, exp, rparen wrapper: [:lhs :e :rhs | e]).
 number bind: (digit wrapper: [:d | d - 48]).
 	
-plus bind: (char: $+).
-times bind: (char: $*).
-digit bind: (charBetween: $0 and: $9).
-lparen bind: (char: $().
-rparen bind: (char: $))) (
+plus bind: (char: "+").
+times bind: (char: "*").
+digit bind: (charBetween: "0" and: "9").
+lparen bind: (char: "(").
+rparen bind: (char: ")")) (
 ) : (
 )
 class StarParser repeat: p = CombinatorialParser (|
 subparser <CombinatorialParser> ::= p.
 |) (
-'as yet unclassified'
 public compress = (
 	compressed ifTrue: [^self].
 	compressed: true.
@@ -217,7 +209,6 @@ class WrappingParser wrap: p with: t = CombinatorialParser (|
 subparser <CombintorialParser> ::= p.
 transform <Block> = t.
 |) (
-'as yet unclassified'
 public compress = (
 	compressed ifTrue: [^self].
 	compressed: true.
@@ -229,7 +220,6 @@ public parseWithContext: ctxt ifError: onError = (
 )
 ) : (
 )
-'as yet unclassified'
 public bench = (
 	parser parseWithContext: (ParserContext over: theExpression) ifError: [parseFailed].
 )

@@ -21,7 +21,12 @@ numTemps <SmallInteger>
 <temps>
 |
 *)) (
-'accessing'
+private aboutToReturn: result through: firstUnwindActivation = (
+	(* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
+	| home ::= self. |
+	[nil = home closure] whileFalse: [home:: definingActivationOf: home closure].
+	^home return: result
+)
 public bci = (
 	(* :literalmessage: primitive: 57 *)
 	primitiveFailed.
@@ -29,6 +34,10 @@ public bci = (
 public bci: value = (
 	(* :literalmessage: primitive: 58 *)
 	primitiveFailed
+)
+private cannotReturn: value = (
+	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer along the chain of senders. *)
+	^CannotReturn new signal
 )
 public closure = (
 	(* :literalmessage: primitive: 61 *)
@@ -38,51 +47,6 @@ public closure: value = (
 	(* :literalmessage: primitive: 62 *)
 	primitiveFailed
 )
-public method = (
-	(* :literalmessage: primitive: 59 *)
-	primitiveFailed
-)
-public method: value = (
-	(* :literalmessage: primitive: 60 *)
-	primitiveFailed
-)
-public printString ^<String> = (
-	| methodMixin receiverMixin |
-	closure isNil ifFalse: [^'[] in ', (definingActivationOf: closure) printString].
-	methodMixin:: method mixin.
-	receiverMixin:: (mixinOf: (classOf: receiver)).
-	methodMixin = receiverMixin ifTrue: [^receiverMixin _name, ' ', method selector].
-	^receiverMixin _name, '(', methodMixin _name, ') ', method selector.
-)
-public receiver = (
-	(* :literalmessage: primitive: 63 *)
-	primitiveFailed
-)
-public receiver: value = (
-	(* :literalmessage: primitive: 64 *)
-	primitiveFailed
-)
-public sender = (
-	(* :literalmessage: primitive: 55 *)
-	primitiveFailed
-)
-public sender: value = (
-	(* :literalmessage: primitive: 56 *)
-	primitiveFailed
-)
-public tempAt: index = (
-	(* :literalmessage: primitive: 65 *)
-	primitiveFailed
-)
-public tempAt: index put: value = (
-	(* :literalmessage: primitive: 66 *)
-	primitiveFailed
-)
-public tempSize = (
-	(* :literalmessage: primitive: 67 *)
-	primitiveFailed
-)
-'unwind-protect'
 public findNextUnwindContextUpTo: activation = (
 	(* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
 	| ctx |
@@ -110,6 +74,34 @@ public isDead ^<Boolean> = (
 public isUnwindContext ^<Boolean> = (
 	^113 = method primitive
 )
+public method = (
+	(* :literalmessage: primitive: 59 *)
+	primitiveFailed
+)
+public method: value = (
+	(* :literalmessage: primitive: 60 *)
+	primitiveFailed
+)
+private mustBeBoolean: nonBoolean = (
+	(* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
+	^MustBeBoolean new signal
+)
+public printString ^<String> = (
+	| methodMixin receiverMixin |
+	closure isNil ifFalse: [^'[] in ', (definingActivationOf: closure) printString].
+	methodMixin:: method mixin.
+	receiverMixin:: (mixinOf: (classOf: receiver)).
+	methodMixin = receiverMixin ifTrue: [^receiverMixin _name, ' ', method selector].
+	^receiverMixin _name, '(', methodMixin _name, ') ', method selector.
+)
+public receiver = (
+	(* :literalmessage: primitive: 63 *)
+	primitiveFailed
+)
+public receiver: value = (
+	(* :literalmessage: primitive: 64 *)
+	primitiveFailed
+)
 public resume: value = (
 	| unwindActivation unwindBlock |
 	self isDead ifTrue: [self cannotReturn: value to: self].
@@ -129,6 +121,26 @@ public return: value = (
 	nil = sender ifTrue: [^self cannotReturn: value].
 	^sender resume: value
 )
+public sender = (
+	(* :literalmessage: primitive: 55 *)
+	primitiveFailed
+)
+public sender: value = (
+	(* :literalmessage: primitive: 56 *)
+	primitiveFailed
+)
+public tempAt: index = (
+	(* :literalmessage: primitive: 65 *)
+	primitiveFailed
+)
+public tempAt: index put: value = (
+	(* :literalmessage: primitive: 66 *)
+	primitiveFailed
+)
+public tempSize = (
+	(* :literalmessage: primitive: 67 *)
+	primitiveFailed
+)
 public terminate = (
 	(* Make myself unresumable. *)
 	sender:: nil.
@@ -146,23 +158,7 @@ public terminateTo: previousContext = (
 			currentContext:: sendingContext]].
 	sender:: previousContext
 )
-'vm entry'
-private aboutToReturn: result through: firstUnwindActivation = (
-	(* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
-	| home ::= self. |
-	[nil = home closure] whileFalse: [home:: definingActivationOf: home closure].
-	^home return: result
-)
-private cannotReturn: value = (
-	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer along the chain of senders. *)
-	^CannotReturn new signal
-)
-private mustBeBoolean: nonBoolean = (
-	(* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
-	^MustBeBoolean new signal
-)
 ) : (
-'as yet unclassified'
 public new = (
 	(* :literalmessage: primitive: 68 *)
 	primitiveFailed: 'Activation class new'
@@ -171,12 +167,10 @@ public new = (
 class ArgumentError value: v = Exception (|
 	argument = v.
 |) (
-'as yet unclassified'
 public printString = (
 	^'ArgumentError: ', argument printString
 )
 ) : (
-'as yet unclassified'
 public new = (
 	^self value: nil
 )
@@ -189,7 +183,6 @@ private mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
 private classIndex <SmallInteger> (* Must be slot 5, known to the VM. *)
 private format <SmallInteger> (* Must be slot 6, known to the VM. *)
 |) (
-'as yet unclassified'
 public isBehavior = (
 	^true
 )
@@ -203,7 +196,6 @@ public class Boolean = () (
 ) : (
 )
 public class ByteArray _cannotInstantiate = Collection () (
-'as yet unclassified'
 public at: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 47 *)
 	^(ArgumentError value: index) signal
@@ -235,14 +227,12 @@ public size ^<Integer> = (
 	primitiveFailed: 'ByteArray size'.
 )
 ) : (
-'as yet unclassified'
 public new: size <Integer> ^<ByteArray> = (
 	(* :literalmessage: primitive: 46 *)
 	^(ArgumentError value: size) signal
 )
 )
 public class ByteString _cannotInstantiate = () (
-'as yet unclassified'
 public , other <String> ^<String> = (
 	(* :literalmessage: primitive: 115 *)
 	^(ArgumentError value: other) signal
@@ -316,7 +306,6 @@ public startsWith: other <String> ^<Boolean> = (
 	^(ArgumentError value: other) signal
 )
 ) : (
-'as yet unclassified'
 public fromRune: rune <Integer> ^<String> = (
 	(* :literalmessage: primitive: 123 *)
 	^(ArgumentError value: rune) signal
@@ -337,7 +326,6 @@ public class Class = Behavior (|
 private nameS <Symbol> (* Must be slot 7, known to the VM for debug printing only. *)
 private subclasses <WeakArray>
 |) (
-'as yet unclassified'
 protected basicNew = (
 	(* Sent by the compiler from factory methods. *)
 	(* :literalmessage: primitive: 34 *)
@@ -359,7 +347,6 @@ public _instanceMixin
 public _methods (* Must be slot 2, known to the VM. *)
 public _enclosingMixin (* Must be slot 3, known to the VM. *)
 |) (
-'as yet unclassified'
 public _name = (
 	^_instanceMixin _name, ' class'
 )
@@ -369,7 +356,6 @@ public isMeta = (
 ) : (
 )
 public class Closure _cannotInstantiate = () (
-'as yet unclassified'
 public asContext = (
 	(* :bogus: *)
 	| a = Activation new. |
@@ -476,7 +462,6 @@ public whileTrue: action = (
 ) : (
 )
 public class Collection = () (
-'as yet unclassified'
 public allSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
 	self do: [:each | (predicate value: each) ifFalse: [^false]].
 	^true
@@ -574,9 +559,8 @@ public finalizer (* Must be slot 3, known to the VM. *)
 public class Exception = (|
 private signalActivation <Activation>
 private handlerActivation <Activation>
-public messageText
+public messageText (* squeak compatibility for Minitest *)
 |) (
-'as yet unclassified'
 private invokeNextHandler = (
 	| handler handlerResult act |
 	
@@ -640,17 +624,16 @@ public signal = (
 	UNREACHABLE.
 )
 public signal: message = (
+	(* squeak compatibility for Minitest *)
 	messageText:: message.
 	^self signal
 )
 ) : (
-'as yet unclassified'
 public signal: message = (
 	^(self new messageText: message) signal	
 )
 )
 public class False _cannotInstantiate = Boolean () (
-'as yet unclassified'
 public & alternative <Boolean> ^<Boolean> = (
 	(* Evaluating conjunction. *)
 	^false
@@ -691,7 +674,6 @@ public | alternative <Boolean> ^<Boolean> = (
 ) : (
 )
 public class Float _cannotInstantiate = Number () (
-'as yet unclassified'
 public addFromFraction: left = (
 	^left asFloat + self
 )
@@ -702,8 +684,16 @@ public ceiling ^<Float> = (
 	(* :literalmessage: primitive: 22 *)
 	primitiveFailed: 'Number ceiling'.
 )
+public cos ^<Float> = (
+	(* :literalmessage: primitive: 24 *)
+	primitiveFailed: 'Number cos'.
+)
 public divideFromFraction: left = (
 	^left asFloat / self
+)
+public exp ^<Float> = (
+	(* :literalmessage: primitive: 30 *)
+	primitiveFailed: 'Number exp'.
 )
 public floor ^<Float> = (
 	(* :literalmessage: primitive: 21 *)
@@ -724,25 +714,6 @@ public isInfinite ^<Boolean> = (
 public isNaN ^<Boolean> = (
 	^(self = self) not
 )
-public multiplyFromFraction: left = (
-	^left asFloat * self
-)
-public rounded ^<Float> = (
-	(* :literalmessage: primitive: 125 *)
-	primitiveFailed: 'Number rounded'.
-)
-public subtractFromFraction: left = (
-	^left asFloat - self
-)
-'functions'
-public cos ^<Float> = (
-	(* :literalmessage: primitive: 24 *)
-	primitiveFailed: 'Number cos'.
-)
-public exp ^<Float> = (
-	(* :literalmessage: primitive: 30 *)
-	primitiveFailed: 'Number exp'.
-)
 public ln ^<Float> = (
 	(* :literalmessage: primitive: 31 *)
 	primitiveFailed: 'Number ln'.
@@ -750,6 +721,13 @@ public ln ^<Float> = (
 public log ^<Float> = (
 	(* :literalmessage: primitive: 32 *)
 	primitiveFailed: 'Number log'.	
+)
+public multiplyFromFraction: left = (
+	^left asFloat * self
+)
+public rounded ^<Float> = (
+	(* :literalmessage: primitive: 125 *)
+	primitiveFailed: 'Number rounded'.
 )
 public sin ^<Float> = (
 	(* :literalmessage: primitive: 23 *)
@@ -759,12 +737,14 @@ public sqrt ^<Float> = (
 	(* :literalmessage: primitive: 33 *)
 	primitiveFailed: 'Number sqrt'.
 )
+public subtractFromFraction: left = (
+	^left asFloat - self
+)
 public tan ^<Float> = (
 	(* :literalmessage: primitive: 25 *)
 	primitiveFailed: 'Number tan'.
 )
 ) : (
-'as yet unclassified'
 public parse: string <String> ^<Float> = (
 	(* :literalmessage: primitive: 132 *)
 	^(ArgumentError value: string) signal
@@ -774,7 +754,6 @@ public class Fraction reducedNumerator: num denominator: denom = Number (|
 public numerator <Integer> = num.
 public denominator <Integer> = denom.
 |) (
-'as yet unclassified'
 public * other <Number> ^<Number> = (
 	other isFraction ifFalse: [^other multiplyFromFraction: self].
 	^Fraction 
@@ -885,7 +864,6 @@ public truncated ^<Integer> = (
 	^numerator quo: denominator
 )
 ) : (
-'as yet unclassified'
 public numerator: numerator <Integer> denominator: denominator <Integer> ^<Fraction> = (
 	(* Invariant: instances of Fraction must always be in reduced form. *)
 	| gcd numer denom |
@@ -915,7 +893,6 @@ public _accessModifier <Symbol>
 public _primaryFactorySelector <Symbol>
 public _headerSource <String>
 |) (
-'as yet unclassified'
 public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Object> = (
 	(* This message is sent by nested class accessors. *)
 
@@ -1022,7 +999,6 @@ public value = (
 ) : (
 )
 class Integer = Number () (
-'as yet unclassified'
 public / other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 4 *)
 	other isInteger ifFalse: [^other divideFromNumber: self].
@@ -1105,7 +1081,6 @@ public | other <Integer> ^<Integer> = (
 	^(ArgumentError value: other) signal
 )
 ) : (
-'as yet unclassified'
 public parse: string <String> ^<Integer> = (
 	fatal: 'Integer class parse:'
 )
@@ -1115,7 +1090,6 @@ protected start <E extends Number> = start_.
 protected stop <E extends Number> = stop_.
 protected step <E extends Number> = step_.
 |) (
-'as yet unclassified'
 public first ^<E> = (
 	^self start
 )
@@ -1131,7 +1105,6 @@ public class Message selector: s arguments: a = (|
 public selector <Symbol> = s.
 public arguments <Array[Object]> = a.
 |) (
-'as yet unclassified'
 public sendEventualTo: receiver = (
 	halt.
 )
@@ -1145,9 +1118,8 @@ public class MessageNotUnderstood receiver: r message: m = Exception (|
 public receiver = r.
 public message = m.
 |) (
-'as yet unclassified'
 public messageText = (
-	(* squeak compatibility *)
+	(* squeak compatibility for Minitest *)
 	^self printString
 )
 public printString ^<String> = (
@@ -1158,7 +1130,6 @@ public printString ^<String> = (
 public class Metaclass = Behavior (|
 private thisClass <Class>
 |) (
-'as yet unclassified'
 public name = (
 	^thisClass name, ' class'
 )
@@ -1175,7 +1146,6 @@ public mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
 public selector <Symbol> (* Must be slot 5, known to the VM. *)
 public source <String>
 |) (
-'as yet unclassified'
 public accessModifier ^<Symbol> = (
 	| ac = header >> 28. |
 	0 = ac ifTrue: [^#public].
@@ -1196,7 +1166,6 @@ public primitive ^<Integer> = (
 	^(header >> 16) bitAnd: 1023
 )
 ) : (
-'as yet unclassified'
 public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
 	| ami |
 	#public = am ifTrue: [ami:: 0].
@@ -1237,112 +1206,6 @@ class MustBeBoolean = Exception () (
 ) : (
 )
 class Number = () (
-'as yet unclassified'
-public abs = (
-	self < 0 ifTrue: [^self negated].
-	^self
-)
-public asFloat = (
-	(* :literalmessage: primitive: 15 *)
-	primitiveFailed: 'Number asFloat'.
-)
-public asInteger = (
-	(* :literalmessage: primitive: 14 *)
-	primitiveFailed: 'Number asInteger'.	
-)
-public asString ^<String> = (
-	(* :literalmessage: primitive: 111 *)
-	primitiveFailed: 'Number asString'.	
-)
-public negated ^<Number> = (
-	^0 - self
-)
-public printString ^<String> = (
-	^self asString
-)
-public raisedTo: other = (
-	fatal: 'Number raisedTo:'
-)
-'comparison'
-public < other = (
-	(* :literalmessage: primitive: 10 *)
-	other isFraction ifTrue: [^other >= self].
-	^(ArgumentError value: other) signal
-)
-public <= other = (
-	(* :literalmessage: primitive: 12 *)
-	other isFraction ifTrue: [^other > self].
-	^(ArgumentError value: other) signal
-)
-public = other = (
-	(* :literalmessage: primitive: 9 *)
-	^(ArgumentError value: other) signal
-)
-public > other = (
-	(* :literalmessage: primitive: 11 *)
-	other isFraction ifTrue: [^other <= self].
-	^(ArgumentError value: other) signal
-)
-public >= other = (
-	(* :literalmessage: primitive: 13 *)
-	other isFraction ifTrue: [^other < self].
-	^(ArgumentError value: other) signal
-)
-public between: min <Number> and: max <Number> ^<Boolean> = (
-	^self <= max and: [self >= min]
-)
-public max: other <Number> ^<Number> = (
-	^self > other ifTrue: [self] ifFalse: [other]
-)
-public min: other <Number> ^<Number> = (
-	^self < other ifTrue: [self] ifFalse: [other]
-)
-'functions'
-public cos ^<Float> = (
-	^self asFloat cos
-)
-public exp ^<Float> = (
-	(*Answer e raised to the power of the receiver. *)
-	^self asFloat exp
-)
-public ln ^<Float> = (
-	(* Answer the natural logarithm of the receiver. *)
-	^self asFloat ln
-)
-public log ^<Float> = (
-	(* Answer the common logarithm of the receiver. *)
-	^self asFloat log
-)
-public sin ^<Float> = (
-	^self asFloat sin
-)
-public sqrt ^<Float> = (
-	^self asFloat sqrt
-)
-public tan ^<Float> = (
-	^self asFloat tan
-)
-'intervals'
-public to: stop = (
-	^Interval from: self to: stop by: 1
-)
-public to: stop by: step = (
-	^Interval from: self to: stop by: step
-)
-'iteration'
-public to: stop by: step do: action = (
-	| current ::= self. |
-	[current <= stop] whileTrue: [action value. current:: step + current].
-
-	^nil (* To match the inlined version *)
-)
-public to: stop do: action = (
-	| current ::= self. |
-	[current <= stop] whileTrue: [action value. current:: 1 + current].
-
-	^nil (* To match the inlined version *)
-)
-'operations'
 public * other <Number> ^<Number> = (
 	(* Answer the receiver multiplied by the argument. *)
 	(* :literalmessage: primitive: 3 *)
@@ -1369,22 +1232,61 @@ public // other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 5 *)
 	^(ArgumentError value: other) signal
 )
+public < other = (
+	(* :literalmessage: primitive: 10 *)
+	other isFraction ifTrue: [^other >= self].
+	^(ArgumentError value: other) signal
+)
+public <= other = (
+	(* :literalmessage: primitive: 12 *)
+	other isFraction ifTrue: [^other > self].
+	^(ArgumentError value: other) signal
+)
+public = other = (
+	(* :literalmessage: primitive: 9 *)
+	^(ArgumentError value: other) signal
+)
+public > other = (
+	(* :literalmessage: primitive: 11 *)
+	other isFraction ifTrue: [^other <= self].
+	^(ArgumentError value: other) signal
+)
+public >= other = (
+	(* :literalmessage: primitive: 13 *)
+	other isFraction ifTrue: [^other < self].
+	^(ArgumentError value: other) signal
+)
 public \\ other <Number> ^<Number> = (
 	(*Answer the remainder of division rounded to the nearest integer toward negative inifinity.  The quoitent of this division is given by // *)
 	(* :literalmessage: primitive: 6 *)
 	^(ArgumentError value: other) signal
 )
-public quo: other = (
-	(* Answer the receiver divided by the argument, rounded to nearest integer toward zero. The remainder of this division is given by rem: *)
-	(* :literalmessage: primitive: 7 *)
-	^(ArgumentError value: other) signal
+public abs = (
+	self < 0 ifTrue: [^self negated].
+	^self
 )
-public rem: other = (
-	(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
-	(* :literalmessage: primitive: 8 *)
-	^(ArgumentError value: other) signal
+public asFloat = (
+	(* :literalmessage: primitive: 15 *)
+	primitiveFailed: 'Number asFloat'.
 )
-'testing'
+public asInteger = (
+	(* :literalmessage: primitive: 14 *)
+	primitiveFailed: 'Number asInteger'.	
+)
+public asString ^<String> = (
+	(* :literalmessage: primitive: 111 *)
+	primitiveFailed: 'Number asString'.	
+)
+public between: min <Number> and: max <Number> ^<Boolean> = (
+	^self <= max and: [self >= min]
+)
+public cos ^<Float> = (
+	^self asFloat cos
+)
+public exp ^<Float> = (
+	(*Answer e raised to the power of the receiver. *)
+	^self asFloat exp
+)
 public isFloat ^<Boolean> = (
 	^false
 )
@@ -1394,15 +1296,73 @@ public isInteger ^<Boolean> = (
 public isNumber ^<Boolean> = (
 	^true
 )
+public ln ^<Float> = (
+	(* Answer the natural logarithm of the receiver. *)
+	^self asFloat ln
+)
+public log ^<Float> = (
+	(* Answer the common logarithm of the receiver. *)
+	^self asFloat log
+)
+public max: other <Number> ^<Number> = (
+	^self > other ifTrue: [self] ifFalse: [other]
+)
+public min: other <Number> ^<Number> = (
+	^self < other ifTrue: [self] ifFalse: [other]
+)
+public negated ^<Number> = (
+	^0 - self
+)
+public printString ^<String> = (
+	^self asString
+)
+public quo: other = (
+	(* Answer the receiver divided by the argument, rounded to nearest integer toward zero. The remainder of this division is given by rem: *)
+	(* :literalmessage: primitive: 7 *)
+	^(ArgumentError value: other) signal
+)
+public raisedTo: other = (
+	fatal: 'Number raisedTo:'
+)
+public rem: other = (
+	(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
+	(* :literalmessage: primitive: 8 *)
+	^(ArgumentError value: other) signal
+)
+public sin ^<Float> = (
+	^self asFloat sin
+)
+public sqrt ^<Float> = (
+	^self asFloat sqrt
+)
+public tan ^<Float> = (
+	^self asFloat tan
+)
+public to: stop = (
+	^Interval from: self to: stop by: 1
+)
+public to: stop by: step = (
+	^Interval from: self to: stop by: step
+)
+public to: stop by: step do: action = (
+	| current ::= self. |
+	[current <= stop] whileTrue: [action value. current:: step + current].
+
+	^nil (* To match the inlined version *)
+)
+public to: stop do: action = (
+	| current ::= self. |
+	[current <= stop] whileTrue: [action value. current:: 1 + current].
+
+	^nil (* To match the inlined version *)
+)
 ) : (
-'as yet unclassified'
 public parse: string <String> ^<Number> = (
 	fatal: 'Number class parse:'
 )
 )
 public class Proxy = (
 (* Proxy overrides all the public members of Object with protected ones. One can implement a total proxy by subclassing and implementing only #doesNotUnderstand:. *)) (
-'as yet unclassified'
 protected = other = (
 	^super = other
 )
@@ -1430,7 +1390,6 @@ public class Stopwatch = (|
 private cumulativeMicros ::= 0.
 private startMicros
 |) (
-'as yet unclassified'
 public elapsedMicroseconds ^<Integer> = (
 	nil = startMicros ifTrue: [^cumulativeMicros].
 	^cumulativeMicros + (currentMonotonicMicros - startMicros)
@@ -1452,7 +1411,6 @@ public stop = (
 public class StringBuilder = (|
 protected running ::= ''.
 |) (
-'as yet unclassified'
 public add: string = (
 	running:: running, string.
 	^string
@@ -1470,7 +1428,6 @@ public writeln: line = (
 ) : (
 )
 public class True _cannotInstantiate = Boolean () (
-'as yet unclassified'
 public & alternative <Boolean> ^<Boolean> = (
 	(* Evaluating conjunction. *)
 	^alternative
@@ -1511,7 +1468,6 @@ public | alternative <Boolean> ^<Boolean> = (
 ) : (
 )
 public class UndefinedObject _cannotInstantiate = () (
-'as yet unclassified'
 public isNil ^<Boolean> = (
 	^true
 )
@@ -1521,7 +1477,6 @@ public printString ^<String> = (
 ) : (
 )
 public class WeakArray _cannotInstantiate = Collection () (
-'as yet unclassified'
 public at: index <Integer> ^<E> = (
 	(* :literalmessage: primitive: 43 *)
 	^(ArgumentError value: index) signal
@@ -1550,7 +1505,6 @@ public size ^<Integer> = (
 	fatal: 'WeakArray size'.	
 )
 ) : (
-'as yet unclassified'
 public new: size <Integer> ^<WeakArray[E]> = (
 	(* :literalmessage: primitive: 42 *)
 	^(ArgumentError value: size) signal
@@ -1560,7 +1514,6 @@ public class WeakMap = (|
 private table ::= Array new: 256. (* A fairly large initial capacity because the expected usage is one per module. *)
 private used ::= 0.
 |) (
-'as yet unclassified'
 public at: key <K> ^<V> = (
 	| mask index entry |
 	nil = key ifTrue: [^nil].
@@ -1650,7 +1603,6 @@ public class WideString _cannotInstantiate = ByteString () (
 ) : (
 )
 public class _Array _cannotInstantiate = Collection () (
-'as yet unclassified'
 public , collection = (
 	| 
 	newarray = Array new: self size + collection size.
@@ -1749,7 +1701,6 @@ public sort: comparison <[:E :E | Boolean]> = (
 		self at: min put: temp].
 )
 ) : (
-'as yet unclassified'
 public new: size <Integer> ^<Array[E]> = (
 	(* :literalmessage: primitive: 38 *)
 	^(ArgumentError value: size) signal
@@ -1765,30 +1716,6 @@ The security model of the Newspeak programming language is based on capabilities
 Object has no instance variables, nor should any be added. Several subclasses of Object have special implementations and the VM on relies on their layout. Adding slots to Object would be fatal. 
 
 This class is currently named _Object to break a cycle in the class hierarchy that occurs during the bootstrap from the Squeak implementation. Its superclass is later fixed to nil by magic. *)) (
-'accessing'
-protected class ^<Behavior> = (
-	(* Answers the class of the receiver. 
-	
-	This method is not public to make it easier to separate the authority of an instance from the authority of its class. This is similar to how the flatness of the metaclass heirarchy separates the interface of an object from the interface of its class. *)
-	
-	(* :literalmessage: primitive: 85 *)
-	fatal: 'Primitive class failed'.
-)
-public yourself = (
-	^self
-)
-'as yet unclassified'
-protected Character = (
-	(* squeak compatibility *)
-	^outer KernelForPrimordialSoup ByteString
-)
-protected assert: blockOrBoolean message: message = (
-	#BOGUS.
-	blockOrBoolean isClosure
-		ifTrue: [blockOrBoolean value ifFalse: [Exception new signal: message]]
-		ifFalse: [blockOrBoolean ifFalse: [Exception new signal: message]].
-)
-'comparing'
 public = other <Object> ^<Boolean> = (
 	(* Answers whether the receiver is considered equal to 'other'.
 	May be overridden by subclasses, and should be overridden if the method 'hash' is overridden.
@@ -1802,27 +1729,6 @@ public = other <Object> ^<Boolean> = (
 	(* :literalmessage: primitive: 86 *)
 	fatal: 'Primitive identical failed'.
 )
-public hash ^<Integer> = (
-	(* Answers the hash code for the receiver.
-	May be overridden by subclasses, and should be overridden if the method '=' is overridden.
-	The hash code must obey the requirements set forth in the method '=', that is, the following must hold:
-	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
-	
-	(* :literalmessage: primitive: 87 *)
-	fatal: 'Primitive identityHash failed'.
-)
-public isNil ^<Boolean> = (
-	^false
-)
-'debugging'
-protected halt = (
-	'Halt' out.
-	exitWithTrace.
-)
-public out = (
-	print:: self printString.
-)
-'globals'
 protected Array = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup _Array
@@ -1830,6 +1736,10 @@ protected Array = (
 protected ByteArray = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup ByteArray
+)
+protected Character = (
+	(* squeak compatibility *)
+	^outer KernelForPrimordialSoup ByteString
 )
 protected Error = (
 	(* squeak compatibility *)
@@ -1853,20 +1763,53 @@ protected String = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup ByteString
 )
-'message not understood'
+protected assert: blockOrBoolean message: message = (
+	#BOGUS.
+	blockOrBoolean isClosure
+		ifTrue: [blockOrBoolean value ifFalse: [Exception new signal: message]]
+		ifFalse: [blockOrBoolean ifFalse: [Exception new signal: message]].
+)
+protected class ^<Behavior> = (
+	(* Answers the class of the receiver. 
+	
+	This method is not public to make it easier to separate the authority of an instance from the authority of its class. This is similar to how the flatness of the metaclass heirarchy separates the interface of an object from the interface of its class. *)
+	
+	(* :literalmessage: primitive: 85 *)
+	fatal: 'Primitive class failed'.
+)
 protected doesNotUnderstand: message = (
 	(0 = message arguments size and: [message selector startsWith: 'is']) ifTrue: [^false].
 
 	^(MessageNotUnderstood receiver: self message: message) signal
 )
-'printing'
+protected halt = (
+	'Halt' out.
+	exitWithTrace.
+)
+public hash ^<Integer> = (
+	(* Answers the hash code for the receiver.
+	May be overridden by subclasses, and should be overridden if the method '=' is overridden.
+	The hash code must obey the requirements set forth in the method '=', that is, the following must hold:
+	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
+	
+	(* :literalmessage: primitive: 87 *)
+	fatal: 'Primitive identityHash failed'.
+)
+public isNil ^<Boolean> = (
+	^false
+)
+public out = (
+	print:: self printString.
+)
 public printString ^<String> = (
 	(* bogus: should not rely on class not being overridden *)
 	^'instance of ', class name
 )
+public yourself = (
+	^self
+)
 ) : (
 )
-'as yet unclassified'
 public buildObjectStoreWithApplication: app platform: platform symbols: symbols = (
 	symbolTable:: symbols.
 	theScheduler:: platform actors buildSchedulerForApplication: app platform: platform.

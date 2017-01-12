@@ -3,7 +3,6 @@ Newspeak3
 class Kernel wrapping: k = (|
 private internalKernel = k.
 |) (
-'as yet unclassified'
 public Ephemeron = (
 	^internalKernel Ephemeron
 )

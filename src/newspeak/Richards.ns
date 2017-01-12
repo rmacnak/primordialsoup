@@ -36,7 +36,6 @@ class DeviceTask on: s = Task on: s (
 (* A task that suspends itself after each time it has been run to simulate waiting for data from an external device. *)|
 protected pending <Packet>
 |) (
-'as yet unclassified'
 public run: packet <Packet> ^<TaskControlBlock> = (
 	packet isNil ifTrue:
 		[ | functionWork <Packet> |
@@ -54,7 +53,6 @@ class HandlerTask on: s = Task on: s (
 	workIn <Packet>
 	deviceIn <Packet>
 |) (
-'as yet unclassified'
 public run: packet <Packet> ^<TaskControlBlock> = (
 	packet isNil ifFalse:
 		[packet kind = KIND_WORK
@@ -83,7 +81,6 @@ class IdleTask on: s with: ctrl with: cnt = Task on: s (
 protected control <Integer> ::= ctrl. (* A seed value that controls how the device tasks are scheduled. *)
 protected count <Integer> ::= cnt. (* The number of times this task should be scheduled. *)
 |) (
-'as yet unclassified'
 public run: packet <Packet> ^<TaskControlBlock> = (
 	count:: count - 1.
 	count = 0 ifTrue: [^scheduler holdCurrent].
@@ -103,7 +100,6 @@ public kind <Integer> ::= k. (* The type of this packet. *)
 public datum <Integer> ::= 0.
 public data <Array[Integer]> = Array new: DATA_SIZE.
 |) (
-'as yet unclassified'
 public appendTo: queueHead <Packet> ^<Packet> = (
 	(* Add this packet to the end of a worklist, and return the worklist. *)
 	| peek next |
@@ -126,7 +122,6 @@ class Scheduler = (
 	list <TaskControlBlock>
 	blocks <Array[TaskControlBlock]> = Array new: NUMBER_OF_IDS.
 |) (
-'as yet unclassified'
 public addDeviceTask: id <Integer> priority: priority <Integer> work: queue <Packet> = (
 	(* Add a device task to this scheduler. *)
 	addTask: id priority: priority work: queue task: (DeviceTask on: self).
@@ -195,7 +190,6 @@ class Task on: s = (
 (* Abstract task that manipulates work packets. *)|
 protected scheduler <Scheduler> = s. (* The scheduler that manages this task. *)
 |) (
-'as yet unclassified'
 public run: packet <Packet> = (
 	subclassResponsibility
 )
@@ -210,7 +204,6 @@ class TaskControlBlock link: l id: i priority: p queue: q task: t = (
 	task <Task> = t.
 	state <Integer> ::= queue isNil ifTrue: [STATE_SUSPENDED] ifFalse: [STATE_SUSPENDED_RUNNABLE].
 |) (
-'as yet unclassified'
 public addInput: packet <Packet> checkPriority: oldTask <Task> ^<TaskControlBlock> = (
 	(* Adds a packet to the worklist of this block's task, marks this as runnable if necessary, and returns the next runnable object to run (the one with the highest priority. *)
 	queue isNil
@@ -258,7 +251,6 @@ class WorkerTask on: s with: v1 with: v2 = Task on: s (
 protected destination <Integer> ::= v1.
 protected count <Integer> ::= v2.
 |) (
-'as yet unclassified'
 public run: packet <Packet> ^<TaskControlBlock> = (
 	packet isNil ifTrue: [^scheduler suspendCurrent].
 	destination = ID_HANDLER_A
@@ -275,7 +267,6 @@ public run: packet <Packet> ^<TaskControlBlock> = (
 )
 ) : (
 )
-'as yet unclassified'
 public bench = (
 	| scheduler queue |
 	

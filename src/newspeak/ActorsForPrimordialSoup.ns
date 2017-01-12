@@ -18,7 +18,6 @@ private cachedPlatform = p.
 public class Actor named: debugName <String> = (|
 private (* N.B. Do not leak to subinstances. *) internalActor = InternalActor named: debugName.
 |) (
-'as yet unclassified'
 public interrupt = (
 	unimplemented
 )
@@ -43,7 +42,6 @@ protected selector <Symbol> = s.
 protected arguments <Array> = a.
 protected resolver <InternalResolver> = r.
 |) (
-'as yet unclassified'
 public reactBroken: error = (
 	(* Broken promise contagion. *)	
 	(* Should this be immediate? *)
@@ -72,7 +70,6 @@ class InternalActor named: n = (|
 	protected head <PendingDelivery>
 	protected tail <PendingDelivery>
 |) (
-'as yet unclassified'
 public drainWork = (
 	currentActor:: self.
 	[nil = head] whileFalse: 
@@ -96,7 +93,6 @@ public enqueueMessage: actorMessage = (
 class InternalBrokenRef problem: p = InternalRef (|
 protected problem = p.
 |) (
-'as yet unclassified'
 public addReactor: reactor = (
 	reactor reactBroken: problem.
 )
@@ -141,7 +137,6 @@ class InternalFarReference target: t targetsActor: ta = InternalRef (|
 protected target = t.
 protected targetsActor = ta.
 |) (
-'as yet unclassified'
 public addReactor: reactor = (
 	reactor reactResolved: externalRef
 )
@@ -211,7 +206,6 @@ protected state ::= #unresolved. (* resolving. resolved *)
 protected resolution <InternalRef>
 protected reactors
 |) (
-'as yet unclassified'
 public addReactor: reactor = (
 	state = #unresolved ifTrue:
 		[nil = reactors ifTrue: [reactors:: List new].
@@ -283,7 +277,6 @@ public wrapFor: targetActor = (
 class InternalNearRef wrapping: t = InternalRef (|
 protected target = t.
 |) (
-'as yet unclassified'
 public addReactor: reactor = (
 	reactor reactResolved: target.
 )
@@ -333,7 +326,6 @@ public wrapFor: targetActor = (
 )
 class InternalRef = (|
 |) (
-'as yet unclassified'
 public checkCycle ^<Boolean> = (
 	subclassResponsibility
 )
@@ -369,7 +361,6 @@ targetsActor <InternalActor> = ta.
 state ::= #unresolved.
 resolution <InternalRef>
 |) (
-'as yet unclassified'
 public addReactor: reactor = (
 	state = #resolved ifTrue: [^resolution addReactor: reactor].
 	state = #unresolved ifTrue: [^reactor reactMoreResolved: self].
@@ -493,7 +484,6 @@ millisecondDuration
 repeating
 public externalTimer
 |) (
-'as yet unclassified'
 public < other = (
 	dueTime = other dueTime ifTrue: [^id < other id].
 	^dueTime < other dueTime
@@ -549,7 +539,6 @@ protected resolver <InternalResolver> = y.
 
 public next
 |) (
-'as yet unclassified'
 public deliver = (
 	| resolution type msg |
 	
@@ -576,7 +565,6 @@ public deliver = (
 public class Port fromId: i = (|
 public id = i.
 |) (
-'as yet unclassified'
 private rawSpawn: bytes = (
 	(* :literalmessage: primitive: 137 *)
 	halt.
@@ -604,7 +592,6 @@ private to: port send: data = (
 	halt
 )
 ) : (
-'as yet unclassified'
 private createPort = (
 	(* :literalmessage: primitive: 135 *)
 	halt.
@@ -614,7 +601,6 @@ public new = (
 )
 )
 class PromiseFactories = () (
-'as yet unclassified'
 public all: refs <List[Promise[V, E]]> ^<Promise[List[V], E]> = (
 	(* Answers a promise that resolves with all the resolutions of refs, or the first problem. *)
 )
@@ -647,7 +633,6 @@ protected sourceActor <Actor> = s.
 protected destinationActor <Actor> = d.
 protected resolver <InternalResolver>  = r.
 |) (
-'as yet unclassified'
 public reactBroken: r = (
 	| msg |
 	currentActor = sourceActor ifFalse: [halt].
@@ -676,7 +661,6 @@ public reactResolved: r = (
 class Ref wrapping: ref = (|
 protected internalRef = ref.
 |internalRefs at: self put: ref) (
-'as yet unclassified'
 protected doesNotUnderstand: message <Message> = (
 	(* For the debugger/inspector. Questionable. *)
 	(* Should probably override public method of Object as well. *)
@@ -700,7 +684,6 @@ public class Resolver = (
 	private (* N.B. We must not leak access to an InternalResolver via subobjects. *) internalResolver = InternalLocalPromise new.
 	public promise <Promise[V, E]> = internalResolver externalRef.
 |) (
-'as yet unclassified'
 public break: error <E> = (
 	internalResolver internalResolve: (InternalBrokenRef problem: error).
 )
@@ -716,7 +699,6 @@ class Scheduler application: a platform: p = (|
 application = a.
 platform = p.
 |) (
-'as yet unclassified'
 public drainEventLoop = (	
 	[[pendingActors isEmpty] whileFalse:
 		[pendingActors removeLast drainWork].
@@ -731,17 +713,6 @@ private exit: code = (
 	(* :literalmessage: primitive: 107 *)
 	halt
 )
-public unhandledException: exception from: signalActivationSender = (
-	| activation |
-	'Unhandled exception: ' out.
-	exception out.
-	activation:: signalActivationSender.
-	[nil = activation] whileFalse: 
-		[activation out. 
-		 activation:: activation sender].
-	exit: -1.
-)
-'vm entry'
 private start: argvOrBytes = (
 
 	argvOrBytes isArray 
@@ -767,12 +738,21 @@ private start: argvOrBytes = (
 	
 	finish.
 )
+public unhandledException: exception from: signalActivationSender = (
+	| activation |
+	'Unhandled exception: ' out.
+	exception out.
+	activation:: signalActivationSender.
+	[nil = activation] whileFalse: 
+		[activation out. 
+		 activation:: activation sender].
+	exit: -1.
+)
 ) : (
 )
 public class Timer wrapping: i = (|
 	private internalTimer = i.
 |) (
-'as yet unclassified'
 public cancel = (
 	internalTimer cancel.
 )
@@ -783,7 +763,6 @@ public isTimer ^<Boolean> = (
 	^true
 )
 ) : (
-'as yet unclassified'
 public after: duration do: callback <[]> ^<Timer> = (
 	^Timer wrapping: (InternalTimer new after: duration do: callback)
 )
@@ -800,7 +779,6 @@ private table ::= Array new: 32.
 private	used ::= 0.
 private nextId ::= 0.
 |) (
-'as yet unclassified'
 downHeapFrom: startParentIndex = (
 	| parentIndex ::= startParentIndex. parent leftChildIndex rightChildIndex |
 	parent:: table at: parentIndex.	
@@ -898,7 +876,6 @@ Note that all slots contain objects that belong to the actor which sent #whenRes
 	protected onError <[:E] | []> = e.
 	protected resolver <InternalResolver> = r.
 |) (
-'as yet unclassified'
 public reactBroken: value = (
 	currentActor enqueueMessage:
 		(PendingDelivery 
@@ -920,7 +897,6 @@ public reactResolved: value = (
 )
 ) : (
 )
-'as yet unclassified'
 private asInternalRef: externalRefOrUnboxedNearRef = (
 	^(isRef: externalRefOrUnboxedNearRef)
 		ifTrue: [internalRefs at: externalRefOrUnboxedNearRef]

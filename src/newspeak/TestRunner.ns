@@ -15,7 +15,6 @@ testConfigs = {
 	(* manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest. *)
 }.
 |) (
-'as yet unclassified'
 public main: platform args: args = (
 	| stopwatch minitest testModules tester |
 	stopwatch:: platform kernel Stopwatch new start.

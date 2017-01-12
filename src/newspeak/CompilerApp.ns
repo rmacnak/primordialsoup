@@ -5,13 +5,11 @@ class CompilerApp packageUsing: manifest = (|
 class Manifest forNamespace: ns = (|
 namespace = ns.
 |) (
-'as yet unclassified'
 protected doesNotUnderstand: message = (
 	^namespace at: message selector
 )
 ) : (
 )
-'as yet unclassified'
 public childMain: platform args: args = (
 	|
 	List = platform collections List.
@@ -102,10 +100,10 @@ public parentMain: platform args: args = (
 	[(args at: index) endsWith: '.ns'] whileTrue:
 		[(workLists at: index \\ n + 1) add: (args at: index).
 		index:: index + 1].
-	workLists do: [:workList | 
+	workLists do: 
+		[:workList | 
 		workList addFirst: receivePort id.
 		workList addFirst: 'child'.
-		workList asArray out.
 		receivePort spawn: workList asArray].
 	n timesRepeat:
 		[ | klasses |

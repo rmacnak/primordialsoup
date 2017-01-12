@@ -1,7 +1,6 @@
 Newspeak3
 'Benchmarks'
 class NLRLoop usingPlatform: p = (| array = {1. 2. 3. 4. 5. 6}. |) (
-'as yet unclassified'
 public bench = (
 	1 to: 10000 do: [:i | self nlr].
 )

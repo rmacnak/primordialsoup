@@ -8,7 +8,6 @@ class DrainEventLoopBlockingStrategy usingActors: actors = (|
 private Promise = actors Promise.
 private scheduler = actors theScheduler.
 |) (
-'as yet unclassified'
 public blockFor: promise ifFulfilled: onFulfilled ifBroken: onBroken ifTimeout: onTimeout = (
 	|
 	state ::= #unresolved.
@@ -28,7 +27,6 @@ public blockFor: promise ifFulfilled: onFulfilled ifBroken: onBroken ifTimeout: 
 )
 ) : (
 )
-'as yet unclassified'
 public testModulesUsingPlatform: platform minitest: minitest = (
 	|
 	actors = platform actors.

@@ -13,7 +13,6 @@ public class List new: initialCapacity = Collection (|
 protected size_ ::= 0.
 protected data ::= Array new: initialCapacity.
 |) (
-'as yet unclassified'
 public , other = (
 	| result = List new: self size + other size + 1. |
 	self do: [:element | result addLast: element].
@@ -147,7 +146,6 @@ public sort: comparison <[:E :E | Boolean]> = (
 		self at: min put: temp].
 )
 ) : (
-'as yet unclassified'
 public new = (
 	^self new: 4 (* Even, since odd-sized arrays waste a slot on the heap. *)
 )
@@ -159,7 +157,6 @@ public class Map initialCapacity: n = Collection (|
 protected size_ ::= 0.
 protected table ::= Array new: n.
 |) (
-'as yet unclassified'
 public at: key <K> ^<V> = (
 	^self at: key ifAbsent: [errorKeyNotFound: key].
 )
@@ -308,7 +305,6 @@ public values ^<List[V]> = (
 	^result
 )
 ) : (
-'as yet unclassified'
 public new = (
 	^self initialCapacity: 6
 )
@@ -317,7 +313,6 @@ class ReadStream over: c = (|
 protected previousIndex ::= 0.
 protected collection  = c.
 |) (
-'as yet unclassified'
 public atEnd ^<Boolean> = (
 	^previousIndex >= collection size
 )
@@ -337,7 +332,6 @@ public class Set initialCapacity: n = Collection (|
 protected size_ ::= 0.
 protected table ::= Array new: n.
 |1 to: n do: [:index | table at: index put: table]) (
-'as yet unclassified'
 public add: element <E> ^<E> = (
 	| index entry |
 	index:: scanFor: element.
@@ -444,12 +438,10 @@ public size ^<Integer> = (
 	^size_
 )
 ) : (
-'as yet unclassified'
 public new = (
 	^self initialCapacity: 6
 )
 )
-'as yet unclassified'
 public IdentityMap = (
 	^Map
 )

@@ -4,7 +4,6 @@ class PrimordialFuelTestingConfiguration packageTestsUsing: manifest = (|
 private PrimordialFuelTesting = manifest PrimordialFuelTesting.
 private PrimordialFuelTestApp = manifest PrimordialFuelTestApp.
 |) (
-'as yet unclassified'
 public testModulesUsingPlatform: p minitest: m = (
 	^{PrimordialFuelTesting
 		usingPlatform: p

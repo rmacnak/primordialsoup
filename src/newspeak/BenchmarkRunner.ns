@@ -26,7 +26,6 @@ private Stopwatch = p kernel Stopwatch.
 private List = p collections List.
 private cachedPlatform = p.
 |) (
-'as yet unclassified'
 measure: block forAtLeast: milliseconds = (
 	| runs stopwatch elapsed score |
 	runs:: 0.
@@ -54,7 +53,6 @@ round: n to: quantum = (
 )
 ) : (
 )
-'as yet unclassified'
 public main: p args: argv = (
 	(Benchmarking usingPlatform: p) report
 )

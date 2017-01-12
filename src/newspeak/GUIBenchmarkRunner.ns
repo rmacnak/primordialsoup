@@ -31,7 +31,6 @@ private cachedPlatform = p.
 private Smalltalk = [p squeak Smalltalk] on: Error do: [:e | nil].
 |) (
 class BenchmarkPresenter onSubject: s = Presenter onSubject: s () (
-'as yet unclassified'
 definition = (
 	^column: (benchmarks collect: [:benchmark | 
 		initially: (label: benchmark name, ': ...') deferred: [
@@ -47,7 +46,6 @@ definition = (
 ) : (
 )
 class BenchmarkSubject = Subject onModel: nil () (
-'as yet unclassified'
 createPresenter = (
 	^BenchmarkPresenter onSubject: self
 )
@@ -56,7 +54,6 @@ public title = (
 )
 ) : (
 )
-'as yet unclassified'
 measure: block forAtLeast: milliseconds = (
 	| runs stopwatch elapsed score |
 	runs:: 0.
@@ -78,7 +75,6 @@ round: n to: quantum = (
 )
 ) : (
 )
-'as yet unclassified'
 public main: p args: argv = (
 	(Benchmarking usingPlatform: p) report
 )

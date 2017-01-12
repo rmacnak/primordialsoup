@@ -27,7 +27,6 @@ public value = v.
 public left
 public right
 |) (
-'as yet unclassified'
 public traverse: f <[:Node]> = (
 	(*Performs an ordered traversal of the subtree starting here.*)
 	| current ::= self. |
@@ -44,7 +43,6 @@ class Payload left: l right: r = (|
 	right ::= r.
 |) (
 ) : (
-'as yet unclassified'
 public generate: depth with: tag = (
 	depth = 0 ifTrue: [^Leaf withTag: tag].
 	^Payload 
@@ -56,7 +54,6 @@ class SplayTree = (
 (*A splay tree is a self-balancing binary search tree with the additional property that recently accessed elements are quick to access again. It performs basic operations such as insertion, look-up and removal in O(log(n)) amortized time.*)|
 root <Node>
 |) (
-'as yet unclassified'
 public at: key <Number> ^<Node> = (
 	(*Returns the node having the specified [key] or null if the tree doesn't contain a node with the specified [key].*)
 	
@@ -188,7 +185,6 @@ splay: key <Number> = (
 )
 ) : (
 )
-'as yet unclassified'
 public bench = (
 	exercise.
 )

@@ -20,7 +20,6 @@ private intermediatesX
 private compilerX
 |) (
 class ActivationMirror reflecting: activation = (| private reflectee <Activation> = activation. |reflectees at: self put: activation) (
-'as yet unclassified'
 public closure ^<ObjectMirror> = (
 	| rawClosure = reflectee closure. |
 	nil = rawClosure ifTrue: [^nil].
@@ -65,21 +64,42 @@ private updateInstances <IdentityMap[OldObject,NewObject]>
 private existingClasses <IdentityMap[HierarchyDepth,Set[Class]]>
 private newExistingMixins <Map[IntermediateClassDeclaration,InstanceMixin]>
 |) (
-'as yet unclassified'
 allInstVarNamesOf: cls = (
 	nil = cls ifTrue: [^{}].
 	^(allInstVarNamesOf: (superclassOf: cls)) , ((mixinOf: cls) _slots collect: [:slotDesc | slotDesc at: 1])
 )
-in: collection lastIndexOf: element = (
-	collection size to: 1 by: -1 do: [:index | (collection at: index) = element ifTrue: [^index]].
-	^0
-)
-'private'
 private cleanup = (
 	updateMixinsAndClasses: nil.
 	updateInstances: nil.
 	existingClasses: nil.
 	newExistingMixins: nil.
+)
+private depthFor: klassArg <Class> ^<Integer> = (
+	| klass depth |
+	depth: 0.
+	klass: klassArg.
+	[nil = klass] whileFalse: 
+		[klass:: superclassOf: klass. 
+		depth: depth + 1].
+	^depth
+)
+in: collection lastIndexOf: element = (
+	collection size to: 1 by: -1 do: [:index | (collection at: index) = element ifTrue: [^index]].
+	^0
+)
+public install: classDecls <List[IntermediateClassDeclaration]> = (
+	
+	| results |
+	setup.
+	results:: classDecls collect: [:classDecl | processClassDeclaration: classDecl].
+	processExistingClasses.
+	installAll.
+	newExistingMixins keysAndValuesDo:
+		[:classDecl :mixin | classDecl existingMixin: mixin]. 
+	
+	cleanup.
+
+	^results (* <List[InstanceMixin]> *)
 )
 private installAll = (
 	| updateCount oldObjects newObjects index |
@@ -101,22 +121,6 @@ private installAll = (
 	updateCount = 0 ifTrue: [^self].
 	elementsOf: oldObjects forwardIdentityToElementsOf: newObjects.
 )
-private setup = (
-	updateMixinsAndClasses:: IdentityMap new.
-	updateInstances:: IdentityMap new.
-	existingClasses:: IdentityMap new.
-	newExistingMixins:: IdentityMap new. (* Regular Map okay here. *)
-)
-'private-classes'
-private depthFor: klassArg <Class> ^<Integer> = (
-	| klass depth |
-	depth: 0.
-	klass: klassArg.
-	[nil = klass] whileFalse: 
-		[klass:: superclassOf: klass. 
-		depth: depth + 1].
-	^depth
-)
 private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<Boolean> = (
 	| oldCls newCls oldMixin newMixin oldSlots newSlots |
 	oldCls:: oldClass.
@@ -134,94 +138,6 @@ private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<
 		 newCls:: superclassOf: newCls].
 	^false
 )
-private processExistingClass: oldClass <Class> = (
-	
-	| oldSuperclass newSuperclass oldMixin newMixin oldEnclosingObject newClass |
-	oldSuperclass:: superclassOf: oldClass.
-	newSuperclass:: updateMixinsAndClasses at: oldSuperclass ifAbsent: [oldSuperclass].
-
-	oldMixin:: mixinOf: oldClass.
-	newMixin:: updateMixinsAndClasses at: oldMixin ifAbsent: [oldMixin].
-	
-	oldEnclosingObject:: enclosingObjectOf: oldClass.
-
-	newClass:: newMixin 
-		apply: newSuperclass 
-		withName: newMixin _name
-		enclosingObject: oldEnclosingObject.
-	
-	updateMixinsAndClasses at: oldClass put: newClass.
-	updateMixinsAndClasses at: (classOf: oldClass) put: (classOf: newClass).
-)
-private processExistingClasses = (
-	| maxDepth ::= 0. |
-	(* Process superclasses before subclasses. Create all new classes before remapping any instances. Remap instances in any order. *)
-	existingClasses keysAndValuesDo: 
-		[:inheritanceDepth :classes | 
-		inheritanceDepth > maxDepth ifTrue: 
-			[maxDepth:: inheritanceDepth]].
-
-	0 to: maxDepth do: 
-		[:inheritanceDepth |
-		(existingClasses at: inheritanceDepth ifAbsent: [{}]) do:
-			[:oldClass <Class> | processExistingClass: oldClass]].
-
-	existingClasses keysAndValuesDo:
-		[:inheritanceDepth :classes | 
-		classes do:
-			[:oldClass <Class> | processInstancesOf: oldClass]].
-)
-private sortClass: app <Class> = (
-	| classes depth subclasses |
-	nil = app ifTrue: [^self]. (* InstanceMixin>>applications and Class>>subclasses are weak. *)
-	
-	depth:: depthFor: app.
-	classes:: existingClasses at: depth ifAbsentPut: [List new].
-	classes add: app.
-	
-	subclasses:: subclassesOf: app.
-	nil = subclasses ifFalse: 
-		[subclasses do: [:subclass | sortClass: subclass]].
-)
-'private-instances'
-private processInstancesOf: oldClass <Class> = (
-	| 
-	newClass <Class> = updateMixinsAndClasses at: oldClass.
-	oldSlotNames <Array[Symbol]>
-	newSlotCount <Integer>
-	remapIndices <Array[Integer]>
-	|
-	(layoutHasChangedBetween: oldClass and: newClass) ifFalse: [^self].
-	
-	(* Heuristic: choose the latter slot if a slot name is duplicated to favor overriding slots. *)
-	oldSlotNames:: allInstVarNamesOf: oldClass.
-	remapIndices:: (allInstVarNamesOf: newClass) collect:
-		[:newSlotName | in: oldSlotNames lastIndexOf: newSlotName].
-	newSlotCount:: remapIndices size.
-
-	(* 'remapping with ' out.
-	(((allInstVarNamesOf: oldClass) inject: '' into: [:a :b | a, ' ', b])
-	, ' -> ',
-	((allInstVarNamesOf: newClass) inject: '' into: [:a :b | a, ' ', b])) out.
-	1 to: remapIndices size do: [:newIndex | 
-		(newIndex printString, '<-', (remapIndices at: newIndex) printString) out]. *)
-
-	(allInstancesOf: oldClass) do: 
-		[:oldInstance |
-		(* Avoid A -> D (see class comment). *)
-		(updateMixinsAndClasses includesKey: oldInstance) ifFalse:
-			[ | newInstance = allocate: newClass. |
-			(* Copy state from oldInstance to newInstance. *)
-			1 to: newSlotCount do: [:newIndex |
-				| oldIndex value |
-				oldIndex:: remapIndices at: newIndex.
-				0 = oldIndex ifFalse: [
-					value:: slotOf: oldInstance at: oldIndex.
-					slotOf: newInstance at: newIndex put: value]]. 
-
-			updateInstances at: oldInstance put: newInstance]].
-)
-'private-mixins'
 private methodDictionaryFor: mixin <AbstractMixin> from: imixin <IntermediateMixin> ^<MethodDictionary> = (
 	| cmethods |
 	cmethods:: imixin assembleMethods collect:
@@ -295,20 +211,97 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	mixin _nestedMixins: nested asArray.
 	^mixin
 )
-'public access'
-public install: classDecls <List[IntermediateClassDeclaration]> = (
+private processExistingClass: oldClass <Class> = (
 	
-	| results |
-	setup.
-	results:: classDecls collect: [:classDecl | processClassDeclaration: classDecl].
-	processExistingClasses.
-	installAll.
-	newExistingMixins keysAndValuesDo:
-		[:classDecl :mixin | classDecl existingMixin: mixin]. 
-	
-	cleanup.
+	| oldSuperclass newSuperclass oldMixin newMixin oldEnclosingObject newClass |
+	oldSuperclass:: superclassOf: oldClass.
+	newSuperclass:: updateMixinsAndClasses at: oldSuperclass ifAbsent: [oldSuperclass].
 
-	^results (* <List[InstanceMixin]> *)
+	oldMixin:: mixinOf: oldClass.
+	newMixin:: updateMixinsAndClasses at: oldMixin ifAbsent: [oldMixin].
+	
+	oldEnclosingObject:: enclosingObjectOf: oldClass.
+
+	newClass:: newMixin 
+		apply: newSuperclass 
+		withName: newMixin _name
+		enclosingObject: oldEnclosingObject.
+	
+	updateMixinsAndClasses at: oldClass put: newClass.
+	updateMixinsAndClasses at: (classOf: oldClass) put: (classOf: newClass).
+)
+private processExistingClasses = (
+	| maxDepth ::= 0. |
+	(* Process superclasses before subclasses. Create all new classes before remapping any instances. Remap instances in any order. *)
+	existingClasses keysAndValuesDo: 
+		[:inheritanceDepth :classes | 
+		inheritanceDepth > maxDepth ifTrue: 
+			[maxDepth:: inheritanceDepth]].
+
+	0 to: maxDepth do: 
+		[:inheritanceDepth |
+		(existingClasses at: inheritanceDepth ifAbsent: [{}]) do:
+			[:oldClass <Class> | processExistingClass: oldClass]].
+
+	existingClasses keysAndValuesDo:
+		[:inheritanceDepth :classes | 
+		classes do:
+			[:oldClass <Class> | processInstancesOf: oldClass]].
+)
+private processInstancesOf: oldClass <Class> = (
+	| 
+	newClass <Class> = updateMixinsAndClasses at: oldClass.
+	oldSlotNames <Array[Symbol]>
+	newSlotCount <Integer>
+	remapIndices <Array[Integer]>
+	|
+	(layoutHasChangedBetween: oldClass and: newClass) ifFalse: [^self].
+	
+	(* Heuristic: choose the latter slot if a slot name is duplicated to favor overriding slots. *)
+	oldSlotNames:: allInstVarNamesOf: oldClass.
+	remapIndices:: (allInstVarNamesOf: newClass) collect:
+		[:newSlotName | in: oldSlotNames lastIndexOf: newSlotName].
+	newSlotCount:: remapIndices size.
+
+	(* 'remapping with ' out.
+	(((allInstVarNamesOf: oldClass) inject: '' into: [:a :b | a, ' ', b])
+	, ' -> ',
+	((allInstVarNamesOf: newClass) inject: '' into: [:a :b | a, ' ', b])) out.
+	1 to: remapIndices size do: [:newIndex | 
+		(newIndex printString, '<-', (remapIndices at: newIndex) printString) out]. *)
+
+	(allInstancesOf: oldClass) do: 
+		[:oldInstance |
+		(* Avoid A -> D (see class comment). *)
+		(updateMixinsAndClasses includesKey: oldInstance) ifFalse:
+			[ | newInstance = allocate: newClass. |
+			(* Copy state from oldInstance to newInstance. *)
+			1 to: newSlotCount do: [:newIndex |
+				| oldIndex value |
+				oldIndex:: remapIndices at: newIndex.
+				0 = oldIndex ifFalse: [
+					value:: slotOf: oldInstance at: oldIndex.
+					slotOf: newInstance at: newIndex put: value]]. 
+
+			updateInstances at: oldInstance put: newInstance]].
+)
+private setup = (
+	updateMixinsAndClasses:: IdentityMap new.
+	updateInstances:: IdentityMap new.
+	existingClasses:: IdentityMap new.
+	newExistingMixins:: IdentityMap new. (* Regular Map okay here. *)
+)
+private sortClass: app <Class> = (
+	| classes depth subclasses |
+	nil = app ifTrue: [^self]. (* InstanceMixin>>applications and Class>>subclasses are weak. *)
+	
+	depth:: depthFor: app.
+	classes:: existingClasses at: depth ifAbsentPut: [List new].
+	classes add: app.
+	
+	subclasses:: subclassesOf: app.
+	nil = subclasses ifFalse: 
+		[subclasses do: [:subclass | sortClass: subclass]].
 )
 ) : (
 )
@@ -316,7 +309,6 @@ public class ClassDeclarationBuilder fromIntermediate: ir = (|
 private intermediate <IntermediateClassDeclaration> = ir.
 public header <ClassHeaderBuilder> = ClassHeaderBuilder fromIntermediate: ir.
 |) (
-'as yet unclassified'
 public accessModifier ^<Symbol> = (
 	^intermediate accessModifier
 )
@@ -429,7 +421,6 @@ private to: sb writeClassDeclaration: declIR = (
 	sb writeln: ')'.
 )
 ) : (
-'as yet unclassified'
 public fromSource: source <String> ^<ClassDeclarationBuilder> = (
 	^self fromUnitSource: 'Newspeak3 ''Uncategorized'' ', source
 )
@@ -442,7 +433,6 @@ public fromUnitSource: source <String> ^<ClassDeclarationBuilder> = (
 )
 )
 private class ClassDeclarationMirror reflecting: mxn = (| mixin <InstanceMixin> = mxn. |) (
-'as yet unclassified'
 public accessModifier ^<Symbol> = (
 	^mixin _accessModifier
 )
@@ -509,7 +499,6 @@ private to: sb writeClassDeclaration: instanceMixin = (
 private class ClassHeaderBuilder fromIntermediate: ir = (|
 private intermediate <IntermediateClassDeclaration> = ir.
 |) (
-'as yet unclassified'
 public name = (
 	^intermediate simpleName
 )
@@ -561,7 +550,6 @@ public class ClassMirror reflecting: behavior = (|
 public reflectee <Behavior> = behavior.
 |(isBehavior: behavior) ifFalse: [^Error new signal].
 reflectees at: self put: behavior) (
-'as yet unclassified'
 public = other ^<Boolean> = (
 	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfClassMirror
@@ -641,7 +629,6 @@ private class MethodBuilder reflecting: ir in: builder = (|
 private intermediate = ir.
 public definingMixin = builder.
 |) (
-'as yet unclassified'
 public accessModifier = (
 	^intermediate accessModifier
 )
@@ -653,7 +640,6 @@ public name = (
 private class MethodMirror reflecting: m = (| 
 	method <Method> = m.
 |reflectees at: self put: m) (
-'as yet unclassified'
 public = other ^<Boolean> = (
 	(is: method identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfMethodMirror
@@ -678,7 +664,6 @@ public name = (
 private class MirrorGroup wrapping: collection = (|
 mirrors = collection.
 |) (
-'as yet unclassified'
 public collect: blk <[:Mirror]> = (
 	^mirrors collect: blk
 )
@@ -700,7 +685,6 @@ private methodsX
 private nestedClassesX
 private slotsX
 |) (
-'as yet unclassified'
 public declaration ^<ClassDeclarationBuilder> = (
 	^intermediate declaration builder
 )
@@ -727,7 +711,6 @@ public slots = (
 private class MixinMirror reflecting: mxn = (|
 mixin <AbstractMixin> = mxn.
 |reflectees at: self put: mxn) (
-'as yet unclassified'
 public = other ^<Boolean> = (
 	(mixin = (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfMixinMirror
@@ -791,7 +774,6 @@ public slots ^<Collection[SlotDeclarationMirror]> = (
 private class MutableMethodGroup fromIntermediate: ir = (|
 private intermediate <IntermediateMixin> = ir.
 |) (
-'as yet unclassified'
 public addFromSource: source <String> = (
 	| 
 	imethod <IntermediateMethod>
@@ -826,7 +808,6 @@ public removeMirrorNamed: name <Symbol> = (
 private class MutableNestedClassGroup fromIntermediate: ir = (|
 private intermediate <IntermediateMixin> = ir.
 |) (
-'as yet unclassified'
 public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
 	| idecl <IntermediateClassDeclaration> builder |
 	
@@ -867,7 +848,6 @@ public removeMirrorNamed: name <Symbol> = (
 private class MutableSlotGroup fromIntermediate: ir = (|
 private intermediate <IntermediateMixin> = ir.
 |) (
-'as yet unclassified'
 public do: action = (
 	intermediate slots do: 
 		[:intermediateSlot |
@@ -882,7 +862,6 @@ public do: action = (
 public class ObjectMirror reflecting: object = (|
 public reflectee = object.
 |reflectees at: self put: reflectee) (
-'as yet unclassified'
 public = other ^<Boolean> = (
 	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfObjectMirror
@@ -954,7 +933,6 @@ public setSlot: name to: value = (
 private class Simulator = (|
 currentActivation
 |) (
-'as yet unclassified'
 activate: targetMethod receiver: messageReceiver with: arguments = (
 	| prim newActivation |
 	prim:: targetMethod primitive.
@@ -1238,7 +1216,6 @@ public definingMixin = mxn.
 ) : (
 )
 class ThreadMirror = () (
-'as yet unclassified'
 restart: activation = (
 	
 )
@@ -1265,7 +1242,6 @@ terminate = (
 )
 ) : (
 )
-'as yet unclassified'
 private allInstancesOf: cls = (
 	(* :literalmessage: primitive: 96 *)
 	halt.

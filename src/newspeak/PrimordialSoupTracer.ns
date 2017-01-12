@@ -72,7 +72,6 @@ class ActivationCluster for: cls = (|
 klass = cls.
 objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 	
@@ -113,7 +112,6 @@ class ArrayCluster for: cls = (|
 klass = cls.
 objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 	1 to: object size do: [:i | enqueue: (object at: i)].
@@ -143,7 +141,6 @@ class ByteArrayCluster for: cls = (|
 	klass = cls.
 	objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 )
@@ -168,7 +165,6 @@ class ByteStringCluster for: cls = (|
 	klass = cls.
 	objects = List new.
 |halt) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 )
@@ -195,7 +191,6 @@ class ByteSymbolCluster for: cls = (|
 	public symbols = List new.
 	strings = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	object isSymbol
 		ifTrue: [symbols add: object]
@@ -228,7 +223,6 @@ klass = cls.
 objects = List new.
 rewrites = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	| rewrite |
 	objects add: object.
@@ -296,7 +290,6 @@ class ClassMixinCluster for: cls = (|
 klass = cls.
 objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 	
@@ -327,7 +320,6 @@ class ClosureCluster for: cls = (|
 klass = cls.
 objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 	
@@ -362,7 +354,6 @@ class InstanceMixinCluster for: cls = (|
 klass = cls.
 objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 	
@@ -407,7 +398,6 @@ klass = cls.
 objects = List new.
 rewrites = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	| rewrite |
 	objects add: object.
@@ -451,7 +441,6 @@ klass = cls.
 objects = List new.
 rewrites = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	| rewrite |
 	objects add: object.
@@ -554,7 +543,6 @@ klass = cls.
 namedSlots = cls format bitAnd: 16rFFFF.
 objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	|
 	prim = vmmirror.
@@ -587,7 +575,6 @@ class SmallIntegerCluster for: cls = (|
 	small = List new.
 	large = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 
 	(object between:  -9223372036854775808 and:  9223372036854775807)
@@ -617,7 +604,6 @@ class WeakArrayCluster for: cls = (|
 klass = cls.
 objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 	(* 1 to: object size do: [:i | enqueue: (object at: i)]. *)
@@ -641,7 +627,6 @@ class WideStringCluster for: cls = (|
 	klass = cls.
 	objects = List new.
 |) (
-'as yet unclassified'
 public analyze: object = (
 	objects add: object.
 )
@@ -663,7 +648,6 @@ public writeNodes = (
 )
 ) : (
 )
-'as yet unclassified'
 analyze: object = (
 	(clusterFor: object) analyze: object.
 )
@@ -856,7 +840,6 @@ writeWeakBackRef: object = (
 )
 ) : (
 )
-'as yet unclassified'
 public main: p args: a = (
 	(Tracer usingPlatform: p with: runtime source: false) 
 		serialize: helloApp to: 'primordialsoup/snapshots/hello.vfuel'.

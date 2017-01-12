@@ -28,7 +28,6 @@ class Plan = (
 (* A Plan is an ordered list of constraints to be executed in sequence to resatisfy all currently satisfiable constraints in the face of one or more changing inputs. *)|
 private constraints = List new.
 |) (
-'as yet unclassified'
 public addConstraint: c <Constraint> = (
 	constraints addLast: c.
 )
@@ -48,7 +47,6 @@ v1 <Variable> = v1.
 v2 <Variable> = v2.
 direction <Direction>
 |) (
-'as yet unclassified'
 public addToGraph = (
 	(* Add myself to the constraint graph. *)
 	v1 addConstraint: self.
@@ -122,7 +120,6 @@ class Constraint strength: s = (
 (* I am an abstract class representing a system-maintainable relationship (or "constraint") between a set of variables. I supply a strength instance variable; concrete subclasses provide a means of storing the constrained variables and other information required to represent a constraint. *)|
 public strength <Strength> = s.
 |) (
-'as yet unclassified'
 public addConstraint = (
 	(* Activate this constraint and attempt to satisfy it. *)
 	addToGraph.
@@ -200,7 +197,6 @@ public satisfy: mark <Integer> ^<Constraint> = (
 )
 class EditConstraint var: v strength: s = UnaryConstraint var: v strength: s (
 (* I am a unary input constraint used to mark a variable that the client wishes to change. *)addConstraint) (
-'as yet unclassified'
 public execute = (
 	(* Edit constraints do nothing. *)
 )
@@ -212,7 +208,6 @@ public isInput ^<Boolean> = (
 )
 class EqualityConstraint var: v1 var: v2 strength: s = BinaryConstraint var: v1 var: v2 strength: s (
 (* I constrain two variables to have the same value: "v1 = v2". *)addConstraint) (
-'as yet unclassified'
 public execute = (
 	(* Enforce this constraint. Assume that it is satisfied. *)
 	output value: input value.
@@ -224,7 +219,6 @@ class ScaleConstraint source: src scale: scale offset: offset destination: dest 
 	scale <Variable> = scale. (* scale factor input variable *)
 	offset <Variable> = offset. (* offset input variable *)
 |addConstraint) (
-'as yet unclassified'
 public addToGraph = (
 	(* Add myself to the constraint graph. *)
 	super addToGraph.
@@ -260,7 +254,6 @@ public removeFromGraph = (
 )
 class StayConstraint var: v strength: s = UnaryConstraint var: v strength: s (
 (* I mark variables that should, with some level of preference, stay the same. I have one method with zero inputs and one output, which does nothing. Planners may exploit the fact that, if I am satisfied, my output will not change during plan execution. This is called "stay optimization". *)addConstraint) (
-'as yet unclassified'
 public execute = (
 	(* Stay constraints do nothing. *)
 )
@@ -271,7 +264,6 @@ class UnaryConstraint var: v strength: s = Constraint strength: s (
 public output <Variable> = v.
 protected satisfied <Boolean> ::= false.
 |) (
-'as yet unclassified'
 public addToGraph = (
 	(* Add myself to the constraint graph. *)
 	output addConstraint: self.
@@ -318,7 +310,6 @@ public walkStrength <Strength> ::= weakest.
 public stay <Boolean> ::= true.
 public name <String> = n.
 |) (
-'as yet unclassified'
 public addConstraint: c <Constraint> = (
 	(* Add the given constraint to the set of all constraints that refer to me. *)
 	constraints addLast: c.
@@ -330,7 +321,6 @@ public removeConstraint: c <Constraint> = (
 )
 ) : (
 )
-'as yet unclassified'
 public addConstraintsConsuming: v <Variable> to: list <List[Constraints]> = (
 	| determining <Constraint> = v determinedBy. |
 	v constraints do: [:c | ((c = determining) not and: [c isSatisfied]) ifTrue: [list addLast: c]].
@@ -502,7 +492,6 @@ class Strength name: n value: v = (
 public name <String> = n.
 public value <Integer> = v.
 |) (
-'as yet unclassified'
 public strongerThan: other <Strength> ^<Boolean> = (
 	^self value < other value
 )
@@ -517,7 +506,6 @@ public weakest: other <Strength> ^<Strength> = (
 )
 ) : (
 )
-'as yet unclassified'
 public bench = (
 	planner chainTest: 100.
 	planner projectionTest: 100.

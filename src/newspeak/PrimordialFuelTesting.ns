@@ -7,7 +7,6 @@ private TestContext = m TestContext.
 private PrimordialFuelTestApp = a.
 |) (
 public class SerializationTests = TestContext () (
-'as yet unclassified'
 roundTrip: object = (
 	|
 	serializer
@@ -118,7 +117,6 @@ public testStrings = (
 	assert: after hash equals: before hash.
 )
 ) : (
-'as yet unclassified'
 TEST_CONTEXT = ()
 )
 ) : (
