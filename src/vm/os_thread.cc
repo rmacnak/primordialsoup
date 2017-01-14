@@ -51,7 +51,7 @@ static void DeleteThread(void* thread) {
 }
 
 
-void OSThread::InitOnce() {
+void OSThread::Startup() {
   // Allocate the global OSThread lock.
   ASSERT(thread_list_lock_ == NULL);
   thread_list_lock_ = new Mutex();
@@ -73,7 +73,7 @@ void OSThread::InitOnce() {
 }
 
 
-void OSThread::Cleanup() {
+void OSThread::Shutdown() {
   // We cannot delete the thread local key and thread list lock,  yet.
   // See the note on thread_list_lock_ in os_thread.h.
 #if 0
@@ -192,7 +192,7 @@ void OSThread::RemoveThreadFromList(OSThread* thread) {
   // Check if this is the last thread. The last thread does a cleanup
   // which removes the thread local key and the associated mutex.
   if (final_thread) {
-    Cleanup();
+    Shutdown();
   }
 }
 

@@ -11,7 +11,8 @@ namespace psoup {
 
 class OS {
  public:
-  static void InitOnce();
+  static void Startup();
+  static void Shutdown();
 
   static int64_t CurrentMonotonicMicros();
   static int64_t CurrentMonotonicMillis();

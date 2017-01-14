@@ -582,7 +582,7 @@ Mutex* ThreadLocalData::mutex_ = NULL;
 MallocGrowableArray<ThreadLocalEntry>* ThreadLocalData::thread_locals_ = NULL;
 
 
-void ThreadLocalData::InitOnce() {
+void ThreadLocalData::Startup() {
   mutex_ = new Mutex();
   /*
   thread_locals_ = new MallocGrowableArray<ThreadLocalEntry>();

@@ -165,7 +165,7 @@ bool PortMap::PostMessage(IsolateMessage* message) {
 }
 
 
-void PortMap::InitOnce() {
+void PortMap::Startup() {
   mutex_ = new Mutex();
   prng_ = new Random(OS::CurrentMonotonicMicros());
 

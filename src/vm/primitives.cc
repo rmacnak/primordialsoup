@@ -2893,7 +2893,7 @@ DEFINE_PRIMITIVE(quickReturnSelf) {
 PrimitiveFunction** Primitives::primitive_table_ = NULL;
 
 
-void Primitives::InitOnce() {
+void Primitives::Startup() {
   primitive_table_ = new PrimitiveFunction*[kNumPrimitives];
   for (intptr_t i = 0; i < kNumPrimitives; i++) {
     primitive_table_[i] = primitiveUnimplemented;
@@ -2902,6 +2902,12 @@ void Primitives::InitOnce() {
   primitive_table_[number] = primitive##name;
 PRIMITIVE_LIST(ADD_PRIMITIVE);
 #undef ADD_PRIMITIVE
+}
+
+
+void Primitives::Shutdown() {
+  delete[] primitive_table_;
+  primitive_table_ = NULL;
 }
 
 

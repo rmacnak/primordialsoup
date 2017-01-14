@@ -162,7 +162,7 @@ class ThreadLocalData : public AllStatic {
   static Mutex* mutex_;
   static MallocGrowableArray<ThreadLocalEntry>* thread_locals_;
 
-  static void InitOnce();
+  static void Startup();
   static void Shutdown();
 
   friend class OS;

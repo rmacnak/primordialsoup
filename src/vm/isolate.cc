@@ -18,12 +18,12 @@ Monitor* Isolate::isolates_list_monitor_ = NULL;
 Isolate* Isolate::isolates_list_head_ = NULL;
 
 
-void Isolate::InitOnce() {
+void Isolate::Startup() {
   isolates_list_monitor_ = new Monitor();
 }
 
 
-void Isolate::Cleanup() {
+void Isolate::Shutdown() {
   delete isolates_list_monitor_;
 }
 

@@ -126,7 +126,7 @@ class OSThread : public BaseThread {
   static bool Compare(ThreadId a, ThreadId b);
 
   // Called at VM startup and shutdown.
-  static void InitOnce();
+  static void Startup();
 
   static bool IsThreadInList(ThreadJoinId join_id);
 
@@ -152,7 +152,7 @@ class OSThread : public BaseThread {
     thread_ = value;
   }
 
-  static void Cleanup();
+  static void Shutdown();
   static ThreadId GetCurrentThreadTraceId();
   static ThreadJoinId GetCurrentThreadJoinId();
   static OSThread* GetOSThreadFromThread(Thread* thread);
@@ -181,7 +181,7 @@ class OSThread : public BaseThread {
   static OSThread* thread_list_head_;
   static bool creation_enabled_;
 
-  friend class PrimordialSoup;  // For Cleanup.
+  friend class PrimordialSoup;  // For Shutdown.
 
   friend class Isolate;  // to access set_thread(Thread*).
   friend class OSThreadIterator;

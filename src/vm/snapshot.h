@@ -17,7 +17,7 @@ class Object;
 
 class Snapshot {
  public:
-  static void InitOnce(const char* filename);
+  static void Startup(const char* filename);
   static void Shutdown();
 };
 

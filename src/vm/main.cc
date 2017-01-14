@@ -30,12 +30,12 @@ class PrimordialSoup {
       OS::Exit(-1);
     }
 
-    OS::InitOnce();
-    OSThread::InitOnce();
-    Primitives::InitOnce();
-    PortMap::InitOnce();
-    Snapshot::InitOnce(argv[1]);
-    Isolate::InitOnce();
+    OS::Startup();
+    OSThread::Startup();
+    Primitives::Startup();
+    PortMap::Startup();
+    Snapshot::Startup(argv[1]);
+    Isolate::Startup();
     void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
 
     ThreadPool* pool = new ThreadPool();
@@ -55,16 +55,17 @@ class PrimordialSoup {
     }
     delete main_isolate;
 
-    // Kill any other isolates now?
+    // TODO(rmacnak): Kill any other isolates.
 
-    pool->Shutdown();  // Wait for no other isolates.
-    delete pool;
+    delete pool;  // Waits for all tasks to complete.
 
     signal(SIGINT, defaultSIGINT);
-    Isolate::Cleanup();
+    Isolate::Shutdown();
     Snapshot::Shutdown();
     PortMap::Shutdown();
-    OSThread::Cleanup();
+    Primitives::Shutdown();
+    OSThread::Shutdown();
+    OS::Shutdown();
 
     return 0;
   }

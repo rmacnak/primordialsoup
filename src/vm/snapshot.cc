@@ -12,7 +12,7 @@ namespace psoup {
 
 static VirtualMemory isolate_snapshot_;
 
-void Snapshot::InitOnce(const char* filename) {
+void Snapshot::Startup(const char* filename) {
   isolate_snapshot_ = VirtualMemory::MapReadOnly(filename);
 }
 

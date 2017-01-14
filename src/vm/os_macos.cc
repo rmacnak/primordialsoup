@@ -22,10 +22,13 @@ namespace psoup {
 static mach_timebase_info_data_t timebase_info;
 
 
-void OS::InitOnce() {
+void OS::Startup() {
   kern_return_t kr = mach_timebase_info(&timebase_info);
   ASSERT(KERN_SUCCESS == kr);
 }
+
+
+void OS::Shutdown() {}
 
 
 int64_t OS::CurrentMonotonicMicros() {

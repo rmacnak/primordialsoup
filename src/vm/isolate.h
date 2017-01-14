@@ -37,8 +37,8 @@ class Isolate {
 
   void Spawn(uint8_t* data, intptr_t length);
 
-  static void InitOnce();
-  static void Cleanup();
+  static void Startup();
+  static void Shutdown();
 
   static void InterruptAll();
   void Interrupt();

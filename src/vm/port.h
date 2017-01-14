@@ -23,7 +23,7 @@ class PortMap : public AllStatic {
   static Port CreatePort(MessageQueue* queue);
   static bool PostMessage(IsolateMessage* message);
 
-  static void InitOnce();
+  static void Startup();
   static void Shutdown();
 
  private:

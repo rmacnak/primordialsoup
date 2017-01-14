@@ -16,7 +16,9 @@ typedef bool (PrimitiveFunction)(intptr_t num_args, Heap* heap, Interpreter* I);
 
 class Primitives {
  public:
-  static void InitOnce();
+  static void Startup();
+  static void Shutdown();
+
   static bool Invoke(intptr_t prim,
                      intptr_t num_args,
                      Heap* heap,

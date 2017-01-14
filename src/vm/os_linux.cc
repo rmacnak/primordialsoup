@@ -18,8 +18,8 @@
 
 namespace psoup {
 
-void OS::InitOnce() {
-}
+void OS::Startup() {}
+void OS::Shutdown() {}
 
 
 int64_t OS::CurrentMonotonicMicros() {
