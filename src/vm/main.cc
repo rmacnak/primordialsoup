@@ -33,7 +33,6 @@ class PrimordialSoup {
     OS::InitOnce();
     OSThread::InitOnce();
     Primitives::InitOnce();
-    ByteString::hash_random_ = OS::CurrentMonotonicMicros();
     PortMap::InitOnce();
     Snapshot::InitOnce(argv[1]);
     Isolate::InitOnce();

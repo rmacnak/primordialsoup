@@ -8,9 +8,6 @@
 
 namespace psoup {
 
-intptr_t ByteString::hash_random_;
-
-
 Behavior* Object::Klass(Heap* heap) const {
   return heap->ClassAt(ClassId());
 }
@@ -211,5 +208,44 @@ void Object::Print(Heap* heap) {
   free((void*)cstr);  // NOLINT
 }
 
+
+SmallInteger* ByteString::EnsureHash(Heap* heap) {
+  if (hash() == 0) {
+    // FNV-1a hash
+    intptr_t length = Size();
+    uintptr_t h = length + 1;
+    for (intptr_t i = 0; i < length; i++) {
+      h = h ^ element(i);
+      h = h * 16777619;
+    }
+    // Random component.
+    h = h ^ heap->string_hash_salt();
+    // Smi range on 32-bit.  TODO(rmacnak): kMaxPositiveSmi
+    h = h & 0x3FFFFFF;
+    ASSERT(h != 0);
+    set_hash(SmallInteger::New(h));
+  }
+  return hash();
+}
+
+
+SmallInteger* WideString::EnsureHash(Heap* heap) {
+  if (hash() == 0) {
+    // FNV-1a hash
+    intptr_t length = Size();
+    uintptr_t h = length + 1;
+    for (intptr_t i = 0; i < length; i++) {
+      h = h ^ element(i);
+      h = h * 16777619;
+    }
+    // Random component.
+    h = h ^ heap->string_hash_salt();
+    // Smi range on 32-bit.  TODO(rmacnak): kMaxPositiveSmi
+    h = h & 0x3FFFFFF;
+    ASSERT(h != 0);
+    set_hash(SmallInteger::New(h));
+  }
+  return hash();
+}
 
 }  // namespace psoup

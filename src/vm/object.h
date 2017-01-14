@@ -618,8 +618,6 @@ class ByteString : public Object {
   HEAP_OBJECT_IMPLEMENTATION(ByteString);
 
  public:
-  static intptr_t hash_random_;
-
   intptr_t Size() const {
     return size()->value();
   }
@@ -635,24 +633,7 @@ class ByteString : public Object {
   void set_hash(SmallInteger* hash) {
     ptr()->hash_ = hash;
   }
-  SmallInteger* EnsureHash() {
-    if (hash() == 0) {
-      // FNV-1a hash
-      intptr_t length = Size();
-      uintptr_t h = length + 1;
-      for (intptr_t i = 0; i < length; i++) {
-        h = h ^ element(i);
-        h = h * 16777619;
-      }
-      // Random component.
-      h = h ^ hash_random_;
-      // Smi range on 32-bit.  TODO(rmacnak): kMaxPositiveSmi
-      h = h & 0x3FFFFFF;
-      ASSERT(h != 0);
-      set_hash(SmallInteger::New(h));
-    }
-    return hash();
-  }
+  SmallInteger* EnsureHash(Heap* heap);
 
   uint8_t element(intptr_t index) const {
     ASSERT(index >= 0 && index < Size());
@@ -692,24 +673,7 @@ class WideString : public Object {
   void set_hash(SmallInteger* hash) {
     ptr()->hash_ = hash;
   }
-  SmallInteger* EnsureHash() {
-    if (hash() == 0) {
-      // FNV-1a hash
-      intptr_t length = Size();
-      uintptr_t h = length + 1;
-      for (intptr_t i = 0; i < length; i++) {
-        h = h ^ element(i);
-        h = h * 16777619;
-      }
-      // Random component.
-      h = h ^ ByteString::hash_random_;
-      // Smi range on 32-bit.  TODO(rmacnak): kMaxPositiveSmi
-      h = h & 0x3FFFFFF;
-      ASSERT(h != 0);
-      set_hash(SmallInteger::New(h));
-    }
-    return hash();
-  }
+  SmallInteger* EnsureHash(Heap* heap);
 
   uint32_t element(intptr_t index) const {
     ASSERT(index >= 0 && index < Size());

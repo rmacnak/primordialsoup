@@ -1462,12 +1462,12 @@ DEFINE_PRIMITIVE(ByteString_hash) {
   Object* rcvr = A->Stack(0);
   if (rcvr->IsByteString()) {
     ByteString* string = static_cast<ByteString*>(rcvr);
-    string->EnsureHash();
+    string->EnsureHash(H);
     A->PopNAndPush(num_args + 1, string->hash());
     return kSuccess;
   } else if (rcvr->IsWideString()) {
     WideString* string = static_cast<WideString*>(rcvr);
-    string->EnsureHash();
+    string->EnsureHash(H);
     A->PopNAndPush(num_args + 1, string->hash());
     return kSuccess;
   }
@@ -2196,7 +2196,7 @@ static bool StringEquals(L* left, R* right, Heap* H, intptr_t num_args) {
   if (left->size() != right->size()) {
     RETURN_BOOL(false);
   }
-  if (left->EnsureHash() != right->EnsureHash()) {
+  if (left->EnsureHash(H) != right->EnsureHash(H)) {
     RETURN_BOOL(false);
   }
   intptr_t length = left->Size();

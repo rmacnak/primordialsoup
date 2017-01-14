@@ -353,6 +353,7 @@ class Heap {
 
   Isolate* isolate() const { return isolate_; }
 
+  intptr_t string_hash_salt() { return string_hash_salt_; }
   uint32_t NextIdentityHash() { return identity_hash_random_.NextUInt32(); }
 
  private:
@@ -440,6 +441,7 @@ class Heap {
   intptr_t handles_top_;
   friend class HandleScope;
 
+  intptr_t string_hash_salt_;
   Random identity_hash_random_;
 
   Isolate* isolate_;

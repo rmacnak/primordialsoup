@@ -29,6 +29,7 @@ Heap::Heap(Isolate* isolate) :
 #endif
     handles_(),
     handles_top_(0),
+    string_hash_salt_(OS::CurrentMonotonicMicros()),
     identity_hash_random_(OS::CurrentMonotonicMicros()),
     isolate_(isolate) {
   to_.Allocate(kInitialSemispaceSize);
