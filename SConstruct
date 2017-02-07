@@ -3,7 +3,7 @@
 import os
 import platform
 
-def BuildVM(cxx, arch, target_os, debug):
+def BuildVM(cxx, arch, target_os, debug, sanitize):
   if target_os == 'windows' and arch == 'ia32':
     env = Environment(TARGET_ARCH='x86')
   elif target_os == 'windows' and arch == 'x64':
@@ -28,6 +28,13 @@ def BuildVM(cxx, arch, target_os, debug):
 
   if target_os == 'android':
     configname += 'Android'
+
+  if sanitize == 'address':
+    configname += 'ASan'
+  elif sanitize == 'thread':
+    configname += 'TSan'
+  elif sanitize == 'undefined':
+    configname += 'UBSan'
 
   if arch == 'ia32':
     if target_os == 'windows':
@@ -96,8 +103,21 @@ def BuildVM(cxx, arch, target_os, debug):
       '-fno-exceptions',
       '-fstack-protector',
       '-fpic',
-      '-D_FORTIFY_SOURCE=2',
     ]
+    if sanitize == 'address':
+      env['CCFLAGS'] += ['-fsanitize=address']
+      env['LINKFLAGS'] += ['-fsanitize=address']
+    elif sanitize == 'thread':
+      env['CCFLAGS'] += ['-fsanitize=thread']
+      env['LINKFLAGS'] += ['-fsanitize=thread']
+    elif sanitize == 'undefined':
+      env['CCFLAGS'] += [
+        '-fsanitize=undefined',
+        '-fno-sanitize=alignment,null',
+      ]
+      env['LINKFLAGS'] += ['-fsanitize=undefined']
+    else:
+      env['CCFLAGS'] += ['-D_FORTIFY_SOURCE=2']
 
   if target_os == 'macos':
     env['LINKFLAGS'] += [
@@ -233,7 +253,7 @@ def Main():
   elif platform.system() == 'Windows':
     host_os = 'windows'
 
-  target_cxx = ARGUMENTS.get('cxx_target', None);
+  target_cxx = ARGUMENTS.get('cxx_target', None)
   host_cxx = None
   if platform.system() == 'Linux':
     host_cxx = 'g++'
@@ -261,21 +281,33 @@ def Main():
   elif platform.machine() == 'riscv64':
     host_arch = 'riscv64'
   else:
-    print (platform.machine());
-    raise "Unknown machine"
+    raise Exception("Unknown machine" + platform.machine())
 
-  # Always build for the host so we can create the snapshots.
-  BuildVM(host_cxx, host_arch, host_os, True)
-  host_vm = BuildVM(host_cxx, host_arch, host_os, False)
+  sanitize = ARGUMENTS.get('sanitize', None)
+  if sanitize not in ['address', 'thread', 'undefined', None]:
+    raise Exception("Unknown sanitize option: " + sanitize)
+
+  # Build a release host VM for building the snapshots. Don't use the santizers
+  # here so the snapshots have a fixed dependency and won't be rebuilt for each
+  # sanitizer.
+  host_vm = BuildVM(host_cxx, host_arch, host_os, False, None)
   BuildSnapshots('out/snapshots/', host_vm)
+
+  # Build for the host.
+  BuildVM(host_cxx, host_arch, host_os, True, sanitize)
+  if sanitize != None:
+    # Avoid specifying the host release build twice.
+    BuildVM(host_cxx, host_arch, host_os, False, sanitize)
 
   if ((target_os != None and host_os != target_os) or
       (target_arch != None and host_arch != target_arch)):
     # If cross compiling, also build for the target.
-    BuildVM(target_cxx, target_arch, target_os, True)
-    BuildVM(target_cxx, target_arch, target_os, False)
-  elif host_arch == 'x64' and target_arch == None:
-    BuildVM(host_cxx, 'ia32', host_os, True)
-    BuildVM(host_cxx, 'ia32', host_os, False)
+    BuildVM(target_cxx, target_arch, target_os, True, sanitize)
+    BuildVM(target_cxx, target_arch, target_os, False, sanitize)
+  elif host_arch == 'x64' and sanitize != 'thread' and target_arch == None :
+    # If on X64, also build for IA32. Skip when using TSan as it doesn't
+    # support IA32. Also skip when a specific architecture was asked for.
+    BuildVM(host_cxx, 'ia32', host_os, True, sanitize)
+    BuildVM(host_cxx, 'ia32', host_os,  False, sanitize)
 
 Main()
