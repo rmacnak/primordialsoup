@@ -4,6 +4,7 @@
 
 #include "vm/port.h"
 
+#include "vm/flags.h"
 #include "vm/lockers.h"
 #include "vm/os.h"
 #include "vm/os_thread.h"
@@ -70,6 +71,7 @@ void PortMap::Rehash(intptr_t new_capacity) {
 
 
 Port PortMap::AllocatePort() {
+  // TODO(rmacnak): Use a full 64-bit id.
   const Port kMASK = 0x3fffffff;
   Port result = prng_->NextUInt32() & kMASK;
 
@@ -137,12 +139,9 @@ Port PortMap::CreatePort(MessageQueue* queue) {
   used_++;
   MaintainInvariants();
 
-  /*if (FLAG_trace_isolates) {
-    OS::Print("[+] Opening port: \n"
-              "\thandler:    %s\n"
-              "\tport:       %" Pd64 "\n",
-              handler->name(), entry.port);
-  }*/
+  if (TRACE_ISOLATES) {
+    OS::Print("Opening port: %" Pd64 "\n", entry.port);
+  }
 
   return entry.port;
 }

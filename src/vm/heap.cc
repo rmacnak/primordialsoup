@@ -178,13 +178,13 @@ static void ForwardClass(Heap* heap, Object* object) {
 }
 
 
-static void ForwardPointer(Object** p) {
-  Object* old_target = *p;
+static void ForwardPointer(Object** ptr) {
+  Object* old_target = *ptr;
   if (old_target->IsForwardingCorpse()) {
     Object* new_target =
         reinterpret_cast<ForwardingCorpse*>(old_target)->target();
     ASSERT(!new_target->IsForwardingCorpse());
-    *p = new_target;
+    *ptr = new_target;
   }
 }
 
@@ -222,8 +222,8 @@ uword Heap::ProcessToSpace(uword scan) {
       Object** from;
       Object** to;
       obj->Pointers(&from, &to);
-      for (Object** p = from; p <= to; p++) {
-        ScavengePointer(p);
+      for (Object** ptr = from; ptr <= to; ptr++) {
+        ScavengePointer(ptr);
       }
     }
     scan += obj->HeapSize();
@@ -241,8 +241,8 @@ void Heap::ForwardToSpace() {
       Object** from;
       Object** to;
       obj->Pointers(&from, &to);
-      for (Object** p = from; p <= to; p++) {
-        ForwardPointer(p);
+      for (Object** ptr = from; ptr <= to; ptr++) {
+        ForwardPointer(ptr);
       }
     }
     scan += obj->HeapSize();
@@ -319,9 +319,9 @@ static void SetForwarded(uword old_addr, uword new_addr) {
 #if WEAK_CLASS_TABLE
 void Heap::ProcessClassTableWeak() {
   for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
-    Object** p = &class_table_[i];
+    Object** ptr = &class_table_[i];
 
-    Object* old_target = *p;
+    Object* old_target = *ptr;
     if (old_target->IsImmediateOrOldObject()) {
       continue;
     }
@@ -339,14 +339,14 @@ void Heap::ProcessClassTableWeak() {
       class_table_free_ = i;
     }
 
-    *p = new_target;
+    *ptr = new_target;
   }
 }
 #endif
 
 
-void Heap::ScavengePointer(Object** p) {
-  Object* old_target = *p;
+void Heap::ScavengePointer(Object** ptr) {
+  Object* old_target = *ptr;
 
   if (old_target->IsImmediateOrOldObject()) {
     // Target isn't gonna move.
@@ -384,7 +384,7 @@ void Heap::ScavengePointer(Object** p) {
   uword new_target_addr = new_target->Addr();
   ASSERT(InToSpace(new_target_addr));
 
-  *p = new_target;
+  *ptr = new_target;
 }
 
 
@@ -469,8 +469,8 @@ void Heap::ProcessWeakList() {
     Object** from;
     Object** to;
     survivor->Pointers(&from, &to);
-    for (Object** p = from; p <= to; p++) {
-      ScavengeWeakPointer(p);
+    for (Object** ptr = from; ptr <= to; ptr++) {
+      ScavengeWeakPointer(ptr);
     }
 
     corpse = corpse->next();
@@ -479,8 +479,8 @@ void Heap::ProcessWeakList() {
 }
 
 
-void Heap::ScavengeWeakPointer(Object** p) {
-  Object* old_target = *p;
+void Heap::ScavengeWeakPointer(Object** ptr) {
+  Object* old_target = *ptr;
 
   if (old_target->IsImmediateOrOldObject()) {
     // Target isn't gonna move.
@@ -501,7 +501,7 @@ void Heap::ScavengeWeakPointer(Object** p) {
   uword new_target_addr = new_target->Addr();
   ASSERT(InToSpace(new_target_addr));
 
-  *p = new_target;
+  *ptr = new_target;
 }
 
 

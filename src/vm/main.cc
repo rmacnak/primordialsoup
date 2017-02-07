@@ -24,10 +24,10 @@ static void SIGINT_handler(int sig) {
 
 class PrimordialSoup {
  public:
-  static int main(int argc, const char** argv) {
+  static int Main(int argc, const char** argv) {
     if (argc < 2) {
       OS::PrintErr("Usage: %s <program.vfuel>\n", argv[0]);
-      OS::Exit(-1);
+      return -1;
     }
 
     OS::Startup();
@@ -74,5 +74,5 @@ class PrimordialSoup {
 }  // namespace psoup
 
 int main(int argc, const char** argv) {
-  return psoup::PrimordialSoup::main(argc, argv);
+  return psoup::PrimordialSoup::Main(argc, argv);
 }

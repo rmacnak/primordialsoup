@@ -121,10 +121,12 @@ class Interpreter {
   void LocalReturn(Object* result);
   void NonLocalReturn(Object* result);
 
-  // Interpret state.
+  // Interpreter state.
   intptr_t extA_;
   intptr_t extB_;
 #if RECYCLE_ACTIVATIONS
+  // How many activations are known to be reachable only from the current
+  // activation.
   intptr_t recycle_depth_;
 #endif
   Heap* const heap_;

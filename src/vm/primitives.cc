@@ -2067,15 +2067,7 @@ DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
 DEFINE_PRIMITIVE(Time_monotonicMicros) {
   ASSERT(num_args == 0);
   int64_t now = OS::CurrentMonotonicMicros();
-  if (SmallInteger::IsSmiValue(now)) {
-    A->PopNAndPush(num_args + 1, SmallInteger::New(now));
-    return kSuccess;
-  } else {
-    MediumInteger* result = H->AllocateMediumInteger();  // SAFEPOINT
-    result->set_value(now);
-    A->PopNAndPush(num_args + 1, result);
-    return kSuccess;
-  }
+  RETURN_MINT(now);
 }
 
 
@@ -2785,17 +2777,7 @@ DEFINE_PRIMITIVE(createPort) {
   ASSERT(num_args == 0);
   MessageQueue* queue = H->isolate()->queue();
   Port new_port = PortMap::CreatePort(queue);
-
-  if (SmallInteger::IsSmiValue(new_port)) {
-    A->PopNAndPush(num_args + 1, SmallInteger::New(new_port));
-    return kSuccess;
-  } else {
-    MediumInteger* result = H->AllocateMediumInteger();  // SAFEPOINT
-    result->set_value(new_port);
-    A->PopNAndPush(num_args + 1, result);
-    return kSuccess;
-  }
-  return kSuccess;
+  RETURN_MINT(new_port);
 }
 
 

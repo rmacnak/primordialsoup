@@ -85,8 +85,8 @@ class Heap {
   static const uword kZapWord = 0xabababab;
 #endif
   static const uint8_t kAllocUninitByte = 0xcd;
-  static const intptr_t kInitialSemispaceSize = sizeof(uword) * 1024 * 1024;
-  static const intptr_t kMaxSemispaceSize = 16 * sizeof(uword) * 1024 * 1024;
+  static const intptr_t kInitialSemispaceSize = sizeof(uword) * MB;
+  static const intptr_t kMaxSemispaceSize = 16 * sizeof(uword) * MB;
   static const intptr_t kMaxHandles = 8;
 
   explicit Heap(Isolate* isolate);
@@ -365,7 +365,7 @@ class Heap {
   void ProcessClassTableStrong();
 #endif
   uword ProcessToSpace(uword scan);
-  void ScavengePointer(Object** p);
+  void ScavengePointer(Object** ptr);
   void ScavengeClass(intptr_t cid);
 
   void AddToEphemeronList(Ephemeron* ephemeron_corpse);
@@ -374,7 +374,7 @@ class Heap {
 
   void AddToWeakList(WeakArray* weak_corpse);
   void ProcessWeakList();
-  void ScavengeWeakPointer(Object** p);
+  void ScavengeWeakPointer(Object** ptr);
 
   uword TryAllocate(intptr_t size) {
     ASSERT(Utils::IsAligned(size, kObjectAlignment));
@@ -452,8 +452,8 @@ class Heap {
 
 class HandleScope {
  public:
-  HandleScope(Heap* h, Object** p) : heap_(h) {
-    heap_->handles_[heap_->handles_top_] = p;
+  HandleScope(Heap* heap, Object** ptr) : heap_(heap) {
+    heap_->handles_[heap_->handles_top_] = ptr;
     heap_->handles_top_++;
     ASSERT(heap_->handles_top_ < Heap::kMaxHandles);
   }

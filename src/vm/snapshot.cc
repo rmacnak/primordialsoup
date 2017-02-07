@@ -111,7 +111,6 @@ void Deserializer::Deserialize() {
   heap_->ClassAt(kClosureCid)->set_id(SmallInteger::New(kClosureCid));
 
   heap_->InitializeRoot(os);
-  // heap_->Print();
 
   int64_t stop = OS::CurrentMonotonicMicros();
   intptr_t time = stop - start;
@@ -119,8 +118,8 @@ void Deserializer::Deserialize() {
                "into %" Pd "kB heap "
                "with %" Pd " objects "
                "in %" Pd " us\n",
-               snapshot_length_ / 1024,
-               heap_->used() / 1024,
+               snapshot_length_ / KB,
+               heap_->used() / KB,
                next_back_ref_ - 1,
                time);
 
