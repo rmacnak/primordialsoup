@@ -114,14 +114,16 @@ void Deserializer::Deserialize() {
 
   int64_t stop = OS::CurrentMonotonicMicros();
   intptr_t time = stop - start;
-  OS::PrintErr("Deserialized %" Pd "kB snapshot "
-               "into %" Pd "kB heap "
-               "with %" Pd " objects "
-               "in %" Pd " us\n",
-               snapshot_length_ / KB,
-               heap_->used() / KB,
-               next_back_ref_ - 1,
-               time);
+  if (TRACE_GROWTH) {
+    OS::PrintErr("Deserialized %" Pd "kB snapshot "
+                 "into %" Pd "kB heap "
+                 "with %" Pd " objects "
+                 "in %" Pd " us\n",
+                 snapshot_length_ / KB,
+                 heap_->used() / KB,
+                 next_back_ref_ - 1,
+                 time);
+  }
 
 #if defined(DEBUG)
   intptr_t before = heap_->used();

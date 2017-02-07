@@ -15,6 +15,7 @@
 #define TRACE_BECOME false
 #define TRACE_DNU false
 #define TRACE_FUEL false
+#define TRACE_GROWTH true
 #define TRACE_ISOLATES false
 #define TRACE_PRIMITIVES false
 #define TRACE_SPECIAL_CONTROL false

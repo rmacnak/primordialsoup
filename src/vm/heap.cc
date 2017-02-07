@@ -62,8 +62,10 @@ void Heap::Grow(intptr_t size_requested, const char* reason) {
   while ((new_size - current_size) < size_requested) {
     new_size *= 2;
   }
-  OS::PrintErr("Growing heap to %" Pd "MB (%s)\n",
-               new_size / MB, reason);
+  if (TRACE_GROWTH) {
+    OS::PrintErr("Growing heap to %" Pd "MB (%s)\n",
+                 new_size / MB, reason);
+  }
   if (new_size > kMaxSemispaceSize) {
     FATAL("Growing really big. Runaway recursion?");
   }
@@ -250,6 +252,42 @@ void Heap::ForwardToSpace() {
 }
 
 
+intptr_t Heap::AllocateClassId() {
+#if WEAK_CLASS_TABLE
+  intptr_t cid;
+  if (class_table_free_ != 0) {
+    cid = class_table_free_;
+    class_table_free_ =
+      static_cast<SmallInteger*>(class_table_[cid])->value();
+  } else if (class_table_top_ == class_table_capacity_) {
+    if (TRACE_GROWTH) {
+      OS::Print("Scavenging to free class table entries\n");
+    }
+    Scavenge();
+    if (class_table_free_ != 0) {
+      cid = class_table_free_;
+      class_table_free_ =
+        static_cast<SmallInteger*>(class_table_[cid])->value();
+    } else {
+      FATAL("Class table growth unimplemented");
+      cid = -1;
+    }
+  } else {
+    cid = class_table_top_;
+    class_table_top_++;
+  }
+#else
+  if (class_table_top_ == class_table_capacity_) {
+    FATAL("Class table growth unimplemented");
+  }
+  intptr_t cid = class_table_top_;
+  class_table_top_++;
+#endif
+  class_table_[cid] = reinterpret_cast<Object*>(kZapWord);
+  return cid;
+}
+
+
 #if !WEAK_CLASS_TABLE
 void Heap::ProcessClassTableStrong() {
   for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
@@ -257,7 +295,6 @@ void Heap::ProcessClassTableStrong() {
   }
 }
 #endif
-
 
 
 void Heap::ForwardClassTable() {

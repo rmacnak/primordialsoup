@@ -279,42 +279,8 @@ class Heap {
   intptr_t CollectInstances(intptr_t cid, Array* array);
 
   bool BecomeForward(Array* old, Array* neu);
-  void ForwardRoots();
-  void ForwardClassTable();
-  void ForwardToSpace();
 
-  intptr_t AllocateClassId() {
-#if WEAK_CLASS_TABLE
-    intptr_t cid;
-    if (class_table_free_ != 0) {
-      cid = class_table_free_;
-      class_table_free_ =
-          static_cast<SmallInteger*>(class_table_[cid])->value();
-    } else if (class_table_top_ == class_table_capacity_) {
-      OS::Print("Scavenging to free class table entries\n");
-      Scavenge();
-      if (class_table_free_ != 0) {
-        cid = class_table_free_;
-        class_table_free_ =
-            static_cast<SmallInteger*>(class_table_[cid])->value();
-      } else {
-        FATAL("Class table growth unimplemented");
-        cid = -1;
-      }
-    } else {
-      cid = class_table_top_;
-      class_table_top_++;
-    }
-#else
-    if (class_table_top_ == class_table_capacity_) {
-      FATAL("Class table growth unimplemented");
-    }
-    intptr_t cid = class_table_top_;
-    class_table_top_++;
-#endif
-    class_table_[cid] = reinterpret_cast<Object*>(kZapWord);
-    return cid;
-  }
+  intptr_t AllocateClassId();
   void RegisterClass(intptr_t cid, Object* cls) {
     ASSERT(class_table_[cid] == reinterpret_cast<Object*>(kZapWord));
     class_table_[cid] = cls;
@@ -375,6 +341,10 @@ class Heap {
   void AddToWeakList(WeakArray* weak_corpse);
   void ProcessWeakList();
   void ScavengeWeakPointer(Object** ptr);
+
+  void ForwardRoots();
+  void ForwardClassTable();
+  void ForwardToSpace();
 
   uword TryAllocate(intptr_t size) {
     ASSERT(Utils::IsAligned(size, kObjectAlignment));
