@@ -2892,13 +2892,4 @@ void Primitives::Shutdown() {
   primitive_table_ = NULL;
 }
 
-
-bool Primitives::Invoke(intptr_t prim, intptr_t num_args,
-                        Heap* heap, Interpreter* I) {
-  ASSERT(prim > 0);
-  ASSERT(prim < kNumPrimitives);
-  PrimitiveFunction* func = primitive_table_[prim];
-  return func(num_args, heap, I);
-}
-
 }  // namespace psoup

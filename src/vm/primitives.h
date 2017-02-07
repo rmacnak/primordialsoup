@@ -5,6 +5,7 @@
 #ifndef VM_PRIMITIVES_H_
 #define VM_PRIMITIVES_H_
 
+#include "vm/assert.h"
 #include "vm/globals.h"
 
 namespace psoup {
@@ -21,12 +22,18 @@ class Primitives {
   static void Startup();
   static void Shutdown();
 
+  static bool IsUnwindProtect(intptr_t prim) {
+    return prim == 113;
+  }
+
   static bool Invoke(intptr_t prim,
                      intptr_t num_args,
                      Heap* heap,
-                     Interpreter* I);
-  static bool IsUnwindProtect(intptr_t prim) {
-    return prim == 113;
+                     Interpreter* interpreter) {
+    ASSERT(prim > 0);
+    ASSERT(prim < kNumPrimitives);
+    PrimitiveFunction* func = primitive_table_[prim];
+    return func(num_args, heap, interpreter);
   }
 
  private:
