@@ -131,7 +131,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     ]
   elif target_os == 'linux':
     env['LINKFLAGS'] += [
-      '-fPIE',
+      '-pie',
       '-Wl,-z,relro,-z,now',
       '-Wl,--gc-sections',
       '-Wl,-z,noexecstack',
@@ -272,7 +272,8 @@ def Main():
     host_arch = 'ia32'
   elif platform.machine() == 'aarch64':
     host_arch = 'arm64'
-  elif platform.machine() == 'armv7l':
+  elif (platform.machine() == 'armv7l' or
+        platform.machine() == 'armv6l'):
     host_arch = 'arm'
   elif platform.machine() == 'mips':
     host_arch = 'mips'
@@ -281,7 +282,7 @@ def Main():
   elif platform.machine() == 'riscv64':
     host_arch = 'riscv64'
   else:
-    raise Exception("Unknown machine" + platform.machine())
+    raise Exception("Unknown machine: " + platform.machine())
 
   sanitize = ARGUMENTS.get('sanitize', None)
   if sanitize not in ['address', 'thread', 'undefined', None]:
