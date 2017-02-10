@@ -14,16 +14,15 @@ namespace psoup {
 #define FLAG_worker_timeout_millis 5000
 
 ThreadPool::ThreadPool()
-  : shutting_down_(false),
-    all_workers_(NULL),
-    idle_workers_(NULL),
-    count_started_(0),
-    count_stopped_(0),
-    count_running_(0),
-    count_idle_(0),
-    shutting_down_workers_(NULL),
-    join_list_(NULL) {
-}
+    : shutting_down_(false),
+      all_workers_(NULL),
+      idle_workers_(NULL),
+      count_started_(0),
+      count_stopped_(0),
+      count_running_(0),
+      count_idle_(0),
+      shutting_down_workers_(NULL),
+      join_list_(NULL) {}
 
 
 ThreadPool::~ThreadPool() {
@@ -146,8 +145,7 @@ void ThreadPool::Shutdown() {
 
 bool ThreadPool::IsIdle(Worker* worker) {
   ASSERT(worker != NULL && worker->owned_);
-  for (Worker* current = idle_workers_;
-       current != NULL;
+  for (Worker* current = idle_workers_; current != NULL;
        current = current->idle_next_) {
     if (current == worker) {
       return true;
@@ -170,8 +168,7 @@ bool ThreadPool::RemoveWorkerFromIdleList(Worker* worker) {
     return true;
   }
 
-  for (Worker* current = idle_workers_;
-       current->idle_next_ != NULL;
+  for (Worker* current = idle_workers_; current->idle_next_ != NULL;
        current = current->idle_next_) {
     if (current->idle_next_ == worker) {
       current->idle_next_ = worker->idle_next_;
@@ -198,8 +195,7 @@ bool ThreadPool::RemoveWorkerFromAllList(Worker* worker) {
     return true;
   }
 
-  for (Worker* current = all_workers_;
-       current->all_next_ != NULL;
+  for (Worker* current = all_workers_; current->all_next_ != NULL;
        current = current->all_next_) {
     if (current->all_next_ == worker) {
       current->all_next_ = worker->all_next_;
@@ -212,6 +208,16 @@ bool ThreadPool::RemoveWorkerFromAllList(Worker* worker) {
 }
 
 
+void ThreadPool::SetIdleLocked(Worker* worker) {
+  ASSERT(mutex_.IsOwnedByCurrentThread());
+  ASSERT(worker->owned_ && !IsIdle(worker));
+  worker->idle_next_ = idle_workers_;
+  idle_workers_ = worker;
+  count_idle_++;
+  count_running_--;
+}
+
+
 void ThreadPool::SetIdleAndReapExited(Worker* worker) {
   JoinList* list = NULL;
   {
@@ -219,17 +225,25 @@ void ThreadPool::SetIdleAndReapExited(Worker* worker) {
     if (shutting_down_) {
       return;
     }
-    ASSERT(worker->owned_ && !IsIdle(worker));
-    worker->idle_next_ = idle_workers_;
-    idle_workers_ = worker;
-    count_idle_++;
-    count_running_--;
-
-    // While we have the lock, opportunistically grab and clear the join_list_.
+    if (join_list_ == NULL) {
+      // Nothing to join, add to the idle list and return.
+      SetIdleLocked(worker);
+      return;
+    }
+    // There is something to join. Grab the join list, drop the lock, do the
+    // join, then grab the lock again and add to the idle list.
     list = join_list_;
     join_list_ = NULL;
   }
   JoinList::Join(&list);
+
+  {
+    MutexLocker ml(&mutex_);
+    if (shutting_down_) {
+      return;
+    }
+    SetIdleLocked(worker);
+  }
 }
 
 
@@ -250,7 +264,8 @@ bool ThreadPool::ReleaseIdleWorker(Worker* worker) {
   // so that we can join on it at the next opportunity.
   OSThread* os_thread = OSThread::Current();
   ASSERT(os_thread != NULL);
-  JoinList::AddLocked(os_thread->join_id(), &join_list_);
+  ThreadJoinId join_id = OSThread::GetCurrentThreadJoinId(os_thread);
+  JoinList::AddLocked(join_id, &join_list_);
   count_stopped_++;
   count_idle_--;
   return true;
@@ -279,8 +294,7 @@ bool ThreadPool::RemoveWorkerFromShutdownList(Worker* worker) {
   }
 
   for (Worker* current = shutting_down_workers_;
-       current->shutdown_next_ != NULL;
-       current = current->shutdown_next_) {
+       current->shutdown_next_ != NULL; current = current->shutdown_next_) {
     if (current->shutdown_next_ == worker) {
       current->shutdown_next_ = worker->shutdown_next_;
       worker->shutdown_next_ = NULL;
@@ -306,24 +320,21 @@ void ThreadPool::JoinList::Join(JoinList** list) {
 }
 
 
-ThreadPool::Task::Task() {
-}
+ThreadPool::Task::Task() {}
 
 
-ThreadPool::Task::~Task() {
-}
+ThreadPool::Task::~Task() {}
 
 
 ThreadPool::Worker::Worker(ThreadPool* pool)
-  : pool_(pool),
-    task_(NULL),
-    id_(OSThread::kInvalidThreadId),
-    done_(false),
-    owned_(false),
-    all_next_(NULL),
-    idle_next_(NULL),
-    shutdown_next_(NULL) {
-}
+    : pool_(pool),
+      task_(NULL),
+      id_(OSThread::kInvalidThreadId),
+      done_(false),
+      owned_(false),
+      all_next_(NULL),
+      idle_next_(NULL),
+      shutdown_next_(NULL) {}
 
 
 ThreadId ThreadPool::Worker::id() {
@@ -335,13 +346,12 @@ ThreadId ThreadPool::Worker::id() {
 void ThreadPool::Worker::StartThread() {
 #if defined(DEBUG)
   // Must call SetTask before StartThread.
-  { // NOLINT
+  {  // NOLINT
     MonitorLocker ml(&monitor_);
     ASSERT(task_ != NULL);
   }
 #endif
-  int result = OSThread::Start("Dart ThreadPool Worker",
-                               &Worker::Main,
+  int result = OSThread::Start("Dart ThreadPool Worker", &Worker::Main,
                                reinterpret_cast<uword>(this));
   if (result != 0) {
     FATAL1("Could not start worker thread: result = %d.", result);
@@ -358,18 +368,20 @@ void ThreadPool::Worker::SetTask(Task* task) {
 
 
 static int64_t ComputeTimeout(int64_t idle_start) {
-  if (FLAG_worker_timeout_millis <= 0) {
+  int64_t worker_timeout_micros =
+      FLAG_worker_timeout_millis * kMicrosecondsPerMillisecond;
+  if (worker_timeout_micros <= 0) {
     // No timeout.
     return 0;
   } else {
-    int64_t waited = OS::CurrentMonotonicMillis() - idle_start;
-    if (waited >= FLAG_worker_timeout_millis) {
+    int64_t waited = OS::CurrentMonotonicMicros() - idle_start;
+    if (waited >= worker_timeout_micros) {
       // We must have gotten a spurious wakeup just before we timed
       // out.  Give the worker one last desperate chance to live.  We
       // are merciful.
       return 1;
     } else {
-      return FLAG_worker_timeout_millis - waited;
+      return worker_timeout_micros - waited;
     }
   }
 }
@@ -398,7 +410,7 @@ bool ThreadPool::Worker::Loop() {
     pool_->SetIdleAndReapExited(this);
     idle_start = OS::CurrentMonotonicMillis();
     while (true) {
-      Monitor::WaitResult result = ml.Wait(ComputeTimeout(idle_start));
+      Monitor::WaitResult result = ml.WaitMicros(ComputeTimeout(idle_start));
       if (task_ != NULL) {
         // We've found a task.  Process it, regardless of whether the
         // worker is done_.
@@ -430,7 +442,6 @@ void ThreadPool::Worker::Main(uword args) {
   OSThread* os_thread = OSThread::Current();
   ASSERT(os_thread != NULL);
   ThreadId id = os_thread->id();
-  ThreadJoinId join_id = os_thread->join_id();
   ThreadPool* pool;
 
   {
@@ -451,6 +462,7 @@ void ThreadPool::Worker::Main(uword args) {
     // Inform the thread pool that we are exiting. We remove this worker from
     // shutting_down_workers_ list because there will be no need for the
     // ThreadPool to take action for this worker.
+    ThreadJoinId join_id = OSThread::GetCurrentThreadJoinId(os_thread);
     {
       MutexLocker ml(&pool->mutex_);
       JoinList::AddLocked(join_id, &pool->join_list_);

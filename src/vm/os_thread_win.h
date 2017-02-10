@@ -16,7 +16,7 @@ namespace psoup {
 
 typedef DWORD ThreadLocalKey;
 typedef DWORD ThreadId;
-typedef DWORD ThreadJoinId;
+typedef HANDLE ThreadJoinId;
 
 
 static const ThreadLocalKey kUnsetThreadLocalKey = TLS_OUT_OF_INDEXES;
@@ -120,24 +120,17 @@ class MonitorData {
 };
 
 
-typedef void (*ThreadDestructor) (void* parameter);
+typedef void (*ThreadDestructor)(void* parameter);
 
 
 class ThreadLocalEntry {
  public:
   ThreadLocalEntry(ThreadLocalKey key, ThreadDestructor destructor)
-      : key_(key),
-        destructor_(destructor) {
-  }
+      : key_(key), destructor_(destructor) {}
 
-  ThreadLocalKey key() const {
-    return key_;
-  }
+  ThreadLocalKey key() const { return key_; }
 
-
-  ThreadDestructor destructor() const {
-    return destructor_;
-  }
+  ThreadDestructor destructor() const { return destructor_; }
 
  private:
   ThreadLocalKey key_;

@@ -949,14 +949,14 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
       if (static_cast<LargeInteger*>(right)->negative()) {
         return kFailure;
       }
-      FATAL("Out of memory.");
+      OUT_OF_MEMORY();
     }
     if (right->IsMediumInteger()) {
       int64_t raw_right = MINT_VALUE(right);
       if (raw_right < 0) {
         return kFailure;
       }
-      FATAL("Out of memory.");
+      OUT_OF_MEMORY();
     }
     intptr_t raw_right = SMI_VALUE(right);
     if (raw_right < 0) {

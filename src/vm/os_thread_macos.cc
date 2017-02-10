@@ -7,28 +7,28 @@
 
 #include "vm/os_thread.h"
 
-#include <sys/errno.h>  // NOLINT
-#include <sys/types.h>  // NOLINT
-#include <sys/sysctl.h>  // NOLINT
-#include <mach/mach_init.h>  // NOLINT
-#include <mach/mach_host.h>  // NOLINT
-#include <mach/mach_port.h>  // NOLINT
-#include <mach/mach_traps.h>  // NOLINT
-#include <mach/task_info.h>  // NOLINT
+#include <sys/errno.h>         // NOLINT
+#include <sys/types.h>         // NOLINT
+#include <sys/sysctl.h>        // NOLINT
+#include <mach/mach_init.h>    // NOLINT
+#include <mach/mach_host.h>    // NOLINT
+#include <mach/mach_port.h>    // NOLINT
+#include <mach/mach_traps.h>   // NOLINT
+#include <mach/task_info.h>    // NOLINT
 #include <mach/thread_info.h>  // NOLINT
-#include <mach/thread_act.h>  // NOLINT
+#include <mach/thread_act.h>   // NOLINT
 
 #include "vm/assert.h"
 #include "vm/utils.h"
 
 namespace psoup {
 
-#define VALIDATE_PTHREAD_RESULT(result)         \
-  if (result != 0) { \
-    const int kBufferSize = 1024; \
-    char error_message[kBufferSize]; \
-    Utils::StrError(result, error_message, kBufferSize); \
-    FATAL2("pthread error: %d (%s)", result, error_message); \
+#define VALIDATE_PTHREAD_RESULT(result)                                        \
+  if (result != 0) {                                                           \
+    const int kBufferSize = 1024;                                              \
+    char error_message[kBufferSize];                                           \
+    Utils::StrError(result, error_message, kBufferSize);                       \
+    FATAL2("pthread error: %d (%s)", result, error_message);                   \
   }
 
 
@@ -41,17 +41,17 @@ namespace psoup {
 
 
 #ifdef DEBUG
-#define RETURN_ON_PTHREAD_FAILURE(result) \
-  if (result != 0) { \
-    const int kBufferSize = 1024; \
-    char error_message[kBufferSize]; \
-    Utils::StrError(result, error_message, kBufferSize); \
-    fprintf(stderr, "%s:%d: pthread error: %d (%s)\n", \
-            __FILE__, __LINE__, result, error_message); \
-    return result; \
+#define RETURN_ON_PTHREAD_FAILURE(result)                                      \
+  if (result != 0) {                                                           \
+    const int kBufferSize = 1024;                                              \
+    char error_message[kBufferSize];                                           \
+    Utils::StrError(result, error_message, kBufferSize);                       \
+    fprintf(stderr, "%s:%d: pthread error: %d (%s)\n", __FILE__, __LINE__,     \
+            result, error_message);                                            \
+    return result;                                                             \
   }
 #else
-#define RETURN_ON_PTHREAD_FAILURE(result) \
+#define RETURN_ON_PTHREAD_FAILURE(result)                                      \
   if (result != 0) return result;
 #endif
 
@@ -159,8 +159,17 @@ ThreadId OSThread::GetCurrentThreadTraceId() {
 }
 
 
-ThreadJoinId OSThread::GetCurrentThreadJoinId() {
-  return pthread_self();
+ThreadJoinId OSThread::GetCurrentThreadJoinId(OSThread* thread) {
+  ASSERT(thread != NULL);
+  // Make sure we're filling in the join id for the current thread.
+  ASSERT(thread->id() == GetCurrentThreadId());
+  // Make sure the join_id_ hasn't been set, yet.
+  DEBUG_ASSERT(thread->join_id_ == kInvalidThreadJoinId);
+  pthread_t id = pthread_self();
+#if defined(DEBUG)
+  thread->join_id_ = id;
+#endif
+  return id;
 }
 
 
@@ -371,9 +380,8 @@ Monitor::WaitResult Monitor::WaitMicros(int64_t micros) {
         (micros - (secs * kMicrosecondsPerSecond)) * kNanosecondsPerMicrosecond;
     ts.tv_sec = static_cast<int32_t>(secs);
     ts.tv_nsec = static_cast<long>(nanos);  // NOLINT (long used in timespec).
-    int result = pthread_cond_timedwait_relative_np(data_.cond(),
-                                                    data_.mutex(),
-                                                    &ts);
+    int result =
+        pthread_cond_timedwait_relative_np(data_.cond(), data_.mutex(), &ts);
     ASSERT((result == 0) || (result == ETIMEDOUT));
     if (result == ETIMEDOUT) {
       retval = kTimedOut;

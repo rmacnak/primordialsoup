@@ -92,8 +92,7 @@ class ThreadPool {
 
   class JoinList {
    public:
-    explicit JoinList(ThreadJoinId id, JoinList* next) : id_(id), next_(next) {
-    }
+    explicit JoinList(ThreadJoinId id, JoinList* next) : id_(id), next_(next) {}
 
     // The thread pool's mutex_ must be held when calling this.
     static void AddLocked(ThreadJoinId id, JoinList** list);
@@ -125,6 +124,7 @@ class ThreadPool {
   void ReapExitedIdleThreads();
 
   // Worker operations.
+  void SetIdleLocked(Worker* worker);  // Assumes mutex_ is held.
   void SetIdleAndReapExited(Worker* worker);
   bool ReleaseIdleWorker(Worker* worker);
 
