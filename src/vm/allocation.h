@@ -10,10 +10,6 @@
 
 namespace psoup {
 
-// Forward declarations.
-class Isolate;
-class Thread;
-
 // Stack allocated objects subclass from this base class. Objects of this type
 // cannot be allocated on either the C or object heaps. Destructors for objects
 // of this type will not be run unless the stack is unwound through normal

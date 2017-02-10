@@ -240,9 +240,8 @@ Cluster* Deserializer::ReadCluster() {
       case kActivationCid: return new ActivationCluster();
       case kSmiCid: return new SmallIntegerCluster();
     }
-    OS::PrintErr("Cluster format %" Pd "\n", format);
-    UNIMPLEMENTED();
-    return 0;
+    FATAL1("Unknown cluster format %" Pd "\n", format);
+    return NULL;
   }
 }
 

@@ -1100,9 +1100,6 @@ DEFINE_PRIMITIVE(Behavior_basicNew) {
 
   RegularObject* new_instance = H->AllocateRegularObject(id->value(),
                                                          num_slots);
-  if (new_instance == 0) {
-    FATAL("Out of memory");
-  }
   for (intptr_t i = 0; i < num_slots; i++) {
     new_instance->set_slot(i, nil);
   }

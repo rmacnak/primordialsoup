@@ -12,6 +12,7 @@
 
 namespace psoup {
 
+class Isolate;
 class OSThread;
 
 // A VM thread; may be executing Dart code or performing helper tasks like

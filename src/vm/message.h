@@ -11,8 +11,6 @@
 
 namespace psoup {
 
-class Isolate;
-
 class IsolateMessage {
  public:
   IsolateMessage(Port dest, uint8_t* data, intptr_t length)
@@ -44,12 +42,7 @@ class IsolateMessage {
 
 class MessageQueue {
  public:
-  explicit MessageQueue(Isolate* isolate) :
-      monitor_(),
-      head_(NULL),
-      tail_(NULL),
-      isolate_(isolate) {
-  }
+  MessageQueue() : monitor_(), head_(NULL), tail_(NULL) {}
 
   void PostMessage(IsolateMessage* msg);
   IsolateMessage* Receive(int64_t timeout_micros);
@@ -59,7 +52,6 @@ class MessageQueue {
   Monitor monitor_;
   IsolateMessage* head_;
   IsolateMessage* tail_;
-  Isolate* isolate_;
 
   DISALLOW_COPY_AND_ASSIGN(MessageQueue);
 };

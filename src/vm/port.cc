@@ -181,8 +181,11 @@ void PortMap::Startup() {
 
 void PortMap::Shutdown() {
   delete mutex_;
+  mutex_ = NULL;
   delete prng_;
+  prng_ = NULL;
   delete[] map_;
+  map_ = NULL;
 }
 
 }  // namespace psoup

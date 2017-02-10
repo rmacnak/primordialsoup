@@ -24,7 +24,9 @@ void Isolate::Startup() {
 
 
 void Isolate::Shutdown() {
+  ASSERT(isolates_list_head_ == NULL);
   delete isolates_list_monitor_;
+  isolates_list_monitor_ = NULL;
 }
 
 
@@ -101,7 +103,7 @@ Isolate::Isolate(ThreadPool* pool) :
     deserializer.Deserialize();
   }
   interpreter_ = new Interpreter(heap_, this);
-  queue_ = new MessageQueue(this);
+  queue_ = new MessageQueue();
 
   AddIsolateToList(this);
 }
