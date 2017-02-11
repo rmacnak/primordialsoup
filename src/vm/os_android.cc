@@ -37,21 +37,6 @@ int64_t OS::CurrentMonotonicMicros() {
 }
 
 
-int64_t OS::CurrentMonotonicMillis() {
-  struct timespec ts;
-  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-    UNREACHABLE();
-    return 0;
-  }
-  // Convert to nanoseconds.
-  int64_t result = ts.tv_sec;
-  result *= kNanosecondsPerSecond;
-  result += ts.tv_nsec;
-
-  return result / kNanosecondsPerMillisecond;
-}
-
-
 int OS::NumberOfAvailableProcessors() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }

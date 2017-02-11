@@ -41,16 +41,6 @@ int64_t OS::CurrentMonotonicMicros() {
 }
 
 
-int64_t OS::CurrentMonotonicMillis() {
-  ASSERT(timebase_info.denom != 0);
-  // timebase_info converts absolute time tick units into nanoseconds.
-  int64_t result = mach_absolute_time();
-  result *= timebase_info.numer;
-  result /= timebase_info.denom;
-  return result / kNanosecondsPerMillisecond;
-}
-
-
 int OS::NumberOfAvailableProcessors() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }

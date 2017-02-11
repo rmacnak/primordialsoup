@@ -55,11 +55,6 @@ int64_t OS::CurrentMonotonicMicros() {
 }
 
 
-int64_t OS::CurrentMonotonicMillis() {
-  return CurrentMonotonicMicros() / 1000;
-}
-
-
 int OS::NumberOfAvailableProcessors() {
   SYSTEM_INFO info;
   GetSystemInfo(&info);

@@ -15,7 +15,6 @@ class OS {
   static void Shutdown();
 
   static int64_t CurrentMonotonicMicros();
-  static int64_t CurrentMonotonicMillis();
 
   static int NumberOfAvailableProcessors();
 

@@ -408,7 +408,7 @@ bool ThreadPool::Worker::Loop() {
     }
     ASSERT(!done_);
     pool_->SetIdleAndReapExited(this);
-    idle_start = OS::CurrentMonotonicMillis();
+    idle_start = OS::CurrentMonotonicMicros();
     while (true) {
       Monitor::WaitResult result = ml.WaitMicros(ComputeTimeout(idle_start));
       if (task_ != NULL) {
