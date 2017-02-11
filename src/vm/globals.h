@@ -36,6 +36,8 @@
 
 #elif defined(_WIN32)
 #define TARGET_OS_WINDOWS 1
+#elif defined(__Fuchsia__)
+#define TARGET_OS_FUCHSIA 1
 #else
 #error Automatic target os detection failed.
 #endif

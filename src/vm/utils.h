@@ -66,6 +66,8 @@ class Utils {
 
 #if defined(TARGET_OS_ANDROID)
 #include "vm/utils_android.h"
+#elif defined(TARGET_OS_FUCHSIA)
+#include "vm/utils_fuchsia.h"
 #elif defined(TARGET_OS_LINUX)
 #include "vm/utils_linux.h"
 #elif defined(TARGET_OS_MACOS)

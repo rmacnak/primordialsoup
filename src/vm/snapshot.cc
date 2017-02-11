@@ -19,8 +19,8 @@ void Snapshot::Startup(const char* filename) {
 
 void Snapshot::Shutdown() {
   // TODO(rmacnak): File and anonymous mappings are freed differently on
-  // Windows.
-#if !defined(TARGET_OS_WINDOWS)
+  // Windows. mmap seems to only support anonymous mappings on Fuchsia.
+#if !defined(TARGET_OS_WINDOWS) && !defined(TARGET_OS_FUCHSIA)
   isolate_snapshot_.Free();
 #endif
 }

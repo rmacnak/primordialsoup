@@ -44,7 +44,7 @@ VirtualMemory VirtualMemory::Allocate(intptr_t size, Protection protection) {
   ASSERT(size > 0);
   int prot;
   switch (protection) {
-    case kNone: prot = PROT_NONE; break;
+    case kNoAccess: prot = PROT_NONE; break;
     case kReadOnly: prot = PROT_READ; break;
     case kReadWrite: prot = PROT_READ | PROT_WRITE; break;
     default:
@@ -77,7 +77,7 @@ void VirtualMemory::Free() {
 bool VirtualMemory::Protect(Protection protection) {
   int prot;
   switch (protection) {
-    case kNone: prot = PROT_NONE; break;
+    case kNoAccess: prot = PROT_NONE; break;
     case kReadOnly: prot = PROT_READ; break;
     case kReadWrite: prot = PROT_READ | PROT_WRITE; break;
     default:

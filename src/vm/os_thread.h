@@ -11,6 +11,8 @@
 // Declare the OS-specific types ahead of defining the generic classes.
 #if defined(TARGET_OS_ANDROID)
 #include "vm/os_thread_android.h"
+#elif defined(TARGET_OS_FUCHSIA)
+#include "vm/os_thread_fuchsia.h"
 #elif defined(TARGET_OS_LINUX)
 #include "vm/os_thread_linux.h"
 #elif defined(TARGET_OS_MACOS)

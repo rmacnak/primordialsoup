@@ -1,0 +1,200 @@
+# Copyright (c) 2017, the Dart project authors.  Please see the AUTHORS file
+# for details. All rights reserved. Use of this source code is governed by a
+# BSD-style license that can be found in the LICENSE file.
+
+executable("primordialsoup") {
+  include_dirs = [ "src" ]
+  if (is_fuchsia) {
+    libs = [ "magenta" ]
+  }
+  sources = [
+    "src/double-conversion/bignum-dtoa.cc",
+    "src/double-conversion/bignum-dtoa.h",
+    "src/double-conversion/bignum.cc",
+    "src/double-conversion/bignum.h",
+    "src/double-conversion/cached-powers.cc",
+    "src/double-conversion/cached-powers.h",
+    "src/double-conversion/diy-fp.cc",
+    "src/double-conversion/diy-fp.h",
+    "src/double-conversion/double-conversion.cc",
+    "src/double-conversion/double-conversion.h",
+    "src/double-conversion/fast-dtoa.cc",
+    "src/double-conversion/fast-dtoa.h",
+    "src/double-conversion/fixed-dtoa.cc",
+    "src/double-conversion/fixed-dtoa.h",
+    "src/double-conversion/ieee.h",
+    "src/double-conversion/strtod.cc",
+    "src/double-conversion/strtod.h",
+    "src/double-conversion/utils.h",
+    "src/vm/allocation.h",
+    "src/vm/assert.cc",
+    "src/vm/assert.h",
+    "src/vm/bitfield.h",
+    "src/vm/double_conversion.cc",
+    "src/vm/double_conversion.h",
+    "src/vm/flags.h",
+    "src/vm/globals.h",
+    "src/vm/heap.cc",
+    "src/vm/heap.h",
+    "src/vm/interpreter.cc",
+    "src/vm/interpreter.h",
+    "src/vm/isolate.cc",
+    "src/vm/isolate.h",
+    "src/vm/large_integer.cc",
+    "src/vm/lockers.h",
+    "src/vm/lookup_cache.cc",
+    "src/vm/lookup_cache.h",
+    "src/vm/main.cc",
+    "src/vm/math.h",
+    "src/vm/message.cc",
+    "src/vm/message.h",
+    "src/vm/object.cc",
+    "src/vm/object.h",
+    "src/vm/os.h",
+    "src/vm/os_android.cc",
+    "src/vm/os_fuchsia.cc",
+    "src/vm/os_linux.cc",
+    "src/vm/os_macos.cc",
+    "src/vm/os_thread.cc",
+    "src/vm/os_thread.h",
+    "src/vm/os_thread_android.cc",
+    "src/vm/os_thread_android.h",
+    "src/vm/os_thread_fuchsia.cc",
+    "src/vm/os_thread_fuchsia.h",
+    "src/vm/os_thread_linux.cc",
+    "src/vm/os_thread_linux.h",
+    "src/vm/os_thread_macos.cc",
+    "src/vm/os_thread_macos.h",
+    "src/vm/os_thread_win.cc",
+    "src/vm/os_thread_win.h",
+    "src/vm/os_win.cc",
+    "src/vm/port.cc",
+    "src/vm/port.h",
+    "src/vm/primitives.cc",
+    "src/vm/primitives.h",
+    "src/vm/random.h",
+    "src/vm/snapshot.cc",
+    "src/vm/snapshot.h",
+    "src/vm/thread.cc",
+    "src/vm/thread.h",
+    "src/vm/thread_pool.cc",
+    "src/vm/thread_pool.h",
+    "src/vm/utils.h",
+    "src/vm/utils_android.h",
+    "src/vm/utils_fuchsia.h",
+    "src/vm/utils_linux.h",
+    "src/vm/utils_macos.h",
+    "src/vm/utils_win.h",
+    "src/vm/virtual_memory.h",
+    "src/vm/virtual_memory_android.cc",
+    "src/vm/virtual_memory_fuchsia.cc",
+    "src/vm/virtual_memory_linux.cc",
+    "src/vm/virtual_memory_macos.cc",
+    "src/vm/virtual_memory_win.cc",
+  ]
+}
+
+action("generate_snapshots") {
+  deps = [
+    ":primordialsoup($host_toolchain)",
+  ]
+
+  newspeak_sources = [
+    rebase_path("src/newspeak/AccessModifierTesting.ns"),
+    rebase_path("src/newspeak/AccessModifierTestingConfiguration.ns"),
+    rebase_path("src/newspeak/ActorsForPrimordialSoup.ns"),
+    rebase_path("src/newspeak/ActorsTesting.ns"),
+    rebase_path("src/newspeak/ActorsTestingConfigurationForPrimordialSoup.ns"),
+    rebase_path("src/newspeak/BenchmarkRunner.ns"),
+    rebase_path("src/newspeak/ClosureDefFibonacci.ns"),
+    rebase_path("src/newspeak/ClosureFibonacci.ns"),
+    rebase_path("src/newspeak/CollectionsForPrimordialSoup.ns"),
+    rebase_path("src/newspeak/CollectionsTesting.ns"),
+    rebase_path("src/newspeak/CollectionsTestingConfiguration.ns"),
+    rebase_path("src/newspeak/CombinatorialParsing.ns"),
+    rebase_path("src/newspeak/CompilerApp.ns"),
+    rebase_path("src/newspeak/DeltaBlue.ns"),
+    rebase_path("src/newspeak/GUIBenchmarkRunner.ns"),
+    rebase_path("src/newspeak/HelloApp.ns"),
+    rebase_path("src/newspeak/IntermediatesForPrimordialSoup.ns"),
+    rebase_path("src/newspeak/Kernel.ns"),
+    rebase_path("src/newspeak/KernelForPrimordialSoup.ns"),
+    rebase_path("src/newspeak/KernelTests.ns"),
+    rebase_path("src/newspeak/KernelTestsConfiguration.ns"),
+    rebase_path("src/newspeak/KernelWeakTests.ns"),
+    rebase_path("src/newspeak/KernelWeakTestsPrimordialSoupConfiguration.ns"),
+    rebase_path("src/newspeak/MethodFibonacci.ns"),
+    rebase_path("src/newspeak/Minitest.ns"),
+    rebase_path("src/newspeak/MinitestTests.ns"),
+    rebase_path("src/newspeak/MinitestTestsConfiguration.ns"),
+    rebase_path("src/newspeak/MirrorBuilderTesting.ns"),
+    rebase_path("src/newspeak/MirrorBuilderTestingConfiguration.ns"),
+    rebase_path("src/newspeak/MirrorTesting.ns"),
+    rebase_path("src/newspeak/MirrorTestingConfiguration.ns"),
+    rebase_path("src/newspeak/MirrorTestingModel.ns"),
+    rebase_path("src/newspeak/MirrorsForPrimordialSoup.ns"),
+    rebase_path("src/newspeak/NLRImmediate.ns"),
+    rebase_path("src/newspeak/NLRLoop.ns"),
+    rebase_path("src/newspeak/NS2PrimordialSoupCompilerTestingConfiguration.ns"),
+    rebase_path("src/newspeak/Newspeak2SqueakCompilation.ns"),
+    rebase_path("src/newspeak/NewspeakASTs.ns"),
+    rebase_path("src/newspeak/NewspeakCompilation.ns"),
+    rebase_path("src/newspeak/NewspeakGrammar.ns"),
+    rebase_path("src/newspeak/NewspeakParsing.ns"),
+    rebase_path("src/newspeak/ParserCombinators.ns"),
+    rebase_path("src/newspeak/PrimordialFuel.ns"),
+    rebase_path("src/newspeak/PrimordialFuelTestApp.ns"),
+    rebase_path("src/newspeak/PrimordialFuelTesting.ns"),
+    rebase_path("src/newspeak/PrimordialFuelTestingConfiguration.ns"),
+    rebase_path("src/newspeak/PrimordialSoupTracer.ns"),
+    rebase_path("src/newspeak/Richards.ns"),
+    rebase_path("src/newspeak/RuntimeForPrimordialSoup.ns"),
+    rebase_path("src/newspeak/RuntimeWithBuildersForPrimordialSoup.ns"),
+    rebase_path("src/newspeak/SlotRead.ns"),
+    rebase_path("src/newspeak/SlotWrite.ns"),
+    rebase_path("src/newspeak/Splay.ns"),
+    rebase_path("src/newspeak/TestActor.ns"),
+    rebase_path("src/newspeak/TestRunner.ns"),
+  ]
+
+  bootstrap_compiler_snapshot = rebase_path("snapshots/compiler.vfuel")
+
+  inputs = newspeak_sources + [bootstrap_compiler_snapshot]
+
+  hello_snapshot = "$target_gen_dir/HelloApp.vfuel"
+  tests_snapshot = "$target_gen_dir/TestRunner.vfuel"
+  benchmarks_snapshot = "$target_gen_dir/BenchmarkRunner.vfuel"
+  compiler_snapshot = "$target_gen_dir/CompilerApp.vfuel"
+
+  outputs = [
+    hello_snapshot,
+    tests_snapshot,
+    benchmarks_snapshot,
+    compiler_snapshot,
+  ]
+
+  host_primordialsoup_dir = get_label_info(":primordialsoup($host_toolchain)",
+                                           "root_out_dir")
+  host_primordialsoup = rebase_path("$host_primordialsoup_dir/primordialsoup")
+
+  script = host_primordialsoup
+  args = [
+    bootstrap_compiler_snapshot
+  ] + newspeak_sources + [
+    "RuntimeForPrimordialSoup",
+    "HelloApp",
+    rebase_path(hello_snapshot),
+
+    "RuntimeWithBuildersForPrimordialSoup",
+    "TestRunner",
+    rebase_path(tests_snapshot),
+
+    "RuntimeForPrimordialSoup",
+    "BenchmarkRunner",
+    rebase_path(benchmarks_snapshot),
+
+    "RuntimeWithBuildersForPrimordialSoup",
+    "CompilerApp",
+    rebase_path(compiler_snapshot),
+  ]
+}

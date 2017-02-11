@@ -12,7 +12,7 @@ namespace psoup {
 class VirtualMemory {
  public:
   enum Protection {
-    kNone,
+    kNoAccess,
     kReadOnly,
     kReadWrite,
   };
@@ -26,13 +26,15 @@ class VirtualMemory {
   uword limit() const { return limit_; }
   intptr_t size() const { return limit_ - base_; }
 
-  VirtualMemory() : base_(0), limit_(0) { }
+  VirtualMemory() : base_(0), limit_(0), handle_(0) { }
 
  private:
-  VirtualMemory(uword base, uword limit) : base_(base), limit_(limit) { }
+  VirtualMemory(uword base, uword limit, int32_t handle = 0)
+     : base_(base), limit_(limit), handle_(handle) { }
 
   uword base_;
   uword limit_;
+  int32_t handle_;
 };
 
 }  // namespace psoup

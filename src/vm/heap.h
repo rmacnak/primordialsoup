@@ -62,7 +62,7 @@ class Semispace {
   }
 
   void NoAccess() {
-    memory_.Protect(VirtualMemory::kNone);
+    memory_.Protect(VirtualMemory::kNoAccess);
   }
 
   Semispace() : top_(0), memory_() { }
