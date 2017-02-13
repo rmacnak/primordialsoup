@@ -9,7 +9,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   elif target_os == 'windows' and arch == 'x64':
     env = Environment(TARGET_ARCH='x86_64')
   else:
-    env = Environment()
+    env = Environment(tools=['g++', 'gnulink'])
     env['CXX'] = cxx
 
   configname = ''
@@ -176,11 +176,13 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     'message',
     'object',
     'os_android',
+    'os_fuchsia',
     'os_linux',
     'os_macos',
     'os_win',
     'os_thread',
     'os_thread_android',
+    'os_thread_fuchsia',
     'os_thread_linux',
     'os_thread_macos',
     'os_thread_win',
@@ -190,6 +192,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     'thread',
     'thread_pool',
     'virtual_memory_android',
+    'virtual_memory_fuchsia',
     'virtual_memory_linux',
     'virtual_memory_macos',
     'virtual_memory_win',
@@ -310,5 +313,60 @@ def Main():
     # support IA32. Also skip when a specific architecture was asked for.
     BuildVM(host_cxx, 'ia32', host_os, True, sanitize)
     BuildVM(host_cxx, 'ia32', host_os,  False, sanitize)
+
+  ndk = ARGUMENTS.get('ndk', None)
+  if ndk != None:
+    # The following paths were taken from android-ndk-r13b. They might differ
+    # between versions of the Android NDK.
+    if host_os == 'linux':
+      android_host_name = 'linux-x86_64'
+    elif host_os == 'macos':
+      android_host_name = 'darwin-x86_64'
+    elif host_os == 'windows':
+      android_host_name = 'windows-x86_64'
+    else:
+      raise Exception("Android NDK paths not known for this OS")
+
+    target_cxx = ndk + '/toolchains/arm-linux-androideabi-4.9/prebuilt/' \
+        + android_host_name + '/bin/arm-linux-androideabi-g++'
+    sysroot = ndk + '/platforms/android-24/arch-arm/'
+    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    BuildVM(target_cxx, 'arm', 'android', False, None);
+    BuildVM(target_cxx, 'arm', 'android', True, None);
+
+    target_cxx = ndk + '/toolchains/aarch64-linux-android-4.9/prebuilt/' \
+        + android_host_name + '/bin/aarch64-linux-android-g++'
+    sysroot = ndk + '/platforms/android-24/arch-arm64/'
+    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    BuildVM(target_cxx, 'arm64', 'android', False, None);
+    BuildVM(target_cxx, 'arm64', 'android', True, None);
+
+    target_cxx = ndk + '/toolchains/mipsel-linux-android-4.9/prebuilt/' \
+        + android_host_name + '/bin/mipsel-linux-android-g++'
+    sysroot = ndk + '/platforms/android-24/arch-mips/'
+    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    BuildVM(target_cxx, 'mips', 'android', False, None);
+    BuildVM(target_cxx, 'mips', 'android', True, None);
+
+    target_cxx = ndk + '/toolchains/mips64el-linux-android-4.9/prebuilt/' \
+        + android_host_name + '/bin/mips64el-linux-android-g++'
+    sysroot = ndk + '/platforms/android-24/arch-mips64/'
+    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    BuildVM(target_cxx, 'mips64', 'android', False, None);
+    BuildVM(target_cxx, 'mips64', 'android', True, None);
+
+    target_cxx = ndk + '/toolchains/x86-4.9/prebuilt/' \
+        + android_host_name + '/bin/i686-linux-android-g++'
+    sysroot = ndk + '/platforms/android-24/arch-x86/'
+    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    BuildVM(target_cxx, 'ia32', 'android', False, None);
+    BuildVM(target_cxx, 'ia32', 'android', True, None);
+
+    target_cxx = ndk + '/toolchains/x86_64-4.9/prebuilt/' \
+        + android_host_name + '/bin/x86_64-linux-android-g++'
+    sysroot = ndk + '/platforms/android-24/arch-x86_64/'
+    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    BuildVM(target_cxx, 'x64', 'android', False, None);
+    BuildVM(target_cxx, 'x64', 'android', True, None);
 
 Main()

@@ -1,1 +1,1 @@
-scons -Q --jobs %NUMBER_OF_PROCESSORS%
+scons -Q --jobs %NUMBER_OF_PROCESSORS% %*
