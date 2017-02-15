@@ -159,7 +159,7 @@ action("generate_snapshots") {
 
   bootstrap_compiler_snapshot = rebase_path("snapshots/compiler.vfuel")
 
-  inputs = newspeak_sources + [bootstrap_compiler_snapshot]
+  inputs = newspeak_sources + [ bootstrap_compiler_snapshot ]
 
   hello_snapshot = "$target_gen_dir/HelloApp.vfuel"
   tests_snapshot = "$target_gen_dir/TestRunner.vfuel"

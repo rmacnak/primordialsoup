@@ -28,9 +28,6 @@ class Interpreter {
   void Interrupt() { interrupt_ = 1; }
 
  private:
-  void ExtendA(uint8_t byte2);
-  void ExtendB(uint8_t byte2);
-
   void PushReceiverVariable(intptr_t offset);
   void PushLiteralVariable(intptr_t offset);
   void PushTemporary(intptr_t offset);
@@ -121,9 +118,6 @@ class Interpreter {
   void LocalReturn(Object* result);
   void NonLocalReturn(Object* result);
 
-  // Interpreter state.
-  intptr_t extA_;
-  intptr_t extB_;
 #if RECYCLE_ACTIVATIONS
   // How many activations are known to be reachable only from the current
   // activation.

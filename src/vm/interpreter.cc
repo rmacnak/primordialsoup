@@ -15,8 +15,6 @@
 namespace psoup {
 
 Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
-  extA_(0),
-  extB_(0),
 #if RECYCLE_ACTIVATIONS
   recycle_depth_(0),
 #endif
@@ -25,20 +23,6 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
   interrupt_(0),
   lookup_cache_() {
   heap->InitializeLookupCache(&lookup_cache_);
-}
-
-
-void Interpreter::ExtendA(uint8_t byte2) {
-  extA_ = (extA_ << 8) + byte2;
-}
-
-
-void Interpreter::ExtendB(uint8_t byte2) {
-  if (extB_ == 0 && byte2 > 127) {
-    extB_ = byte2 - 256;
-  } else {
-    extB_ = (extB_ << 8) + byte2;
-  }
 }
 
 
@@ -945,6 +929,8 @@ uint8_t Interpreter::FetchNextByte() {
 
 
 void Interpreter::Interpret() {
+  intptr_t extA = 0;
+  intptr_t extB = 0;
   for (;;) {
     uint8_t byte1 = FetchNextByte();
     switch (byte1) {
@@ -978,7 +964,7 @@ void Interpreter::Interpret() {
       break;
     }
     case 77: {
-      switch (extB_) {
+      switch (extB) {
         case 0:
           PushFalse();
           break;
@@ -992,10 +978,10 @@ void Interpreter::Interpret() {
           PushThisContext();
           break;
         default:
-          PushEnclosingObject(-extB_);
+          PushEnclosingObject(-extB);
           break;
       }
-      extB_ = 0;
+      extB = 0;
       break;
     }
     case 78: {
@@ -1321,36 +1307,40 @@ void Interpreter::Interpret() {
       break;
     case 224: {
       uint8_t byte2 = FetchNextByte();
-      ExtendA(byte2);
+      extA = (extA << 8) + byte2;
       break;
     }
     case 225: {
       uint8_t byte2 = FetchNextByte();
-      ExtendB(byte2);
+      if (extB == 0 && byte2 > 127) {
+        extB = byte2 - 256;
+      } else {
+        extB = (extB << 8) + byte2;
+      }
       break;
     }
     case 226: {
       uint8_t byte2 = FetchNextByte();
-      PushReceiverVariable((extA_ << 8) + byte2);
-      extA_ = 0;
+      PushReceiverVariable((extA << 8) + byte2);
+      extA = 0;
       break;
     }
     case 227: {
       uint8_t byte2 = FetchNextByte();
-      PushLiteralVariable((extA_ << 8) + byte2);
-      extA_ = 0;
+      PushLiteralVariable((extA << 8) + byte2);
+      extA = 0;
       break;
     }
     case 228: {
       uint8_t byte2 = FetchNextByte();
-      PushLiteral(byte2 + extA_ * 256);
-      extA_ = 0;
+      PushLiteral(byte2 + extA * 256);
+      extA = 0;
       break;
     }
     case 229: {
       uint8_t byte2 = FetchNextByte();
-      PushInteger((extB_ << 8) + byte2);
-      extB_ = 0;
+      PushInteger((extB << 8) + byte2);
+      extB = 0;
       break;
     }
     case 230: {
@@ -1369,96 +1359,96 @@ void Interpreter::Interpret() {
     }
     case 232: {
       uint8_t byte2 = FetchNextByte();
-      StoreIntoReceiverVariable((extA_ << 8) + byte2);
-      extA_ = 0;
+      StoreIntoReceiverVariable((extA << 8) + byte2);
+      extA = 0;
       break;
     }
     case 233: {
       uint8_t byte2 = FetchNextByte();
-      StoreIntoLiteralVariable((extA_ << 8) + byte2);
-      extA_ = 0;
+      StoreIntoLiteralVariable((extA << 8) + byte2);
+      extA = 0;
       break;
     }
     case 234: {
       uint8_t byte2 = FetchNextByte();
-      StoreIntoTemporary((extA_ << 8) + byte2);
-      extA_ = 0;
+      StoreIntoTemporary((extA << 8) + byte2);
+      extA = 0;
       break;
     }
     case 235: {
       uint8_t byte2 = FetchNextByte();
-      PopIntoReceiverVariable((extA_ << 8) + byte2);
-      extA_ = 0;
+      PopIntoReceiverVariable((extA << 8) + byte2);
+      extA = 0;
       break;
     }
     case 236: {
       uint8_t byte2 = FetchNextByte();
-      PopIntoLiteralVariable((extA_ << 8) + byte2);
-      extA_ = 0;
+      PopIntoLiteralVariable((extA << 8) + byte2);
+      extA = 0;
       break;
     }
     case 237: {
       uint8_t byte2 = FetchNextByte();
-      PopIntoTemporary((extA_ << 8) + byte2);
-      extA_ = 0;
+      PopIntoTemporary((extA << 8) + byte2);
+      extA = 0;
       break;
     }
     case 238: {
       uint8_t byte2 = FetchNextByte();
-      intptr_t selector_index = (extA_ << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB_ << 3) | (byte2 & 7);
+      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
+      intptr_t num_args = (extB << 3) | (byte2 & 7);
       OrdinarySend(selector_index, num_args);
-      extA_ = extB_ = 0;
+      extA = extB = 0;
       break;
     }
     case 239: {
       uint8_t byte2 = FetchNextByte();
-      intptr_t selector_index = (extA_ << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB_ << 3) | (byte2 & 7);
+      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
+      intptr_t num_args = (extB << 3) | (byte2 & 7);
       StaticSuperSend(selector_index, num_args);
-      extA_ = extB_ = 0;
+      extA = extB = 0;
       break;
     }
     case 240: {
       uint8_t byte2 = FetchNextByte();
-      intptr_t selector_index = (extA_ << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB_ << 3) | (byte2 & 7);
+      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
+      intptr_t num_args = (extB << 3) | (byte2 & 7);
       ImplicitReceiverSend(selector_index, num_args);
-      extA_ = extB_ = 0;
+      extA = extB = 0;
       break;
     }
     case 241: {
       uint8_t byte2 = FetchNextByte();
-      intptr_t selector_index = (extA_ << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB_ << 3) | (byte2 & 7);
+      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
+      intptr_t num_args = (extB << 3) | (byte2 & 7);
       SuperSend(selector_index, num_args);
-      extA_ = extB_ = 0;
+      extA = extB = 0;
       break;
     }
     case 242: {
       uint8_t byte2 = FetchNextByte();
-      Jump((extB_ << 8) + byte2);
-      extB_ = 0;
+      Jump((extB << 8) + byte2);
+      extB = 0;
       break;
     }
     case 243: {
       uint8_t byte2 = FetchNextByte();
-      PopJumpTrue((extB_ << 8) + byte2);
-      extB_ = 0;
+      PopJumpTrue((extB << 8) + byte2);
+      extB = 0;
       break;
     }
     case 244: {
       uint8_t byte2 = FetchNextByte();
-      PopJumpFalse((extB_ << 8) + byte2);
-      extB_ = 0;
+      PopJumpFalse((extB << 8) + byte2);
+      extB = 0;
       break;
     }
     case 245: {
       uint8_t byte2 = FetchNextByte();
-      intptr_t selector_index = (extA_ << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB_ << 3) | (byte2 & 7);
+      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
+      intptr_t num_args = (extB << 3) | (byte2 & 7);
       SelfSend(selector_index, num_args);
-      extA_ = extB_ = 0;
+      extA = extB = 0;
       break;
     }
     case 246:
@@ -1492,21 +1482,21 @@ void Interpreter::Interpret() {
     case 253: {
       uint8_t byte2 = FetchNextByte();
       uint8_t byte3 = FetchNextByte();
-      intptr_t num_copied = (byte2 >> 3 & 7) + ((extA_ / 16) << 3);
-      intptr_t num_args = (byte2 & 7) + ((extA_ % 16) << 3);
-      intptr_t block_size = byte3 + (extB_ << 8);
+      intptr_t num_copied = (byte2 >> 3 & 7) + ((extA / 16) << 3);
+      intptr_t num_args = (byte2 & 7) + ((extA % 16) << 3);
+      intptr_t block_size = byte3 + (extB << 8);
       PushClosure(num_copied, num_args, block_size);
-      extA_ = extB_ = 0;
+      extA = extB = 0;
       break;
     }
     case 254: {
       uint8_t byte2 = FetchNextByte();
       uint8_t byte3 = FetchNextByte();
-      intptr_t selector_index = (extA_ << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB_ << 3) | (byte2 & 7);
+      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
+      intptr_t num_args = (extB << 3) | (byte2 & 7);
       intptr_t depth = byte3;
       OuterSend(selector_index, num_args, depth);
-      extA_ = extB_ = 0;
+      extA = extB = 0;
       break;
     }
     case 255:
