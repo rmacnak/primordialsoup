@@ -76,7 +76,7 @@ void Deserializer::Deserialize() {
     clusters_[i] = c;
     c->ReadNodes(this, heap_);
   }
-  ASSERT(next_back_ref_ == num_nodes);
+  ASSERT((next_back_ref_ - 1) == num_nodes);
   for (intptr_t i = 0; i < num_clusters_; i++) {
     clusters_[i]->ReadEdges(this, heap_);
   }

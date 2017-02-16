@@ -75,23 +75,24 @@ enum HeaderBits {
 enum {
   kIllegalCid = 0,
   kForwardingCorpseCid = 1,
+  kFreeListElementCid = 2,
 
-  kFirstLegalCid = 2,
+  kFirstLegalCid = 3,
 
-  kSmiCid = 2,
-  kMintCid = 3,
-  kBigintCid = 4,
-  kFloat64Cid = 5,
-  kByteArrayCid = 6,
-  kByteStringCid = 7,
-  kWideStringCid = 8,
-  kArrayCid = 9,
-  kWeakArrayCid = 10,
-  kEphemeronCid = 11,
-  kActivationCid = 12,
-  kClosureCid = 13,
+  kSmiCid = 3,
+  kMintCid = 4,
+  kBigintCid = 5,
+  kFloat64Cid = 6,
+  kByteArrayCid = 7,
+  kByteStringCid = 8,
+  kWideStringCid = 9,
+  kArrayCid = 10,
+  kWeakArrayCid = 11,
+  kEphemeronCid = 12,
+  kActivationCid = 13,
+  kClosureCid = 14,
 
-  kFirstRegularObjectCid = 14,
+  kFirstRegularObjectCid = 15,
 };
 
 
@@ -1026,19 +1027,6 @@ class Message : public Object {
  private:
   ByteString* selector_;
   Array* arguments_;
-};
-
-
-class Thread : public Object {
-  HEAP_OBJECT_IMPLEMENTATION(Thread);
-
- public:
-  Activation* suspended_activation() const {
-    return ptr()->suspended_activation_;
-  }
-
- private:
-  Activation* suspended_activation_;
 };
 
 

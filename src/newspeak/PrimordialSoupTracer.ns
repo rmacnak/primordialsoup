@@ -7,7 +7,6 @@ helloApp = manifest HelloApp packageUsing: manifest.
 testApp = manifest TestRunner packageUsing: manifest.
 benchmarkApp = manifest BenchmarkRunner packageUsing: manifest.
 compilerApp = manifest CompilerApp packageUsing: manifest.
-evalApp = manifest EvalApp packageUsing: manifest.
 |) (
 class Tracer usingPlatform: p with: runtime source: ks = (|
 List = p collections List.
@@ -41,19 +40,19 @@ processorAssociation = p squeak Smalltalk associationAt: #Processor.
 vmmirror = p squeak VMMirror new.
 keepSource = ks.
 
-  kSmiCid = 2.
-  kMintCid = 3.
-  kBigintCid = 4.
-  kFloat64Cid = 5.
-  kByteArrayCid = 6.
-  kByteStringCid = 7.
-  kWideStringCid = 8.
-  kArrayCid = 9.
-  kWeakArrayCid = 10.
-  kEphemeronCid = 11.
-  kActivationCid = 12.
-  kClosureCid = 13.
-  kFirstPlainObjectCid = 14.
+private kSmiCid = 3.
+private kMintCid = 4.
+private kBigintCid = 5.
+private kFloat64Cid = 6.
+private kByteArrayCid = 7.
+private kByteStringCid = 8.
+private kWideStringCid = 9.
+private kArrayCid = 10.
+private kWeakArrayCid = 11.
+private kEphemeronCid = 12.
+private kActivationCid = 13.
+private kClosureCid = 14.
+private kFirstPlainObjectCid = 15.
 
 psoup = runtime InternalKernel new.
 platform = runtime Platform internalKernel: psoup.
@@ -811,7 +810,7 @@ serialize: root = (
 
 	fastforward:: stream position.
 	stream position: rewind.
-	stream uint32: nextBackRef out.
+	stream uint32: nextBackRef - 1.
 	stream position: fastforward.
 )
 public serialize: app to: filename = (
@@ -852,9 +851,6 @@ public main: p args: a = (
 		
 	(Tracer usingPlatform: p with: runtimeWithBuilders source: false)
 		serialize: compilerApp to: 'primordialsoup/snapshots/compiler.vfuel'.
-		
-	(Tracer usingPlatform: p with: runtimeWithBuilders source: true)
-		serialize: evalApp to: 'primordialsoup/snapshots/eval.vfuel'.
 )
 ) : (
 )

@@ -28,19 +28,19 @@ private Class = k Class.
 private InstanceMixin = k InstanceMixin.
 private ClassMixin = k ClassMixin.
 
-private kSmiCid = 2.
-private kMintCid = 3.
-private kBigintCid = 4.
-private kFloat64Cid = 5.
-private kByteArrayCid = 6.
-private kByteStringCid = 7.
-private kWideStringCid = 8.
-private kArrayCid = 9.
-private kWeakArrayCid = 10.
-private kEphemeronCid = 11.
-private kActivationCid = 12.
-private kClosureCid = 13.
-private kFirstPlainObjectCid = 14.
+private kSmiCid = 3.
+private kMintCid = 4.
+private kBigintCid = 5.
+private kFloat64Cid = 6.
+private kByteArrayCid = 7.
+private kByteStringCid = 8.
+private kWideStringCid = 9.
+private kArrayCid = 10.
+private kWeakArrayCid = 11.
+private kEphemeronCid = 12.
+private kActivationCid = 13.
+private kClosureCid = 14.
+private kFirstPlainObjectCid = 15.
 private Version = 0.
 |) (
 class ByteStream = (|
@@ -1025,7 +1025,7 @@ public serialize: root = (
 
 	fastforward:: stream position.
 	stream position: rewind.
-	stream uint32: nextBackRef.
+	stream uint32: nextBackRef - 1.
 	stream position: fastforward.
 	
 	('Wrote ', backRefs size printString, ' objects in ', 
@@ -1468,7 +1468,7 @@ public serialize: root = (
 
 	fastforward:: stream position.
 	stream position: rewind.
-	stream uint32: nextBackRef.
+	stream uint32: nextBackRef - 1.
 	stream position: fastforward.
 	
 	(backRefs size printString, ' objects in ', 
