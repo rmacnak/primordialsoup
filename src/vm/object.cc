@@ -209,6 +209,13 @@ void Object::Print(Heap* heap) {
 }
 
 
+#if defined(ARCH_IS_32_BIT)
+static uintptr_t kFNVPrime = 16777619;
+#elif defined(ARCH_IS_64_BIT)
+static uintptr_t kFNVPrime = 1099511628211;
+#endif
+
+
 SmallInteger* ByteString::EnsureHash(Heap* heap) {
   if (hash() == 0) {
     // FNV-1a hash
@@ -216,13 +223,13 @@ SmallInteger* ByteString::EnsureHash(Heap* heap) {
     uintptr_t h = length + 1;
     for (intptr_t i = 0; i < length; i++) {
       h = h ^ element(i);
-      h = h * 16777619;
+      h = h * kFNVPrime;
     }
-    // Random component.
     h = h ^ heap->string_hash_salt();
-    // Smi range on 32-bit.  TODO(rmacnak): kMaxPositiveSmi
-    h = h & 0x3FFFFFF;
-    ASSERT(h != 0);
+    h = h & kSmiMax;
+    if (h == 0) {
+      h = 1;
+    }
     set_hash(SmallInteger::New(h));
   }
   return hash();
@@ -236,13 +243,13 @@ SmallInteger* WideString::EnsureHash(Heap* heap) {
     uintptr_t h = length + 1;
     for (intptr_t i = 0; i < length; i++) {
       h = h ^ element(i);
-      h = h * 16777619;
+      h = h * kFNVPrime;
     }
-    // Random component.
     h = h ^ heap->string_hash_salt();
-    // Smi range on 32-bit.  TODO(rmacnak): kMaxPositiveSmi
-    h = h & 0x3FFFFFF;
-    ASSERT(h != 0);
+    h = h & kSmiMax;
+    if (h == 0) {
+      h = 1;
+    }
     set_hash(SmallInteger::New(h));
   }
   return hash();
