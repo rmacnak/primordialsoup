@@ -699,7 +699,7 @@ void Heap::PrintStack() {
     AbstractMixin* method_mixin = home->method()->mixin();
     if (receiver_mixin != method_mixin) {
       ByteString* method_mixin_name = method_mixin->name();
-      OS::Print("(");
+      OS::PrintErr("(");
       if (method_mixin_name->IsByteString()) {
         PrintStringError(method_mixin_name);
       } else {
@@ -709,7 +709,7 @@ void Heap::PrintStack() {
         PrintStringError(method_mixin_name);
         OS::PrintErr(" class");
       }
-      OS::Print(")");
+      OS::PrintErr(")");
     }
 
     ByteString* method_name = home->method()->selector();

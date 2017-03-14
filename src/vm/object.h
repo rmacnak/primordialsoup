@@ -1046,6 +1046,9 @@ class ObjectStore : public Object {
   class ByteString* does_not_understand() const {
     return ptr()->does_not_understand_;
   }
+  class ByteString* non_boolean_receiver() const {
+    return ptr()->non_boolean_receiver_;
+  }
   class ByteString* cannot_return() const {
     return ptr()->cannot_return_;
   }
@@ -1078,7 +1081,7 @@ class ObjectStore : public Object {
   Scheduler* scheduler_;
   class Array* quick_selectors_;
   class ByteString* does_not_understand_;
-  class ByteString* must_be_boolean_;
+  class ByteString* non_boolean_receiver_;
   class ByteString* cannot_return_;
   class ByteString* about_to_return_through_;
   class ByteString* unused_bytecode_;

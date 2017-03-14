@@ -35,9 +35,9 @@ public bci: value = (
 	(* :literalmessage: primitive: 58 *)
 	primitiveFailed
 )
-private cannotReturn: value = (
+private cannotReturn: result = (
 	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer along the chain of senders. *)
-	^CannotReturn new signal
+	^(CannotReturn result: result) signal
 )
 public closure = (
 	(* :literalmessage: primitive: 61 *)
@@ -82,9 +82,9 @@ public method: value = (
 	(* :literalmessage: primitive: 60 *)
 	primitiveFailed
 )
-private mustBeBoolean: nonBoolean = (
+private nonBooleanReceiver: nonBoolean = (
 	(* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
-	^MustBeBoolean new signal
+	^(NonBooleanReceiver receiver: nonBoolean) signal
 )
 public printString ^<String> = (
 	| methodMixin receiverMixin |
@@ -319,7 +319,12 @@ private fromRunesAgain: runes <Array[Integer]> ^<String> = (
 	^ArgumentError new signal
 )
 )
-class CannotReturn = Exception () (
+class CannotReturn result: r = Exception (|
+public result = r.
+|) (
+public printString ^<String> = (
+	^'CannotReturn: ', result printString
+)
 ) : (
 )
 public class Class = Behavior (|
@@ -1202,7 +1207,12 @@ public newSetterForSlot: name at: index accessModifier: am = (
 	^accessor
 )
 )
-class MustBeBoolean = Exception () (
+class NonBooleanReceiver receiver: r = Exception (|
+public receiver = r.
+|) (
+public printString ^<String> = (
+	^'NonBooleanReceiver ', receiver printString
+)
 ) : (
 )
 class Number = () (
@@ -1820,7 +1830,7 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 		theScheduler.
 		{#+. 1. #-. 1. #<. 1. #>. 1. #<=. 1. #>=. 1. #=. 1. #~=. 1. #*. 1. #/. 1. #\\. 1. #@. 1. #bitShift:. 1. #//. 1. #bitAnd:. 1. #bitOr:. 1. #at:. 1. #at:put:. 2. #size. 0. #next. 0. #nextPut:. 1. #atEnd. 0. #==. 1. #class. 0. #blockCopy:. 1. #value. 0. #value:. 1. #do:. 1. #new. 0. #new:. 1. #x. 0. #y. 0}.
 		#doesNotUnderstand:.
-		#mustBeBoolean.
+		#nonBooleanReceiver:.
 		#cannotReturn:.
 		#aboutToReturn:through:.
 		#unusedBytecode.

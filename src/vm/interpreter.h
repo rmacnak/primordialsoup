@@ -110,6 +110,7 @@ class Interpreter {
   void SendUnwindProtect(Activation* returner,
                          Object* result,
                          Activation* unwind);
+  void SendNonBooleanReceiver(Object* non_boolean);
 
   void ActivateAbsent(Method* method, Object* receiver, intptr_t num_args);
   void InsertAbsentReceiver(Object* receiver, intptr_t num_args);

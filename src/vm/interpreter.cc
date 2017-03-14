@@ -628,6 +628,33 @@ void Interpreter::SendUnwindProtect(Activation* returner,
 }
 
 
+void Interpreter::SendNonBooleanReceiver(Object* non_boolean) {
+  // Note that Squeak instead sends #mustBeBoolean to the non-boolean.
+  if (TRACE_SPECIAL_CONTROL) {
+    OS::PrintErr("#nonBooleanReceiver:\n");
+  }
+
+  Behavior* receiver_class = A->Klass(H);
+  Behavior* cls = receiver_class;
+  Method* method;
+  do {
+    method = MethodAt(cls, H->object_store()->non_boolean_receiver());
+    if (method != nil) {
+      break;
+    }
+    cls = cls->superclass();
+  } while (cls != nil);
+
+  if (method == nil) {
+    FATAL("Missing #nonBooleanReceiver:");
+  }
+
+  A->Push(A);
+  A->Push(non_boolean);
+  Activate(method, 1);  // SAFEPOINT
+}
+
+
 void Interpreter::InsertAbsentReceiver(Object* receiver, intptr_t num_args) {
   ASSERT(num_args >= 0);
   ASSERT(num_args < 255);
@@ -745,8 +772,12 @@ void Interpreter::StaticSuperSend(intptr_t selector_index,
 
 
 void Interpreter::LocalReturn(Object* result) {
+  // TODO(rmacnak): In Smalltalk, local returns also might trigger
+  // #cannotReturn: after manipulation of contexts for coroutining
+  // or continuations. This might arise in Newspeak as well depending
+  // what activation mirrors can do.
   Activation* sender = A->sender();
-  ASSERT(sender->IsActivation());  // Not nil.
+  ASSERT(sender->IsActivation());
   SmallInteger* sender_bci = sender->bci();
   ASSERT(sender_bci->IsSmallInteger());  // Not nil.
 
@@ -775,38 +806,36 @@ void Interpreter::NonLocalReturn(Object* result) {
     c = home->closure();
   }
 
-  // Walk backward along the dynamic chain looking the enclosing method
-  // activation or an unwind-protect activation.
-  Activation* unwind = A->sender();
-  for (;;) {
-    if (unwind == home) break;
-
+  // Search the dynamic chain for a dead activation or an unwind-protect
+  // activation that would block the return.
+  for (Activation* unwind = A->sender();
+       unwind != home;
+       unwind = unwind->sender()) {
     if (!unwind->IsActivation()) {
       ASSERT(unwind == nil);
-      // <thisContext> cannotReturn: <result>
+      // <A> cannotReturn: <result>
       SendCannotReturn(A, result);  // SAFEPOINT
       return;
     }
 
     if (Primitives::IsUnwindProtect(unwind->method()->Primitive())) {
-      // <thisContext> aboutToReturn: <result> through: <unwind>
+      // <A> aboutToReturn: <result> through: <unwind>
       SendUnwindProtect(A, result, unwind);  // SAFEPOINT
       return;
     }
-
-    unwind = unwind->sender();
   }
 
   Activation* sender = home->sender();
   if (!sender->IsActivation() ||
       !sender->bci()->IsSmallInteger()) {
-    // <thisContext> cannotReturn: <result>
+    // <A> cannotReturn: <result>
     SendCannotReturn(A, result);  // SAFEPOINT
     return;
   }
 
-  // The blue book only zaps A. The Squeak context interpreter zaps from A to
-  // home. I can't follow what the stack interpreter does.
+  // Mark activations on the dynamic chain up to the return target as dead.
+  // Note this follows the behavior of Squeak instead of the blue book, which
+  // only zaps A.
   Activation* zap = A;
   do {
     Activation* next = zap->sender();
@@ -859,32 +888,25 @@ void Interpreter::Jump(intptr_t delta) {
 
 
 void Interpreter::PopJumpTrue(intptr_t delta) {
-  Object* top = A->Stack(0);
+  Object* top = A->Pop();
   if (top == H->object_store()->false_obj()) {
-    A->Drop(1);
   } else if (top == H->object_store()->true_obj()) {
     SmallInteger* bci = A->bci();
     A->set_bci(SmallInteger::New(bci->value() + delta));
-    A->Drop(1);
   } else {
-    top->Print(H);
-    H->PrintStack();
-    UNIMPLEMENTED();  // #mustBeBoolean:
+    SendNonBooleanReceiver(top);
   }
 }
 
 
 void Interpreter::PopJumpFalse(intptr_t delta) {
-  Object* top = A->Stack(0);
+  Object* top = A->Pop();
   if (top == H->object_store()->true_obj()) {
-    A->Drop(1);
   } else if (top == H->object_store()->false_obj()) {
     SmallInteger* bci = A->bci();
     A->set_bci(SmallInteger::New(bci->value() + delta));
-    A->Drop(1);
   } else {
-    top->Print(H);
-    UNIMPLEMENTED();  // #mustBeBoolean:
+    SendNonBooleanReceiver(top);
   }
 }
 

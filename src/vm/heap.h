@@ -425,7 +425,7 @@ class HandleScope {
   HandleScope(Heap* heap, Object** ptr) : heap_(heap) {
     heap_->handles_[heap_->handles_top_] = ptr;
     heap_->handles_top_++;
-    ASSERT(heap_->handles_top_ < Heap::kMaxHandles);
+    ASSERT(heap_->handles_top_ <= Heap::kMaxHandles);
   }
 
   ~HandleScope() {
