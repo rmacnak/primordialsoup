@@ -261,7 +261,7 @@ intptr_t Heap::AllocateClassId() {
       static_cast<SmallInteger*>(class_table_[cid])->value();
   } else if (class_table_top_ == class_table_capacity_) {
     if (TRACE_GROWTH) {
-      OS::Print("Scavenging to free class table entries\n");
+      OS::PrintErr("Scavenging to free class table entries\n");
     }
     Scavenge();
     if (class_table_free_ != 0) {
@@ -615,7 +615,7 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
 
   intptr_t len = old->Size();
   if (TRACE_BECOME) {
-    OS::Print("become(%" Pd ")\n", len);
+    OS::PrintErr("become(%" Pd ")\n", len);
   }
 
   for (intptr_t i = 0; i < len; i++) {

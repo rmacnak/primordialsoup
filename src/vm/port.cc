@@ -140,7 +140,7 @@ Port PortMap::CreatePort(MessageQueue* queue) {
   MaintainInvariants();
 
   if (TRACE_ISOLATES) {
-    OS::Print("Opening port: %" Pd64 "\n", entry.port);
+    OS::PrintErr("Opening port: %" Pd64 "\n", entry.port);
   }
 
   return entry.port;

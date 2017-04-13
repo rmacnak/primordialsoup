@@ -42,7 +42,7 @@ class PrimordialSoup {
 
     if (TRACE_ISOLATES) {
       intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
-      OS::Print("Starting main isolate on thread %" Pd "\n", id);
+      OS::PrintErr("Starting main isolate on thread %" Pd "\n", id);
     }
 
     Isolate* main_isolate = new Isolate(pool);
@@ -51,7 +51,7 @@ class PrimordialSoup {
 
     if (TRACE_ISOLATES) {
       intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
-      OS::Print("Finishing main isolate on thread %" Pd "\n", id);
+      OS::PrintErr("Finishing main isolate on thread %" Pd "\n", id);
     }
     delete main_isolate;
 

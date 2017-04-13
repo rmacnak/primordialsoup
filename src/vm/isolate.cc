@@ -66,7 +66,7 @@ void Isolate::InterruptAll() {
   OS::PrintErr("Got SIGINT\n");
   Isolate* current = isolates_list_head_;
   while (current != NULL) {
-    OS::Print("Interrupting %" Px "\n", reinterpret_cast<uword>(current));
+    OS::PrintErr("Interrupting %" Px "\n", reinterpret_cast<uword>(current));
     current->Interrupt();
     current = current->next_;
   }
@@ -82,7 +82,7 @@ void Isolate::Interrupt() {
 void Isolate::Interrupted() {
   {
     MonitorLocker ml(isolates_list_monitor_);
-    OS::Print("%" Px " interrupted: \n", reinterpret_cast<uword>(this));
+    OS::PrintErr("%" Px " interrupted: \n", reinterpret_cast<uword>(this));
     heap_->PrintStack();
   }
   Finish();
@@ -198,7 +198,7 @@ class SpawnIsolateTask : public ThreadPool::Task {
   virtual void Run() {
     if (TRACE_ISOLATES) {
       intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
-      OS::Print("Starting isolate on thread %" Pd "\n", id);
+      OS::PrintErr("Starting isolate on thread %" Pd "\n", id);
     }
     Isolate* child_isolate = new Isolate(pool_);
 
@@ -211,7 +211,7 @@ class SpawnIsolateTask : public ThreadPool::Task {
 
     if (TRACE_ISOLATES) {
       intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
-      OS::Print("Finishing isolate on thread %" Pd "\n", id);
+      OS::PrintErr("Finishing isolate on thread %" Pd "\n", id);
     }
     delete child_isolate;
   }
