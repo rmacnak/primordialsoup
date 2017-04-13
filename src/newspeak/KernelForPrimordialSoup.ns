@@ -86,6 +86,14 @@ private nonBooleanReceiver: nonBoolean = (
 	(* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
 	^(NonBooleanReceiver receiver: nonBoolean) signal
 )
+public pop = (
+	| 
+	depth = self tempSize. 
+	result = self tempAt: depth.
+	|
+	self tempSize: depth - 1.
+	^result
+)
 public printString ^<String> = (
 	| methodMixin receiverMixin |
 	closure isNil ifFalse: [^'[] in ', (definingActivationOf: closure) printString].
@@ -93,6 +101,12 @@ public printString ^<String> = (
 	receiverMixin:: (mixinOf: (classOf: receiver)).
 	methodMixin = receiverMixin ifTrue: [^receiverMixin _name, ' ', method selector].
 	^receiverMixin _name, '(', methodMixin _name, ') ', method selector.
+)
+public push: value = (
+	| newDepth |
+	newDepth:: self tempSize + 1.
+	self tempSize: newDepth.
+	^self tempAt: newDepth put: value
 )
 public receiver = (
 	(* :literalmessage: primitive: 63 *)
@@ -141,6 +155,10 @@ public tempSize = (
 	(* :literalmessage: primitive: 67 *)
 	primitiveFailed
 )
+public tempSize: newDepth = (
+	(* :literalmessage: primitive: 140 *)
+	primitiveFailed
+)
 public terminate = (
 	(* Make myself unresumable. *)
 	sender:: nil.
@@ -157,6 +175,9 @@ public terminateTo: previousContext = (
 			currentContext terminate.
 			currentContext:: sendingContext]].
 	sender:: previousContext
+)
+public top = (
+	^self tempAt: self tempSize.
 )
 ) : (
 public new = (
@@ -361,21 +382,6 @@ public isMeta = (
 ) : (
 )
 public class Closure _cannotInstantiate = () (
-public asContext = (
-	(* :bogus: *)
-	| a = Activation new. |
-
-	(* nil sender *)	
-	a method: (definingActivationOf: self) method.
-	a bci: (initialBCIOf: self).
-	a closure: self.
-	a receiver: (definingActivationOf: self) receiver.
-	
-	(* arguments and copied values *)
-	numArgs = 0 ifFalse: [NOPE].
-	
-	^a
-)
 public cull: arg1 = (
 	0 = numArgs ifTrue: [^self value].
 	1 = numArgs ifTrue: [^self value: arg1].
@@ -1158,6 +1164,15 @@ public accessModifier ^<Symbol> = (
 	2 = ac ifTrue: [^#private].
 	halt.
 )
+public isPrivate = (
+	^#private = accessModifier
+)
+public isProtected = (
+	^#protected = accessModifier
+)
+public isPublic = (
+	^#public = accessModifier
+)
 public isSynthetic = (
 	^nil = source
 )
@@ -1857,7 +1872,7 @@ private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
 	primitiveFailed: 'Mirror classOf:'.
 )
-private currentActivation = (
+private currentActivation ^<Activation> = (
 	(* :literalmessage: primitive: 133 *)
 	^halt
 )
@@ -1865,7 +1880,7 @@ private currentMonotonicMicros = (
 	(* :literalmessage: primitive: 100 *)
 	primitiveFailed: 'monotonic micros'.
 )
-private definingActivationOf: closue <Closure> ^<Activation> = (
+private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
 	primitiveFailed: 'Mirror definingActivationOf:'.
 )
@@ -1891,10 +1906,6 @@ public garbageCollect = (
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
 	halt.
-)
-private initialBCIOf: closue <Closure> ^<Integer> = (
-	(* :literalmessage: primitive: 73 *)
-	primitiveFailed: 'Mirror initialBCIOf:'.
 )
 private instantiate: klass = (
 	(* :literalmessage: primitive: 34 *)

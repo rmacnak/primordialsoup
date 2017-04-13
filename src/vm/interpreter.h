@@ -51,8 +51,8 @@ class Interpreter {
   void PushThisContext();
   void PushEnclosingObject(intptr_t depth);
   void PushInteger(intptr_t value);
-  void PushConsArray(intptr_t size);
-  void PushEmptyArray(intptr_t size);
+  void PushNewArrayWithElements(intptr_t size);
+  void PushNewArray(intptr_t size);
   void PushClosure(intptr_t num_copied, intptr_t num_args, intptr_t block_size);
 
   void QuickArithmeticSend(intptr_t offset);

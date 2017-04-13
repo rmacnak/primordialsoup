@@ -156,6 +156,8 @@ const bool kFailure = false;
   V(137, spawn)                                                                \
   V(138, send)                                                                 \
   V(139, finish)                                                               \
+  V(140, Activation_tempSizePut)                                               \
+  V(141, doPrimitiveWithArgs)                                                  \
   V(200, quickReturnSelf)                                                      \
 
 
@@ -1554,7 +1556,7 @@ DEFINE_PRIMITIVE(Activation_closure) {
   ASSERT(num_args == 0);
   Activation* subject = static_cast<Activation*>(A->Stack(0));
   if (!subject->IsActivation()) {
-    UNIMPLEMENTED();
+    return kFailure;
   }
   A->PopNAndPush(num_args + 1, subject->closure());
   return kSuccess;
@@ -1565,8 +1567,11 @@ DEFINE_PRIMITIVE(Activation_closurePut) {
   ASSERT(num_args == 1);
   Activation* subject = static_cast<Activation*>(A->Stack(1));
   Closure* new_closure = static_cast<Closure*>(A->Stack(0));
-  if (!subject->IsActivation() || !new_closure->IsClosure()) {
-    UNIMPLEMENTED();
+  if (!subject->IsActivation()) {
+    return kFailure;
+  }
+  if (!new_closure->IsClosure() && (new_closure != nil)) {
+    return kFailure;
   }
   subject->set_closure(new_closure);
   A->PopNAndPush(num_args + 1, subject);
@@ -1578,7 +1583,7 @@ DEFINE_PRIMITIVE(Activation_receiver) {
   ASSERT(num_args == 0);
   Activation* subject = static_cast<Activation*>(A->Stack(0));
   if (!subject->IsActivation()) {
-    UNIMPLEMENTED();
+    return kFailure;
   }
   A->PopNAndPush(num_args + 1, subject->receiver());
   return kSuccess;
@@ -1634,9 +1639,33 @@ DEFINE_PRIMITIVE(Activation_tempSize) {
   ASSERT(num_args == 0);
   Activation* receiver = static_cast<Activation*>(A->Stack(0));
   if (!receiver->IsActivation()) {
-    UNREACHABLE();
+    return kFailure;
   }
   A->PopNAndPush(num_args + 1, SmallInteger::New(receiver->stack_depth()));
+  return kSuccess;
+}
+
+
+DEFINE_PRIMITIVE(Activation_tempSizePut) {
+  ASSERT(num_args == 1);
+  Activation* receiver = static_cast<Activation*>(A->Stack(1));
+  SmallInteger* depth = static_cast<SmallInteger*>(A->Stack(0));
+  if (!receiver->IsActivation()) {
+    return kFailure;
+  }
+  if (!depth->IsSmallInteger()) {
+    return kFailure;
+  }
+  intptr_t new_depth = depth->value();
+  if ((new_depth < 0) || (new_depth > Activation::kMaxTemps)) {
+    return kFailure;
+  }
+  intptr_t old_depth = receiver->stack_depth();
+  for (intptr_t i = old_depth; i < new_depth; i++) {
+    receiver->set_temp(i, nil);
+  }
+  receiver->set_stack_depth(depth);
+  A->PopNAndPush(num_args + 1, depth);
   return kSuccess;
 }
 
@@ -1655,7 +1684,44 @@ DEFINE_PRIMITIVE(Activation_class_new) {
 }
 
 
-DEFINE_PRIMITIVE(Closure_class_new) { UNIMPLEMENTED(); return kSuccess; }
+DEFINE_PRIMITIVE(Closure_class_new) {
+  ASSERT(num_args == 4);
+  Activation* defining_activation = static_cast<Activation*>(A->Stack(3));
+  SmallInteger* initial_bci = static_cast<SmallInteger*>(A->Stack(2));
+  SmallInteger* closure_num_args = static_cast<SmallInteger*>(A->Stack(1));
+  SmallInteger* num_copied = static_cast<SmallInteger*>(A->Stack(0));
+  if (!defining_activation->IsActivation()) {
+    return kFailure;
+  }
+  if (!initial_bci->IsSmallInteger()) {
+    return kFailure;
+  }
+  if (!closure_num_args->IsSmallInteger()) {
+    return kFailure;
+  }
+  if (!num_copied->IsSmallInteger()) {
+    return kFailure;
+  }
+  if (num_copied->value() < 0) {
+    return kFailure;
+  }
+
+  Closure* result = H->AllocateClosure(num_copied->value());  // SAFEPOINT
+  defining_activation = static_cast<Activation*>(A->Stack(3));
+  initial_bci = static_cast<SmallInteger*>(A->Stack(2));
+  closure_num_args = static_cast<SmallInteger*>(A->Stack(1));
+  num_copied = static_cast<SmallInteger*>(A->Stack(0));
+
+  result->set_defining_activation(defining_activation);
+  result->set_initial_bci(initial_bci);
+  result->set_num_args(closure_num_args);
+  for (intptr_t i = 0; i < num_copied->value(); i++) {
+    result->set_copied(i, nil);
+  }
+
+  A->PopNAndPush(num_args + 1, result);
+  return kSuccess;
+}
 
 
 DEFINE_PRIMITIVE(Closure_numCopied) {
@@ -1713,8 +1779,51 @@ DEFINE_PRIMITIVE(Closure_numArgs) {
 
 
 DEFINE_PRIMITIVE(Closure_numArgsPut) { UNIMPLEMENTED(); return kSuccess; }
-DEFINE_PRIMITIVE(Closure_copiedAt) { UNIMPLEMENTED(); return kSuccess; }
-DEFINE_PRIMITIVE(Closure_copiedAtPut) { UNIMPLEMENTED(); return kSuccess; }
+
+
+DEFINE_PRIMITIVE(Closure_copiedAt) {
+  ASSERT(num_args == 2);
+  Closure* receiver = static_cast<Closure*>(A->Stack(1));
+  SmallInteger* index = static_cast<SmallInteger*>(A->Stack(0));
+  if (!receiver->IsClosure()) {
+    return kFailure;
+  }
+  if (!index->IsSmallInteger()) {
+    return kFailure;
+  }
+  if (index->value() <= 0) {
+    return kFailure;
+  }
+  if (index->value() > receiver->num_copied()) {
+    return kFailure;
+  }
+  Object* value = receiver->copied(index->value() - 1);
+  A->PopNAndPush(num_args + 1, value);
+  return kSuccess;
+}
+
+
+DEFINE_PRIMITIVE(Closure_copiedAtPut) {
+  ASSERT(num_args == 3);
+  Closure* receiver = static_cast<Closure*>(A->Stack(2));
+  SmallInteger* index = static_cast<SmallInteger*>(A->Stack(1));
+  Object* value = A->Stack(0);
+  if (!receiver->IsClosure()) {
+    return kFailure;
+  }
+  if (!index->IsSmallInteger()) {
+    return kFailure;
+  }
+  if (index->value() <= 0) {
+    return kFailure;
+  }
+  if (index->value() > receiver->num_copied()) {
+    return kFailure;
+  }
+  receiver->set_copied(index->value() - 1, value);
+  A->PopNAndPush(num_args + 1, value);
+  return kSuccess;
+}
 
 
 DEFINE_PRIMITIVE(Object_class) {
@@ -2782,7 +2891,7 @@ DEFINE_PRIMITIVE(receive) {
   ASSERT(num_args == 1);
 
   Object* nstimeout = A->Stack(0);
-  intptr_t timeout;
+  int64_t timeout;
   if (nstimeout->IsSmallInteger()) {
     timeout = static_cast<SmallInteger*>(nstimeout)->value();
   } else if (nstimeout->IsMediumInteger()) {
@@ -2860,6 +2969,90 @@ DEFINE_PRIMITIVE(finish) {
   H->isolate()->Finish();
   UNREACHABLE();
   return kFailure;
+}
+
+
+DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
+  ASSERT(num_args == 3);
+  SmallInteger* primitive_index = static_cast<SmallInteger*>(A->Stack(2));
+  Object* receiver = A->Stack(1);
+  Array* arguments = static_cast<Array*>(A->Stack(0));
+
+  if (!primitive_index->IsSmallInteger()) {
+    return kFailure;
+  }
+  if (!arguments->IsArray()) {
+    return kFailure;
+  }
+
+  intptr_t index = primitive_index->value();
+  if (index == 112 ||  // simulationGuard
+      index == 133 ||  // currentActivation
+      index == 90 ||  // Closure_value0
+      index == 91 ||  // Closure_value1
+      index == 92 ||  // Closure_value2
+      index == 93 ||  // Closure_value3
+      index == 94 ||  // Closure_valueArray
+      index == 95 ||  // executeMethod
+      index == 89) {  // Object_performWithAll
+    return kFailure;
+  }
+
+  intptr_t callee_num_args = arguments->Size();
+
+  // TODO(rmacnak): We're repeating the accessor primitives in the interpreter
+  // and here. We should invoke these uniformly.
+  if ((index & 256) != 0) {
+    // Getter
+    intptr_t offset = index & 255;
+    ASSERT(callee_num_args == 0);
+    ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
+    Object* value = static_cast<RegularObject*>(receiver)->slot(offset);
+    A->PopNAndPush(num_args + 1, value);
+    return kSuccess;
+  } else if ((index & 512) != 0) {
+    // Setter
+    intptr_t offset = index & 255;
+    ASSERT(callee_num_args == 1);
+    Object* value = arguments->element(0);
+    ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
+    static_cast<RegularObject*>(receiver)->set_slot(offset, value);
+    A->PopNAndPush(num_args + 1, receiver);
+    return kSuccess;
+  }
+
+  intptr_t incoming_depth = A->stack_depth();
+
+  A->Push(receiver);
+  for (intptr_t i = 0; i < callee_num_args; i++) {
+    if (arguments->element(i) == arguments) {
+      FATAL("simulation error");
+    }
+    A->Push(arguments->element(i));
+  }
+
+  Activation* caller_activation = A;
+  HandleScope h1(H, reinterpret_cast<Object**>(&caller_activation));
+  bool callee_success = Primitives::Invoke(index, callee_num_args, H, I);
+
+  if (A != caller_activation) {
+    FATAL("Control flow in doPrimitiveWithArgs");
+  }
+
+  if (callee_success) {
+    ASSERT(A->stack_depth() == incoming_depth + 1);
+    Object* result = A->Stack(0);
+    A->PopNAndPush(num_args + 1 + 1, result);
+    return kSuccess;
+  } else {
+    A->Drop(callee_num_args + 1);
+    ASSERT(A->stack_depth() == incoming_depth);
+
+    Object* failure_token = A->Stack(0);  // Arguments array
+    ASSERT(failure_token->IsArray());
+    A->PopNAndPush(num_args + 1, failure_token);
+    return kSuccess;
+  }
 }
 
 

@@ -439,6 +439,8 @@ class MethodCluster for: cls = (|
 klass = cls.
 objects = List new.
 rewrites = List new.
+canons = List new.
+dups = List new.
 |) (
 public analyze: object = (
 	| rewrite |
@@ -454,6 +456,11 @@ public analyze: object = (
 	rewrites add: rewrite.
 	rewrite do: [:each | enqueue: each].
 )
+list: a equals: b = (
+	a size = b size ifFalse: [^false].
+	1 to: a size do: [:index | (a at: index) = (b at: index) ifFalse: [^false]].
+	^true
+)
 newBytecodeFor: cm = (
 	| a = cm initialPC. b = cm endPC. bytes |
 	
@@ -464,6 +471,10 @@ newBytecodeFor: cm = (
 	
 	bytes:: ByteArray new: b - a + 1.
 	1 to: bytes size do: [:i | bytes at: i put: (cm at: a + i - 1)].
+	
+	canons do: [:canon | (list: canon equals: bytes) ifTrue: [dups add: bytes. ^canon]].
+	canons add: bytes.
+	
 	^bytes
 )
 newHeaderFor: cm = (
@@ -517,11 +528,15 @@ newHeaderFor: cm = (
 	^(accessModifier << 28) | (primitive << 16) | (numTemps << 8) | (numArgs << 0)
 )
 newLiteralsFor: cm = (
-	^cm literals allButLast: 2
+	| lits = cm literals allButLast: 2. |	
+	canons do: [:canon | (list: canon equals: lits) ifTrue: [dups add: lits. ^canon]].
+	canons add: lits.
+	^lits
 )
 public writeEdges = (
 	rewrites size = objects size ifFalse: [halt].
 	{'edges method'. stream position} out.
+	{'method'. canons size. dups size} out.
 	writeBackRef: klass.
 	rewrites do: [:rewrite |
 		rewrite do: [:ref | writeBackRef: ref].
@@ -732,7 +747,8 @@ newReplace: preobject = (
 	Dictionary == preclass ifTrue: [^newReplaceDictionary: preobject].
 
 	(* Character -> String *)
-	Character == preclass ifTrue: [^preobject asString].
+	Character == preclass ifTrue: [^preobject asString asSymbol].
+	
 	^preobject
 )
 newReplaceDictionary: preobject = (

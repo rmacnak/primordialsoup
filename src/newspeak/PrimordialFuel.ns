@@ -1557,7 +1557,15 @@ private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
 	primitiveFailed: 'Mirror classOf:'.
 )
-private definingActivationOf: closue <Closure> ^<Activation> = (
+private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
+	(* :literalmessage: primitive: 77 *)
+	primitiveFailed: 'Mirror copiedOf:at:'.
+)
+private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Object> = (
+	(* :literalmessage: primitive: 78 *)
+	primitiveFailed: 'Mirror copiedOf:at:put:'.
+)
+private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
 	primitiveFailed: 'Mirror definingActivationOf:'.
 )
@@ -1565,7 +1573,7 @@ private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
 	halt.
 )
-private initialBCIOf: closue <Closure> ^<Integer> = (
+private initialBCIOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 73 *)
 	primitiveFailed: 'Mirror initialBCIOf:'.
 )
@@ -1577,7 +1585,7 @@ private isCanonical: object = (
 	(* :literalmessage: primitive: 126 *)
 	primitiveFailed: 'Mirror isCanonical:'.
 )
-private numCopiedOf: closue <Closure> ^<Integer> = (
+private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 70 *)
 	primitiveFailed: 'Mirror numCopiedOf:'.
 )

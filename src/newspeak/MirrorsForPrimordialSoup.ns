@@ -10,6 +10,12 @@ private StringBuilder = platform kernel StringBuilder.
 private InstanceMixin = ik InstanceMixin.
 private ClassMixin = ik ClassMixin.
 private Metaclass = ik Metaclass.
+
+private Activation = ik Activation.
+private Closure = ik Closure.
+private Message = ik Message.
+private ByteString = ik ByteString.
+
 private reflectees = WeakMap new.
 
 private cachedPlatform = platform.
@@ -19,7 +25,8 @@ private grammarX
 private intermediatesX
 private compilerX
 |) (
-class ActivationMirror reflecting: activation = (| private reflectee <Activation> = activation. |reflectees at: self put: activation) (
+public class ActivationMirror reflecting: activation = (
+(* :bogus: This constructor should not be public. *)| private reflectee <Activation> = activation. |reflectees at: self put: activation) (
 public closure ^<ObjectMirror> = (
 	| rawClosure = reflectee closure. |
 	nil = rawClosure ifTrue: [^nil].
@@ -57,6 +64,23 @@ public sender ^<ActivationMirror> = (
 	^ActivationMirror reflecting: senderActivation.
 )
 ) : (
+public simulate: closure = (
+	(* :bogus: This method only exists for testing, and should be removed after it's possible to drive the simulation from various step methods on ActivationMirror. *)
+
+	| bottomActivation simulator |	
+	bottomActivation:: Activation new.
+	bottomActivation bci: 0. (* Marks the activation as not dead so the final return can succeed. *)
+	(* :todo: Maybe use a marker method here so the exception machinery can transfer an unhandled exception to the simulator's client. *)
+	(* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
+	
+	simulator:: Simulator new.
+	simulator activation: bottomActivation.
+	simulator activateClosure: closure arguments: {}.	
+	[bottomActivation = simulator activation] whileFalse: 
+		[simulator interpretNextInstruction].
+
+	^bottomActivation pop
+)
 )
 class AtomicInstaller = (|
 private updateMixinsAndClasses <IdentityMap[OldObject,NewObject]>
@@ -931,50 +955,180 @@ public setSlot: name to: value = (
 ) : (
 )
 private class Simulator = (|
-currentActivation
+public activation
 |) (
-activate: targetMethod receiver: messageReceiver with: arguments = (
-	| prim newActivation |
-	prim:: targetMethod primitive.
-	(doPrimitive) ifTrue: [^whichcontext].
+activate: newMethod receiver: newReceiver arguments: arguments = (
+	| primitive = newMethod primitive. result newActivation |
+
+	0 = primitive ifFalse: 
+		[(* Simulation guard *)
+		112 = primitive ifTrue: ['simulation guard' out. halt. ].
 	
+		(* Current activation *)
+		133 = primitive ifTrue: [activation push: activation. ^self].
+
+		(* Closure activation *)
+		90 =  primitive ifTrue: 
+			[newReceiver numArgs = 0 ifTrue: 
+				[^activateClosure: newReceiver arguments: arguments]].
+		91 =  primitive ifTrue: 
+			[newReceiver numArgs = 1 ifTrue: 
+				[^activateClosure: newReceiver arguments: arguments]].
+		92 =  primitive ifTrue: 
+			[newReceiver numArgs = 2 ifTrue: 
+				[^activateClosure: newReceiver arguments: arguments]].
+		93 =  primitive ifTrue: 
+			[newReceiver numArgs = 3 ifTrue: 
+				[^activateClosure: newReceiver arguments: arguments]].
+		94 =  primitive ifTrue: [
+			| closureArgs = arguments at: 1. |
+			(Array = (classOf: closureArgs)) ifTrue: 
+				[closureArgs size = newReceiver numArgs ifTrue: 
+					[^activateClosure: newReceiver arguments: closureArgs]]].
+	
+		(* Execute method *)
+		95 =  primitive ifTrue: [
+			| exeReceiver exeMethod exeArguments |
+			exeReceiver:: arguments at: 1.
+			exeMethod:: arguments at: 2.
+			exeArguments:: arguments at: 3.
+			(* :todo: arity mismatch? *)
+			^activate: exeMethod receiver: exeReceiver arguments: exeArguments].
+	
+		(* Perform *)
+		89 =  primitive ifTrue: [
+			| object selector performArguments |
+			object:: arguments at: 1.
+			selector:: arguments at: 2.
+			performArguments:: arguments at: 3.
+			(* :todo: Where should we fail on arity mismatch? *)
+			(ByteString = (classOf: selector)) ifTrue: 
+				[(Array = (classOf: performArguments)) ifTrue: 
+					[activation push: object.
+					performArguments do: [:arg | activation push: arg].
+					^ordinarySend: selector numArgs: performArguments size]]].
+	
+		result:: doPrimitive: primitive receiver: newReceiver arguments: arguments.
+		arguments = result ifFalse: [activation push: result. ^self].
+		('simulated primitive failed: ', newMethod selector) out].
+
 	newActivation:: Activation new.
-	newActivation sender: self.
+	newActivation sender: activation.
 	newActivation bci: 1.
-	newActivation method: targetMethod.
+	newActivation method: newMethod.
 	newActivation closure: nil.
-	newActivation receiver: messageReceiver.
+	newActivation receiver: newReceiver.
 	
-	arguments do: [:arg | newActivation push: arg].
-	targetMethod numTemps timesRepeat: [newActivation push: nil].
-	^newActivation
+	newActivation tempSize: arguments size + newMethod numTemps.
+	1 to: arguments size do: 
+		[:index | newActivation tempAt: index put: (arguments at: index)].
+	
+	(* ('sim: ', newActivation printString) out. *)
+
+	activation:: newActivation.
 )
-doPrimitive = (
-	(* simulation guard *)
+public activateClosure: closure arguments: arguments = (
+	| newActivation |
+	newActivation:: Activation new.
+	newActivation sender: activation.
+	newActivation bci: (initialBCIOf: closure).
+	newActivation method: (definingActivationOf: closure) method.
+	newActivation closure: closure.
+	newActivation receiver: (definingActivationOf: closure) receiver.
+	arguments size = closure numArgs ifFalse: [halt].
+	arguments do: 
+		[:argument | newActivation push: argument].
+	1 to: (numCopiedOf: closure) do: 
+		[:index | newActivation push: (copiedOf: closure at: index)].
 	
-	(* Closure value, etc *)
-	(* perform *)
-	(* executeMethod *)
-	
+	(* ('sim: ', newActivation printString) out. *)
+	activation:: newActivation.
 )
-implicitReceiverSend: selectorOffset numArgs: numArgs ^<Activation> = (
-	| selector candidateReceiver candidateMixin candidateMixinApplication |
-	selector:: method literals at: selectorOffset + 1.
-	candidateReceiver:: receiver.
-	candidateMixin:: method mixin.
+behavior: behavior hasSelector: selector = (
+	(methodsOf: behavior) do: [:method | method selector = selector ifTrue: [^true]].
+	^false
+)
+behavior: behavior methodAt: selector = (
+	(methodsOf: behavior) do: [:method | method selector = selector ifTrue: [^method]].
+	^nil
+)
+blockReturn: result = (
+	localReturn: result
+)
+commonArithmeticSend: offset = (
+	0 = offset ifTrue: [^ordinarySend: #+ numArgs: 1].
+	1 = offset ifTrue: [^ordinarySend: #- numArgs: 1].
+	2 = offset ifTrue: [^ordinarySend: #< numArgs: 1].
+	3 = offset ifTrue: [^ordinarySend: #> numArgs: 1].
+	4 = offset ifTrue: [^ordinarySend: #<= numArgs: 1].
+	5 = offset ifTrue: [^ordinarySend: #>= numArgs: 1].
+	6 = offset ifTrue: [^ordinarySend: #= numArgs: 1].
+	7 = offset ifTrue: [^ordinarySend: #~= numArgs: 1].
+	8 = offset ifTrue: [^ordinarySend: #* numArgs: 1].
+	9 = offset ifTrue: [^ordinarySend: #/ numArgs: 1].
+	10 = offset ifTrue: [^ordinarySend: #\\ numArgs: 1].
+	11 = offset ifTrue: [^ordinarySend: #@ numArgs: 1].
+	12 = offset ifTrue: [^ordinarySend: #bitShift: numArgs: 1].
+	13 = offset ifTrue: [^ordinarySend: #// numArgs: 1].
+	14 = offset ifTrue: [^ordinarySend: #bitAnd: numArgs: 1].
+	15 = offset ifTrue: [^ordinarySend: #bitOr: numArgs: 1].
+)
+commonSend: offset = (
+	0 = offset ifTrue: [^ordinarySend: #at: numArgs: 1].
+	1 = offset ifTrue: [^ordinarySend: #at:put: numArgs: 2].
+	2 = offset ifTrue: [^ordinarySend: #size numArgs: 0].
+	3 = offset ifTrue: [^ordinarySend: #next numArgs: 0].
+	4 = offset ifTrue: [^ordinarySend: #nextPut: numArgs: 1].
+	5 = offset ifTrue: [^ordinarySend: #atEnd numArgs: 0].
+	6 = offset ifTrue: [^ordinarySend: #== numArgs: 1].
+	7 = offset ifTrue: [^ordinarySend: #class numArgs: 0].
+	8 = offset ifTrue: [^ordinarySend: #blockCopy: numArgs: 1].
+	9 = offset ifTrue: [^ordinarySend: #value numArgs: 0].
+	10 = offset ifTrue: [^ordinarySend: #value: numArgs: 1].
+	11 = offset ifTrue: [^ordinarySend: #do: numArgs: 1].
+	12 = offset ifTrue: [^ordinarySend: #new numArgs: 0].
+	13 = offset ifTrue: [^ordinarySend: #new: numArgs: 1].
+	14 = offset ifTrue: [^ordinarySend: #x numArgs: 0].
+	15 = offset ifTrue: [^ordinarySend: #y numArgs: 0].
+)
+private doPrimitive: index <Integer> receiver: receiver <Object> arguments: arguments <Array> = (
+	(* :literalmessage: primitive: 141 *)
+	'doPrimitive failed' out.
+	index out.
+	receiver out.
+	arguments size out.
+	halt.
+)
+dup = (
+	activation push: activation top.
+)
+findApplicationOf: mixin startingAt: startingBehavior = (
+	| behavior ::= startingBehavior. |
+	[nil = behavior] whileFalse: 
+		[mixin = (mixinOf: behavior) ifTrue: [^behavior].
+		 behavior:: (superclassOf: behavior)].
+	halt.
+)
+implicitReceiverSend: selectorOffset numArgs: numArgs = (
+	| selector arguments candidateReceiver candidateMixin candidateMixinApplication |
+	selector:: activation method literals at: selectorOffset + 1.
+	arguments:: Array new: numArgs.
+	numArgs to: 1 by: -1 do: [:i | arguments at: i put: activation pop].
+	candidateReceiver:: activation receiver.
+	candidateMixin:: activation method mixin.
 	[candidateMixinApplication::
 		findApplicationOf: candidateMixin 
 		startingAt: (classOf: candidateReceiver).
 	(behavior: candidateMixinApplication hasSelector: selector) ifTrue:
-		[^sendLexical: selector to: candidateReceiver numArgs: numArgs wrt: candidateMixin].
-	candidateMixin:: candidateMixin enclosingMixin.
+		[^sendLexical: selector to: candidateReceiver arguments: arguments wrt: candidateMixin].
+	candidateMixin:: candidateMixin _enclosingMixin.
 	nil = candidateMixin ifTrue:
-		[^sendProtected: selector to: receiver numArgs: numArgs startingAt: (classOf: receiver)].
-	candidateReceiver:: candidateMixinApplication _enclosingObject.
+		[^sendProtected: selector to: activation receiver arguments: arguments startingAt: (classOf: activation receiver)].
+	candidateReceiver:: enclosingObjectOf: candidateMixinApplication.
 	] repeat.
 )
-interpretNext1Byte: byte extA: extA extB: extB ^<Activation> = (
-	byte <= 15 ifTrue: [^self pushReceiverVariable: byte].
+interpretNext1Byte: byte extA: extA extB: extB = (
+	byte <= 15 ifTrue: [^self unusedBytecode (* squeak: pushReceiverVariable *)].
 	byte <= 31 ifTrue: [^self pushLiteralVariable: (byte bitAnd: 15)].
 	byte <= 63 ifTrue: [^self pushLiteral: (byte bitAnd: 31)].
 	byte <= 71 ifTrue: [^self pushTemporary: (byte bitAnd: 7)].
@@ -985,225 +1139,353 @@ interpretNext1Byte: byte extA: extA extB: extB ^<Activation> = (
 	byte <= 79 ifTrue: [^self pushInteger: 1].
 	byte <= 95 ifTrue: [^self commonArithmeticSend: (byte bitAnd: 15)].
 	byte <= 111 ifTrue: [^self commonSend: (byte bitAnd: 15)].
-	byte <= 127 ifTrue: [^self ordinarySend: (byte bitAnd: 15) numArgs: 0].
-	byte <= 143 ifTrue: [^self ordinarySend: (byte bitAnd: 15) numArgs: 1].
-	byte <= 159 ifTrue: [^self ordinarySend: (byte bitAnd: 15) numArgs: 2].
+	byte <= 127 ifTrue: 
+		[^self ordinarySend: (activation method literals at: (byte bitAnd: 15) + 1) numArgs: 0].
+	byte <= 143 ifTrue: 
+		[^self ordinarySend: (activation method literals at: (byte bitAnd: 15) + 1) numArgs: 1].
+	byte <= 159 ifTrue: 
+		[^self ordinarySend: (activation method literals at: (byte bitAnd: 15) + 1) numArgs: 2].
 	byte <= 175 ifTrue: [^self implicitReceiverSend: (byte bitAnd: 15) numArgs: 0].
-	byte <= 183 ifTrue: [^self popIntoReceiverVariable: (byte bitAnd: 7)].
+	byte <= 183 ifTrue: [^self unusedBytecode (* squeak: popIntoReceiverVariable *)].
 	byte <= 191 ifTrue: [^self popIntoTemporary: (byte bitAnd: 7)].
 	byte <= 199 ifTrue: [^self jump: (byte bitAnd: 7) + 1].
 	byte <= 207 ifTrue: [^self popJumpTrue: (byte bitAnd: 7) + 1].
 	byte <= 215 ifTrue: [^self popJumpFalse: (byte bitAnd: 7) + 1].
-	byte <= 216 ifTrue: [^self methodReturnReceiver].
-	byte <= 217 ifTrue: [^self methodReturnTop].
-	byte <= 218 ifTrue: [^self blockReturnTop].
+	byte <= 216 ifTrue: [^self methodReturn: activation receiver].
+	byte <= 217 ifTrue: [^self methodReturn: activation pop].
+	byte <= 218 ifTrue: [^self blockReturn: activation pop].
 	byte <= 219 ifTrue: [^self dup].
 	byte <= 220 ifTrue: [^self pop].
-	byte <= 221 ifTrue: [^self nop].
+	byte <= 221 ifTrue: [^self (* nop *)].
 	byte <= 222 ifTrue: [^self break].
-	byte <= 223 ifTrue: [^self unassigned].
+
+	(* 223 *) ^self unusedBytecode
 )
-interpretNext2Byte: byte1 byte: byte2 extA: extA extB: extB ^<Activation> = (
-	byte1 <= 224 ifTrue: [
-		extA = 0 ifFalse: [halt].
-		^self interpretNextInstructionExtA: byte2 extB: extB].
-	byte1 <= 225 ifTrue: [
-		extB = 0 ifFalse: [halt].
-		^self interpretNextInstructionExtA: extA extB: byte2].
+interpretNext2Byte: byte1 byte: byte2 extA: extA extB: extB = (
+	byte1 <= 224 ifTrue: 
+		[^self interpretNextInstructionExtA: (extA << 8) + byte2 extB: extB].
+	byte1 <= 225 ifTrue: 
+		[^self interpretNextInstructionExtA: extA extB: 
+			((extB = 0 and: [byte2 > 127]) 
+				ifTrue: [byte2 - 256] 
+				ifFalse: [(extB << 8) + byte2])].
 	
-	byte1 <= 226 ifTrue: [^self pushReceiverVariable: (extA << 8) + byte2].
+	byte1 <= 226 ifTrue: [^self unusedBytecode (* squeak: pushReceiverVariable *)].
 	byte1 <= 227 ifTrue: [^self pushLiteralVariable: (extA << 8) + byte2].
 	byte1 <= 228 ifTrue: [^self pushLiteral: (extA << 8) + byte2].
 	byte1 <= 229 ifTrue: [^self pushInteger: (extB << 8) + byte2].
-	byte1 <= 230 ifTrue: [^self pushTemporary: extB].
-	byte1 <= 231 ifTrue: [^self _pushconsemptyarray].
-	byte1 <= 232 ifTrue: [^self storeIntoReceiverVariable: (extA << 8) + byte2].
-	byte1 <= 233 ifTrue: [^self storeIntoLiteralVariable: (extA << 8) + byte2].
-	byte1 <= 234 ifTrue: [^self storeIntoTemporary: (extA << 8) + byte2].
-	byte1 <= 235 ifTrue: [^self popIntoReceiverVariable: (extA << 8) + byte2].
-	byte1 <= 236 ifTrue: [^self popIntoLiteralVariable: (extA << 8) + byte2].
-	byte1 <= 237 ifTrue: [^self popIntoTemporary: (extA << 8) + byte2].
-	byte1 <= 238 ifTrue: [
-		^self ordinarySend: (extA << 5) + (byte2 >> 3) 
+	byte1 <= 230 ifTrue: [^self pushTemporary: byte2].
+	byte1 <= 231 ifTrue: 
+		[byte2 < 128 
+			ifTrue: [^self pushNewArray: byte2]
+			ifFalse: [^self pushNewArrayWithElements: byte2 - 128]].
+	byte1 <= 232 ifTrue: [^self unusedBytecode (* squeak: storeIntoReceiverVariable *)].
+	byte1 <= 233 ifTrue: [^self unusedBytecode (* squeak: storeIntoLiteralVariable *)].
+	byte1 <= 234 ifTrue: [^self storeIntoTemporary: byte2].
+	byte1 <= 235 ifTrue: [^self unusedBytecode (* squeak: popIntoReceiverVariable *)].
+	byte1 <= 236 ifTrue: [^self unusedBytecode (* squeak: popIntoLiteralVariable *)].
+	byte1 <= 237 ifTrue: [^self popIntoTemporary: byte2].
+	byte1 <= 238 ifTrue: 
+		[^self ordinarySend: (activation method literals at: (extA << 5) + (byte2 >> 3) + 1)
 		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
-	byte1 <= 239 ifTrue: [
-		^self staticSuperSend: (extA << 5) + (byte2 >> 3) 
+	byte1 <= 239 ifTrue: [^self unusedBytecode (* squeak: staticSuperSend *)].
+	byte1 <= 240 ifTrue: 
+		[^self implicitReceiverSend: (extA << 5) + (byte2 >> 3) 
 		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
-	byte1 <= 240 ifTrue: [
-		^self implicitReceiverSend: (extA << 5) + (byte2 >> 3) 
-		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
-	byte1 <= 241 ifTrue: [
-		^self superSend: (extA << 5) + (byte2 >> 3) 
+	byte1 <= 241 ifTrue: 
+		[^self superSend: (extA << 5) + (byte2 >> 3) 
 		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
 	byte1 <= 242 ifTrue: [^self jump: (extB << 8) + byte2].
 	byte1 <= 243 ifTrue: [^self popJumpTrue: (extB << 8) + byte2].
 	byte1 <= 244 ifTrue: [^self popJumpFalse: (extB << 8) + byte2].
-	byte1 <= 245 ifTrue: [
-		^self selfSend: (extA << 5) + (byte2 >> 3) 
+	byte1 <= 245 ifTrue: 
+		[^self selfSend: (extA << 5) + (byte2 >> 3) 
 		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
-	(* 246, 247, 248 *) ^self unassigned
+
+	(* 246, 247, 248 *) ^self unusedBytecode
 )
 interpretNext3Byte: byte1 byte: byte2 byte: byte3 extA: extA extB: extB ^<Activation> = (
-	byte1 <= 249 ifTrue: [^self callPrimitive: byte3 << 8 + byte2].
+	byte1 <= 249 ifTrue: [^unusedBytecode (* squeak: callPrimitive *)].
 	byte1 <= 250 ifTrue: [^self pushRemoteTemp: byte2 inVector: byte3].
 	byte1 <= 251 ifTrue: [^self storeIntoRemoteTemp: byte2 inVector: byte3].
 	byte1 <= 252 ifTrue: [^self popIntoRemoteTemp: byte2 inVector: byte3].
-	byte1 <= 253 ifTrue: [
-		^self pushClosureNumCopied: ((byte2 >> 3) bitAnd: 7) + ((extA // 16) << 3)
-		numArgs: (byte2 bitAnd: 7) + ((extA \\ 16) << 3)
-		blockSize: (extB << 8) + byte3].
-	byte1 <= 254 ifTrue: [
-		^self outerSend: (extA << 5) + (byte2 >> 3) 
-		numArgs: (extB << 3) + (byte2 bitAnd: 7)
-		depth: byte3].
+	byte1 <= 253 ifTrue: 
+		[^self 
+			pushClosureNumCopied: ((byte2 >> 3) bitAnd: 7) + ((extA // 16) << 3)
+			numArgs: (byte2 bitAnd: 7) + ((extA \\ 16) << 3)
+			blockSize: (extB << 8) + byte3].
+	byte1 <= 254 ifTrue: 
+		[^self 
+			outerSend: (extA << 5) + (byte2 >> 3) 
+			numArgs: (extB << 3) + (byte2 bitAnd: 7)
+			depth: byte3].
 	
 	(* 255 *)
-	^self unassigned
+	^unusedBytecode
 )
-public interpretNextInstruction ^<Activation> = (
-	(* Answer the new active context. *)
-	^self interpretNextInstructionExtA: 0 extB: 0 
+public interpretNextInstruction = (
+	self interpretNextInstructionExtA: 0 extB: 0 
 )
-interpretNextInstructionExtA: extA extB: extB ^<Activation> = (
-	| byte byte2 byte3 |
-	byte:: method bytecode at: bci.
+interpretNextInstructionExtA: extA extB: extB = (
+	| bci bytecode byte byte2 byte3 |
+	bci:: activation bci.
+	bytecode:: activation method bytecode.
+	byte:: bytecode at: bci.
 	byte <= 223 ifTrue: 
-		[bci:: bci + 1. 
+		[activation bci: bci + 1. 
 		 ^interpretNext1Byte: byte extA: extA extB: extB].
 
-	byte2:: method bytecode at: bci + 1.
+	byte2:: bytecode at: bci + 1.
 	byte <= 248 ifTrue: 
-		[bci:: bci + 2.
+		[activation bci: bci + 2.
 		^interpretNext2Byte: byte byte: byte2 extA: extA extB: extB].
 
-	byte3:: method bytecode at: bci + 2.
-	bci:: bci + 3.
+	byte3:: bytecode at: bci + 2.
+	activation bci: bci + 3.
 	^interpretNext3Byte: byte byte: byte2 byte: byte3 extA: extA extB: extB
 )
-jump: delta ^<Activation> = (
-	self bci: self bci + delta.
-	^self
+jump: delta = (
+	activation bci: activation bci + delta.
 )
-popIntoReceiverVariable: offset ^<Activation> = (
-	slotOf: receiver at: offset put: self pop.
-	^self
+localReturn: result = (
+	| sender = activation sender. |
+	nil = sender ifTrue: [^cannotReturn: result from: activation].
+	sender isDead ifTrue: [^cannotReturn: result from: activation].
+	activation terminate.
+	sender push: result.
+	activation: sender.
 )
-popIntoRemoteTemp: offset inVector: vectorOffset ^<Activation> = (
-	| vector = self tempAt: 1 + vectorOffset. |
-	vector at: 1 + offset put: self pop.
-	^self
+methodReturn: result = (
+	nil = activation closure
+		ifTrue: [localReturn: result]
+		ifFalse: [nonLocalReturn: result]
 )
-popIntoTemporary: offset ^<Activation> = (
-	self tempAt: 1 + offset put: self pop.
-	^self
+private newClosureIn: definingActivation initialBCI: initialBCI numArgs: numArgs numCopied: numCopied = (
+	(* :literalmessage: primitive: 69 *)
+	halt.
 )
-popJumpFalse: delta ^<Activation> = (
-	| bool = pop. |
-	true == bool ifTrue: 
-		[^self].
-	false == bool ifTrue:
-		[self bci: self bci + delta.
+nonLocalReturn: result = (
+	| closure home unwind sender zap next |
+	closure:: activation closure.
+	home:: definingActivationOf: closure.
+	closure:: home closure.
+	[nil = closure] whileFalse: 
+		[home:: definingActivationOf: closure.
+		 closure:: home closure].
+	
+	unwind:: activation sender.
+	[unwind = home] whileFalse: 
+		[nil = unwind ifTrue: 
+			[^cannotReturn: result from: activation].
+		unwind method primitive = 113 ifTrue:
+			[^aboutToReturn: result from: activation through: unwind].
+		unwind:: unwind sender].
+	
+	sender:: home sender.
+	(nil = sender or: [sender isDead]) 
+		ifTrue: [^cannotReturn: result from: activation].
+	
+	zap:: activation.
+	[
+		next:: zap sender.
+		zap terminate.
+		zap:: next.
+		false
+	] whileTrue.
+	
+	sender push: result.
+	activation: sender.
+	(* ('sim: ', activation printString) out. *)
+)
+ordinarySend: selector numArgs: numArgs = (
+	| arguments messageReceiver lookupClass targetMethod |
+	arguments:: Array new: numArgs.
+	numArgs to: 1 by: -1 do: [:i | arguments at: i put: activation pop].
+	messageReceiver:: activation pop.
+	lookupClass:: classOf: messageReceiver.
+	[nil = lookupClass] whileFalse:
+		[targetMethod:: behavior: lookupClass methodAt: selector.
+		(((nil = targetMethod) not) and: [targetMethod isPublic])
+			ifTrue: [^activate: targetMethod receiver: messageReceiver arguments: arguments].
+		lookupClass:: superclassOf: lookupClass].
+	^sendDnu: selector to: messageReceiver arguments: arguments.
+)
+outerSend: selectorOffset numArgs: numArgs depth: depth = (
+	| selector arguments receiver targetMixin count mixinApplication |
+	selector:: activation method literals at: selectorOffset + 1.
+	arguments:: Array new: numArgs.
+	numArgs to: 1 by: -1 do: [:i | arguments at: i put: activation pop].
+	receiver:: activation receiver.
+	targetMixin:: activation method mixin.
+	count:: 0.
+	[count < depth] whileTrue:
+		[count:: count + 1.
+		mixinApplication:: findApplicationOf: targetMixin startingAt: (classOf: receiver).
+		receiver:: enclosingObjectOf: mixinApplication.
+		targetMixin:: targetMixin _enclosingMixin].
+	^sendLexical: selector to: receiver arguments: arguments wrt: targetMixin.
+)
+pop = (
+	activation pop
+)
+popIntoRemoteTemp: offset inVector: vectorOffset = (
+	| vector = activation tempAt: 1 + vectorOffset. |
+	vector at: 1 + offset put: activation pop.
+)
+popIntoTemporary: offset = (
+	activation tempAt: 1 + offset put: activation pop.
+)
+popJumpFalse: delta = (
+	| top = activation pop. |
+	true = top ifTrue: [^self].
+	false = top ifTrue:
+		[activation bci: activation bci + delta.
 		^self].
-	^doMustBeBoolean
+	^sendNonBooleanReceiver: top
 )
-popJumpTrue: delta ^<Activation> = (
-	| bool = pop. |
-	true == bool ifTrue: 
-		[self bci: self bci + delta.
+popJumpTrue: delta = (
+	| top = activation pop. |
+	true = top ifTrue: 
+		[activation bci: activation bci + delta.
 		^self].
-	false == bool ifTrue:
-		[^self].
-	^doMustBeBoolean
+	false = top ifTrue: [^self].
+	^sendNonBooleanReceiver: top
 )
 pushClosureNumCopied: numCopied numArgs: numArgs blockSize: blockSize ^<Activation> = (
 	| newClosure |
-	newClosure:: Closure numCopied: numCopied numArgs: numArgs method: method initialBCI: bci.
-	1 to: numCopied do: [:index | primclosure: newClosured copiedAt: index put: self popreverseorder].
+	newClosure:: 
+		newClosureIn: activation
+		initialBCI: activation bci
+		numArgs: numArgs 
+		numCopied: numCopied.
+		
+	numCopied to: 1 by: -1 do: 
+		[:index | copiedOf: newClosure at: index put: activation pop].
 
-	self push: newClosure.
-	self bci: self bci + blockSize.
+	activation push: newClosure.
+	activation bci: activation bci + blockSize.
 )
-pushEmptyArray: size ^<Activation> = (
-	self push: (Array new: size).
-	^self
+pushEnclosingObject: depth = (
+	| enclosingObject targetMixin count mixinApplication |
+	enclosingObject:: activation receiver.
+	targetMixin:: activation method mixin.
+	count:: 0.
+	[count < depth] whileTrue:
+		[count:: count + 1.
+		mixinApplication:: findApplicationOf: targetMixin startingAt: (classOf: enclosingObject).
+		enclosingObject:: enclosingObjectOf: mixinApplication.
+		targetMixin:: targetMixin _enclosingMixin].
+	activation push: enclosingObject.
 )
-pushLiteral: offset ^<Activation> = (
-	self push: (self method literals at: 1 + offset).
-	^self
+pushInteger: value = (
+	activation push: value
 )
-pushLiteralVariable: offset ^<Activation> = (
-	self push: (self method literals at: 1 + offset) value.
-	^self
+pushLiteral: offset = (
+	| literals = activation method literals. |
+	literals size + 1 = offset
+		ifTrue: [(* Squeak method class association *) activation push: activation method mixin]
+		ifFalse: [activation push: (literals at: 1 + offset)].
 )
-pushReceiver ^<Activation> = (
-	self push: receiver.
-	^self
+pushLiteralVariable: offset = (
+	(* Not used in Newspeak, except by the implementation of eventual sends. *)
+	pushScheduler.
 )
-pushReceiverVariable: offset ^<Activation> = (
-	self push: (slotOf: receiver at: offset).
-	^self
+pushNewArray: size ^<Activation> = (
+	activation push: (Array new: size).
 )
-pushRemoteTemp: offset inVector: vectorOffset ^<Activation> = (
-	| vector = self tempAt: 1 + vectorOffset. |
-	self push: (vector at: 1 + offset).
-	^self
+pushNewArrayWithElements: size ^<Activation> = (
+	| newArray = Array new: size. |
+	size to: 1 by: -1 do: [:index | newArray at: index put: activation pop].
+	activation push: newArray.
 )
-pushSpecial: extB ^<Activation> = (
+pushReceiver = (
+	activation push: activation receiver.
+)
+pushRemoteTemp: offset inVector: vectorOffset = (
+	| vector = activation tempAt: 1 + vectorOffset. |
+	activation push: (vector at: 1 + offset).
+)
+pushSpecial: extB = (
 	extB < 0 ifTrue: [^pushEnclosingObject: 0 - extB].
 	
-	0 = extB ifTrue: [self push: false. ^self].
-	1 = extB ifTrue: [self push: true. ^self].
-	2 = extB ifTrue: [self push: nil. ^self].
-	3 = extB ifTrue: [self push: self (* thisContext *). ^self].
+	0 = extB ifTrue: [activation push: false. ^self].
+	1 = extB ifTrue: [activation push: true. ^self].
+	2 = extB ifTrue: [activation push: nil. ^self].
 	
-	unassigned.
+	^unusedBytecode
 )
-pushTemporary: offset ^<Activation> = (
-	self push: (self tempAt: 1 + offset).
-	^self
+pushTemporary: offset = (
+	activation push: (activation tempAt: 1 + offset).
+)
+selfSend: selectorOffset numArgs: numArgs = (
+	| selector arguments |
+	selector:: activation method literals at: selectorOffset + 1.
+	arguments:: Array new: numArgs.
+	numArgs to: 1 by: -1 do: [:i | arguments at: i put: activation pop].
+	^sendLexical: selector to: activation receiver arguments: arguments wrt: activation method mixin
 )
 sendDnu: selector to: messageReceiver arguments: arguments = (
 	| lookupClass message dnuMethod |
 	lookupClass:: classOf: messageReceiver.
 	message:: Message selector: selector arguments: arguments.
 	[nil = lookupClass] whileFalse:
-		[ dnuMethod:: behavior: lookupClass methodAt: #doesNotUnderstand:.
-		  nil = dnuMethod ifFalse: 
-			[^activate: dnuMethod receiver: messageReciever arguments: {message} ].
-		lookupClass:: superclassOf: lookupClass.
-		].
+		[dnuMethod:: behavior: lookupClass methodAt: #doesNotUnderstand:.
+		 nil = dnuMethod ifFalse: 
+			[^activate: dnuMethod receiver: messageReceiver arguments: {message} ].
+		 lookupClass:: superclassOf: lookupClass].
 	error: 'Recursive doesNotUnderstand:'
 )
-sendLexical: selector to: messageReceiver numArgs: numArgs wrt: mixin = (
+sendLexical: selector to: messageReceiver arguments: arguments wrt: mixin = (
 	| mixinApplication targetMethod |
 	mixinApplication:: findApplicationOf: mixin startingAt: (classOf: messageReceiver).
 	targetMethod:: behavior: mixinApplication methodAt: selector.
-	((nil = method) not and: [method isPrivate]) ifTrue:
-		[^activate: method receiver: messageReceiver args: numargs].
-	^sendProtected: selector to: messageReceiver numArgs: numArgs startingAt: (classOf: messageReceiver)
+	((nil = targetMethod) not and: [targetMethod isPrivate]) ifTrue:
+		[^activate: targetMethod receiver: messageReceiver arguments: arguments].
+	^sendProtected: selector to: messageReceiver arguments: arguments startingAt: (classOf: messageReceiver)
 )
-sendProtected: selector to: messageReceiver numArgs: numArgs startingAt: mixinApp = (
+sendProtected: selector to: messageReceiver arguments: arguments startingAt: mixinApp = (
 	| lookupClass targetMethod |
 	lookupClass:: mixinApp.
 	[nil = lookupClass] whileFalse:
-		[targetMethod:: behavior: lookupClass at: selector.
-		((nil = targetMethod not) and: [method isPrivate not])
-			ifTrue: [^activate: method receiver: receiver arguments: arguments].
+		[targetMethod:: behavior: lookupClass methodAt: selector.
+		(((nil = targetMethod) not) and: [targetMethod isPrivate not])
+			ifTrue: [^activate: targetMethod receiver: messageReceiver arguments: arguments].
 		lookupClass:: superclassOf: lookupClass].
-	^sendDnu: selector to: receiver arguments: arguments.
+	^sendDnu: selector to: messageReceiver arguments: arguments.
 )
-storeIntoReceiverVariable: offset ^<Activation> = (
-	slotOf: receiver at: offset put: self top.
-	^self
+storeIntoRemoteTemp: offset inVector: vectorOffset = (
+	| vector = activation tempAt: 1 + vectorOffset. |
+	vector at: 1 + offset put: activation top.
 )
-storeIntoRemoteTemp: offset inVector: vectorOffset ^<Activation> = (
-	| vector = self tempAt: 1 + vectorOffset. |
-	vector at: 1 + offset put: self top.
-	^self
+storeIntoTemporary: offset = (
+	activation tempAt: 1 + offset put: activation top.
 )
-storeIntoTemporary: offset ^<Activation> = (
-	self tempAt: 1 + offset put: self top.
-	^self
+superSend: selectorOffset numArgs: numArgs = (
+	| selector arguments messageReceiver methodMixinApplication |
+	selector:: activation method literals at: selectorOffset + 1.
+	arguments:: Array new: numArgs.
+	numArgs to: 1 by: -1 do: [:i | arguments at: i put: activation pop].
+	messageReceiver:: activation receiver.
+	methodMixinApplication:: findApplicationOf: activation method mixin startingAt: (classOf: messageReceiver).
+	^sendProtected: selector to: messageReceiver arguments: arguments startingAt: (superclassOf: methodMixinApplication)
+)
+public trace = (
+	| a ::= activation. |
+	'sim trace: ' out.
+	[nil = a] whileFalse: 
+		[a out.
+		a:: a sender].
+)
+public traceLong = (
+	| a ::= activation. |
+	'sim trace long: ' out.
+	[nil = a] whileFalse: 
+		['' out.
+		a out.
+		a bci out.
+		a receiver out.
+		1 to: a tempSize do: [:i | (a tempAt: i) out].
+		a:: a sender].
 )
 ) : (
 )
@@ -1358,6 +1640,22 @@ private constructCompiler = (
 		intermediates: intermediatesX.
 	compilerX:: compilation Compiler new.
 )
+private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
+	(* :literalmessage: primitive: 77 *)
+	primitiveFailed: 'Mirror copiedOf:at:'.
+)
+private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Object> = (
+	(* :literalmessage: primitive: 78 *)
+	primitiveFailed: 'Mirror copiedOf:at:put:'.
+)
+private currentActivation ^<Activation> = (
+	(* :literalmessage: primitive: 133 *)
+	^halt
+)
+private definingActivationOf: closure <Closure> ^<Activation> = (
+	(* :literalmessage: primitive: 71 *)
+	primitiveFailed: 'Mirror definingActivationOf:'.
+)
 private elementsOf: old forwardIdentityToElementsOf: new = (
 	(* :literalmessage: primitive: 98 *)
 	halt.
@@ -1372,6 +1670,10 @@ private grammar = (
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
 	halt.
+)
+private initialBCIOf: closure <Closure> ^<Integer> = (
+	(* :literalmessage: primitive: 73 *)
+	primitiveFailed: 'Mirror initialBCIOf:'.
 )
 private intermediates = (
 	nil = intermediatesX ifTrue: [constructCompiler].
@@ -1404,6 +1706,10 @@ private methodsOf: behavior = (
 )
 private mixinOf: behavior = (
 	^self slotOf: behavior at: 4
+)
+private numCopiedOf: closure <Closure> ^<Integer> = (
+	(* :literalmessage: primitive: 70 *)
+	primitiveFailed: 'Mirror numCopiedOf:'.
 )
 private object: object executeMethod: method with: arguments = (
 	(* :literalmessage: primitive: 95 *)

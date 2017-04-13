@@ -155,7 +155,7 @@ void Interpreter::PushInteger(intptr_t value) {
 }
 
 
-void Interpreter::PushConsArray(intptr_t size) {
+void Interpreter::PushNewArrayWithElements(intptr_t size) {
   Array* result = H->AllocateArray(size);  // SAFEPOINT
   for (intptr_t i = 0; i < size; i++) {
     Object* e = A->Stack(size - i - 1);
@@ -165,7 +165,7 @@ void Interpreter::PushConsArray(intptr_t size) {
 }
 
 
-void Interpreter::PushEmptyArray(intptr_t size) {
+void Interpreter::PushNewArray(intptr_t size) {
   Array* result = H->AllocateArray(size);  // SAFEPOINT
   for (intptr_t i = 0; i < size; i++) {
     result->set_element(i, nil);
@@ -178,7 +178,6 @@ void Interpreter::PushClosure(intptr_t num_copied,
                               intptr_t num_args,
                               intptr_t block_size) {
   Closure* result = H->AllocateClosure(num_copied);  // SAFEPOINT
-  result->set_num_copied(num_copied);
 
   result->set_defining_activation(A);
 #if RECYCLE_ACTIVATIONS
@@ -1372,10 +1371,10 @@ void Interpreter::Interpret() {
     }
     case 231: {
       uint8_t byte2 = FetchNextByte();
-      if (static_cast<int8_t>(byte2) < 0) {
-        PushConsArray(byte2 & 127);
+      if (byte2 < 128) {
+        PushNewArray(byte2);
       } else {
-        PushEmptyArray(byte2 & 127);
+        PushNewArrayWithElements(byte2 - 128);
       }
       break;
     }
@@ -1393,8 +1392,7 @@ void Interpreter::Interpret() {
     }
     case 234: {
       uint8_t byte2 = FetchNextByte();
-      StoreIntoTemporary((extA << 8) + byte2);
-      extA = 0;
+      StoreIntoTemporary(byte2);
       break;
     }
     case 235: {
@@ -1411,8 +1409,7 @@ void Interpreter::Interpret() {
     }
     case 237: {
       uint8_t byte2 = FetchNextByte();
-      PopIntoTemporary((extA << 8) + byte2);
-      extA = 0;
+      PopIntoTemporary(byte2);
       break;
     }
     case 238: {
