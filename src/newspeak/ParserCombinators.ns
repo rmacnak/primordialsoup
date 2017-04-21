@@ -232,9 +232,9 @@ randomExpression: depth = (
 	| m |
 	depth < 1 ifTrue: [^(nextRandom rem: 10) printString].
 	m:: nextRandom rem: 3.
-	m = 0 ifTrue: [^(randomExpression: depth-1),'+',(randomExpression: depth-1)].
-	m = 1 ifTrue: [^(randomExpression: depth-1),'*',(randomExpression: depth-1)].
-	m = 2 ifTrue: [^'(',(randomExpression: depth-1),')'].
+	m = 0 ifTrue: [^(randomExpression: depth - 1), '+', (randomExpression: depth - 1)].
+	m = 1 ifTrue: [^(randomExpression: depth - 1), '*', (randomExpression: depth - 1)].
+	m = 2 ifTrue: [^'(', (randomExpression: depth - 1), ')'].
 	halt.
 )
 ) : (

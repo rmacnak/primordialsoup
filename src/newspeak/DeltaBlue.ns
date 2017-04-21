@@ -418,7 +418,7 @@ public newMark ^<Integer> = (
 public projectionTest: n <Integer> = (
 	(* This test constructs a two sets of variables related to each other by a simple linear transformation (scale and offset). The time is measured to change a variable on either side of the mapping and to change the scale and offset factors. *)
 	| scale <Variable> offset <Variable> src <Variable> dst <Variable>
-	 dests <List[Variable]>|
+	 dests <List[Variable]> |
 	scale:: Variable name: 'scale' initialValue: 10.
 	offset:: Variable name: 'offset' initialValue: 1000.
 	dests:: List new.

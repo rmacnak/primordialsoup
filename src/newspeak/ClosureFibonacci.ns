@@ -11,7 +11,7 @@ public bench = (
 )
 fib = (
 	| f |
-	f:: [:n | n < 2 ifTrue: [1] ifFalse: [(f value: n-1) + (f value: n-2)]].
+	f:: [:n | n < 2 ifTrue: [1] ifFalse: [(f value: n - 1) + (f value: n - 2)]].
 	^f
 )
 ) : (

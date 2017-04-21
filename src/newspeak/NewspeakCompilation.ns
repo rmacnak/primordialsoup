@@ -220,7 +220,7 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 	incStat			<StatementAST>
 	|
 	(* preliminaries *)
-	assert: [ step isNumberNode and: [step value isInteger] ] message: 'Loop with non-integer step'.
+	assert: [ step isNumberNode and: [step value isKindOfInteger] ] message: 'Loop with non-integer step'.
 	assert: [ block isBlockNode ] message: 'Loop with block that is not a BlockAST'.
 	blockScope:: scopeMap at: block body.
 
@@ -610,7 +610,7 @@ isInlineableConditional: node <NormalSendAST> ^<Boolean> = (
 	node message arguments do: [:arg <AST> | (isRemovableBlock: arg withArgs: 0) ifFalse: [^false]].
 	^true
 )
-isInlineableLoop: node <NormalSendAST> ^<Boolean>= (
+isInlineableLoop: node <NormalSendAST> ^<Boolean> = (
 	| selector <Symbol>  args |
 	canInlineSeqexps ifFalse: [valueExpected ifTrue: [^false]].
 	node message isEventual ifTrue: [^false].
@@ -1430,7 +1430,7 @@ public at: key <Symbol> ifAbsent: blk <[X def]> ^<SymbolTableEntry | X> = (
 public at: key <Symbol> put: value <SymbolTableEntry> = (
 	^self bindings at: key put: value
 )
-public at: key <Symbol> put: value <SymbolTableEntry> ifThere: aBlock <[X def]> ^<SymbolTableEntry | X>= (
+public at: key <Symbol> put: value <SymbolTableEntry> ifThere: aBlock <[X def]> ^<SymbolTableEntry | X> = (
 
 	(* Associates aValue with aKey and answers aValue if aKey
     was absent. Otherwise answers the value of aBlock. *)

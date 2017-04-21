@@ -1072,6 +1072,9 @@ public inverseMod: modulus <Integer> ^<Integer> = (
 public isInteger ^<Boolean> = (
 	^true
 )
+public isKindOfInteger ^<Boolean> = (
+	^true
+)
 public multiplyFromFraction: left = (
 	^(left numerator * self) / left denominator
 )

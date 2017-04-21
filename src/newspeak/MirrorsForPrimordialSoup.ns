@@ -1636,6 +1636,7 @@ private constructCompiler = (
 		internalKernel: internalKernel.
 	compilation:: namespace Newspeak2SqueakCompilation 
 		usingPlatform: cachedPlatform 
+		asts: asts
 		newspeakParser: parsing 
 		intermediates: intermediatesX.
 	compilerX:: compilation Compiler new.
