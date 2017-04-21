@@ -273,13 +273,13 @@ public at: index <Integer> ^<String> = (
 	(* :literalmessage: primitive: 51 *)
 	^(ArgumentError value: index) signal
 )
-public copyFrom: start to: stop = (
+public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
 	(* :literalmessage: primitive: 121 *)
 	^ArgumentError new signal
 )
-public endsWith: other <String> ^<Boolean> = (
+public endsWith: suffix <String> ^<Boolean> = (
 	(* :literalmessage: primitive: 118 *)
-	^(ArgumentError value: other) signal
+	^(ArgumentError value: suffix) signal
 )
 public first ^<String> = (
 	^self at: 1
@@ -322,9 +322,9 @@ public size ^<Integer> = (
 	(* :literalmessage: primitive: 53 *)
 	primitiveFailed: 'ByteString size'.
 )
-public startsWith: other <String> ^<Boolean> = (
+public startsWith: prefix <String> ^<Boolean> = (
 	(* :literalmessage: primitive: 117 *)
-	^(ArgumentError value: other) signal
+	^(ArgumentError value: prefix) signal
 )
 ) : (
 public fromRune: rune <Integer> ^<String> = (

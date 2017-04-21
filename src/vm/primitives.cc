@@ -2375,7 +2375,7 @@ DEFINE_PRIMITIVE(String_concat) {
     intptr_t a_length = a->Size();
     intptr_t b_length = b->Size();
     WideString* result =
-      H->AllocateWideString(a_length + b_length);  // SAFEPOINT
+        H->AllocateWideString(a_length + b_length);  // SAFEPOINT
     a = static_cast<WideString*>(A->Stack(1));
     b = static_cast<WideString*>(A->Stack(0));
 
@@ -2383,6 +2383,64 @@ DEFINE_PRIMITIVE(String_concat) {
            a_length * sizeof(uint32_t));
     memcpy(result->element_addr(a_length), b->element_addr(0),
            b_length * sizeof(uint32_t));
+
+    A->PopNAndPush(num_args + 1, result);
+    return kSuccess;
+  }
+
+  if (A->Stack(1)->IsByteString() &&
+      A->Stack(0)->IsWideString()) {
+    ByteString* a = static_cast<ByteString*>(A->Stack(1));
+    WideString* b = static_cast<WideString*>(A->Stack(0));
+    intptr_t a_length = a->Size();
+    intptr_t b_length = b->Size();
+    if (a_length == 0) {
+      A->PopNAndPush(num_args + 1, b);
+      return kSuccess;
+    }
+    if (b_length == 0) {
+      A->PopNAndPush(num_args + 1, a);
+      return kSuccess;
+    }
+    WideString* result =
+        H->AllocateWideString(a_length + b_length);  // SAFEPOINT
+    a = static_cast<ByteString*>(A->Stack(1));
+    b = static_cast<WideString*>(A->Stack(0));
+
+    for (intptr_t i = 0; i < a_length; i++) {
+      result->set_element(i, a->element(i));
+    }
+    memcpy(result->element_addr(a_length), b->element_addr(0),
+           b_length * sizeof(uint32_t));
+
+    A->PopNAndPush(num_args + 1, result);
+    return kSuccess;
+  }
+
+  if (A->Stack(1)->IsWideString() &&
+      A->Stack(0)->IsByteString()) {
+    WideString* a = static_cast<WideString*>(A->Stack(1));
+    ByteString* b = static_cast<ByteString*>(A->Stack(0));
+    intptr_t a_length = a->Size();
+    intptr_t b_length = b->Size();
+    if (a_length == 0) {
+      A->PopNAndPush(num_args + 1, b);
+      return kSuccess;
+    }
+    if (b_length == 0) {
+      A->PopNAndPush(num_args + 1, a);
+      return kSuccess;
+    }
+    WideString* result =
+        H->AllocateWideString(a_length + b_length);  // SAFEPOINT
+    a = static_cast<WideString*>(A->Stack(1));
+    b = static_cast<ByteString*>(A->Stack(0));
+
+    memcpy(result->element_addr(0), a->element_addr(0),
+           a_length * sizeof(uint32_t));
+    for (intptr_t i = 0; i < b_length; i++) {
+      result->set_element(a_length + i, b->element(i));
+    }
 
     A->PopNAndPush(num_args + 1, result);
     return kSuccess;
@@ -2397,26 +2455,68 @@ DEFINE_PRIMITIVE(handlerMarker) {
 }
 
 
+template<typename L, typename R>
+static bool StringStartsWith(L* string, R* prefix, Heap* H,
+                             intptr_t num_args) {
+  intptr_t string_length = string->Size();
+  intptr_t prefix_length = prefix->Size();
+  if (prefix_length > string_length) {
+    RETURN_BOOL(false);
+  }
+
+  for (intptr_t i = 0; i < prefix_length; i++) {
+    if (string->element(i) != prefix->element(i)) {
+      RETURN_BOOL(false);
+    }
+  }
+  RETURN_BOOL(true);
+}
+
 
 DEFINE_PRIMITIVE(String_startsWith) {
   ASSERT(num_args == 1);
 
-  ByteString* string = static_cast<ByteString*>(A->Stack(1));
-  ByteString* substring = static_cast<ByteString*>(A->Stack(0));
+  Object* string = A->Stack(1);
+  Object* prefix = A->Stack(0);
 
-  if (!(string->IsByteString()) ||
-      !(substring->IsByteString())) {
-    return kFailure;
+  if (string->IsByteString()) {
+    if (prefix->IsByteString()) {
+      return StringStartsWith(static_cast<ByteString*>(string),
+                              static_cast<ByteString*>(prefix),
+                              H, num_args);
+    } else if (prefix->IsWideString()) {
+      return StringStartsWith(static_cast<ByteString*>(string),
+                              static_cast<WideString*>(prefix),
+                              H, num_args);
+    }
+  } else if (string->IsWideString()) {
+    if (prefix->IsByteString()) {
+      return StringStartsWith(static_cast<WideString*>(string),
+                              static_cast<ByteString*>(prefix),
+                              H, num_args);
+    } else if (prefix->IsWideString()) {
+      return StringStartsWith(static_cast<WideString*>(string),
+                              static_cast<WideString*>(prefix),
+                              H, num_args);
+    }
   }
 
+  return kFailure;
+}
+
+
+template<typename L, typename R>
+static bool StringEndsWith(L* string, R* suffix, Heap* H,
+                           intptr_t num_args) {
   intptr_t string_length = string->Size();
-  intptr_t substring_length = substring->Size();
-  if (substring_length > string_length) {
+  intptr_t suffix_length = suffix->Size();
+  if (suffix_length > string_length) {
     RETURN_BOOL(false);
   }
 
-  for (intptr_t i = 0; i < substring_length; i++) {
-    if (string->element(i) != substring->element(i)) {
+  intptr_t offset = string_length - suffix_length;
+  for (intptr_t i = 0; i < suffix_length; i++) {
+    if (string->element(offset + i) != suffix->element(i)) {
       RETURN_BOOL(false);
     }
   }
@@ -2427,26 +2527,32 @@ DEFINE_PRIMITIVE(String_startsWith) {
 DEFINE_PRIMITIVE(String_endsWith) {
   ASSERT(num_args == 1);
 
-  ByteString* string = static_cast<ByteString*>(A->Stack(1));
-  ByteString* substring = static_cast<ByteString*>(A->Stack(0));
-  if (!(string->IsByteString()) ||
-      !(substring->IsByteString())) {
-    return kFailure;
-  }
+  Object* string = A->Stack(1);
+  Object* suffix = A->Stack(0);
 
-  intptr_t string_length = string->Size();
-  intptr_t substring_length = substring->Size();
-  if (substring_length > string_length) {
-    RETURN_BOOL(false);
-  }
-
-  intptr_t offset = string_length - substring_length;
-  for (intptr_t i = 0; i < substring_length; i++) {
-    if (string->element(offset + i) != substring->element(i)) {
-      RETURN_BOOL(false);
+  if (string->IsByteString()) {
+    if (suffix->IsByteString()) {
+      return StringEndsWith(static_cast<ByteString*>(string),
+                            static_cast<ByteString*>(suffix),
+                            H, num_args);
+    } else if (suffix->IsWideString()) {
+      return StringEndsWith(static_cast<ByteString*>(string),
+                            static_cast<WideString*>(suffix),
+                            H, num_args);
+    }
+  } else if (string->IsWideString()) {
+    if (suffix->IsByteString()) {
+      return StringEndsWith(static_cast<WideString*>(string),
+                            static_cast<ByteString*>(suffix),
+                            H, num_args);
+    } else if (suffix->IsWideString()) {
+      return StringEndsWith(static_cast<WideString*>(string),
+                            static_cast<WideString*>(suffix),
+                            H, num_args);
     }
   }
-  RETURN_BOOL(true);
+
+  return kFailure;
 }
 
 
@@ -2555,20 +2661,18 @@ DEFINE_PRIMITIVE(String_lastIndexOf) {
 DEFINE_PRIMITIVE(String_substring) {
   ASSERT(num_args == 2);
 
-  ByteString* string = static_cast<ByteString*>(A->Stack(2));
-  SmallInteger* start = static_cast<SmallInteger*>(A->Stack(1));
-  SmallInteger* stop = static_cast<SmallInteger*>(A->Stack(0));
+  if (!A->Stack(1)->IsSmallInteger()) return kFailure;
+  intptr_t start = static_cast<SmallInteger*>(A->Stack(1))->value();
 
-  if (!start->IsSmallInteger() ||
-      !stop->IsSmallInteger()) {
-    return kFailure;
-  }
+  if (!A->Stack(0)->IsSmallInteger()) return kFailure;
+  intptr_t stop = static_cast<SmallInteger*>(A->Stack(0))->value();
 
-  if (0 < start->value() &&
-      stop->value() <= string->Size()) {
+  if (A->Stack(2)->IsByteString()) {
+    ByteString* string = static_cast<ByteString*>(A->Stack(2));
+    if ((start <= 0) || (stop > string->Size())) return kFailure;
     intptr_t subsize;
-    if (start->value() <= stop->value()) {
-      subsize = stop->value() - start->value() + 1;
+    if (start <= stop) {
+      subsize = stop - start + 1;
     } else {
       subsize = 0;
     }
@@ -2576,11 +2680,51 @@ DEFINE_PRIMITIVE(String_substring) {
     string = static_cast<ByteString*>(A->Stack(2));
 
     memcpy(result->element_addr(0),
-           string->element_addr(start->value() - 1),
+           string->element_addr(start - 1),
            subsize);
 
     A->PopNAndPush(num_args + 1, result);
     return kSuccess;
+  }
+
+  if (A->Stack(2)->IsWideString()) {
+    WideString* string = static_cast<WideString*>(A->Stack(2));
+    if ((start <= 0) || (stop > string->Size())) return kFailure;
+    intptr_t subsize;
+    if (start <= stop) {
+      subsize = stop - start + 1;
+    } else {
+      subsize = 0;
+    }
+    bool wide_result = false;
+    for (intptr_t i = start - 1; i < stop; i++) {
+      if (string->element(i) > 255) {
+        wide_result = true;
+        break;
+      }
+    }
+
+    if (!wide_result) {
+      ByteString* result = H->AllocateByteString(subsize);  // SAFEPOINT
+      string = static_cast<WideString*>(A->Stack(2));
+
+      for (intptr_t i = 0; i < subsize; i++) {
+        result->set_element(i, string->element(i + start - 1));
+      }
+
+      A->PopNAndPush(num_args + 1, result);
+      return kSuccess;
+    } else {
+      WideString* result = H->AllocateWideString(subsize);  // SAFEPOINT
+      string = static_cast<WideString*>(A->Stack(2));
+
+      memcpy(result->element_addr(0),
+             string->element_addr(start - 1),
+             subsize * sizeof(uint32_t));
+
+      A->PopNAndPush(num_args + 1, result);
+      return kSuccess;
+    }
   }
 
   return kFailure;
