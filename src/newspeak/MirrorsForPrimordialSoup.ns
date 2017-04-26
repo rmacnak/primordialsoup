@@ -64,14 +64,15 @@ public sender ^<ActivationMirror> = (
 	^ActivationMirror reflecting: senderActivation.
 )
 ) : (
-public simulate: closure = (
+public simulate: closure ifException: onException = (
 	(* :bogus: This method only exists for testing, and should be removed after it's possible to drive the simulation from various step methods on ActivationMirror. *)
 
-	| bottomActivation simulator |	
+	| bottomActivation simulator result |
 	bottomActivation:: Activation new.
 	bottomActivation bci: 0. (* Marks the activation as not dead so the final return can succeed. *)
 	(* :todo: Maybe use a marker method here so the exception machinery can transfer an unhandled exception to the simulator's client. *)
 	(* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
+	bottomActivation push: false.
 	
 	simulator:: Simulator new.
 	simulator activation: bottomActivation.
@@ -79,7 +80,9 @@ public simulate: closure = (
 	[bottomActivation = simulator activation] whileFalse: 
 		[simulator interpretNextInstruction].
 
-	^bottomActivation pop
+	result:: bottomActivation pop.
+	(bottomActivation tempAt: 1) ifFalse: [^result].
+	^onException value: result
 )
 )
 class AtomicInstaller = (|
@@ -957,6 +960,11 @@ public setSlot: name to: value = (
 private class Simulator = (|
 public activation
 |) (
+aboutToReturn: result through: firstUnwindActivation = (
+	| method |
+	method:: behavior: Activation methodAt: #aboutToReturn:through:.
+	activate: method receiver: activation arguments: {result. firstUnwindActivation}.
+)
 activate: newMethod receiver: newReceiver arguments: arguments = (
 	| primitive = newMethod primitive. result newActivation |
 
@@ -1054,6 +1062,11 @@ behavior: behavior methodAt: selector = (
 )
 blockReturn: result = (
 	localReturn: result
+)
+cannotReturn: result = (
+	| method |
+	method:: behavior: Activation methodAt: #cannotReturn:.
+	activate: method receiver: activation arguments: {result}.
 )
 commonArithmeticSend: offset = (
 	0 = offset ifTrue: [^ordinarySend: #+ numArgs: 1].
@@ -1264,6 +1277,11 @@ private newClosureIn: definingActivation initialBCI: initialBCI numArgs: numArgs
 	(* :literalmessage: primitive: 69 *)
 	halt.
 )
+nonBooleanReceiver: nonBoolean = (
+	| method |
+	method:: behavior: Activation methodAt: #nonBooleanReceiver:.
+	activate: method receiver: activation arguments: {nonBoolean}.
+)
 nonLocalReturn: result = (
 	| closure home unwind sender zap next |
 	closure:: activation closure.
@@ -1276,22 +1294,23 @@ nonLocalReturn: result = (
 	unwind:: activation sender.
 	[unwind = home] whileFalse: 
 		[nil = unwind ifTrue: 
-			[^cannotReturn: result from: activation].
+			[^cannotReturn: result].
+		 nil = unwind method ifTrue:
+			[^cannotReturn: result].
 		unwind method primitive = 113 ifTrue:
-			[^aboutToReturn: result from: activation through: unwind].
+			[^aboutToReturn: result through: unwind].
 		unwind:: unwind sender].
 	
 	sender:: home sender.
-	(nil = sender or: [sender isDead]) 
-		ifTrue: [^cannotReturn: result from: activation].
+	(nil = sender or: [sender isDead]) ifTrue:
+		[^cannotReturn: result].
 	
+	(* Mark activations on the dynamic chain up to the return target as dead. Note this follows the behavior of Squeak instead of the blue book, which only zaps A. *)
 	zap:: activation.
-	[
-		next:: zap sender.
-		zap terminate.
-		zap:: next.
-		false
-	] whileTrue.
+	[next:: zap sender.
+	 zap terminate.
+	 zap:: next.
+	 zap = sender] whileFalse.
 	
 	sender push: result.
 	activation: sender.
@@ -1341,7 +1360,7 @@ popJumpFalse: delta = (
 	false = top ifTrue:
 		[activation bci: activation bci + delta.
 		^self].
-	^sendNonBooleanReceiver: top
+	^nonBooleanReceiver: top
 )
 popJumpTrue: delta = (
 	| top = activation pop. |
@@ -1349,7 +1368,7 @@ popJumpTrue: delta = (
 		[activation bci: activation bci + delta.
 		^self].
 	false = top ifTrue: [^self].
-	^sendNonBooleanReceiver: top
+	^nonBooleanReceiver: top
 )
 pushClosureNumCopied: numCopied numArgs: numArgs blockSize: blockSize ^<Activation> = (
 	| newClosure |

@@ -573,28 +573,34 @@ private handlerActivation <Activation>
 public messageText (* squeak compatibility for Minitest *)
 |) (
 private invokeNextHandler = (
-	| handler handlerResult act |
+	| activation <Activation> |
 	
-	handler:: handlerActivation sender.
-	[nil = handler] whileFalse:
-		[handler method primitive = 116 ifTrue:
-			[(is: (handler tempAt: 1) interestedIn: super class) ifTrue: 
-				[(handler tempAt: 3) ifTrue: 
-					[handler tempAt: 3 put: false.
-					handlerActivation:: handler.
-					(handler tempAt: 1) = super class. (* TODO check match *)
-					handlerResult:: (handler tempAt: 2) value: self.
-					handler tempAt: 3 put: true.
-					(* What if the return is interrupted by unwind-protect? Should we hold off on removing these activation and check if they are dead instead? *)
-					signalActivation:: nil.
-					handlerActivation:: nil.
-					^handler return: handlerResult]]].
-		handler:: handler sender].
+	activation:: handlerActivation sender.
+	[nil = activation] whileFalse:
+		[activation method = nil ifTrue:
+			[returnToSimulationRoot: activation.
+			 UNREACHABLE].
+		 activation method primitive = 116 ifTrue:
+			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue: 
+				[(activation tempAt: 3) ifTrue: 
+					[^invokeOnDoHandler: activation]]].
+		 activation:: activation sender].
 	
 	theScheduler unhandledException: self from: signalActivation sender.
 	UNREACHABLE.
 )
-private is: handlerExceptionClass interestedIn: signaledExceptionClass = (
+private invokeOnDoHandler: handler <Activation> = (
+	| handlerResult |
+	handler tempAt: 3 put: false. (* handlerActive:: false. *)
+	handlerActivation:: handler.
+	handlerResult:: (handler tempAt: 2) value: self.
+	handler tempAt: 3 put: true. (* handlerActive:: true. *)
+	(* What if the return is interrupted by unwind-protect? Should we hold off on removing these activations and check if they are dead instead? *)
+	signalActivation:: nil.
+	handlerActivation:: nil.
+	^handler return: handlerResult
+)
+private is: handlerExceptionClass <Any> interestedIn: signaledExceptionClass <Behavior> = (
 	| cls ::= signaledExceptionClass. |
 	[nil = cls] whileFalse: 
 		[(mixinOf: cls) = (mixinOf: handlerExceptionClass) ifTrue: [^true].
@@ -628,6 +634,11 @@ public return: returnValue = (
 	signalActivation:: nil.
 	handlerActivation:: nil.
 	^savedHandlerActivation return: returnValue
+)
+private returnToSimulationRoot: simulationRoot <Activation> = (
+	simulationRoot tempAt: 1 put: true. (* Unhandled exception. *)
+	currentActivation sender: simulationRoot.
+	^self
 )
 public signal = (
 	handlerActivation:: signalActivation:: currentActivation.
