@@ -81,11 +81,6 @@ Only the parser knows which subtree is the rightmost, as this depends on the con
 ) : (
 )
 public class ASTCopier = ASTTool ((* A visitor that copies an NS2 AST. Subclasses can override selected methods to produce altered copies. *)) (
-public assignmentNode: aNode  <AssignmentAST> ^ <AssignmentNode> = (
-	^AssignmentAST new to: (aNode var apply: self) send: (aNode expression apply: self); 
-		start: aNode start; end: aNode end; 
-		concreteStart: aNode concreteStart; concreteEnd: aNode concreteEnd
-)
 public binaryTypeOpNode: aNode = (
 	^BinaryTypeOpAST new
 		leftOperand: (aNode leftOperand apply: self);
@@ -116,13 +111,8 @@ public cascadedSendNode: aNode <CascadedSendAST> ^  <CascadedSendAST> = (
 		concreteStart: aNode concreteStart; 
 		concreteEnd: aNode concreteEnd
 )
-public categoryNode: node = (
-	^CategoryAST new
-		name: node name;
-		methods: (node methods collect: [:m | m apply: self])
-)
-public charNode: aNode <CharAST> = (
-	^CharAST new
+public characterNode: aNode <CharacterAST> = (
+	^CharacterAST new
 		value: aNode value;
 		copyPositionFrom: aNode
 )
@@ -220,13 +210,6 @@ public mixinApplicationClass: node <MixinApplicationClassAST> = (
 		concreteStart: node concreteStart;
 		concreteEnd: node concreteEnd
 )
-public normalSendNode: aNode <NormalSendAST> ^ <NormalSendAST> = (
-	^NormalSendAST new
-		to: (aNode receiver apply: self) send: (aNode message apply: self); 
-		start: aNode start; end: aNode end; 
-		concreteStart: aNode concreteStart;
-		concreteEnd: aNode concreteEnd
-)
 public numberNode: aNode = (
  	^NumberAST new
 		value: aNode value;
@@ -247,10 +230,9 @@ public setterSendNode: aNode <SetterSendAST> ^ <SetterSendAST> = (
 		concreteEnd: aNode concreteEnd
 )
 public sideNode: aNode <SideAST> ^ <SideAST> = (
- 	^NSSideAST new 
-		variables: (aNode vars collect: [:v | v apply: self])
-            categories:  (aNode categories collect: [:c | c apply: self]);
+ 	^SideAST new 
 		nestedClasses: (aNode nestedClasses collect: [:nc | nc apply: self]);
+            methods: (aNode methods collect: [:m | m apply: self]);
             start: aNode start; end: aNode end; 
 		concreteStart: aNode concreteStart; 
 		concreteEnd: aNode concreteEnd
@@ -306,6 +288,13 @@ public unaryTypeOpNode: aNode = (
 		concreteStart: aNode concreteStart; 
 		concreteEnd: aNode concreteEnd
 )
+public unresolvedSendNode: aNode <UnresolvedSendAST> ^ <UnresolvedSendAST> = (
+	^UnresolvedSendAST new
+		to: (aNode receiver apply: self) send: (aNode message apply: self); 
+		start: aNode start; end: aNode end; 
+		concreteStart: aNode concreteStart;
+		concreteEnd: aNode concreteEnd
+)
 public varDeclNode: aNode<VarDeclAST> ^ <VarDeclAST> = (
 	^VarDeclAST
 		name: aNode name
@@ -327,7 +316,7 @@ public blockNode: aNode <BlockAST> = (
 public cascadedSendNode: aNode <CascadedSendAST> = (
 	self subclassResponsibility
 )
-public charNode: aNode <CharAST> = (
+public characterNode: aNode <CharacterAST> = (
 	self subclassResponsibility
 )
 public classNode: aNode <ClassAST> = (
@@ -351,9 +340,6 @@ public mixinApplication: node <MixinApplicationAST> = (
 public mixinApplicationClass: node <MixinApplicationClassAST> = (
 	self subclassResponsibility
 )
-public normalSendNode: aNode <NormalSendAST> = (
-	self subclassResponsibility
-)
 public numberNode: aNode <NumberAST> = (
 	self subclassResponsibility
 )
@@ -375,6 +361,9 @@ public symbolNode: aNode <SymbolAST> = (
 public tupleNode: aNode <TupleAST> = (
 	self subclassResponsibility
 )
+public unresolvedSendNode: aNode <UnresolvedSendAST> = (
+	self subclassResponsibility
+)
 public varDeclNode: aNode <VarDeclAST> = (
 	self subclassResponsibility
 )
@@ -392,7 +381,7 @@ public cascadedSendNode: node <CascadedSendAST> = (
 	node previousSend apply: self.
 	node message apply: self.
 )
-public charNode: node <CharAST> = (
+public characterNode: node <CharacterAST> = (
 	(* Leaf *)
 )
 public keywordPatternNode: aNode <KeywordPatternAST> = (
@@ -407,10 +396,6 @@ public messageNode: node <MessageAST> = (
 )
 public mixinClassNode: node <MixinClassNode> = (
 	(* Leaf? *)
-)
-public normalSendNode: node <NormalSendAST> = (
-	node receiver apply: self.
-	node message apply: self.
 )
 public numberNode: node <NumberAST> = (
 	(* Leaf *)
@@ -431,30 +416,16 @@ public symbolNode: node <SymbolAST> = (
 public tupleNode: node <TupleAST> = (
 	node elements do: [:each | each apply: self]
 )
+public unresolvedSendNode: node <UnresolvedSendAST> = (
+	node receiver apply: self.
+	node message apply: self.
+)
 public variablePatternNode: node <VariablePatternAST> = (
 	#BOGUS yourself.
 	(* Leaf? *)
 )
 public wildcardPatternNode: aNode <WildcardPatternAST> = (
 	(* Leaf *)
-)
-) : (
-)
-public class AssignmentAST = AST (|
-	public variable <VariableAST>
-	public expression <AST>
-|) (
-public apply: aTool = (
-	^aTool assignmentNode: self
-)
-public isAssignmentNode = (^true)
-public isExpressionNode = (^true)
-public to: aVar <VariableAST> assign: anExpr <AST> = (
-  self assert:[aVar isVariableNode].
-  self assert:[anExpr isExpressionNode].
-  self variable: aVar; expression: anExpr.
-  start: var start.
-  end: anExpr end.
 )
 ) : (
 )
@@ -526,20 +497,11 @@ public to: aSend <SendAST> cascade: aMessage <MessageAST>  = (
 )
 ) : (
 )
-public class CategoryAST = AST (|
-	public name <String>
-	public methods <List[MethodAST]>
-|) (
-public apply: aTool <ASTTool> = (
-	^aTool categoryNode: self
-)
-) : (
-)
-public class CharAST = LiteralAST () (
+public class CharacterAST = LiteralAST () (
 public apply: tool = (
-	^tool charNode: self
+	^tool characterNode: self
 )
-public isCharNode = (^true)
+public isCharacterNode = (^true)
 ) : (
 )
 public class ClassBodyAST initializer: init <InitializerAST> instanceSide: iSide <SideAST> classSide: cSide <SideAST> = AST (
@@ -749,12 +711,13 @@ public send: sel <Symbol> with: args <List[ExpressionAST]> = (
 )
 ) : (
 )
-public class MessagePatternAST = AST (| 
+public class MessagePatternAST = AST (
+| 
+      public accessModifier <Symbol>
 	public selector <Symbol>
 	public parameters <List[ParameterAST]>
 	public returnType <TypeAST>
 	public typePattern <TypePatternAST>
-	public accessModifier
 |) (
 public apply: aTool = (
 	^aTool messagePatternNode: self.
@@ -784,10 +747,10 @@ public class MethodAST = AST (|
 	public pattern <MessagePatternAST>
 	public body <CodeBodyAST>
 |) (
-public accessModifier ^<Symbol> = (
+public accessModifier ^ <Symbol>  = (
 	^pattern accessModifier
 )
-public accessModifier: am <Symbol> = (
+public accessModifier: am <Symbol>  = (
 	pattern accessModifier: am
 )
 public apply: aTool = (
@@ -795,10 +758,9 @@ public apply: aTool = (
 )
 public isMethodNode = (^true)
 public pattern: p <MessagePatternAST> body: b <CodeBodyAST> accessModifier: am <Symbol> = (
-  self assert:[p isMessagePatternNode].
-  self assert:[b isCodeBodyNode].
-  self pattern: p; body: b.
-  pattern accessModifier: am
+	pattern: p.
+	body: b.
+	accessModifier: am.
 )
 public printOn: stream = (
 	stream nextPutAll: 'MethodAST: '.
@@ -842,31 +804,6 @@ public isMixinApplicationClassAST = (
 )
 public class MutableSlotDefAST = SlotDefAST () (
 public isMutable ^ <Boolean> = (^true)
-) : (
-)
-public class NSSideAST = SideAST (| 
-	public nestedClasses <List[ClassDeclarationAST]>
-|) (
-) : (
-)
-public class NormalSendAST = SendAST (
-	(* Should be renamed UnresolvedSend *)|
-	public receiver <ExpressionAST>
-|) (
-public apply: aTool = (
-	^aTool normalSendNode: self
-)
-public isNormalSendNode = (^true)
-public printOn: stream = (
-	stream nextPutAll: 'NormalSendAST: '.
-	stream nextPutAll: message selector.
-)
-public to: anExpression <ExpressionAST> send: aMessage <MessageAST> = (
-	self receiver: anExpression; message: aMessage
-)
-public to: receiver send: selector with: arguments = (
-	to: receiver send: (MessageAST new send: selector with: arguments)
-)
 ) : (
 )
 public class NumberAST = LiteralAST () (
@@ -931,21 +868,14 @@ public printOn: stream = (
 ) : (
 )
 public class SideAST = AST ((* An AST for one side of a class *)|
-	public variables <Collection[Symbol]>
-	public categories <Collection[String]>
-	public classComment <String>
+	public nestedClasses <Collection[ClassDeclarationAST]>
+	public methods <Collection[MethodAST]>
 |) (
 public apply: aTool = (
-	^aTool sideNode: self.
+	^aTool sideNode: self
 )
-public isSideNode = (^true)
-public nestedClasses ^ <Collection[ClassDeclarationAST]> = (
-	(* Answer the nested classes for this AST.  This default answers an
-	 empty set since it serves for languages without nested classes. *)
-	^{}
-)
-public variables: vs <Collection[Symbol]> categories: cs <Collection[String]> = (
-	self variables: vs; categories: cs
+public isSideNode = (
+	^true
 )
 ) : (
 )
@@ -999,6 +929,27 @@ public isTypeNode ^ <Boolean> = (
 public class UnaryTypeOpAST = AST (| public operand <TypeAST> public operator <Symbol>  |) (
 public apply: aTool  = (
 	^aTool unaryTypeOpNode: self
+)
+) : (
+)
+public class UnresolvedSendAST = SendAST (|
+	public receiver <ExpressionAST>
+|) (
+public apply: aTool = (
+	^aTool unresolvedSendNode: self
+)
+public isUnresolvedSendNode = (
+	^true
+)
+public printOn: stream = (
+	stream nextPutAll: 'NormalSendAST: '.
+	stream nextPutAll: message selector.
+)
+public to: anExpression <ExpressionAST> send: aMessage <MessageAST> = (
+	self receiver: anExpression; message: aMessage
+)
+public to: receiver send: selector with: arguments = (
+	to: receiver send: (MessageAST new send: selector with: arguments)
 )
 ) : (
 )
