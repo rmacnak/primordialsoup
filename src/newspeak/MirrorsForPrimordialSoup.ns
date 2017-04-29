@@ -21,7 +21,7 @@ private reflectees = WeakMap new.
 private cachedPlatform = platform.
 private internalKernel = ik.
 private namespace = ns.
-private grammarX
+private parsingX
 private intermediatesX
 private compilerX
 |) (
@@ -558,7 +558,7 @@ public name: newName <String> = (
 			ifFalse: [^Error signal: 'A sibling already exists with the name ', newName]].
 
 	(* patch header source with the new name *)
-	token:: (grammar TypedNS3Grammar new classHeader parseString: source) at: 3.
+	token:: (parsing Parser for: source) advanceToken parseClassHeaderForName.
 	newClassSource::
 		(intermediate isTopLevel
 			(* only top-level classes can specify categories *)
@@ -1743,17 +1743,11 @@ private compiler = (
 	^compilerX
 )
 private constructCompiler = (
-	| parserLib asts parsing compilation |
-	parserLib:: namespace CombinatorialParsing 
-		usingPlatform: cachedPlatform.
-	grammarX:: namespace NewspeakGrammar 
-		usingPlatform: cachedPlatform
-		parsers: parserLib.
+	| asts compilation |
 	asts:: namespace NewspeakASTs 
 		usingLib: cachedPlatform.
-	parsing:: namespace NewspeakParsing 
+	parsingX:: namespace NewspeakPredictiveParsing 
 		usingPlatform: cachedPlatform
-		grammar: grammarX
 		asts: asts.
 	intermediatesX:: namespace Intermediates 
 		usingPlatform: cachedPlatform
@@ -1761,7 +1755,7 @@ private constructCompiler = (
 	compilation:: namespace Newspeak2SqueakCompilation 
 		usingPlatform: cachedPlatform 
 		asts: asts
-		newspeakParser: parsing 
+		newspeakParser: parsingX
 		intermediates: intermediatesX.
 	compilerX:: compilation Compiler new.
 )
@@ -1783,10 +1777,6 @@ private elementsOf: old forwardIdentityToElementsOf: new = (
 )
 private enclosingObjectOf: behavior = (
 	^self slotOf: behavior at: 3
-)
-private grammar = (
-	nil = grammarX ifTrue: [constructCompiler].
-	^grammarX
 )
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
@@ -1835,6 +1825,10 @@ private numCopiedOf: closure <Closure> ^<Integer> = (
 private object: object executeMethod: method with: arguments = (
 	(* :literalmessage: primitive: 95 *)
 	primitiveFailed: 'executeMethod'.
+)
+private parsing = (
+	nil = parsingX ifTrue: [constructCompiler].
+	^parsingX
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)

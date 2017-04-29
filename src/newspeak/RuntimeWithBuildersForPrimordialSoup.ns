@@ -7,10 +7,8 @@ private Collections = manifest CollectionsForPrimordialSoup.
 private Mirrors = manifest MirrorsForPrimordialSoup.
 private Actors = manifest ActorsForPrimordialSoup.
 
-public CombinatorialParsing = manifest CombinatorialParsing.
-public NewspeakGrammar = manifest NewspeakGrammar.
 public NewspeakASTs = manifest NewspeakASTs.
-public NewspeakParsing = manifest NewspeakParsing.
+public NewspeakPredictiveParsing = manifest NewspeakPredictiveParsing.
 public Intermediates = manifest IntermediatesForPrimordialSoup.
 public Newspeak2SqueakCompilation = manifest Newspeak2SqueakCompilation mixinApply: manifest NewspeakCompilation.
 
