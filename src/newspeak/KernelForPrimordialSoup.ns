@@ -636,7 +636,7 @@ public return: returnValue = (
 	^savedHandlerActivation return: returnValue
 )
 private returnToSimulationRoot: simulationRoot <Activation> = (
-	simulationRoot tempAt: 1 put: true. (* Unhandled exception. *)
+	(simulationRoot tempAt: 1) state: #broken.
 	currentActivation sender: simulationRoot.
 	^self
 )

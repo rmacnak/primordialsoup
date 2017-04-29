@@ -32,14 +32,11 @@ public closure ^<ObjectMirror> = (
 	nil = rawClosure ifTrue: [^nil].
 	^ObjectMirror reflecting: rawClosure
 )
-public enclosingActivation ^<ActivationMirror> = (
-	
+public evaluate: expression <String> ^<ThreadMirror> = (
+	halt.
 )
-public evaluate: expression ifCompilerError: x ifError: y = (
-	
-)
-localNamesAndValuesDo: x = (
-	
+public locals ^<List[LocalSlotMirror]> = (
+	halt.
 )
 public message ^<MessageMirror> = (
 	(* If this activation is from an MNU, should this answer the original message or #doesNotUnderstand: ? *)
@@ -58,31 +55,48 @@ public method ^<MethorMirror> = (
 public receiver ^<ObjectMirror> = (
 	^ObjectMirror reflecting: reflectee receiver
 )
+public restart ^<ThreadMirror> = (
+	halt.
+)
+public return: result <ObjectMirror> ^<ThreadMirror> = (
+	halt.
+)
 public sender ^<ActivationMirror> = (
-	| senderActivation = reflectee sender. |
-	nil = senderActivation ifTrue: [^nil].
-	^ActivationMirror reflecting: senderActivation.
+	| rawSender = reflectee sender. |
+	nil = rawSender ifTrue: [^nil].
+	nil = rawSender method ifTrue: [^nil (* Hide simulation root. *)].
+	^ActivationMirror reflecting: rawSender
+)
+public stepInto ^<ThreadMirror> = (
+	halt.
+)
+public stepIntoBlock ^<ThreadMirror> = (
+	halt.
+)
+public stepOver ^<ThreadMirror> = (
+	halt.
 )
 ) : (
-public simulate: closure ifException: onException = (
-	(* :bogus: This method only exists for testing, and should be removed after it's possible to drive the simulation from various step methods on ActivationMirror. *)
-
-	| bottomActivation simulator result |
-	bottomActivation:: Activation new.
-	bottomActivation bci: 0. (* Marks the activation as not dead so the final return can succeed. *)
-	(* :todo: Maybe use a marker method here so the exception machinery can transfer an unhandled exception to the simulator's client. *)
-	(* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
-	bottomActivation push: false.
+public invokeSuspended: closure = (
+	| thread bottom simulator |
+	thread:: Thread new.
+	
+	bottom:: Activation new.
+	(* bottom sender: nil *) (* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
+	(* bottom method: nil *) (* Marks the activation as a simulation root. Used to route unhandled exceptions. *)
+	bottom bci: 0. (* Marks the activation as not dead so the final return can succeed. *)
+	(* bottom closure: nil *)
+	(* bottom receiver: nil *)
+	bottom push: thread.
 	
 	simulator:: Simulator new.
-	simulator activation: bottomActivation.
-	simulator activateClosure: closure arguments: {}.	
-	[bottomActivation = simulator activation] whileFalse: 
-		[simulator interpretNextInstruction].
-
-	result:: bottomActivation pop.
-	(bottomActivation tempAt: 1) ifFalse: [^result].
-	^onException value: result
+	simulator activation: bottom.
+	simulator activateClosure: closure arguments: {}.
+	
+	thread state: #suspended.
+	thread suspendedActivation: simulator activation.
+	
+	^ThreadMirror reflecting: thread
 )
 )
 class AtomicInstaller = (|
@@ -923,6 +937,40 @@ ifError: evalErrorHandler <[:ObjectMirror[Error] :ActivationMirror]> ^<ObjectMir
 
 	^ObjectMirror reflecting: result
 )
+public evaluateSuspended: expression <String> ^<ThreadMirror> = (
+	| cls mxn mtdMirror thread bottom simulator |
+	cls:: classOf: reflectee.
+	mxn:: (ClassMirror reflecting: cls) mixin.
+	mtdMirror:: compiler
+		compileExpressionSource: expression
+		inContext: nil
+		inMixin: mxn. 
+		
+	mtdMirror category: #DoIts.
+	mtdMirror methodMixin: (mixinOf: cls).
+	mtdMirror compiledMethod source: expression.
+	(* :todo: at: #debugInfo put: mtdMirror debugInfo *)
+
+
+	thread:: Thread new.
+	
+	bottom:: Activation new.
+	(* bottom sender: nil *) (* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
+	(* bottom method: nil *) (* Marks the activation as a simulation root. Used to route unhandled exceptions. *)
+	bottom bci: 0. (* Marks the activation as not dead so the final return can succeed. *)
+	(* bottom closure: nil *)
+	(* bottom receiver: nil *)
+	bottom push: thread.
+	
+	simulator:: Simulator new.
+	simulator activation: bottom.
+	simulator activate: mtdMirror compiledMethod receiver: reflectee arguments: {}.
+	
+	thread state: #suspended.
+	thread suspendedActivation: simulator activation.
+	
+	^ThreadMirror reflecting: thread
+)
 public getClass ^<ClassMirror> = (
 	^ClassMirror reflecting: (classOf: reflectee)
 )
@@ -965,7 +1013,7 @@ aboutToReturn: result through: firstUnwindActivation = (
 	method:: behavior: Activation methodAt: #aboutToReturn:through:.
 	activate: method receiver: activation arguments: {result. firstUnwindActivation}.
 )
-activate: newMethod receiver: newReceiver arguments: arguments = (
+public activate: newMethod receiver: newReceiver arguments: arguments = (
 	| primitive = newMethod primitive. result newActivation |
 
 	0 = primitive ifFalse: 
@@ -1516,30 +1564,87 @@ public definingMixin = mxn.
 |) (
 ) : (
 )
-class ThreadMirror = () (
-restart: activation = (
-	
+private class Thread = (
+|
+public state ::= #initial.
+public result
+public suspendedActivation
+public steppingGoal
+|
+) (
+) : (
 )
-resume = (
-	
+private class ThreadMirror reflecting: t = (
+	| protected thread = t. |
+) (
+public break: exception <ObjectMirror> ^<ThreadMirror> = (
+	halt.
 )
-return: object from: activation = (
-	
+public fulfill: value <ObjectMirror> ^<ThreadMirror> = (
+	halt.
 )
-stepInto: activation = (
-	
+public isBroken ^<Boolean> = (
+	^thread state = #broken
 )
-stepIntoBlock: activation = (
-	
+public isFulfilled ^<Boolean> = (
+	^thread state = #fulfilled
 )
-stepOver: activation = (
-	
+public isRunning ^<Boolean> = (
+	halt.
 )
-suspend = (
-	
+public isSuspended ^<Boolean> = (
+	^thread state = #suspended
 )
-terminate = (
+public isTerminated ^<Boolean> = (
+	halt.
+)
+public result ^<ObjectMirror | nil> = (
+	thread state = #fulfilled ifTrue: [^ObjectMirror reflecting: thread result].
+	thread state = #broken ifTrue: [^ObjectMirror reflecting: thread result].
+	^nil
+)
+public resume ^<ThreadMirror> = (
+	| simulator = Simulator new. |
+	simulator activation: thread suspendedActivation.
+	thread state: #running.
+	[nil = simulator activation method] whileFalse: 
+		[simulator interpretNextInstruction].
+
+	thread state = #broken ifTrue:
+		[thread result: simulator activation pop.
+		 thread suspendedActivation: nil. 
+		 ^self].
+
+	thread state: #fulfilled.
+	thread result: simulator activation pop.
+	^self
+)
+public stepInto = (
+	| simulator = Simulator new. |
+	simulator activation: thread suspendedActivation.
+	thread state: #running.
+	simulator interpretNextInstruction. (* :todo: Step past anything synthetic. *)
 	
+	nil = simulator activation method ifTrue:
+		[thread state = #broken ifTrue:
+			[thread result: simulator activation pop.
+			 thread suspendedActivation: nil. 
+			 ^self].
+
+		thread state: #fulfilled.
+		thread result: simulator activation pop.
+		^self].
+	
+	thread state: #suspended.
+	thread suspendedActivation: simulator activation.
+	^self
+)
+public suspendedActivation ^<ActivationMirror | nil> = (
+	isSuspended ifFalse: [^nil].
+	^ActivationMirror reflecting: thread suspendedActivation
+)
+public terminate ^<ThreadMirror> = (
+	halt.
 )
 ) : (
 )
@@ -1668,10 +1773,6 @@ private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Ob
 	(* :literalmessage: primitive: 78 *)
 	primitiveFailed: 'Mirror copiedOf:at:put:'.
 )
-private currentActivation ^<Activation> = (
-	(* :literalmessage: primitive: 133 *)
-	^halt
-)
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
 	primitiveFailed: 'Mirror definingActivationOf:'.
@@ -1734,11 +1835,6 @@ private numCopiedOf: closure <Closure> ^<Integer> = (
 private object: object executeMethod: method with: arguments = (
 	(* :literalmessage: primitive: 95 *)
 	primitiveFailed: 'executeMethod'.
-)
-qualifiedNameFor: mixin = (
-	(* :bogus: *)
-	nil = mixin _enclosingMixin ifTrue: [^mixin _name].
-	^(qualifiedNameFor: mixin _enclosingMixin) , '`', mixin _name
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)
