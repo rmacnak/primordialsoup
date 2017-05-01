@@ -998,6 +998,21 @@ private indexOfSlotNamed: name in: startCls = (
 public isKindOfObjectMirror ^<Boolean> = (
 	^true
 )
+private object: object executeMethod: method with: arguments = (
+	| activation |
+	activation:: Activation new.
+	
+	activation sender: currentActivation sender.
+	activation bci: 1.
+	activation method: method.
+	activation closure: nil.
+	activation receiver: object.
+	activation tempSize: arguments size + method numTemps.
+	1 to: arguments size do:
+		[:index | activation tempAt: index put: (arguments at: index)].
+	jumpTo: activation.
+	UNREACHABLE.
+)
 public setSlot: name to: value = (
 	| index raw |
 	index:: indexOfSlotNamed: name in: (classOf: reflectee).
@@ -1042,14 +1057,10 @@ public activate: newMethod receiver: newReceiver arguments: arguments = (
 				[closureArgs size = newReceiver numArgs ifTrue: 
 					[^activateClosure: newReceiver arguments: closureArgs]]].
 	
-		(* Execute method *)
-		95 =  primitive ifTrue: [
-			| exeReceiver exeMethod exeArguments |
-			exeReceiver:: arguments at: 1.
-			exeMethod:: arguments at: 2.
-			exeArguments:: arguments at: 3.
-			(* :todo: arity mismatch? *)
-			^activate: exeMethod receiver: exeReceiver arguments: exeArguments].
+		(* Jump *)
+		95 = primitive ifTrue: [
+			activation:: arguments at: 1.
+			^self].
 	
 		(* Perform *)
 		89 =  primitive ifTrue: [
@@ -1767,6 +1778,10 @@ private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Ob
 	(* :literalmessage: primitive: 78 *)
 	primitiveFailed: 'Mirror copiedOf:at:put:'.
 )
+private currentActivation ^<Activation> = (
+	(* :literalmessage: primitive: 133 *)
+	^halt
+)
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
 	primitiveFailed: 'Mirror definingActivationOf:'.
@@ -1812,6 +1827,10 @@ private isSubinitializerSelector: selector = (
 private isSyntheticSlotSelector: selector = (
 	^selector endsWith: '`slot'
 )
+private jumpTo: activation = (
+	(* :literalmessage: primitive: 95 *)
+	halt.
+)
 private methodsOf: behavior = (
 	^self slotOf: behavior at: 2
 )
@@ -1821,10 +1840,6 @@ private mixinOf: behavior = (
 private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 70 *)
 	primitiveFailed: 'Mirror numCopiedOf:'.
-)
-private object: object executeMethod: method with: arguments = (
-	(* :literalmessage: primitive: 95 *)
-	primitiveFailed: 'executeMethod'.
 )
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].

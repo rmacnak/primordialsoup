@@ -116,7 +116,7 @@ const bool kFailure = false;
   V(92, Closure_value2)                                                        \
   V(93, Closure_value3)                                                        \
   V(94, Closure_valueArray)                                                    \
-  V(95, executeMethod)                                                         \
+  V(95, jump)                                                                  \
   V(96, Behavior_allInstances)                                                 \
   V(97, Behavior_adoptInstance)                                                \
   V(98, Array_elementsForwardIdentity)                                         \
@@ -2075,41 +2075,14 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
 }
 
 
-DEFINE_PRIMITIVE(executeMethod) {
-  ASSERT(num_args == 3);
+DEFINE_PRIMITIVE(jump) {
+  ASSERT(num_args == 1);
 
-  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
-
-  Object* new_receiver = A->Stack(2);
-  Method* method = static_cast<Method*>(A->Stack(1));
-  Array* arguments = static_cast<Array*>(A->Stack(0));
-  if (!arguments->IsArray()) {
-    UNIMPLEMENTED();
-  }
-  if (!method->IsRegularObject()) {
-    UNIMPLEMENTED();
-  }
-  if (arguments->Size() != method->NumArgs()) {
-    UNIMPLEMENTED();
+  if (!A->Stack(0)->IsActivation()) {
+    return kFailure;
   }
 
-  new_activation->set_sender(A);
-  new_activation->set_bci(SmallInteger::New(1));
-  new_activation->set_method(method);
-  new_activation->set_closure(static_cast<Closure*>(nil));
-  new_activation->set_receiver(new_receiver);
-  new_activation->set_stack_depth(0);
-
-  for (intptr_t i = 0; i < arguments->Size(); i++) {
-    new_activation->Push(arguments->element(i));
-  }
-  intptr_t num_temps = method->NumTemps();
-  for (intptr_t i = 0; i < num_temps; i++) {
-    new_activation->Push(nil);
-  }
-
-  A->Drop(num_args + 1);
-  H->set_activation(new_activation);
+  H->set_activation(static_cast<Activation*>(A->Stack(0)));
   return kSuccess;
 }
 
@@ -3137,7 +3110,7 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
       index == 92 ||  // Closure_value2
       index == 93 ||  // Closure_value3
       index == 94 ||  // Closure_valueArray
-      index == 95 ||  // executeMethod
+      index == 95 ||  // jump
       index == 89) {  // Object_performWithAll
     return kFailure;
   }

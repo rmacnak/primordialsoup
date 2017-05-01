@@ -121,18 +121,18 @@ public testSimulationEnclosingObject = (
 	assertSimulation: [outer SimulationTests] answers: outer SimulationTests.
 	assertSimulation: [outer ActivationMirrorTesting] answers: outer ActivationMirrorTesting.
 )
-public testSimulationExecuteMethod = (
+public testSimulationImplicitReceiverSend = (
+	assertSimulation: [foo] answers: 'sub'.
+	assertSimulation: [fooWithArg: 1] answers: 'sub'.
+	assertSimulation: [baz] answers: 'enclosing'.
+)
+public testSimulationJump = (
 	| mirror = ObjectMirror reflecting: self. |
 	
 	"a" isString ifFalse: [^self]. (* This fails badly enough on Squeak to lock up the UI. *)
 	
 	assertSimulation: [mirror evaluate: 'foo' ifCompilerError: [:e | fail] ifError: [:e | fail]] 
 	answers: (mirror evaluate: 'foo' ifCompilerError: [:e | fail] ifError: [:e | fail]).	
-)
-public testSimulationImplicitReceiverSend = (
-	assertSimulation: [foo] answers: 'sub'.
-	assertSimulation: [fooWithArg: 1] answers: 'sub'.
-	assertSimulation: [baz] answers: 'enclosing'.
 )
 public testSimulationNonBooleanReceiver = (
 	assertSimulation: [0 ifTrue: [1]]
