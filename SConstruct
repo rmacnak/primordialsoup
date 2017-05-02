@@ -5,9 +5,9 @@ import platform
 
 def BuildVM(cxx, arch, target_os, debug, sanitize):
   if target_os == 'windows' and arch == 'ia32':
-    env = Environment(TARGET_ARCH='x86')
+    env = Environment(TARGET_ARCH='x86', tools=['msvc', 'mslink'])
   elif target_os == 'windows' and arch == 'x64':
-    env = Environment(TARGET_ARCH='x86_64')
+    env = Environment(TARGET_ARCH='x86_64', tools=['msvc', 'mslink'])
   else:
     env = Environment(tools=['g++', 'gnulink'])
     env['CXX'] = cxx
