@@ -78,21 +78,11 @@ public stepOver ^<ThreadMirror> = (
 )
 ) : (
 public invokeSuspended: closure = (
-	| thread bottom simulator |
-	thread:: Thread new.
-	
-	bottom:: Activation new.
-	(* bottom sender: nil *) (* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
-	(* bottom method: nil *) (* Marks the activation as a simulation root. Used to route unhandled exceptions. *)
-	bottom bci: 0. (* Marks the activation as not dead so the final return can succeed. *)
-	(* bottom closure: nil *)
-	(* bottom receiver: nil *)
-	bottom push: thread.
-	
+	| simulator thread |
 	simulator:: Simulator new.
-	simulator activation: bottom.
 	simulator activateClosure: closure arguments: {}.
 	
+	thread:: Thread new.
 	thread state: #suspended.
 	thread suspendedActivation: simulator activation.
 	
@@ -938,7 +928,7 @@ ifError: evalErrorHandler <[:ObjectMirror[Error] :ActivationMirror]> ^<ObjectMir
 	^ObjectMirror reflecting: result
 )
 public evaluateSuspended: expression <String> ^<ThreadMirror> = (
-	| cls mxn mtdMirror thread bottom simulator |
+	| cls mxn mtdMirror thread simulator |
 	cls:: classOf: reflectee.
 	mxn:: (ClassMirror reflecting: cls) mixin.
 	mtdMirror:: compiler
@@ -951,21 +941,10 @@ public evaluateSuspended: expression <String> ^<ThreadMirror> = (
 	mtdMirror compiledMethod source: expression.
 	(* :todo: at: #debugInfo put: mtdMirror debugInfo *)
 
+	simulator:: Simulator new.
+	simulator activate: mtdMirror compiledMethod receiver: reflectee arguments: {}.
 
 	thread:: Thread new.
-	
-	bottom:: Activation new.
-	(* bottom sender: nil *) (* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
-	(* bottom method: nil *) (* Marks the activation as a simulation root. Used to route unhandled exceptions. *)
-	bottom bci: 0. (* Marks the activation as not dead so the final return can succeed. *)
-	(* bottom closure: nil *)
-	(* bottom receiver: nil *)
-	bottom push: thread.
-	
-	simulator:: Simulator new.
-	simulator activation: bottom.
-	simulator activate: mtdMirror compiledMethod receiver: reflectee arguments: {}.
-	
 	thread state: #suspended.
 	thread suspendedActivation: simulator activation.
 	
@@ -1321,8 +1300,8 @@ jump: delta = (
 )
 localReturn: result = (
 	| sender = activation sender. |
-	nil = sender ifTrue: [^cannotReturn: result from: activation].
-	sender isDead ifTrue: [^cannotReturn: result from: activation].
+	nil = sender ifTrue: [^cannotReturn: result].
+	sender isDead ifTrue: [^cannotReturn: result].
 	activation terminate.
 	sender push: result.
 	activation: sender.
@@ -1354,10 +1333,10 @@ nonLocalReturn: result = (
 	[unwind = home] whileFalse: 
 		[nil = unwind ifTrue: 
 			[^cannotReturn: result].
-		 nil = unwind method ifTrue:
-			[^cannotReturn: result].
 		unwind method primitive = 113 ifTrue:
 			[^aboutToReturn: result through: unwind].
+		unwind method primitive = 142 ifTrue:
+			[^cannotReturn: result].
 		unwind:: unwind sender].
 	
 	sender:: home sender.
@@ -1591,6 +1570,22 @@ private class ThreadMirror reflecting: t = (
 public break: exception <ObjectMirror> ^<ThreadMirror> = (
 	halt.
 )
+private createSimulationRoot = (
+	| root = Activation new. |
+	(* bottom sender: nil *) (* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
+	root method: simulatorRootMethod. (* Marks the activation as a simulation root. Used to route unhandled exceptions. *)
+	root bci: 0. (* Marks the activation as not dead so the final return can succeed. *)
+	(* bottom closure: nil *)
+	(* bottom receiver: nil *)
+	root push: thread. (* Known to exception signaling machinery. *)
+	^root
+)
+private findBottom: top <Activation> = (
+	| bottom ::= top. |
+	[nil = bottom sender or: [bottom sender method primitive = 142]] whileFalse:
+		[bottom:: bottom sender].
+	^bottom
+)
 public fulfill: value <ObjectMirror> ^<ThreadMirror> = (
 	halt.
 )
@@ -1615,10 +1610,35 @@ public result ^<ObjectMirror | nil> = (
 	^nil
 )
 public resume ^<ThreadMirror> = (
-	| simulator = Simulator new. |
-	simulator activation: thread suspendedActivation.
+	(* :literalmessage: primitive: 142 *)
+	| threadAtTemp1 bottom res |
+	threadAtTemp1:: thread. (* Known to exception signaling machinery. *)
+
+	bottom:: findBottom: thread suspendedActivation.
+
 	thread state: #running.
-	[nil = simulator activation method] whileFalse: 
+	bottom sender: currentActivation.
+	res:: jumpTo: thread suspendedActivation.
+
+	thread state = #broken ifTrue:
+		[thread result: res.
+		 thread suspendedActivation: nil. 
+		 ^self].
+
+	thread state: #fulfilled.
+	thread result: res.
+	^self
+)
+public resumeSlowly ^<ThreadMirror> = (
+	| root bottom simulator = Simulator new. |
+
+	root:: createSimulationRoot.
+	bottom:: findBottom: thread suspendedActivation.
+
+	thread state: #running.
+	bottom sender: root.
+	simulator activation: thread suspendedActivation.
+	[root = simulator activation] whileFalse:
 		[simulator interpretNextInstruction].
 
 	thread state = #broken ifTrue:
@@ -1631,15 +1651,20 @@ public resume ^<ThreadMirror> = (
 	^self
 )
 public stepInto = (
-	| simulator = Simulator new. |
-	simulator activation: thread suspendedActivation.
-	thread state: #running.
-	simulator interpretNextInstruction. (* :todo: Step past anything synthetic. *)
+	| root bottom simulator = Simulator new. |
 	
-	nil = simulator activation method ifTrue:
+	root:: createSimulationRoot.
+	bottom:: findBottom: thread suspendedActivation.
+	
+	thread state: #running.
+	bottom sender: root.
+	simulator activation: thread suspendedActivation.
+	simulator interpretNextInstruction. (* :todo: Step past anything synthetic. *)
+
+	root = simulator activation ifTrue:
 		[thread state = #broken ifTrue:
 			[thread result: simulator activation pop.
-			 thread suspendedActivation: nil. 
+			 thread suspendedActivation: nil.
 			 ^self].
 
 		thread state: #fulfilled.
@@ -1844,6 +1869,17 @@ private numCopiedOf: closure <Closure> ^<Integer> = (
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
 	^parsingX
+)
+private simulatorRoot = (
+	(* :literalmessage: primitive: 142 *)
+	halt.
+)
+private simulatorRootMethod = (
+	| methods = methodsOf: self class. |
+	1 to: methods size do: 
+		[:index | | method = methods at: index. |
+		method selector = #simulatorRoot ifTrue: [^method]].
+	halt.
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)

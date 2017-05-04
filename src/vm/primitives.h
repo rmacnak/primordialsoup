@@ -22,9 +22,8 @@ class Primitives {
   static void Startup();
   static void Shutdown();
 
-  static bool IsUnwindProtect(intptr_t prim) {
-    return prim == 113;
-  }
+  static bool IsUnwindProtect(intptr_t prim) { return prim == 113; }
+  static bool IsSimulationRoot(intptr_t prim) { return prim == 142; }
 
   static bool Invoke(intptr_t prim,
                      intptr_t num_args,

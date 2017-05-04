@@ -571,13 +571,12 @@ void Interpreter::SendDNU(ByteString* selector,
 }
 
 
-void Interpreter::SendCannotReturn(Activation* returner,
-                                   Object* result) {
+void Interpreter::SendCannotReturn(Object* result) {
   if (TRACE_SPECIAL_CONTROL) {
     OS::PrintErr("#cannotReturn:\n");
   }
 
-  Behavior* receiver_class = returner->Klass(H);
+  Behavior* receiver_class = A->Klass(H);
   Behavior* cls = receiver_class;
   Method* method;
   do {
@@ -592,20 +591,19 @@ void Interpreter::SendCannotReturn(Activation* returner,
     FATAL("Missing #cannotReturn:");
   }
 
-  A->Push(returner);
+  A->Push(A);
   A->Push(result);
   Activate(method, 1);  // SAFEPOINT
 }
 
 
-void Interpreter::SendUnwindProtect(Activation* returner,
-                                    Object* result,
-                                    Activation* unwind) {
+void Interpreter::SendAboutToReturnThrough(Object* result,
+                                           Activation* unwind) {
   if (TRACE_SPECIAL_CONTROL) {
     OS::PrintErr("#aboutToReturn:through:\n");
   }
 
-  Behavior* receiver_class = returner->Klass(H);
+  Behavior* receiver_class = A->Klass(H);
   Behavior* cls = receiver_class;
   Method* method;
   do {
@@ -620,7 +618,7 @@ void Interpreter::SendUnwindProtect(Activation* returner,
     FATAL("Missing #aboutToReturn:through:");
   }
 
-  A->Push(returner);
+  A->Push(A);
   A->Push(result);
   A->Push(unwind);
   Activate(method, 2);  // SAFEPOINT
@@ -812,14 +810,17 @@ void Interpreter::NonLocalReturn(Object* result) {
        unwind = unwind->sender()) {
     if (!unwind->IsActivation()) {
       ASSERT(unwind == nil);
-      // <A> cannotReturn: <result>
-      SendCannotReturn(A, result);  // SAFEPOINT
+      SendCannotReturn(result);  // SAFEPOINT
       return;
     }
 
-    if (Primitives::IsUnwindProtect(unwind->method()->Primitive())) {
-      // <A> aboutToReturn: <result> through: <unwind>
-      SendUnwindProtect(A, result, unwind);  // SAFEPOINT
+    intptr_t prim = unwind->method()->Primitive();
+    if (Primitives::IsUnwindProtect(prim)) {
+      SendAboutToReturnThrough(result, unwind);  // SAFEPOINT
+      return;
+    }
+    if (Primitives::IsSimulationRoot(prim)) {
+      SendCannotReturn(result);  // SAFEPOINT
       return;
     }
   }
@@ -827,8 +828,7 @@ void Interpreter::NonLocalReturn(Object* result) {
   Activation* sender = home->sender();
   if (!sender->IsActivation() ||
       !sender->bci()->IsSmallInteger()) {
-    // <A> cannotReturn: <result>
-    SendCannotReturn(A, result);  // SAFEPOINT
+    SendCannotReturn(result);  // SAFEPOINT
     return;
   }
 

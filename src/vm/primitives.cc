@@ -158,6 +158,7 @@ const bool kFailure = false;
   V(139, finish)                                                               \
   V(140, Activation_tempSizePut)                                               \
   V(141, doPrimitiveWithArgs)                                                  \
+  V(142, simulationRoot)                                                       \
   V(200, quickReturnSelf)                                                      \
 
 
@@ -2077,12 +2078,14 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
 
 DEFINE_PRIMITIVE(jump) {
   ASSERT(num_args == 1);
-
-  if (!A->Stack(0)->IsActivation()) {
+  Activation* target = static_cast<Activation*>(A->Stack(0));
+  if (!target->IsActivation()) {
     return kFailure;
   }
 
-  H->set_activation(static_cast<Activation*>(A->Stack(0)));
+  ASSERT(A->method() != nil);
+  A->Drop(num_args + 1);
+  H->set_activation(target);
   return kSuccess;
 }
 
@@ -3170,6 +3173,13 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
     A->PopNAndPush(num_args + 1, failure_token);
     return kSuccess;
   }
+}
+
+
+DEFINE_PRIMITIVE(simulationRoot) {
+  // This is a marker primitive for the non-local return and exception
+  // signaling.
+  return kFailure;
 }
 
 

@@ -105,11 +105,9 @@ class Interpreter {
                Object* receiver,
                Behavior* lookup_class,
                bool present_receiver);
-  void SendCannotReturn(Activation* returner,
-                        Object* result);
-  void SendUnwindProtect(Activation* returner,
-                         Object* result,
-                         Activation* unwind);
+  void SendCannotReturn(Object* result);
+  void SendAboutToReturnThrough(Object* result,
+                                Activation* unwind);
   void SendNonBooleanReceiver(Object* non_boolean);
 
   void ActivateAbsent(Method* method, Object* receiver, intptr_t num_args);

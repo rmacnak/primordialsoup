@@ -577,7 +577,7 @@ private invokeNextHandler = (
 	
 	activation:: handlerActivation sender.
 	[nil = activation] whileFalse:
-		[activation method = nil ifTrue:
+		[activation method primitive = 142 ifTrue:
 			[returnToSimulationRoot: activation.
 			 UNREACHABLE].
 		 activation method primitive = 116 ifTrue:
