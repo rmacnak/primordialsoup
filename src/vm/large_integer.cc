@@ -749,6 +749,11 @@ LargeInteger* LargeInteger::ShiftLeft(LargeInteger* left,
   intptr_t bit_shift_up = right % kDigitBits;
   intptr_t bit_shift_down = kDigitBits - bit_shift_up;
 
+  if (left->size() == 0) {
+    // Avoid needing to clamp result below.
+    return left;
+  }
+
   if (bit_shift_up == 0) {
     // This case is singled out not for performance but to avoid
     // the undefined behavior of digit_t >> kDigitBits.

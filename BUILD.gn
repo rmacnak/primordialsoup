@@ -4,11 +4,19 @@
 
 executable("primordialsoup") {
   include_dirs = [ "src" ]
+
   if (is_fuchsia) {
     libs = [ "magenta" ]
   } else {
     libs = [ "pthread" ]
   }
+
+  if (is_debug) {
+    defines = [ "DEBUG" ]
+  } else {
+    defines = [ "NDEBUG" ]
+  }
+
   sources = [
     "src/double-conversion/bignum-dtoa.cc",
     "src/double-conversion/bignum-dtoa.h",
@@ -115,7 +123,6 @@ action("snapshots") {
     "src/newspeak/CollectionsForPrimordialSoup.ns",
     "src/newspeak/CollectionsTesting.ns",
     "src/newspeak/CollectionsTestingConfiguration.ns",
-    "src/newspeak/CombinatorialParsing.ns",
     "src/newspeak/CompilerApp.ns",
     "src/newspeak/DeltaBlue.ns",
     "src/newspeak/GUIBenchmarkRunner.ns",
@@ -143,8 +150,7 @@ action("snapshots") {
     "src/newspeak/Newspeak2SqueakCompilation.ns",
     "src/newspeak/NewspeakASTs.ns",
     "src/newspeak/NewspeakCompilation.ns",
-    "src/newspeak/NewspeakGrammar.ns",
-    "src/newspeak/NewspeakParsing.ns",
+    "src/newspeak/NewspeakPredictiveParsing.ns",
     "src/newspeak/ParserCombinators.ns",
     "src/newspeak/PrimordialFuel.ns",
     "src/newspeak/PrimordialFuelTestApp.ns",

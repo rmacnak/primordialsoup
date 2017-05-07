@@ -918,7 +918,7 @@ DEFINE_PRIMITIVE(Integer_bitXor) {
 DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
   Object* left = A->Stack(1);
   Object* right = A->Stack(0);
-  if (false && IS_SMI_OP(left, right)) {
+  if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
     if (raw_right < 0) {
