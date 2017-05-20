@@ -5,8 +5,6 @@
 #ifndef VM_ISOLATE_H_
 #define VM_ISOLATE_H_
 
-#include <setjmp.h>
-
 #include "vm/allocation.h"
 #include "vm/globals.h"
 
@@ -33,7 +31,6 @@ class Isolate {
   void InitChild(uint8_t* data, intptr_t length);
 
   void Interpret();
-  void Finish();
 
   void Spawn(uint8_t* data, intptr_t length);
 
@@ -42,7 +39,7 @@ class Isolate {
 
   static void InterruptAll();
   void Interrupt();
-  void Interrupted();
+  void PrintStack();
 
  private:
   void InitMessage(Object* message);
@@ -52,9 +49,6 @@ class Isolate {
   MessageQueue* queue_;
   ThreadPool* pool_;
   Isolate* next_;
-
-  // Maybe this belongs on Interpreter?
-  jmp_buf environment_;
 
   void AddIsolateToList(Isolate* isolate);
   void RemoveIsolateFromList(Isolate* isolate);

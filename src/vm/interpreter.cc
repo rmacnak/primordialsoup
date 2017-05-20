@@ -19,8 +19,8 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
   recycle_depth_(0),
 #endif
   heap_(heap),
-  isolate_(isolate),
   interrupt_(0),
+  environment_(NULL),
   lookup_cache_() {
   heap->InitializeLookupCache(&lookup_cache_);
 }
@@ -710,8 +710,8 @@ void Interpreter::Activate(Method* method,
   }
 
   if (interrupt_ != 0) {
-    isolate_->Interrupted();
-    UNREACHABLE();
+    H->isolate()->PrintStack();
+    Exit();
   }
 
 #if RECYCLE_ACTIVATIONS
@@ -946,6 +946,26 @@ uint8_t Interpreter::FetchNextByte() {
   uint8_t byte = bc->element(bci->value() - 1);
   a->set_bci(SmallInteger::New(bci->value() + 1));
   return byte;
+}
+
+
+void Interpreter::Enter() {
+  ASSERT(environment_ == NULL);
+  jmp_buf environment;
+  environment_ = &environment;
+
+  if (setjmp(environment) == 0) {
+    Interpret();
+    UNREACHABLE();
+  }
+
+  environment_ = NULL;
+}
+
+
+void Interpreter::Exit() {
+  ASSERT(environment_ != NULL);
+  longjmp(*environment_, 1);
 }
 
 

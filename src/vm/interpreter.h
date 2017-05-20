@@ -5,6 +5,8 @@
 #ifndef VM_INTERPRETER_H_
 #define VM_INTERPRETER_H_
 
+#include <setjmp.h>
+
 #include "vm/globals.h"
 #include "vm/assert.h"
 #include "vm/flags.h"
@@ -21,13 +23,16 @@ class Interpreter {
  public:
   explicit Interpreter(Heap* heap, Isolate* isolate);
 
-  void Interpret();
+  void Enter();
+  void Exit();
   void SendOrdinary(ByteString* selector, intptr_t num_args);
   Method* MethodAt(Behavior*, ByteString* selector);
 
   void Interrupt() { interrupt_ = 1; }
 
  private:
+  void Interpret();
+
   void PushReceiverVariable(intptr_t offset);
   void PushLiteralVariable(intptr_t offset);
   void PushTemporary(intptr_t offset);
@@ -123,8 +128,8 @@ class Interpreter {
   intptr_t recycle_depth_;
 #endif
   Heap* const heap_;
-  Isolate* const isolate_;
   volatile uword interrupt_;
+  jmp_buf* environment_;
   LookupCache lookup_cache_;
 };
 

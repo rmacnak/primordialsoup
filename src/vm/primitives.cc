@@ -3086,7 +3086,7 @@ DEFINE_PRIMITIVE(send) {
 
 DEFINE_PRIMITIVE(finish) {
   ASSERT(num_args == 0);
-  H->isolate()->Finish();
+  I->Exit();
   UNREACHABLE();
   return kFailure;
 }

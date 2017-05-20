@@ -79,14 +79,10 @@ void Isolate::Interrupt() {
 }
 
 
-void Isolate::Interrupted() {
-  {
-    MonitorLocker ml(isolates_list_monitor_);
-    OS::PrintErr("%" Px " interrupted: \n", reinterpret_cast<uword>(this));
-    heap_->PrintStack();
-  }
-  Finish();
-  UNREACHABLE();
+void Isolate::PrintStack() {
+  MonitorLocker ml(isolates_list_monitor_);
+  OS::PrintErr("%" Px " interrupted: \n", reinterpret_cast<uword>(this));
+  heap_->PrintStack();
 }
 
 
@@ -95,8 +91,7 @@ Isolate::Isolate(ThreadPool* pool) :
     interpreter_(NULL),
     queue_(NULL),
     pool_(pool),
-    next_(NULL),
-    environment_() {
+    next_(NULL) {
   heap_ = new Heap(this);
   {
     Deserializer deserializer(heap_);
@@ -177,15 +172,7 @@ void Isolate::InitMessage(Object* message) {
 
 
 void Isolate::Interpret() {
-  if (setjmp(environment_) == 0) {
-    interpreter_->Interpret();
-    UNREACHABLE();
-  }
-}
-
-
-void Isolate::Finish() {
-  longjmp(environment_, 1);
+  interpreter_->Enter();
 }
 
 
