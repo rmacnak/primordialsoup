@@ -325,11 +325,7 @@ class Heap {
  private:
   void FlipSpaces();
   void ProcessRoots();
-#if WEAK_CLASS_TABLE
   void ProcessClassTableWeak();
-#else
-  void ProcessClassTableStrong();
-#endif
   uword ProcessToSpace(uword scan);
   void ScavengePointer(Object** ptr);
   void ScavengeClass(intptr_t cid);
@@ -395,9 +391,7 @@ class Heap {
   Object** class_table_;
   intptr_t class_table_capacity_;
   intptr_t class_table_top_;
-#if WEAK_CLASS_TABLE
   intptr_t class_table_free_;
-#endif
 
   ObjectStore* object_store_;
   Object* current_activation_;

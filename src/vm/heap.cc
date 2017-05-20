@@ -16,9 +16,7 @@ Heap::Heap(Isolate* isolate) :
     class_table_(NULL),
     class_table_capacity_(0),
     class_table_top_(0),
-#if WEAK_CLASS_TABLE
     class_table_free_(0),
-#endif
     object_store_(NULL),
     current_activation_(NULL),
 #if RECYCLE_ACTIVATIONS
@@ -36,11 +34,7 @@ Heap::Heap(Isolate* isolate) :
   from_.Allocate(kInitialSemispaceSize);
 
   // Class table.
-#if WEAK_CLASS_TABLE
   class_table_capacity_ = 1028;
-#else
-  class_table_capacity_ = 4096;
-#endif
   class_table_ = new Object*[class_table_capacity_];
   for (intptr_t i = 0; i < kFirstRegularObjectCid; i++) {
     class_table_[i] = reinterpret_cast<Object*>(kZapWord);
@@ -91,9 +85,6 @@ void Heap::Scavenge() {
 
   // Strong references.
   ProcessRoots();
-#if !WEAK_CLASS_TABLE
-  ProcessClassTableStrong();
-#endif
 
   uword scan = to_.object_start();
   while (scan < to_.top_) {
@@ -110,9 +101,7 @@ void Heap::Scavenge() {
   ProcessWeakList();
   ASSERT(weak_list_ == 0);
 
-#if WEAK_CLASS_TABLE
   ProcessClassTableWeak();
-#endif
 
 #if LOOKUP_CACHE
   if (lookup_cache_ != NULL) {
@@ -253,7 +242,6 @@ void Heap::ForwardToSpace() {
 
 
 intptr_t Heap::AllocateClassId() {
-#if WEAK_CLASS_TABLE
   intptr_t cid;
   if (class_table_free_ != 0) {
     cid = class_table_free_;
@@ -276,25 +264,9 @@ intptr_t Heap::AllocateClassId() {
     cid = class_table_top_;
     class_table_top_++;
   }
-#else
-  if (class_table_top_ == class_table_capacity_) {
-    FATAL("Class table growth unimplemented");
-  }
-  intptr_t cid = class_table_top_;
-  class_table_top_++;
-#endif
   class_table_[cid] = reinterpret_cast<Object*>(kZapWord);
   return cid;
 }
-
-
-#if !WEAK_CLASS_TABLE
-void Heap::ProcessClassTableStrong() {
-  for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
-    ScavengePointer(&class_table_[i]);
-  }
-}
-#endif
 
 
 void Heap::ForwardClassTable() {
@@ -319,12 +291,8 @@ void Heap::ForwardClassTable() {
       // new_class is not registered or registered with a different cid.
       // Instances of old_class (if any) have already had their headers updated
       // to the new cid, so release the old_class's cid.
-#if WEAK_CLASS_TABLE
       class_table_[i] = SmallInteger::New(class_table_free_);
       class_table_free_ = i;
-#else
-      class_table_[i] = SmallInteger::New(0);
-#endif
     }
   }
 }
@@ -353,7 +321,6 @@ static void SetForwarded(uword old_addr, uword new_addr) {
 }
 
 
-#if WEAK_CLASS_TABLE
 void Heap::ProcessClassTableWeak() {
   for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
     Object** ptr = &class_table_[i];
@@ -379,7 +346,6 @@ void Heap::ProcessClassTableWeak() {
     *ptr = new_target;
   }
 }
-#endif
 
 
 void Heap::ScavengePointer(Object** ptr) {
@@ -544,38 +510,36 @@ void Heap::ScavengeWeakPointer(Object** ptr) {
 
 void Heap::ScavengeClass(intptr_t cid) {
   ASSERT(cid < class_table_top_);
-  if (WEAK_CLASS_TABLE) {
-    // This is very similar to ScavengePointer.
+  // This is very similar to ScavengePointer.
 
-    Object* old_target = class_table_[cid];
+  Object* old_target = class_table_[cid];
 
-    if (old_target->IsImmediateOrOldObject()) {
-      // Target isn't gonna move.
-      return;
-    }
-
-    uword old_target_addr = old_target->Addr();
-    ASSERT(InFromSpace(old_target_addr));
-
-    if (IsForwarded(old_target_addr)) {
-      // Already scavenged.
-      return;
-    }
-
-    // Target is now known to be reachable. Move it to to-space.
-    intptr_t cid = old_target->cid();
-    uword size = old_target->HeapSize();
-    ASSERT((size & kObjectAlignmentMask) == 0);
-    uword new_target_addr = TryAllocate(size);
-    ASSERT(new_target_addr != 0);
-    memcpy(reinterpret_cast<void*>(new_target_addr),
-           reinterpret_cast<void*>(old_target_addr),
-           size);
-    SetForwarded(old_target_addr, new_target_addr);
-
-    ASSERT(cid != kEphemeronCid);
-    ASSERT(cid != kWeakArrayCid);
+  if (old_target->IsImmediateOrOldObject()) {
+    // Target isn't gonna move.
+    return;
   }
+
+  uword old_target_addr = old_target->Addr();
+  ASSERT(InFromSpace(old_target_addr));
+
+  if (IsForwarded(old_target_addr)) {
+    // Already scavenged.
+    return;
+  }
+
+  // Target is now known to be reachable. Move it to to-space.
+  intptr_t target_cid = old_target->cid();
+  uword size = old_target->HeapSize();
+  ASSERT((size & kObjectAlignmentMask) == 0);
+  uword new_target_addr = TryAllocate(size);
+  ASSERT(new_target_addr != 0);
+  memcpy(reinterpret_cast<void*>(new_target_addr),
+         reinterpret_cast<void*>(old_target_addr),
+         size);
+  SetForwarded(old_target_addr, new_target_addr);
+
+  ASSERT(target_cid != kEphemeronCid);
+  ASSERT(target_cid != kWeakArrayCid);
 }
 
 
