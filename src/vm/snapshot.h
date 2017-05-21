@@ -17,7 +17,7 @@ class Object;
 
 class Snapshot {
  public:
-  static void Startup(const char* filename);
+  static void Startup(void* snapshot, size_t snapshot_length);
   static void Shutdown();
 };
 

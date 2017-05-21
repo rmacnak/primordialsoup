@@ -188,6 +188,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     'os_thread_win',
     'port',
     'primitives',
+    'primordial_soup',
     'snapshot',
     'thread',
     'thread_pool',

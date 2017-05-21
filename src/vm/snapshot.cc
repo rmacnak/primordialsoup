@@ -10,26 +10,25 @@
 
 namespace psoup {
 
-static VirtualMemory isolate_snapshot_;
+static void* isolate_snapshot_ = NULL;
+static size_t isolate_snapshot_length_ = 0;
 
-void Snapshot::Startup(const char* filename) {
-  isolate_snapshot_ = VirtualMemory::MapReadOnly(filename);
+void Snapshot::Startup(void* snapshot, size_t snapshot_length) {
+  isolate_snapshot_ = snapshot;
+  isolate_snapshot_length_ = snapshot_length;
 }
 
 
 void Snapshot::Shutdown() {
-  // TODO(rmacnak): File and anonymous mappings are freed differently on
-  // Windows. mmap seems to only support anonymous mappings on Fuchsia.
-#if !defined(TARGET_OS_WINDOWS) && !defined(TARGET_OS_FUCHSIA)
-  isolate_snapshot_.Free();
-#endif
+  isolate_snapshot_ = NULL;
+  isolate_snapshot_length_ = 0;
 }
 
 
 Deserializer::Deserializer(Heap* heap) :
-  snapshot_(reinterpret_cast<const uint8_t*>(isolate_snapshot_.base())),
-  snapshot_length_(isolate_snapshot_.size()),
-  cursor_(reinterpret_cast<const uint8_t*>(isolate_snapshot_.base())),
+  snapshot_(reinterpret_cast<const uint8_t*>(isolate_snapshot_)),
+  snapshot_length_(isolate_snapshot_length_),
+  cursor_(snapshot_),
   heap_(heap),
   clusters_(NULL),
   back_refs_(NULL),

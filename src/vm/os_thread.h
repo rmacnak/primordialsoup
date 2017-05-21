@@ -125,6 +125,7 @@ class OSThread : public BaseThread {
 
   // Called at VM startup and shutdown.
   static void Startup();
+  static void Shutdown();
 
   static bool IsThreadInList(ThreadId id);
 
@@ -148,7 +149,6 @@ class OSThread : public BaseThread {
   Thread* thread() const { return thread_; }
   void set_thread(Thread* value) { thread_ = value; }
 
-  static void Shutdown();
   static ThreadId GetCurrentThreadTraceId();
   static OSThread* GetOSThreadFromThread(Thread* thread);
   static void AddThreadToListLocked(OSThread* thread);
@@ -179,8 +179,6 @@ class OSThread : public BaseThread {
   static Mutex* thread_list_lock_;
   static OSThread* thread_list_head_;
   static bool creation_enabled_;
-
-  friend class PrimordialSoup;  // For Shutdown.
 
   friend class Isolate;  // to access set_thread(Thread*).
   friend class OSThreadIterator;

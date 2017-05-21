@@ -4,75 +4,35 @@
 
 #include <signal.h>
 
-#include "vm/assert.h"
 #include "vm/globals.h"
-#include "vm/heap.h"
-#include "vm/interpreter.h"
-#include "vm/isolate.h"
-#include "vm/object.h"
 #include "vm/os.h"
-#include "vm/port.h"
-#include "vm/primitives.h"
-#include "vm/snapshot.h"
-#include "vm/thread_pool.h"
-
-namespace psoup {
+#include "vm/primordial_soup.h"
+#include "vm/virtual_memory.h"
 
 static void SIGINT_handler(int sig) {
-  Isolate::InterruptAll();
+  PrimordialSoup_InterruptAll();
 }
 
-class PrimordialSoup {
- public:
-  static int Main(int argc, const char** argv) {
-    if (argc < 2) {
-      OS::PrintErr("Usage: %s <program.vfuel>\n", argv[0]);
-      return -1;
-    }
-
-    OS::Startup();
-    OSThread::Startup();
-    Primitives::Startup();
-    PortMap::Startup();
-    Snapshot::Startup(argv[1]);
-    Isolate::Startup();
-    void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
-
-    ThreadPool* pool = new ThreadPool();
-
-    if (TRACE_ISOLATES) {
-      intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
-      OS::PrintErr("Starting main isolate on thread %" Pd "\n", id);
-    }
-
-    Isolate* main_isolate = new Isolate(pool);
-    main_isolate->InitMain(argc, argv);
-    main_isolate->Interpret();
-
-    if (TRACE_ISOLATES) {
-      intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
-      OS::PrintErr("Finishing main isolate on thread %" Pd "\n", id);
-    }
-    delete main_isolate;
-
-    // TODO(rmacnak): Kill any other isolates.
-
-    delete pool;  // Waits for all tasks to complete.
-
-    signal(SIGINT, defaultSIGINT);
-    Isolate::Shutdown();
-    Snapshot::Shutdown();
-    PortMap::Shutdown();
-    Primitives::Shutdown();
-    OSThread::Shutdown();
-    OS::Shutdown();
-
-    return 0;
-  }
-};
-
-}  // namespace psoup
 
 int main(int argc, const char** argv) {
-  return psoup::PrimordialSoup::Main(argc, argv);
+  if (argc < 2) {
+    psoup::OS::PrintErr("Usage: %s <program.vfuel>\n", argv[0]);
+    return -1;
+  }
+
+  psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);
+  PrimordialSoup_Startup(reinterpret_cast<void*>(snapshot.base()),
+                         snapshot.size());
+  void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
+
+  PrimordialSoup_RunIsolate(argc - 2, &argv[2]);
+
+  signal(SIGINT, defaultSIGINT);
+  PrimordialSoup_Shutdown();
+
+  // TODO(rmacnak): File and anonymous mappings are freed differently on
+  // Windows. mmap seems to only support anonymous mappings on Fuchsia.
+#if !defined(TARGET_OS_WINDOWS) && !defined(TARGET_OS_FUCHSIA)
+  snapshot.Free();
+#endif
 }

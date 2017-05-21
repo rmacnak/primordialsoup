@@ -16,14 +16,18 @@ namespace psoup {
 
 Monitor* Isolate::isolates_list_monitor_ = NULL;
 Isolate* Isolate::isolates_list_head_ = NULL;
+ThreadPool* Isolate::thread_pool_ = NULL;
 
 
 void Isolate::Startup() {
   isolates_list_monitor_ = new Monitor();
+  thread_pool_ = new ThreadPool();
 }
 
 
 void Isolate::Shutdown() {
+  delete thread_pool_;  // Waits for all tasks to complete.
+  thread_pool_ = NULL;
   ASSERT(isolates_list_head_ == NULL);
   delete isolates_list_monitor_;
   isolates_list_monitor_ = NULL;
@@ -86,11 +90,10 @@ void Isolate::PrintStack() {
 }
 
 
-Isolate::Isolate(ThreadPool* pool) :
+Isolate::Isolate() :
     heap_(NULL),
     interpreter_(NULL),
     queue_(NULL),
-    pool_(pool),
     next_(NULL) {
   heap_ = new Heap(this);
   {
@@ -112,18 +115,16 @@ Isolate::~Isolate() {
 }
 
 
-void Isolate::InitMain(int argc, const char** argv) {
-  const intptr_t kSkippedArgs = 2;  // VM name, snapshot name
-  Array* message =
-      heap_->AllocateArray(argc - kSkippedArgs);  // SAFEPOINT
+void Isolate::InitWithStringArray(int argc, const char** argv) {
+  Array* message = heap_->AllocateArray(argc);  // SAFEPOINT
   {
     HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
-    for (intptr_t i = kSkippedArgs; i < argc; i++) {
+    for (intptr_t i = 0; i < argc; i++) {
       const char* cstr = argv[i];
       intptr_t len = strlen(cstr);
       ByteString* string = heap_->AllocateByteString(len);  // SAFEPOINT
       memcpy(string->element_addr(0), cstr, len);
-      message->set_element(i - kSkippedArgs, string);
+      message->set_element(i, string);
     }
   }
 
@@ -131,7 +132,7 @@ void Isolate::InitMain(int argc, const char** argv) {
 }
 
 
-void Isolate::InitChild(uint8_t* data, intptr_t length) {
+void Isolate::InitWithByteArray(uint8_t* data, intptr_t length) {
   ByteArray* message = heap_->AllocateByteArray(length);  // SAFEPOINT
   memcpy(message->element_addr(0), data, length);
 
@@ -178,8 +179,8 @@ void Isolate::Interpret() {
 
 class SpawnIsolateTask : public ThreadPool::Task {
  public:
-  SpawnIsolateTask(ThreadPool* pool, uint8_t* data, intptr_t length) :
-    pool_(pool), data_(data), length_(length) {
+  SpawnIsolateTask(uint8_t* data, intptr_t length) :
+    data_(data), length_(length) {
   }
 
   virtual void Run() {
@@ -187,9 +188,9 @@ class SpawnIsolateTask : public ThreadPool::Task {
       intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
       OS::PrintErr("Starting isolate on thread %" Pd "\n", id);
     }
-    Isolate* child_isolate = new Isolate(pool_);
+    Isolate* child_isolate = new Isolate();
 
-    child_isolate->InitChild(data_, length_);
+    child_isolate->InitWithByteArray(data_, length_);
     free(data_);
     data_ = NULL;
     length_ = 0;
@@ -213,7 +214,7 @@ class SpawnIsolateTask : public ThreadPool::Task {
 
 
 void Isolate::Spawn(uint8_t* data, intptr_t length) {
-  pool_->Run(new SpawnIsolateTask(pool_, data, length));
+  thread_pool_->Run(new SpawnIsolateTask(data, length));
 }
 
 }  // namespace psoup

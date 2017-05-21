@@ -82,6 +82,8 @@ executable("primordialsoup") {
     "src/vm/port.h",
     "src/vm/primitives.cc",
     "src/vm/primitives.h",
+    "src/vm/primordial_soup.cc",
+    "src/vm/primordial_soup.h",
     "src/vm/random.h",
     "src/vm/snapshot.cc",
     "src/vm/snapshot.h",
