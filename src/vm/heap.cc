@@ -50,6 +50,27 @@ Heap::~Heap() {
 }
 
 
+uword Heap::Allocate(intptr_t size) {
+  ASSERT((size & kObjectAlignmentMask) == 0);
+  uword raw = TryAllocate(size);
+  if (raw == 0) {
+    Scavenge();
+    raw = TryAllocate(size);
+    if (raw == 0) {
+      Grow(size, "out of capacity");
+      raw = TryAllocate(size);
+      if (raw == 0) {
+        FATAL1("Failed to allocate %" Pd " bytes\n", size);
+      }
+    }
+  }
+#if defined(DEBUG)
+  memset(reinterpret_cast<void*>(raw), Heap::kAllocUninitByte, size);
+#endif
+  return raw;
+}
+
+
 void Heap::Grow(intptr_t size_requested, const char* reason) {
   intptr_t current_size = to_.size();
   intptr_t new_size = current_size * 2;

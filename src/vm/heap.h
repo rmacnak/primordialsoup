@@ -353,26 +353,7 @@ class Heap {
     to_.top_ += size;
     return result;
   }
-
-  uword Allocate(intptr_t size) {
-    ASSERT((size & kObjectAlignmentMask) == 0);
-    uword raw = TryAllocate(size);
-    if (raw == 0) {
-      Scavenge();
-      raw = TryAllocate(size);
-      if (raw == 0) {
-        Grow(size, "out of capacity");
-        raw = TryAllocate(size);
-        if (raw == 0) {
-          FATAL1("Failed to allocate %" Pd " bytes\n", size);
-        }
-      }
-    }
-#if defined(DEBUG)
-    memset(reinterpret_cast<void*>(raw), Heap::kAllocUninitByte, size);
-#endif
-    return raw;
-  }
+  uword Allocate(intptr_t size);
 
   bool InFromSpace(uword addr) {
     return (addr >= from_.base()) && (addr < from_.limit());

@@ -205,7 +205,6 @@ class SpawnIsolateTask : public ThreadPool::Task {
   }
 
  private:
-  ThreadPool* pool_;
   uint8_t* data_;
   intptr_t length_;
 

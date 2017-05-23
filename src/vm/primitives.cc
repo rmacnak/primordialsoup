@@ -3047,7 +3047,7 @@ DEFINE_PRIMITIVE(spawn) {
     uint8_t* data = reinterpret_cast<uint8_t*>(malloc(length));
     memcpy(data, message->element_addr(0), length);
 
-    H->isolate()->Spawn(data, length);
+    Isolate::Spawn(data, length);
 
     A->Drop(num_args);
     return kSuccess;
