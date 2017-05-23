@@ -8,7 +8,7 @@
 
 namespace psoup {
 
-Heap::Heap(Isolate* isolate) :
+Heap::Heap(Isolate* isolate, int64_t seed) :
     to_(),
     from_(),
     ephemeron_list_(NULL),
@@ -27,8 +27,8 @@ Heap::Heap(Isolate* isolate) :
 #endif
     handles_(),
     handles_top_(0),
-    string_hash_salt_(OS::CurrentMonotonicMicros()),
-    identity_hash_random_(OS::CurrentMonotonicMicros()),
+    string_hash_salt_(seed),
+    identity_hash_random_(seed),
     isolate_(isolate) {
   to_.Allocate(kInitialSemispaceSize);
   from_.Allocate(kInitialSemispaceSize);

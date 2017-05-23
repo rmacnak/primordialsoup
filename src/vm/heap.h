@@ -89,7 +89,7 @@ class Heap {
   static const intptr_t kMaxSemispaceSize = 16 * sizeof(uword) * MB;
   static const intptr_t kMaxHandles = 8;
 
-  explicit Heap(Isolate* isolate);
+  Heap(Isolate* isolate, int64_t seed);
   ~Heap();
 
   // TODO(rmacnak): use the one on Object.
@@ -320,7 +320,7 @@ class Heap {
   Isolate* isolate() const { return isolate_; }
 
   intptr_t string_hash_salt() { return string_hash_salt_; }
-  uint32_t NextIdentityHash() { return identity_hash_random_.NextUInt32(); }
+  uint64_t NextIdentityHash() { return identity_hash_random_.NextUInt64(); }
 
  private:
   void FlipSpaces();

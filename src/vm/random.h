@@ -7,27 +7,28 @@
 
 namespace psoup {
 
-// George Marsaglia. "Xorshift RNGs." Journal of Statistical Software. 2003.
+// xorshift128+
+// Sebastiano Vigna. "Further scramblings of Marsaglia’s xorshift generators."
 class Random {
  public:
-  explicit Random(uint32_t seed) {
-    x = 123456789;
-    y = 362436069;
-    z = 521288629;
-    w = 88675123 ^ seed;
+  explicit Random(int64_t seed) {
+    state0_ = seed;
+    state1_ = 0;
   }
 
-  uint32_t NextUInt32() {
-    uint32_t t = (x ^ (x << 11));
-    x = y;
-    y = z;
-    z = w;
-    w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
-    return w;
+  uint64_t NextUInt64() {
+    uint64_t s1 = state0_;
+    const uint64_t s0 = state1_;
+    const uint64_t result = s0 + s1;
+    state0_ = s0;
+    s1 ^= s1 << 23;
+    state1_ = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
+    return result;
   }
 
  private:
-  uint32_t x, y, z, w;
+  uint64_t state0_;
+  uint64_t state1_;
 };
 
 }  // namespace psoup

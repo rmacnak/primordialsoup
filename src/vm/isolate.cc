@@ -95,7 +95,7 @@ Isolate::Isolate() :
     interpreter_(NULL),
     queue_(NULL),
     next_(NULL) {
-  heap_ = new Heap(this);
+  heap_ = new Heap(this, OS::CurrentMonotonicMicros());
   {
     Deserializer deserializer(heap_);
     deserializer.Deserialize();

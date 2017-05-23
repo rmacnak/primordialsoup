@@ -1845,26 +1845,32 @@ DEFINE_PRIMITIVE(Object_identical) {
 
 DEFINE_PRIMITIVE(Object_identityHash) {
   ASSERT(num_args == 0 || num_args == 1);
-  const intptr_t kHashMask = 0x1FFFFFFF;  // TODO(rmacnak): kPositiveSmiMask.
   Object* receiver = A->Stack(0);
+  intptr_t hash;
   if (receiver->IsSmallInteger()) {
-    intptr_t hash = static_cast<SmallInteger*>(receiver)->value();
-    hash = (hash & kHashMask) + 1;
-    ASSERT(hash > 0);
-    A->PopNAndPush(num_args + 1, SmallInteger::New(hash));
-    return kSuccess;
+    hash = static_cast<SmallInteger*>(receiver)->value();
+    if (hash == 0) {
+      hash = 1;
+    }
+  } else if (receiver->IsMediumInteger()) {
+    hash = static_cast<MediumInteger*>(receiver)->value();
+    hash &= kSmiMax;
+    if (hash == 0) {
+      hash = 1;
+    }
   } else {
     // TODO(rmacnak): Use the string's hash? ASSERT(!receiver->IsByteString());
-
-    intptr_t hash = receiver->identity_hash();
+    hash = receiver->identity_hash();
     if (hash == 0) {
-      hash = (H->NextIdentityHash() + 1) & kHashMask;
-      ASSERT(hash > 0);
+      hash = H->NextIdentityHash() & kSmiMax;
+      if (hash == 0) {
+        hash = 1;
+      }
       receiver->set_identity_hash(hash);
     }
-    A->PopNAndPush(num_args + 1, SmallInteger::New(hash));
-    return kSuccess;
   }
+  A->PopNAndPush(num_args + 1, SmallInteger::New(hash));
+  return kSuccess;
 }
 
 

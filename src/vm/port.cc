@@ -71,14 +71,12 @@ void PortMap::Rehash(intptr_t new_capacity) {
 
 
 Port PortMap::AllocatePort() {
-  // TODO(rmacnak): Use a full 64-bit id.
-  const Port kMASK = 0x3fffffff;
-  Port result = prng_->NextUInt32() & kMASK;
+  Port result = prng_->NextUInt64() & kMaxInt64;
 
   // Keep getting new values while we have an illegal port number or the port
   // number is already in use.
   while ((result == ILLEGAL_PORT) || (FindPort(result) >= 0)) {
-    result = prng_->NextUInt32() & kMASK;
+    result = prng_->NextUInt64() & kMaxInt64;
   }
 
   ASSERT(result != 0);
