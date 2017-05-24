@@ -117,10 +117,10 @@ void Heap::Scavenge() {
 
   // Weak references.
   ProcessEphemeronListMourn();
-  ASSERT(ephemeron_list_ == 0);
+  ASSERT(ephemeron_list_ == NULL);
 
   ProcessWeakList();
-  ASSERT(weak_list_ == 0);
+  ASSERT(weak_list_ == NULL);
 
   ProcessClassTableWeak();
 
@@ -131,7 +131,7 @@ void Heap::Scavenge() {
   }
 #endif
 #if RECYCLE_ACTIVATIONS
-  recycle_list_ = 0;
+  recycle_list_ = NULL;
 #endif
 
 #ifdef DEBUG
@@ -168,8 +168,6 @@ void Heap::FlipSpaces() {
 
   to_.ResetTop();
   ASSERT((to_.top_ & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
-
-  ephemeron_list_ = 0;
 }
 
 
@@ -396,13 +394,13 @@ void Heap::ScavengePointer(Object** ptr) {
            size);
     SetForwarded(old_target_addr, new_target_addr);
 
-    if (cid == kEphemeronCid) {
-      AddToEphemeronList(static_cast<Ephemeron*>(old_target));
-    } else if (cid == kWeakArrayCid) {
-      AddToWeakList(static_cast<WeakArray*>(old_target));
-    }
-
     new_target = Object::FromAddr(new_target_addr);
+
+    if (cid == kEphemeronCid) {
+      AddToEphemeronList(static_cast<Ephemeron*>(new_target));
+    } else if (cid == kWeakArrayCid) {
+      AddToWeakList(static_cast<WeakArray*>(new_target));
+    }
   }
 
   uword new_target_addr = new_target->Addr();
@@ -412,23 +410,21 @@ void Heap::ScavengePointer(Object** ptr) {
 }
 
 
-void Heap::AddToEphemeronList(Ephemeron* corpse) {
-  ASSERT(InFromSpace(corpse->Addr()));
-  corpse->set_next(ephemeron_list_);
-  ephemeron_list_ = corpse;
+void Heap::AddToEphemeronList(Ephemeron* survivor) {
+  ASSERT(InToSpace(survivor->Addr()));
+  survivor->set_next(ephemeron_list_);
+  ephemeron_list_ = survivor;
 }
 
 
 void Heap::ProcessEphemeronListScavenge() {
-  Ephemeron* prev = 0;
-  Ephemeron* corpse = ephemeron_list_;
-  while (corpse != 0) {
-    ASSERT(IsForwarded(corpse->Addr()));
-    Ephemeron* survivor =
-        static_cast<Ephemeron*>(ForwardingTarget(corpse->Addr()));
+  Ephemeron* prev = NULL;
+  Ephemeron* survivor = ephemeron_list_;
+  while (survivor != NULL) {
     ASSERT(survivor->IsEphemeron());
 
-    if (IsForwarded(survivor->key()->Addr())) {
+    if (survivor->key()->IsImmediateOrOldObject() ||
+        IsForwarded(survivor->key()->Addr())) {
       // TODO(rmacnak): These scavenges potentially add to the ephemeron list
       // that we are in the middle of traversing. Add tests for ephemerons
       // only reachable from another ephemeron.
@@ -436,18 +432,17 @@ void Heap::ProcessEphemeronListScavenge() {
       ScavengePointer(survivor->value_ptr());
       ScavengePointer(survivor->finalizer_ptr());
       // Remove from list.
-      Ephemeron* next = corpse->next();
-      if (prev == 0) {
+      Ephemeron* next = survivor->next();
+      if (prev == NULL) {
         ephemeron_list_ = next;
       } else {
         prev->set_next(next);
       }
-      corpse = next;
+      survivor = next;
     } else {
       // Keep on list.
-      Ephemeron* next = corpse->next();
-      prev = corpse;
-      corpse = next;
+      prev = survivor;
+      survivor = survivor->next();
     }
   }
 }
@@ -455,11 +450,8 @@ void Heap::ProcessEphemeronListScavenge() {
 
 void Heap::ProcessEphemeronListMourn() {
   Object* nil = object_store()->nil_obj();
-  Ephemeron* corpse = ephemeron_list_;
-  while (corpse != 0) {
-    ASSERT(IsForwarded(corpse->Addr()));
-    Ephemeron* survivor =
-        static_cast<Ephemeron*>(ForwardingTarget(corpse->Addr()));
+  Ephemeron* survivor = ephemeron_list_;
+  while (survivor != NULL) {
     ASSERT(survivor->IsEphemeron());
 
     ASSERT(InFromSpace(survivor->key()->Addr()));
@@ -469,25 +461,22 @@ void Heap::ProcessEphemeronListMourn() {
     // to process.
     survivor->set_finalizer(nil);
 
-    corpse = corpse->next();
+    survivor = survivor->next();
   }
-  ephemeron_list_ = 0;
+  ephemeron_list_ = NULL;
 }
 
 
-void Heap::AddToWeakList(WeakArray* corpse) {
-  ASSERT(InFromSpace(corpse->Addr()));
-  corpse->set_next(weak_list_);
-  weak_list_ = corpse;
+void Heap::AddToWeakList(WeakArray* survivor) {
+  ASSERT(InToSpace(survivor->Addr()));
+  survivor->set_next(weak_list_);
+  weak_list_ = survivor;
 }
 
 
 void Heap::ProcessWeakList() {
-  WeakArray* corpse = weak_list_;
-  while (corpse != 0) {
-    ASSERT(IsForwarded(corpse->Addr()));
-    WeakArray* survivor =
-        static_cast<WeakArray*>(ForwardingTarget(corpse->Addr()));
+  WeakArray* survivor = weak_list_;
+  while (survivor != NULL) {
     ASSERT(survivor->IsWeakArray());
 
     Object** from;
@@ -497,9 +486,9 @@ void Heap::ProcessWeakList() {
       ScavengeWeakPointer(ptr);
     }
 
-    corpse = corpse->next();
+    survivor = survivor->next();
   }
-  weak_list_ = 0;
+  weak_list_ = NULL;
 }
 
 
@@ -644,7 +633,7 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
   lookup_cache_->Clear();
 #endif
 #if RECYCLE_ACTIVATIONS
-  recycle_list_ = 0;
+  recycle_list_ = NULL;
 #endif
 
   return true;

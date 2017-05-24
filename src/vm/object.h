@@ -71,8 +71,7 @@ enum HeaderBits {
 #endif
 };
 
-
-enum {
+enum ClassIds {
   kIllegalCid = 0,
   kForwardingCorpseCid = 1,
   kFreeListElementCid = 2,
@@ -95,21 +94,21 @@ enum {
   kFirstRegularObjectCid = 15,
 };
 
-
-class Object;
-class Array;
-class WeakArray;
-class Ephemeron;
-class ByteString;
-class ByteArray;
-class WideString;
-class Closure;
-class Activation;
-class Method;
-class ObjectStore;
-class Behavior;
-class Heap;
 class AbstractMixin;
+class Activation;
+class Array;
+class Behavior;
+class ByteArray;
+class ByteString;
+class Closure;
+class Ephemeron;
+class Heap;
+class Method;
+class Object;
+class ObjectStore;
+class SmallInteger;
+class WeakArray;
+class WideString;
 
 #define HEAP_OBJECT_IMPLEMENTATION(klass)                                      \
  private:                                                                      \
@@ -132,6 +131,9 @@ class Object {
   }
   bool IsForwardingCorpse() const {
     return IsHeapObject() && (cid() == kForwardingCorpseCid);
+  }
+  bool IsFreeListElement() const {
+    return IsHeapObject() && (cid() == kFreeListElementCid);
   }
   bool IsArray() const {
     return IsHeapObject() && (cid() == kArrayCid);
@@ -457,19 +459,19 @@ class LargeInteger : public Object {
   void set_negative(bool v) {
     ptr()->negative_ = v;
   }
-  intptr_t size() {
+  intptr_t size() const {
     return ptr()->size_;
   }
   void set_size(intptr_t value) {
     ptr()->size_ = value;
   }
-  intptr_t capacity() {
+  intptr_t capacity() const {
     return ptr()->capacity_;
   }
   void set_capacity(intptr_t value) {
     ptr()->capacity_ = value;
   }
-  digit_t digit(intptr_t index) {
+  digit_t digit(intptr_t index) const {
     return ptr()->digits_[index];
   }
   void set_digit(intptr_t index, digit_t value) {
@@ -488,11 +490,11 @@ class RegularObject : public Object {
   HEAP_OBJECT_IMPLEMENTATION(RegularObject);
 
  public:
-  Object* slot(intptr_t i) const {
-    return ptr()->slots_[i];
+  Object* slot(intptr_t index) const {
+    return ptr()->slots_[index];
   }
-  void set_slot(intptr_t i, Object* value) {
-    StorePointer(&ptr()->slots_[i], value);
+  void set_slot(intptr_t index, Object* value) {
+    StorePointer(&ptr()->slots_[index], value);
   }
 
  private:
@@ -530,12 +532,12 @@ class Array : public Object {
 
  private:
   Object** from() const {
-    return &(ptr()->elements_[0]);
+    return &ptr()->elements_[0];
   }
   SmallInteger* size_;
   Object* elements_[];
   Object** to() const {
-    return &(ptr()->elements_[Size() - 1]);
+    return &ptr()->elements_[Size() - 1];
   }
 };
 
@@ -550,6 +552,12 @@ class WeakArray : public Object {
   void set_size(SmallInteger* s) {
     ptr()->size_ = s;
   }
+  WeakArray* next() const {
+    return ptr()->next_;
+  }
+  void set_next(WeakArray* value) {
+    ptr()->next_ = value;
+  }
   Object* element(intptr_t i) const {
     return ptr()->elements_[i];
   }
@@ -561,21 +569,15 @@ class WeakArray : public Object {
     return size()->value();
   }
 
-  // For weak list.
-  WeakArray* next() const {
-    return reinterpret_cast<WeakArray*>(size());
-  }
-  void set_next(WeakArray* value) {
-    set_size(reinterpret_cast<SmallInteger*>(value));
-  }
-
  private:
   Object** from() const {
-    return &(ptr()->elements_[0]);  }
-  SmallInteger* size_;
+    return &ptr()->elements_[0];
+  }
+  SmallInteger* size_;  // Not visited.
+  WeakArray* next_;  // Not visited.
   Object* elements_[];
   Object** to() const {
-    return &(ptr()->elements_[Size() - 1]);
+    return &ptr()->elements_[Size() - 1];
   }
 };
 
@@ -585,32 +587,36 @@ class Ephemeron : public Object {
 
  public:
   Object* key() const { return ptr()->key_; }
-  Object* value() const { return ptr()->value_; }
-  Object* finalizer() const { return ptr()->finalizer_; }
   Object** key_ptr() const { return &ptr()->key_; }
-  Object** value_ptr() const { return &ptr()->value_; }
-  Object** finalizer_ptr() const { return &ptr()->finalizer_; }
-  void set_key(Object* key) { ptr()->key_ = key; }
-  void set_value(Object* value) { ptr()->value_ = value; }
-  void set_finalizer(Object* finalizer) { ptr()->finalizer_ = finalizer; }
+  void set_key(Object* key) {
+    StorePointer(&ptr()->key_, key);
+  }
 
-  // For ephemeron list.
-  Ephemeron* next() const {
-    return static_cast<Ephemeron*>(key());
+  Object* value() const { return ptr()->value_; }
+  Object** value_ptr() const { return &ptr()->value_; }
+  void set_value(Object* value) {
+    StorePointer(&ptr()->value_, value);
   }
-  void set_next(Ephemeron* value) {
-    set_key(value);
+
+  Object* finalizer() const { return ptr()->finalizer_; }
+  Object** finalizer_ptr() const { return &ptr()->finalizer_; }
+  void set_finalizer(Object* finalizer) {
+    StorePointer(&ptr()->finalizer_, finalizer);
   }
+
+  Ephemeron* next() const { return ptr()->next_; }
+  void set_next(Ephemeron* value) { ptr()->next_ = value; }
 
  private:
   Object** from() const {
-    return &(ptr()->key_);
+    return &ptr()->key_;
   }
   Object* key_;
   Object* value_;
   Object* finalizer_;
-    Object** to() const {
-    return &(ptr()->finalizer_);
+  Ephemeron* next_;  // Not visited.
+  Object** to() const {
+    return &ptr()->finalizer_;
   }
 };
 
@@ -645,7 +651,7 @@ class ByteString : public Object {
     ptr()->elements_[index] = value;
   }
   uint8_t* element_addr(intptr_t index) {
-    return &(ptr()->elements_[index]);
+    return &ptr()->elements_[index];
   }
 
  private:
@@ -685,7 +691,7 @@ class WideString : public Object {
     ptr()->elements_[index] = value;
   }
   uint32_t* element_addr(intptr_t index) {
-    return &(ptr()->elements_[index]);
+    return &ptr()->elements_[index];
   }
 
  private:
@@ -715,7 +721,7 @@ class ByteArray : public Object {
     ptr()->elements_[index] = value;
   }
   uint8_t* element_addr(intptr_t index) {
-    return &(ptr()->elements_[index]);
+    return &ptr()->elements_[index];
   }
 
  private:
@@ -734,7 +740,7 @@ class Activation : public Object {
     return ptr()->sender_;
   }
   void set_sender(Activation* s) {
-    ptr()->sender_ = s;
+    StorePointer(&ptr()->sender_, s);
   }
   SmallInteger* bci() const {
     return ptr()->bci_;
@@ -812,7 +818,7 @@ class Activation : public Object {
 
  private:
   Object** from() const {
-    return reinterpret_cast<Object**>(&(ptr()->sender_));
+    return reinterpret_cast<Object**>(&ptr()->sender_);
   }
   Activation* sender_;
   SmallInteger* bci_;
@@ -822,7 +828,7 @@ class Activation : public Object {
   SmallInteger* stack_depth_;
   Object* temps_[kMaxTemps];
   Object** to() const {
-    return reinterpret_cast<Object**>(&(ptr()->temps_[stack_depth() - 1]));
+    return reinterpret_cast<Object**>(&ptr()->temps_[stack_depth() - 1]);
   }
 };
 
@@ -880,7 +886,7 @@ class Closure : public Object {
 
  private:
   Object** from() const {
-    return reinterpret_cast<Object**>(&(ptr()->num_copied_));
+    return reinterpret_cast<Object**>(&ptr()->num_copied_);
   }
   SmallInteger* num_copied_;
   Activation* defining_activation_;
@@ -888,7 +894,7 @@ class Closure : public Object {
   SmallInteger* num_args_;
   Object* copied_[];
   Object** to() const {
-    return reinterpret_cast<Object**>(&(ptr()->copied_[num_copied() - 1]));
+    return reinterpret_cast<Object**>(&ptr()->copied_[num_copied() - 1]);
   }
 };
 
