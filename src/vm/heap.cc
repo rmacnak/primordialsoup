@@ -418,32 +418,26 @@ void Heap::AddToEphemeronList(Ephemeron* survivor) {
 
 
 void Heap::ProcessEphemeronListScavenge() {
-  Ephemeron* prev = NULL;
   Ephemeron* survivor = ephemeron_list_;
+  ephemeron_list_ = NULL;
+
   while (survivor != NULL) {
     ASSERT(survivor->IsEphemeron());
+    Ephemeron* next = survivor->next();
+    survivor->set_next(NULL);
 
     if (survivor->key()->IsImmediateOrOldObject() ||
         IsForwarded(survivor->key()->Addr())) {
-      // TODO(rmacnak): These scavenges potentially add to the ephemeron list
-      // that we are in the middle of traversing. Add tests for ephemerons
-      // only reachable from another ephemeron.
+      // N.B. These scavenges may add to the ephemeron list.
       ScavengePointer(survivor->key_ptr());
       ScavengePointer(survivor->value_ptr());
       ScavengePointer(survivor->finalizer_ptr());
-      // Remove from list.
-      Ephemeron* next = survivor->next();
-      if (prev == NULL) {
-        ephemeron_list_ = next;
-      } else {
-        prev->set_next(next);
-      }
-      survivor = next;
     } else {
-      // Keep on list.
-      prev = survivor;
-      survivor = survivor->next();
+      // Fate of the key is not yet known; add the ephemeron back to the list.
+      AddToEphemeronList(survivor);
     }
+
+    survivor = next;
   }
 }
 
