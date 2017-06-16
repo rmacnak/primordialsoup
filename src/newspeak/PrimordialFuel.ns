@@ -1054,7 +1054,6 @@ stack ::= List new.
 backRefs ::= IdentityMap new: 4096. 
 nextBackRef
 replacements = IdentityMap new: 128.
-partial = false.
 symbolTablePlaceholder = {}.
 |createSpecialClassClusters) (
 class ActivationCluster = (|
@@ -1445,15 +1444,9 @@ public serialize: root = (
 	| s rewind fastforward |
 	s:: Stopwatch new start.
 	nextBackRef:: 1.
-	partial ifTrue: 
-		[registerBackRef: nil.
-		 registerBackRef: false.
-		 registerBackRef: true].
 
 	enqueue: root.
 	[stack isEmpty] whileFalse: [analyze: stack removeLast].
-
-	(* todo - the integer cluster is written 3 times, once for each key *)
 	
 	replaceSymbolTable.
 	

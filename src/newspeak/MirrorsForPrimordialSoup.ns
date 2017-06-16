@@ -64,7 +64,7 @@ public return: result <ObjectMirror> ^<ThreadMirror> = (
 public sender ^<ActivationMirror> = (
 	| rawSender = reflectee sender. |
 	nil = rawSender ifTrue: [^nil].
-	nil = rawSender method ifTrue: [^nil (* Hide simulation root. *)].
+	rawSender method primitive = 142 ifTrue: [^nil (* Hide simulation root. *)].
 	^ActivationMirror reflecting: rawSender
 )
 public stepInto ^<ThreadMirror> = (
@@ -1567,9 +1567,6 @@ public steppingGoal
 private class ThreadMirror reflecting: t = (
 	| protected thread = t. |
 ) (
-public break: exception <ObjectMirror> ^<ThreadMirror> = (
-	halt.
-)
 private createSimulationRoot = (
 	| root = Activation new. |
 	(* bottom sender: nil *) (* Note that the current activation is not attached as the sender of the simulated activation. This prevents a non-local return from crossing the simulation boundry. *)
@@ -1585,9 +1582,6 @@ private findBottom: top <Activation> = (
 	[nil = bottom sender or: [bottom sender method primitive = 142]] whileFalse:
 		[bottom:: bottom sender].
 	^bottom
-)
-public fulfill: value <ObjectMirror> ^<ThreadMirror> = (
-	halt.
 )
 public isBroken ^<Boolean> = (
 	^thread state = #broken

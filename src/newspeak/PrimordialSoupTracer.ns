@@ -810,7 +810,7 @@ serialize: root = (
 	enqueue: root.
 	[stack isEmpty] whileFalse: [analyze: stack removeLast].
 
-	(* Now that we're done tracing, we know what symbols are included and 'become' the placeholder array we initialized the kernel with. TODO: Should be weak array *)
+	(* Now that we're done tracing, we know what symbols are included and 'become' the placeholder array we initialized the kernel with. *)
 	finalSymbols:: (clusters at: psoup ByteString) symbols asArray.
 	(clusters at: psoup _Array) replace: symbolsPlaceholder with: finalSymbols. (* swap node *)
 	replacements at: symbolsPlaceholder put: finalSymbols. (* swap incoming edges *)
