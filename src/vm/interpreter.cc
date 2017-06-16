@@ -220,11 +220,15 @@ void Interpreter::QuickCommonSend(intptr_t offset) {
 
 
 Method* Interpreter::MethodAt(Behavior* cls, ByteString* selector) {
+  ASSERT(selector->IsByteString());
+  ASSERT(selector->is_canonical());
   Array* methods = cls->methods();
   ASSERT(methods->IsArray());
   intptr_t length = methods->Size();
   for (intptr_t i = 0; i < length; i++) {
     Method* method = static_cast<Method*>(methods->element(i));
+    ASSERT(method->selector()->IsByteString());
+    ASSERT(method->selector()->is_canonical());
     if (method->selector() == selector) {
       return method;
     }
@@ -742,7 +746,8 @@ void Interpreter::Activate(Method* method,
 
 ByteString* Interpreter::SelectorAt(intptr_t index) {
   Object* selector = LiteralAt(index);
-  ASSERT(selector->IsByteString() && selector->is_canonical());
+  ASSERT(selector->IsByteString());
+  ASSERT(selector->is_canonical());
   return static_cast<ByteString*>(selector);
 }
 
