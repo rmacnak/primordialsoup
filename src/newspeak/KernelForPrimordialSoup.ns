@@ -1110,11 +1110,17 @@ public parse: string <String> ^<Integer> = (
 	fatal: 'Integer class parse:'
 )
 )
-class Interval from: start_ to: stop_ by: step_ = (|
+class Interval from: start_ to: stop_ by: step_ = Collection (|
 protected start <E extends Number> = start_.
 protected stop <E extends Number> = stop_.
 protected step <E extends Number> = step_.
 |) (
+public do: action <[:E]> = (
+	| value ::= start. |
+	step > 0
+		ifTrue: [[value <= stop] whileTrue: [action value: value. value:: value + step]]
+		ifFalse: [[value >= stop] whileTrue: [action value: value. value:: value + step]]
+)
 public first ^<E> = (
 	^self start
 )

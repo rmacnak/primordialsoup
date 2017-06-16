@@ -32,8 +32,27 @@ public closure ^<ObjectMirror> = (
 	nil = rawClosure ifTrue: [^nil].
 	^ObjectMirror reflecting: rawClosure
 )
+private compileExpression: expression <String> ^<Method> = (
+	| mixinMirror imethod |
+	 (* Super, outer and implicit receiver sends should behave like the expression is in the method class, not the receiver class. *)
+	mixinMirror:: method definingMixin.
+	imethod:: compiler
+		compileExpressionSource: expression asString
+		inContext: reflectee
+		inMixin: mixinMirror
+		allowBlackMarket: false.
+
+	imethod category: #DoIts.
+	imethod methodMixin: reflectee method mixin.
+	imethod source: expression.
+	(* imethod saveDebugInfo *)
+
+	^imethod compiledMethod
+)
 public evaluate: expression <String> ^<ThreadMirror> = (
-	halt.
+	| expressionMethod = compileExpression: expression. |
+	^ObjectMirror reflecting:
+		(object: reflectee receiver executeMethod: expressionMethod with: {reflectee})
 )
 public locals ^<List[LocalSlotMirror]> = (
 	halt.
@@ -897,52 +916,39 @@ public = other ^<Boolean> = (
 	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfObjectMirror
 )
+private compileExpression: expression <String> ^<Method> = (
+	| receiverClass mixinMirror imethod result |
+	receiverClass:: classOf: reflectee.
+	mixinMirror:: (ClassMirror reflecting: receiverClass) mixin.
+	imethod:: compiler
+		compileExpressionSource: expression
+		inContext: nil
+		inMixin: mixinMirror.
+
+	imethod category: #DoIts.
+	imethod methodMixin: (mixinOf: receiverClass).
+	imethod source: expression.
+	(* imethod saveDebugInfo *)
+
+	^imethod compiledMethod
+)
 public evaluate: expression <String>
 ifCompilerError: compilationErrorHandler <[:Error]> 
 ifError: evalErrorHandler <[:ObjectMirror[Error] :ActivationMirror]> ^<ObjectMirror> = (
-	
 	(* Evaluate [expression] with the reflectee as the receiver. If [expression] cannot be compiled, activate [compilationErrorHandler] with the exception. If the evaluation of [expression] raises an error, activate [evalErrorHandler] with the error. Otherwise return an ObjectMirror on the result of [expression]. *)
-	
-	| cls mxn mtdMirror result |
-	[cls:: classOf: reflectee.
-	mxn:: (ClassMirror reflecting: cls) mixin.
-	mtdMirror:: compiler
-		compileExpressionSource: expression
-		inContext: nil
-		inMixin: mxn. 
-		
-	mtdMirror category: #DoIts.
-	mtdMirror methodMixin: (mixinOf: cls).
-	mtdMirror compiledMethod source: expression.
-	(* :todo: at: #debugInfo put: mtdMirror debugInfo *)]
-			on: Error
-			do: [:e | ^compilationErrorHandler cull: e ].
-	
-	[result:: 
-		object: reflectee 
-		executeMethod: mtdMirror compiledMethod
-		with: {}]
-			on: Error
-			do: [:e | ^evalErrorHandler cull: e].
-
+	| expressionMethod result |
+	[expressionMethod:: compileExpression: expression]
+		on: Error do: [:e | ^compilationErrorHandler cull: e ].
+	[result:: object: reflectee executeMethod: expressionMethod with: {}]
+		on: Error do: [:e | ^evalErrorHandler cull: e].
 	^ObjectMirror reflecting: result
 )
 public evaluateSuspended: expression <String> ^<ThreadMirror> = (
-	| cls mxn mtdMirror thread simulator |
-	cls:: classOf: reflectee.
-	mxn:: (ClassMirror reflecting: cls) mixin.
-	mtdMirror:: compiler
-		compileExpressionSource: expression
-		inContext: nil
-		inMixin: mxn. 
-		
-	mtdMirror category: #DoIts.
-	mtdMirror methodMixin: (mixinOf: cls).
-	mtdMirror compiledMethod source: expression.
-	(* :todo: at: #debugInfo put: mtdMirror debugInfo *)
+	| expressionMethod thread simulator |
+	expressionMethod:: compileExpression: expression.
 
 	simulator:: Simulator new.
-	simulator activate: mtdMirror compiledMethod receiver: reflectee arguments: {}.
+	simulator activate: expressionMethod receiver: reflectee arguments: {}.
 
 	thread:: Thread new.
 	thread state: #suspended.
@@ -976,21 +982,6 @@ private indexOfSlotNamed: name in: startCls = (
 )
 public isKindOfObjectMirror ^<Boolean> = (
 	^true
-)
-private object: object executeMethod: method with: arguments = (
-	| activation |
-	activation:: Activation new.
-	
-	activation sender: currentActivation sender.
-	activation bci: 1.
-	activation method: method.
-	activation closure: nil.
-	activation receiver: object.
-	activation tempSize: arguments size + method numTemps.
-	1 to: arguments size do:
-		[:index | activation tempAt: index put: (arguments at: index)].
-	jumpTo: activation.
-	UNREACHABLE.
 )
 public setSlot: name to: value = (
 	| index raw |
@@ -1859,6 +1850,20 @@ private mixinOf: behavior = (
 private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 70 *)
 	primitiveFailed: 'Mirror numCopiedOf:'.
+)
+private object: object executeMethod: method with: arguments = (
+	| activation |
+	activation:: Activation new.
+	activation sender: currentActivation sender.
+	activation bci: 1.
+	activation method: method.
+	activation closure: nil.
+	activation receiver: object.
+	activation tempSize: arguments size + method numTemps.
+	1 to: arguments size do:
+		[:index | activation tempAt: index put: (arguments at: index)].
+	jumpTo: activation.
+	UNREACHABLE.
 )
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
