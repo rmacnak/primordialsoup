@@ -425,11 +425,10 @@ public outerSend: selector numArgs: numArgs depth: depth = (
 )
 public patchClosureJumpAt: blockBci <Integer> with: distance <Integer> = (
 	assert: [distance between: 0 and: 65535] message: 'Closure jump out of range'.
-	assert: [(code byteAt: blockBci - 4) = 225] message: 'Not really a closure/extb?'.
-	code byteAt: blockBci - 3 put: (distance >> 8).
-	assert: [(code byteAt: blockBci - 2) = 253] message: 'Not really a closure?'.
-	(* blockBci - 1 *)
-	code byteAt: blockBci put: (distance bitAnd: 255)
+	assert: [(code byteAt: blockBci - 5) = 225] message: 'Not really a closure/extb?'.
+	code byteAt: blockBci - 4 put: (distance >> 8).
+	assert: [(code byteAt: blockBci - 3) = 253] message: 'Not really a closure?'.
+	code byteAt: blockBci - 1 put: (distance bitAnd: 255)
 )
 public patchJumpAt: jumpBci <Integer> with: distance <Integer> = (
 	
@@ -438,26 +437,26 @@ public patchJumpAt: jumpBci <Integer> with: distance <Integer> = (
 	assert: [distance between: 0 and: 32767]
 		message: 'Unconditional jump out of range'.
 	
-	assert: [(code byteAt: jumpBci - 3) = 225] message: 'Not really a jump/extb?'.
+	assert: [(code byteAt: jumpBci - 4) = 225] message: 'Not really a jump/extb?'.
 	
 	extendedIndex:: distance >> 8.
-	code byteAt: jumpBci - 2 put: (extendedIndex >= 0 
+	code byteAt: jumpBci - 3 put: (extendedIndex >= 0 
 			ifTrue: [extendedIndex]
 			ifFalse: [extendedIndex + 256]). (*patch the extend b*)
 	
-	assert: [(code byteAt: jumpBci - 1) = 242] message: 'Not really a jump?'.
+	assert: [(code byteAt: jumpBci - 2) = 242] message: 'Not really a jump?'.
 	
-	code byteAt: jumpBci put: (distance bitAnd: 255).
+	code byteAt: jumpBci - 1 put: (distance bitAnd: 255).
 )
 public patchJumpIfAt: jumpBci <Integer> with: distance <Integer> = (
 	
 	assert: [distance between: 0 and: 32767]
 		message: 'Conditional jump out of range'.
 	
-	assert: [(code byteAt: jumpBci - 3) = 225] message: 'Not really a branch/extb?'.
-	code byteAt: jumpBci - 2 put: (distance >> 8).
-	assert: [(code byteAt: jumpBci - 1) between: 243 and: 244] message: 'Not really a branch?'.
-	code byteAt: jumpBci put: (distance bitAnd: 255)
+	assert: [(code byteAt: jumpBci - 4) = 225] message: 'Not really a branch/extb?'.
+	code byteAt: jumpBci - 3 put: (distance >> 8).
+	assert: [(code byteAt: jumpBci - 2) between: 243 and: 244] message: 'Not really a branch?'.
+	code byteAt: jumpBci - 1 put: (distance bitAnd: 255)
 )
 public pop = (
 	code byte: 220.
@@ -748,7 +747,7 @@ astForContextAtDepth: targetDepth <Integer> ^<AST> = (
 	^returnContext	
 )
 bci = (
-	isSqueak ifTrue: [^context pc - context method initialPC].
+	isSqueak ifTrue: [^context pc - context method initialPC + 1].
 	^context bci
 )
 contextAtDepth: targetDepth <Integer> ^<MethodContext> = (
@@ -2348,11 +2347,7 @@ public compileClassSource: src <String> within: enclosingIR <IntermediateMixin> 
 	scopeMap:: Map new. 
 	^intermediate
 )
-public compileExpressionSource: src <String> inContext: aContext <MethodContext> inMixin: enclosing <MixinMirror> ^<LowLevelMethodMirror>
-= (
-	^compileExpressionSource: src inContext: aContext inMixin: enclosing allowBlackMarket: false
-)
-public compileExpressionSource: src <String> inContext: aContext <MethodContext> inMixin: enclosing <MixinMirror> allowBlackMarket: allowBlackMarket <Boolean> ^<IntermediateMethod>
+public compileExpressionSource: src <String> debugMapper: debugMapper <MethodContext> inMixin: enclosing <MixinMirror> allowBlackMarket: allowBlackMarket <Boolean> ^<IntermediateMethod>
 = (
 	(* Compile a DoIt method.  If aContext is not nil, compile a DoItIn:ctxt method where accesses to names in scope of the context are rewritten to access through the context.  Cog closures complicate this rewriting compared to BlockContexts, as access might be rather indirect.  Also, in cases where a temp is only a copied value and not in a remote indirection vector, it would be impractical to handle writes such that they actually track down all places where the temp lives and update them.  In these cases, we should merely find the most local copy, which I believe is what closure compiled Squeak does. *)
 	|
@@ -2377,7 +2372,7 @@ public compileExpressionSource: src <String> inContext: aContext <MethodContext>
 
 	(* Put into a method *)
 	method:: MethodAST new
-		pattern: (nil = aContext
+		pattern: (nil = debugMapper
 			ifTrue: [allowBlackMarket 
 				ifTrue: [MessagePatternAST new selector: #DoItWith: parameters: 
 					{VarDeclAST name: doitBlackMarketArgumentName type: nil}]
@@ -2392,21 +2387,14 @@ public compileExpressionSource: src <String> inContext: aContext <MethodContext>
 		accessModifier: #public.
 	
 	(* Build scope *)
-	nil = aContext
-		ifTrue: [setScopeFor: method in: enclosing]
-		ifFalse:
-			[ | debugInfo debugMapper |
-			debugInfo:: debugInfoOfMethod: aContext method.
-			nil = debugInfo ifTrue:
-				[(* Resets scope, so do this first. *)
-				 debugInfo:: (compileMethodSource: (sourceOfMethod: aContext method) within: enclosing) debugInfo].
-			setScopeFor: method in: enclosing.
-			debugMapper:: debugInfo mapperForContext: aContext.
-			debugMapper localNames do: [:name <Symbol> |
-				currentScope at: name put:
-					(DebugMappedLocalEntry name: name mapper: debugMapper).
-				currentScope at: (name,':') asSymbol put:
-					(DebugMappedLocalEntry name: name mapper: debugMapper)]].
+	setScopeFor: method in: enclosing.
+	nil = debugMapper ifFalse:
+		[debugMapper localNames do: 
+			[:name <Symbol> |
+			 currentScope at: name put:
+				(DebugMappedLocalEntry name: name mapper: debugMapper).
+			 currentScope at: (name,':') asSymbol put:
+				(DebugMappedLocalEntry name: name mapper: debugMapper)]].
 	
 	(* Rewrite and compile *)
 	((method apply: rewriter) 
@@ -2415,8 +2403,7 @@ public compileExpressionSource: src <String> inContext: aContext <MethodContext>
  	result: methodCompiler result.
 	result source: src.
 	scopeMap:: Map new.
-	'A' first isString ifFalse: 
-		[result pragmas: {#isExpression -> true}].
+
 	^result
 )
 public compileMethodSource: src <String> within: enclosing <MixinMirror>  ^<IntermediateMethod> = (
@@ -2523,11 +2510,6 @@ This accessor will lazily generate the nested class when its enclosing instance 
 )
 currentScope ^ <Scope> = (
 	^scopeStack last
-)
-debugInfoOfMethod: bytecodeMethod = (
-	^isSqueak
-		ifTrue: [bytecodeMethod propertyValueAt: #debugInfo]
-		ifFalse: [nil]
 )
 doitBlackMarketArgumentName = (
 	^'`'
@@ -2891,11 +2873,6 @@ setterSelectorFor: slot <SlotDefAST | InstanceVariableMirror> ^<Symbol> = (
 )
 sourceForNode: node <AST> ^ <String> = (
 	^input copyFrom: node start to: node end
-)
-sourceOfMethod: bytecodeMethod = (
-	^isSqueak
-		ifTrue: [bytecodeMethod getSource asString]
-		ifFalse: [bytecodeMethod source]
 )
 superConstructorCallFor: aNode <ClassHeaderAST> ^<NormalSendAST> = (
 	

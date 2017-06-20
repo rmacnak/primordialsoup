@@ -37,8 +37,8 @@ private compileExpression: expression <String> ^<Method> = (
 	 (* Super, outer and implicit receiver sends should behave like the expression is in the method class, not the receiver class. *)
 	mixinMirror:: method definingMixin.
 	imethod:: compiler
-		compileExpressionSource: expression asString
-		inContext: reflectee
+		compileExpressionSource: expression
+		debugMapper: computeDebugMapper
 		inMixin: mixinMirror
 		allowBlackMarket: false.
 
@@ -49,10 +49,27 @@ private compileExpression: expression <String> ^<Method> = (
 
 	^imethod compiledMethod
 )
+private computeDebugInfo = (
+	^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo
+)
+private computeDebugMapper = (
+	^computeDebugInfo mapperForContext: reflectee
+)
 public evaluate: expression <String> ^<ThreadMirror> = (
-	| expressionMethod = compileExpression: expression. |
-	^ObjectMirror reflecting:
-		(object: reflectee receiver executeMethod: expressionMethod with: {reflectee})
+	^(evaluateSuspended: expression) resume
+)
+public evaluateSuspended: expression <String> ^<ThreadMirror> = (
+	| expressionMethod thread simulator |
+	expressionMethod:: compileExpression: expression.
+
+	simulator:: Simulator new.
+	simulator activate: expressionMethod receiver: reflectee receiver arguments: {reflectee}.
+
+	thread:: Thread new.
+	thread state: #suspended.
+	thread suspendedActivation: simulator activation.
+	
+	^ThreadMirror reflecting: thread
 )
 public locals ^<List[LocalSlotMirror]> = (
 	halt.
@@ -85,6 +102,10 @@ public sender ^<ActivationMirror> = (
 	nil = rawSender ifTrue: [^nil].
 	rawSender method primitive = 142 ifTrue: [^nil (* Hide simulation root. *)].
 	^ActivationMirror reflecting: rawSender
+)
+public sourceRange ^<Interval> = (
+	(* The bci of an activation points to the bytecode that will be executed next. For the top activation, we want the source range to be this next action. For other activations, we want the source interval to be the pending message send. *)
+	^computeDebugInfo bciSourceMapping at: reflectee bci ifAbsent: [nil].
 )
 public stepInto ^<ThreadMirror> = (
 	halt.
@@ -709,6 +730,10 @@ public isKindOfMethodMirror ^<Boolean> = (
 public name = (
 	^method selector
 )
+public source ^<String> = (
+	(* :todo: Should this be async? *)
+	^method source
+)
 ) : (
 )
 private class MirrorGroup wrapping: collection = (|
@@ -922,8 +947,9 @@ private compileExpression: expression <String> ^<Method> = (
 	mixinMirror:: (ClassMirror reflecting: receiverClass) mixin.
 	imethod:: compiler
 		compileExpressionSource: expression
-		inContext: nil
-		inMixin: mixinMirror.
+		debugMapper: nil
+		inMixin: mixinMirror
+		allowBlackMarket: false.
 
 	imethod category: #DoIts.
 	imethod methodMixin: (mixinOf: receiverClass).

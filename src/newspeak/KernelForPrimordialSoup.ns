@@ -1111,9 +1111,9 @@ public parse: string <String> ^<Integer> = (
 )
 )
 class Interval from: start_ to: stop_ by: step_ = Collection (|
-protected start <E extends Number> = start_.
-protected stop <E extends Number> = stop_.
-protected step <E extends Number> = step_.
+public start <E extends Number> = start_.
+public stop <E extends Number> = stop_.
+public step <E extends Number> = step_.
 |) (
 public do: action <[:E]> = (
 	| value ::= start. |
@@ -1123,6 +1123,12 @@ public do: action <[:E]> = (
 )
 public first ^<E> = (
 	^self start
+)
+public printString ^<String> = (
+	| result |
+	result:: start printString, ' to: ', stop printString.
+	1 = step ifFalse: [result:: result, ' by: ', step printString].
+	^result
 )
 ) : (
 )
