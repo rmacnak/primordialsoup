@@ -25,8 +25,14 @@ private parsingX
 private intermediatesX
 private compilerX
 |) (
-public class ActivationMirror reflecting: activation = (
-(* :bogus: This constructor should not be public. *)| private reflectee <Activation> = activation. |reflectees at: self put: activation) (
+public class ActivationMirror reflecting: activation thread: thr = (
+(* :bogus: This constructor should not be public. *)
+	| 
+	private reflectee <Activation> = activation.
+	private thread <Thread> = thr.
+	|
+	reflectees at: self put: activation
+) (
 public closure ^<ObjectMirror> = (
 	| rawClosure = reflectee closure. |
 	nil = rawClosure ifTrue: [^nil].
@@ -101,11 +107,15 @@ public sender ^<ActivationMirror> = (
 	| rawSender = reflectee sender. |
 	nil = rawSender ifTrue: [^nil].
 	rawSender method primitive = 142 ifTrue: [^nil (* Hide simulation root. *)].
-	^ActivationMirror reflecting: rawSender
+	^ActivationMirror reflecting: rawSender thread: thread
 )
 public sourceRange ^<Interval> = (
 	(* The bci of an activation points to the bytecode that will be executed next. For the top activation, we want the source range to be this next action. For other activations, we want the source interval to be the pending message send. *)
-	^computeDebugInfo bciSourceMapping at: reflectee bci ifAbsent: [nil].
+	| effectiveBCI <Integer> |
+	effectiveBCI:: reflectee bci.
+	reflectee = thread suspendedActivation ifFalse: 
+		[effectiveBCI:: Simulator bciBefore: effectiveBCI in: reflectee method].
+	^computeDebugInfo bciSourceMapping at: effectiveBCI ifAbsent: [nil]
 )
 public stepInto ^<ThreadMirror> = (
 	halt.
@@ -1562,6 +1572,20 @@ public traceLong = (
 		a:: a sender].
 )
 ) : (
+public bciBefore: afterBci in: method = (
+	(* :todo: Also unwind any extension bytecodes.  *)
+	| beforeBci bci bytecode = method bytecode. |
+	beforeBci:: bci:: 1.
+	[bci < afterBci] whileTrue: 
+		[beforeBci:: bci.
+		 bci:: bci + (sizeOf: (bytecode at: bci))].
+	^beforeBci
+)
+sizeOf: bytecode = (
+	bytecode <= 223 ifTrue: [^1].
+	bytecode <= 248 ifTrue: [^2].
+	^3
+)
 )
 private class SlotDeclarationMirror name: n isMutable: m accessModifier: a mixin: mxn = (|
 public name = n.
@@ -1688,7 +1712,7 @@ public stepInto = (
 )
 public suspendedActivation ^<ActivationMirror | nil> = (
 	isSuspended ifFalse: [^nil].
-	^ActivationMirror reflecting: thread suspendedActivation
+	^ActivationMirror reflecting: thread suspendedActivation thread: thread
 )
 public terminate ^<ThreadMirror> = (
 	halt.
