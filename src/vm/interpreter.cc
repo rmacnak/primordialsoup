@@ -26,11 +26,6 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
 }
 
 
-void Interpreter::PushReceiverVariable(intptr_t offset) {
-  UNREACHABLE();  // Not used in Newspeak
-}
-
-
 void Interpreter::PushLiteralVariable(intptr_t offset) {
   // Not used in Newspeak, except by the implementation of eventual sends.
   // TODO(rmacnak): Add proper push scheduler bytecode.
@@ -52,16 +47,6 @@ void Interpreter::PushRemoteTemp(intptr_t vector_offset, intptr_t offset) {
 }
 
 
-void Interpreter::StoreIntoReceiverVariable(intptr_t offset) {
-  UNREACHABLE();  // Setters only use pop into.
-}
-
-
-void Interpreter::StoreIntoLiteralVariable(intptr_t offset) {
-  UNREACHABLE();  // Only used by Smalltalk.
-}
-
-
 void Interpreter::StoreIntoTemporary(intptr_t offset) {
   Object* top = A->Stack(0);
   A->set_temp(offset, top);
@@ -73,16 +58,6 @@ void Interpreter::StoreIntoRemoteTemp(intptr_t vector_offset, intptr_t offset) {
   Object* vector = A->temp(vector_offset);
   ASSERT(vector->IsArray());
   static_cast<Array*>(vector)->set_element(offset, top);
-}
-
-
-void Interpreter::PopIntoReceiverVariable(intptr_t offset) {
-  UNREACHABLE();  // Not used in Newspeak.
-}
-
-
-void Interpreter::PopIntoLiteralVariable(intptr_t offset) {
-  UNIMPLEMENTED();  // Only used by Smalltalk.
 }
 
 
@@ -124,12 +99,6 @@ void Interpreter::PushTrue() {
 
 void Interpreter::PushNil() {
   A->Push(H->object_store()->nil_obj());
-}
-
-
-void Interpreter::PushThisContext() {
-  UNREACHABLE();  // No longer used by Newspeak.
-  A->Push(A);
 }
 
 
@@ -767,12 +736,6 @@ Object* Interpreter::LiteralAt(intptr_t index) {
 }
 
 
-void Interpreter::StaticSuperSend(intptr_t selector_index,
-                                  intptr_t num_args) {
-  UNREACHABLE();  // Only used by Smalltalk.
-}
-
-
 void Interpreter::LocalReturn(Object* result) {
   // TODO(rmacnak): In Smalltalk, local returns also might trigger
   // #cannotReturn: after manipulation of contexts for coroutining
@@ -927,21 +890,6 @@ void Interpreter::Pop() {
 }
 
 
-void Interpreter::Nop() {
-}
-
-
-void Interpreter::Break() {
-  // <A> #unusedBytecode?
-  UNIMPLEMENTED();
-}
-
-
-void Interpreter::CallPrimitive(intptr_t) {
-  UNREACHABLE();  // We use header bits instead.
-}
-
-
 uint8_t Interpreter::FetchNextByte() {
   Activation* a = H->activation();
   Method* m = a->method();
@@ -982,7 +930,7 @@ void Interpreter::Interpret() {
     switch (byte1) {
     case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
     case 8: case 9: case 10: case 11: case 12: case 13: case 14: case 15: {
-      PushReceiverVariable(byte1 & 15);
+      FATAL("Unused bytecode");  // V4: push receiver variable
       break;
     }
     case 16: case 17: case 18: case 19: case 20: case 21: case 22: case 23:
@@ -1021,7 +969,7 @@ void Interpreter::Interpret() {
           PushNil();
           break;
         case 3:
-          PushThisContext();
+          FATAL("Unused bytecode");  // V4: push thisContext
           break;
         default:
           PushEnclosingObject(-extB);
@@ -1309,7 +1257,7 @@ void Interpreter::Interpret() {
       break;
     case 176: case 177: case 178: case 179:
     case 180: case 181: case 182: case 183:
-      PopIntoReceiverVariable(byte1 & 7);
+      FATAL("Unused bytecode");  // V4: pop into receiver variable
       break;
     case 184: case 185: case 186: case 187:
     case 188: case 189: case 190: case 191:
@@ -1342,14 +1290,10 @@ void Interpreter::Interpret() {
     case 220:
       Pop();
       break;
-    case 221:
-      Nop();
-      break;
-    case 222:
-      Break();
-      break;
-    case 223:
-      FATAL("Unassigned bytecode");
+    case 221:  // V4: nop
+    case 222:  // V4: break
+    case 223:  // V4: not assigned
+      FATAL("Unused bytecode");
       break;
     case 224: {
       uint8_t byte2 = FetchNextByte();
@@ -1365,12 +1309,9 @@ void Interpreter::Interpret() {
       }
       break;
     }
-    case 226: {
-      uint8_t byte2 = FetchNextByte();
-      PushReceiverVariable((extA << 8) + byte2);
-      extA = 0;
+    case 226:
+      FATAL("Unused bytecode");  // V4: push receiver variable
       break;
-    }
     case 227: {
       uint8_t byte2 = FetchNextByte();
       PushLiteralVariable((extA << 8) + byte2);
@@ -1403,35 +1344,19 @@ void Interpreter::Interpret() {
       }
       break;
     }
-    case 232: {
-      uint8_t byte2 = FetchNextByte();
-      StoreIntoReceiverVariable((extA << 8) + byte2);
-      extA = 0;
+    case 232:  // V4: store into receiver variable
+    case 233:  // V4: store into literal variable
+      FATAL("Unused bytecode");
       break;
-    }
-    case 233: {
-      uint8_t byte2 = FetchNextByte();
-      StoreIntoLiteralVariable((extA << 8) + byte2);
-      extA = 0;
-      break;
-    }
     case 234: {
       uint8_t byte2 = FetchNextByte();
       StoreIntoTemporary(byte2);
       break;
     }
-    case 235: {
-      uint8_t byte2 = FetchNextByte();
-      PopIntoReceiverVariable((extA << 8) + byte2);
-      extA = 0;
+    case 235:  // V4: pop into receiver variable
+    case 236:  // V4: pop into literal variable
+      FATAL("Unused bytecode");
       break;
-    }
-    case 236: {
-      uint8_t byte2 = FetchNextByte();
-      PopIntoLiteralVariable((extA << 8) + byte2);
-      extA = 0;
-      break;
-    }
     case 237: {
       uint8_t byte2 = FetchNextByte();
       PopIntoTemporary(byte2);
@@ -1445,14 +1370,9 @@ void Interpreter::Interpret() {
       extA = extB = 0;
       break;
     }
-    case 239: {
-      uint8_t byte2 = FetchNextByte();
-      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB << 3) | (byte2 & 7);
-      StaticSuperSend(selector_index, num_args);
-      extA = extB = 0;
+    case 239:
+      FATAL("Unused bytecode");  // V4: static super send
       break;
-    }
     case 240: {
       uint8_t byte2 = FetchNextByte();
       intptr_t selector_index = (extA << 5) + (byte2 >> 3);
@@ -1495,16 +1415,11 @@ void Interpreter::Interpret() {
       extA = extB = 0;
       break;
     }
-    case 246:
-    case 247:
-    case 248:
-      FATAL("Unassigned bytecode");
-    case 249: {
-      uint8_t byte2 = FetchNextByte();
-      uint8_t byte3 = FetchNextByte();
-      CallPrimitive((byte3 << 8) | byte2);
-      break;
-    }
+    case 246:  // V4: unassigned
+    case 247:  // V4: unassigned
+    case 248:  // V4: unassigned
+    case 249:  // V4: call primitive
+      FATAL("Unused bytecode");
     case 250: {
       uint8_t byte2 = FetchNextByte();
       uint8_t byte3 = FetchNextByte();
@@ -1544,7 +1459,7 @@ void Interpreter::Interpret() {
       break;
     }
     case 255:
-      FATAL("Unassigned bytecode");
+      FATAL("Unused bytecode");  // V4: unassigned
       break;
     default:
       UNREACHABLE();

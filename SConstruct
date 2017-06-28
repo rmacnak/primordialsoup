@@ -103,6 +103,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-fno-exceptions',
       '-fstack-protector',
       '-fpic',
+      '-fvisibility=hidden',
     ]
     if sanitize == 'address':
       env['CCFLAGS'] += ['-fsanitize=address']

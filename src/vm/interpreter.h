@@ -33,17 +33,14 @@ class Interpreter {
  private:
   void Interpret();
 
-  void PushReceiverVariable(intptr_t offset);
   void PushLiteralVariable(intptr_t offset);
   void PushTemporary(intptr_t offset);
   void PushRemoteTemp(intptr_t vector_offset, intptr_t offset);
 
-  void StoreIntoReceiverVariable(intptr_t offset);
   void StoreIntoLiteralVariable(intptr_t offset);
   void StoreIntoTemporary(intptr_t offset);
   void StoreIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
 
-  void PopIntoReceiverVariable(intptr_t offset);
   void PopIntoLiteralVariable(intptr_t offset);
   void PopIntoTemporary(intptr_t offset);
   void PopIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
@@ -53,7 +50,6 @@ class Interpreter {
   void PushFalse();
   void PushTrue();
   void PushNil();
-  void PushThisContext();
   void PushEnclosingObject(intptr_t depth);
   void PushInteger(intptr_t value);
   void PushNewArrayWithElements(intptr_t size);
@@ -69,8 +65,6 @@ class Interpreter {
   void OuterSend(intptr_t selector_index, intptr_t num_args, intptr_t depth);
   void SelfSend(intptr_t selector_index, intptr_t num_args);
 
-  void StaticSuperSend(intptr_t selector_index, intptr_t num_args);
-
   void MethodReturnReceiver();
   void MethodReturnTop();
   void BlockReturnTop();
@@ -81,11 +75,6 @@ class Interpreter {
 
   void Dup();
   void Pop();
-
-  void Nop();
-  void Break();
-
-  void CallPrimitive(intptr_t primitive);
 
   uint8_t FetchNextByte();
 
