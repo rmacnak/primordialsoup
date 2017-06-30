@@ -78,7 +78,12 @@ public evaluateSuspended: expression <String> ^<ThreadMirror> = (
 	^ThreadMirror reflecting: thread
 )
 public locals ^<List[LocalSlotMirror]> = (
-	halt.
+	| mapper = computeDebugMapper. result = List new. |
+	mapper localNames do:
+		[:localName |
+		| localValue = mapper getValueOf: localName. |
+		result add: (LocalSlotMirror name: localName value: (ObjectMirror reflecting: localValue))].
+	^result
 )
 public message ^<MessageMirror> = (
 	(* If this activation is from an MNU, should this answer the original message or #doesNotUnderstand: ? *)
@@ -704,6 +709,14 @@ public superclass ^<ClassMirror> = (
 	nil = s ifTrue: [^nil].
 	^ClassMirror reflecting: s
 )
+) : (
+)
+class LocalSlotMirror  name: n value: v = (
+|
+public name <Symbol> = n.
+public value <ObjectMirror> = v.
+|
+) (
 ) : (
 )
 private class MethodBuilder reflecting: ir in: builder = (|
