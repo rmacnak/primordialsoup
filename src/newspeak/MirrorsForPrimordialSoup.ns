@@ -40,7 +40,7 @@ public closure ^<ObjectMirror> = (
 )
 private compileExpression: expression <String> ^<Method> = (
 	| mixinMirror imethod |
-	 (* Super, outer and implicit receiver sends should behave like the expression is in the method class, not the receiver class. *)
+	(* Super, outer and implicit receiver sends should behave like the expression is in the method class, not the receiver class. *)
 	mixinMirror:: method definingMixin.
 	imethod:: compiler
 		compileExpressionSource: expression
@@ -74,7 +74,7 @@ public evaluateSuspended: expression <String> ^<ThreadMirror> = (
 	thread:: Thread new.
 	thread state: #suspended.
 	thread suspendedActivation: simulator activation.
-	
+
 	^ThreadMirror reflecting: thread
 )
 public locals ^<List[LocalSlotMirror]> = (
@@ -136,11 +136,11 @@ public invokeSuspended: closure = (
 	| simulator thread |
 	simulator:: Simulator new.
 	simulator activateClosure: closure arguments: {}.
-	
+
 	thread:: Thread new.
 	thread state: #suspended.
 	thread suspendedActivation: simulator activation.
-	
+
 	^ThreadMirror reflecting: thread
 )
 )
@@ -711,7 +711,7 @@ public superclass ^<ClassMirror> = (
 )
 ) : (
 )
-class LocalSlotMirror  name: n value: v = (
+private class LocalSlotMirror  name: n value: v = (
 |
 public name <Symbol> = n.
 public value <ObjectMirror> = v.
@@ -1002,7 +1002,7 @@ public evaluateSuspended: expression <String> ^<ThreadMirror> = (
 	thread:: Thread new.
 	thread state: #suspended.
 	thread suspendedActivation: simulator activation.
-	
+
 	^ThreadMirror reflecting: thread
 )
 public getClass ^<ClassMirror> = (
@@ -1659,39 +1659,41 @@ public result ^<ObjectMirror | nil> = (
 )
 public resume ^<ThreadMirror> = (
 	(* :literalmessage: primitive: 142 *)
-	| threadAtTemp1 bottom res |
+	| threadAtTemp1 bottom top jumpResult |
 	threadAtTemp1:: thread. (* Known to exception signaling machinery. *)
 
-	bottom:: findBottom: thread suspendedActivation.
+	top:: thread suspendedActivation.
+	bottom:: findBottom: top.
+	bottom sender: currentActivation.
 
 	thread state: #running.
-	bottom sender: currentActivation.
-	res:: jumpTo: thread suspendedActivation.
+	thread suspendedActivation: nil.
+
+	jumpResult:: jumpTo: top.
 
 	thread state = #broken ifTrue:
-		[thread result: res.
-		 thread suspendedActivation: nil. 
+		[thread result: jumpResult.
 		 ^self].
 
 	thread state: #fulfilled.
-	thread result: res.
+	thread result: jumpResult.
 	^self
 )
 public resumeSlowly ^<ThreadMirror> = (
 	| root bottom simulator = Simulator new. |
-
 	root:: createSimulationRoot.
 	bottom:: findBottom: thread suspendedActivation.
-
-	thread state: #running.
 	bottom sender: root.
 	simulator activation: thread suspendedActivation.
+
+	thread state: #running.
+	thread suspendedActivation: nil.
+
 	[root = simulator activation] whileFalse:
 		[simulator interpretNextInstruction].
 
 	thread state = #broken ifTrue:
 		[thread result: simulator activation pop.
-		 thread suspendedActivation: nil. 
 		 ^self].
 
 	thread state: #fulfilled.
@@ -1700,25 +1702,25 @@ public resumeSlowly ^<ThreadMirror> = (
 )
 public stepInto = (
 	| root bottom simulator = Simulator new. |
-	
 	root:: createSimulationRoot.
 	bottom:: findBottom: thread suspendedActivation.
-	
-	thread state: #running.
 	bottom sender: root.
 	simulator activation: thread suspendedActivation.
+
+	thread state: #running.
+	thread suspendedActivation: nil.
+
 	simulator interpretNextInstruction. (* :todo: Step past anything synthetic. *)
 
 	root = simulator activation ifTrue:
 		[thread state = #broken ifTrue:
 			[thread result: simulator activation pop.
-			 thread suspendedActivation: nil.
 			 ^self].
 
 		thread state: #fulfilled.
 		thread result: simulator activation pop.
 		^self].
-	
+
 	thread state: #suspended.
 	thread suspendedActivation: simulator activation.
 	^self
