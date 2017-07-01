@@ -713,6 +713,10 @@ private exit: code = (
 	(* :literalmessage: primitive: 107 *)
 	halt
 )
+private finish = (
+	(* :literalmessage: primitive: 139 *)
+	halt.
+)
 private start: argvOrBytes = (
 
 	argvOrBytes isArray 
@@ -907,21 +911,17 @@ public buildSchedulerForApplication: app platform: platform = (
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
-	primitiveFailed: 'Mirror classOf:'.
+	halt.
 )
 private createFarReferenceTo: target in: targetActor for: sourceActor = (
 	^(InternalFarReference target: target targetsActor: targetActor) externalRef.
 )
 private currentMonotonicMicros = (
 	(* :literalmessage: primitive: 100 *)
-	primitiveFailed: 'monotonic micros'.
+	halt.
 )
 private currentMonotonicMillis = (
 	^currentMonotonicMicros quo: 1000
-)
-private finish = (
-	(* :literalmessage: primitive: 139 *)
-	halt
 )
 private isRef: object <Object> ^<Boolean> = (
 	^Ref = (classOf: object)

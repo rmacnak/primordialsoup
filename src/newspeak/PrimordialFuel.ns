@@ -1548,19 +1548,19 @@ private class: klass adoptInstance: object = (
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
-	primitiveFailed: 'Mirror classOf:'.
+	halt.
 )
 private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
 	(* :literalmessage: primitive: 77 *)
-	primitiveFailed: 'Mirror copiedOf:at:'.
+	halt.
 )
 private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Object> = (
 	(* :literalmessage: primitive: 78 *)
-	primitiveFailed: 'Mirror copiedOf:at:put:'.
+	halt.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
-	primitiveFailed: 'Mirror definingActivationOf:'.
+	halt.
 )
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
@@ -1568,7 +1568,7 @@ private identityHashOf: a = (
 )
 private initialBCIOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 73 *)
-	primitiveFailed: 'Mirror initialBCIOf:'.
+	halt.
 )
 private is: a identicalTo: b = (
 	(* :literalmessage: primitive: 86 *)
@@ -1576,19 +1576,19 @@ private is: a identicalTo: b = (
 )
 private isCanonical: object = (
 	(* :literalmessage: primitive: 126 *)
-	primitiveFailed: 'Mirror isCanonical:'.
+	halt.
 )
 private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 70 *)
-	primitiveFailed: 'Mirror numCopiedOf:'.
+	halt.
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)
-	primitiveFailed: 'Mirror slotOf:at:'.
+	halt.
 )
 private slotOf: object at: index put: value = (
 	(* :literalmessage: primitive: 36 *)
-	primitiveFailed: 'Mirror slotOf:at:put:'.
+	halt.
 )
 ) : (
 )

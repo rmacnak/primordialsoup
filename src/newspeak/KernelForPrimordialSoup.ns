@@ -182,7 +182,7 @@ public top = (
 ) : (
 public new = (
 	(* :literalmessage: primitive: 68 *)
-	primitiveFailed: 'Activation class new'
+	halt.
 )
 )
 class ArgumentError value: v = Exception (|
@@ -245,7 +245,7 @@ public isEmpty ^<Boolean> = (
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 49 *)
-	primitiveFailed: 'ByteArray size'.
+	halt.
 )
 ) : (
 public new: size <Integer> ^<ByteArray> = (
@@ -260,7 +260,7 @@ public , other <String> ^<String> = (
 )
 public = other = (
 	(* :literalmessage: primitive: 114 *)
-	primitiveFailed: 'ByteString ='.
+	halt.
 )
 public asString ^<String> = (
 	^self
@@ -286,7 +286,7 @@ public first ^<String> = (
 )
 public hash ^<Integer> = (
 	(* :literalmessage: primitive: 54 *)
-	primitiveFailed: 'ByteString hash'.
+	halt.
 )
 public indexOf: substring <String> ^<Integer> = (
 	^self indexOf: substring startingAt: 1
@@ -320,7 +320,7 @@ public runeAt: index <Integer> ^<Integer> = (
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 53 *)
-	primitiveFailed: 'ByteString size'.
+	halt.
 )
 public startsWith: prefix <String> ^<Boolean> = (
 	(* :literalmessage: primitive: 117 *)
@@ -355,7 +355,7 @@ private subclasses <WeakArray>
 protected basicNew = (
 	(* Sent by the compiler from factory methods. *)
 	(* :literalmessage: primitive: 34 *)
-	primitiveFailed: 'Behavior basicNew'.
+	halt.
 )
 public name = (
 	^self nameS
@@ -414,7 +414,7 @@ public isClosure ^<Boolean> = (
 )
 public numArgs ^<Integer> = (
 	(* :literalmessage: primitive: 75 *)
-	primitiveFailed: 'Closure numArgs'.
+	halt.
 )
 private numArgsError: argsProvided = (
 	^ArgumentError new signal
@@ -436,27 +436,27 @@ public repeat = (
 public value = (
 	(* :literalmessage: primitive: 90 *)
 	self numArgs = 0 ifFalse: [^numArgsError: 0].
-	primitiveFailed: 'Closure value'.
+	halt.
 )
 public value: arg1 = (
 	(* :literalmessage: primitive: 91 *)
 	self numArgs = 1 ifFalse: [^numArgsError: 1].
-	primitiveFailed: 'Closure value:'.
+	halt.
 )
 public value: arg1 value: arg2 = (
 	(* :literalmessage: primitive: 92 *)
 	self numArgs = 2 ifFalse: [^numArgsError: 2].
-	primitiveFailed: 'Closure value:value:'.
+	halt.
 )
 public value: arg1 value: arg2 value: arg3 = (
 	(* :literalmessage: primitive: 93 *)
 	self numArgs = 3 ifFalse: [^numArgsError: 3].
-	primitiveFailed: 'Closure value:value:value:'.
+	halt.
 )
 public valueWithArguments: arguments = (
 	(* :literalmessage: primitive: 94 *)
 	self numArgs = arguments size ifFalse: [^numArgsError: arguments size].
-	primitiveFailed: 'Closure valueWithArguments:'.
+	halt.
 )
 public whileFalse = (
 	halt.
@@ -624,7 +624,7 @@ public resume: resumptionValue = (
 	^savedSignalActivation return: resumptionValue
 )
 public retry = (
-	fatal: 'retry'.
+	halt.
 	handlerActivation restart.
 	UNREACHABLE.
 )
@@ -704,22 +704,22 @@ public asFloat ^<Float> = (
 )
 public ceiling ^<Float> = (
 	(* :literalmessage: primitive: 22 *)
-	primitiveFailed: 'Number ceiling'.
+	halt.
 )
 public cos ^<Float> = (
 	(* :literalmessage: primitive: 24 *)
-	primitiveFailed: 'Number cos'.
+	halt.
 )
 public divideFromFraction: left = (
 	^left asFloat / self
 )
 public exp ^<Float> = (
 	(* :literalmessage: primitive: 30 *)
-	primitiveFailed: 'Number exp'.
+	halt.
 )
 public floor ^<Float> = (
 	(* :literalmessage: primitive: 21 *)
-	primitiveFailed: 'Number floor'.
+	halt.
 )
 public hash ^<Integer> = (
 	^self asInteger
@@ -738,33 +738,33 @@ public isNaN ^<Boolean> = (
 )
 public ln ^<Float> = (
 	(* :literalmessage: primitive: 31 *)
-	primitiveFailed: 'Number ln'.
+	halt.
 )
 public log ^<Float> = (
 	(* :literalmessage: primitive: 32 *)
-	primitiveFailed: 'Number log'.	
+	halt.
 )
 public multiplyFromFraction: left = (
 	^left asFloat * self
 )
 public rounded ^<Float> = (
 	(* :literalmessage: primitive: 125 *)
-	primitiveFailed: 'Number rounded'.
+	halt.
 )
 public sin ^<Float> = (
 	(* :literalmessage: primitive: 23 *)
-	primitiveFailed: 'Number sin'.	
+	halt.
 )
 public sqrt ^<Float> = (
 	(* :literalmessage: primitive: 33 *)
-	primitiveFailed: 'Number sqrt'.
+	halt.
 )
 public subtractFromFraction: left = (
 	^left asFloat - self
 )
 public tan ^<Float> = (
 	(* :literalmessage: primitive: 25 *)
-	primitiveFailed: 'Number tan'.
+	halt.
 )
 ) : (
 public parse: string <String> ^<Float> = (
@@ -1107,7 +1107,7 @@ public | other <Integer> ^<Integer> = (
 )
 ) : (
 public parse: string <String> ^<Integer> = (
-	fatal: 'Integer class parse:'
+	halt.
 )
 )
 class Interval from: start_ to: stop_ by: step_ = Collection (|
@@ -1318,15 +1318,15 @@ public abs = (
 )
 public asFloat = (
 	(* :literalmessage: primitive: 15 *)
-	primitiveFailed: 'Number asFloat'.
+	halt.
 )
 public asInteger = (
 	(* :literalmessage: primitive: 14 *)
-	primitiveFailed: 'Number asInteger'.	
+	^(ArgumentError value: self) signal
 )
 public asString ^<String> = (
 	(* :literalmessage: primitive: 111 *)
-	primitiveFailed: 'Number asString'.	
+	halt.
 )
 public between: min <Number> and: max <Number> ^<Boolean> = (
 	^self <= max and: [self >= min]
@@ -1373,7 +1373,7 @@ public quo: other = (
 	^(ArgumentError value: other) signal
 )
 public raisedTo: other = (
-	fatal: 'Number raisedTo:'
+	halt.
 )
 public rem: other = (
 	(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
@@ -1409,7 +1409,7 @@ public to: stop do: action = (
 )
 ) : (
 public parse: string <String> ^<Number> = (
-	fatal: 'Number class parse:'
+	halt.
 )
 )
 public class Proxy = (
@@ -1553,7 +1553,7 @@ public isEmpty ^<Boolean> = (
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 45 *)
-	fatal: 'WeakArray size'.	
+	halt.
 )
 ) : (
 public new: size <Integer> ^<WeakArray[E]> = (
@@ -1778,7 +1778,7 @@ public = other <Object> ^<Boolean> = (
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
 	
 	(* :literalmessage: primitive: 86 *)
-	fatal: 'Primitive identical failed'.
+	halt.
 )
 protected Array = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
@@ -1826,7 +1826,7 @@ protected class ^<Behavior> = (
 	This method is not public to make it easier to separate the authority of an instance from the authority of its class. This is similar to how the flatness of the metaclass heirarchy separates the interface of an object from the interface of its class. *)
 	
 	(* :literalmessage: primitive: 85 *)
-	fatal: 'Primitive class failed'.
+	halt.
 )
 protected doesNotUnderstand: message = (
 	(0 = message arguments size and: [message selector startsWith: 'is']) ifTrue: [^false].
@@ -1834,8 +1834,7 @@ protected doesNotUnderstand: message = (
 	^(MessageNotUnderstood receiver: self message: message) signal
 )
 protected halt = (
-	'Halt' out.
-	exitWithTrace.
+	(* :literalmessage: primitive: 103 *)
 )
 public hash ^<Integer> = (
 	(* Answers the hash code for the receiver.
@@ -1844,7 +1843,7 @@ public hash ^<Integer> = (
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
 	
 	(* :literalmessage: primitive: 87 *)
-	fatal: 'Primitive identityHash failed'.
+	halt.
 )
 public isNil ^<Boolean> = (
 	^false
@@ -1896,7 +1895,7 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
-	primitiveFailed: 'Mirror classOf:'.
+	halt.
 )
 private currentActivation ^<Activation> = (
 	(* :literalmessage: primitive: 133 *)
@@ -1904,20 +1903,17 @@ private currentActivation ^<Activation> = (
 )
 private currentMonotonicMicros = (
 	(* :literalmessage: primitive: 100 *)
-	primitiveFailed: 'monotonic micros'.
+	halt.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
-	primitiveFailed: 'Mirror definingActivationOf:'.
+	halt.
 )
 private enclosingObjectOf: behavior = (
 	^self slotOf: behavior at: 3
 )
 private enclosingObjectOf: behavior put: value = (
 	^self slotOf: behavior at: 3 put: value
-)
-private exitWithTrace = (
-	(* :literalmessage: primitive: 103 *)
 )
 private formatOf: behavior = (
 	^self slotOf: behavior at: 6
@@ -1927,7 +1923,7 @@ private formatOf: behavior put: value = (
 )
 public garbageCollect = (
 	(* :literalmessage: primitive: 105 *)
-	primitiveFailed: 'gc'.
+	halt.
 )
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
@@ -1935,7 +1931,7 @@ private identityHashOf: a = (
 )
 private instantiate: klass = (
 	(* :literalmessage: primitive: 34 *)
-	primitiveFailed: 'Behavior basicNew'.
+	halt.
 )
 private intern: string = (
 	| table capacity index reuseIndex symbol |
@@ -1968,7 +1964,7 @@ private is: a identicalTo: b = (
 )
 private isCanonical: object = (
 	(* :literalmessage: primitive: 126 *)
-	primitiveFailed: 'Mirror isCanonical:'.
+	halt.
 )
 private methodsOf: behavior = (
 	^self slotOf: behavior at: 2
@@ -1990,10 +1986,7 @@ private nameOf: klass put: value = (
 )
 private object: rcvr perform: sel with: arguments = (
 	(* :literalmessage: primitive: 89 *)
-	primitiveFailed: 'perform'.
-)
-primitiveFailed: message = (
-	fatal: message
+	halt.
 )
 print: message = (
 	(* :literalmessage: primitive: 102 *)
@@ -2029,15 +2022,15 @@ private rehashSymbolTable = (
 )
 private setCanonical: object = (
 	(* :literalmessage: primitive: 127 *)
-	primitiveFailed: 'Mirror setCanonical:'.
+	halt.
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)
-	primitiveFailed: 'Mirror slotOf:at:'.
+	halt.
 )
 private slotOf: object at: index put: value = (
 	(* :literalmessage: primitive: 36 *)
-	primitiveFailed: 'Mirror slotOf:at:put:'.
+	halt.
 )
 private subclassesOf: klass = (
 	^self slotOf: klass at: 8
