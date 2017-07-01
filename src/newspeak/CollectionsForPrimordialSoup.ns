@@ -85,9 +85,6 @@ public last ^<E> = (
 protected newForCollectUsingAdd: capacity  = (
 	^List new: capacity
 )
-public readStream = (
-	^ReadStream over: self
-)
 public remove: element <E> ^<E> = (
 	^self remove: element ifAbsent: [missingElement]
 )
@@ -308,25 +305,6 @@ public values ^<List[V]> = (
 public new = (
 	^self initialCapacity: 6
 )
-)
-class ReadStream over: c = (|
-protected previousIndex ::= 0.
-protected collection  = c.
-|) (
-public atEnd ^<Boolean> = (
-	^previousIndex >= collection size
-)
-public next ^<Boolean> = (
-	previousIndex < collection size
-		ifTrue: [previousIndex:: 1 + previousIndex. ^collection at: previousIndex]
-		ifFalse: [^nil]
-)
-public peek ^<Boolean> = (
-	(1 + previousIndex) <= collection size
-		ifTrue: [^collection at: 1 + previousIndex]
-		ifFalse: [^nil]
-)
-) : (
 )
 public class Set initialCapacity: n = Collection (|
 protected size_ ::= 0.

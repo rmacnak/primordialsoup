@@ -40,8 +40,7 @@ public main: platform args: args = (
 	stopwatch elapsedMilliseconds asString, ' ms') out.
 	'' out.
 	
-	tester failures size = 0 ifFalse: [testsFailed].
-	tester errors size = 0 ifFalse: [testsFailed].
+	tester haveAllTestsSucceeded ifFalse: [Error new signal].
 )
 ) : (
 )
