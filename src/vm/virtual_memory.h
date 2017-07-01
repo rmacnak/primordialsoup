@@ -18,7 +18,9 @@ class VirtualMemory {
   };
 
   static VirtualMemory MapReadOnly(const char* filename);
-  static VirtualMemory Allocate(intptr_t size, Protection protection);
+  static VirtualMemory Allocate(intptr_t size,
+                                Protection protection,
+                                const char* name);
   void Free();
   bool Protect(Protection protection);
 

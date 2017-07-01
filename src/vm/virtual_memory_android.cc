@@ -40,7 +40,9 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
 }
 
 
-VirtualMemory VirtualMemory::Allocate(intptr_t size, Protection protection) {
+VirtualMemory VirtualMemory::Allocate(intptr_t size,
+                                      Protection protection,
+                                      const char* name) {
   ASSERT(size > 0);
   int prot;
   switch (protection) {

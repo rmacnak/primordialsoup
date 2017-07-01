@@ -25,7 +25,9 @@ class Semispace {
   friend class Heap;
 
   void Allocate(intptr_t size) {
-    memory_ = VirtualMemory::Allocate(size, VirtualMemory::kReadWrite);
+    memory_ = VirtualMemory::Allocate(size,
+                                      VirtualMemory::kReadWrite,
+                                      "primordialsoup-heap");
 
     ASSERT(Utils::IsAligned(memory_.base(), kObjectAlignment));
     ASSERT(memory_.size() == size);

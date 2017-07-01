@@ -51,7 +51,9 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
 }
 
 
-VirtualMemory VirtualMemory::Allocate(intptr_t size, Protection protection) {
+VirtualMemory VirtualMemory::Allocate(intptr_t size,
+                                      Protection protection,
+                                      const char* name) {
   ASSERT(size > 0);
   uint32_t prot;
   switch (protection) {
@@ -75,21 +77,25 @@ VirtualMemory VirtualMemory::Allocate(intptr_t size, Protection protection) {
   uword vmar_addr = 0;
   mx_status_t status = mx_vmar_allocate(mx_vmar_root_self(), 0, size,
                                         flags, &vmar, &vmar_addr);
-  if (status != NO_ERROR) {
+  if (status != MX_OK) {
     FATAL2("mx_vmar_allocate(%" Pd ") failed: %s\n", size,
             mx_status_get_string(status));
   }
 
   mx_handle_t vmo = MX_HANDLE_INVALID;
   status = mx_vmo_create(size, 0u, &vmo);
-  if (status != NO_ERROR) {
+  if (status != MX_OK) {
     FATAL2("mx_vmo_create(%" Pd ") failed: %s\n", size,
             mx_status_get_string(status));
   }
 
+  if (name != NULL) {
+    mx_object_set_property(vmo, MX_PROP_NAME, name, strlen(name));
+  }
+
   uintptr_t vmo_addr;
   status = mx_vmar_map(vmar, 0, vmo, 0, size, prot, &vmo_addr);
-  if (status != NO_ERROR) {
+  if (status != MX_OK) {
     FATAL2("mx_vmar_map(%" Pd ") failed: %s\n", size,
             mx_status_get_string(status));
   }
@@ -105,11 +111,11 @@ VirtualMemory VirtualMemory::Allocate(intptr_t size, Protection protection) {
 void VirtualMemory::Free() {
   mx_handle_t vmar = static_cast<mx_handle_t>(handle_);
   mx_status_t status = mx_vmar_destroy(vmar);
-  if (status != NO_ERROR) {
+  if (status != MX_OK) {
     FATAL1("mx_vmar_destroy failed: %s\n", mx_status_get_string(status));
   }
   status = mx_handle_close(vmar);
-  if (status != NO_ERROR) {
+  if (status != MX_OK) {
     FATAL1("mx_handle_close failed: %s\n", mx_status_get_string(status));
   }
 }
@@ -137,7 +143,7 @@ bool VirtualMemory::Protect(Protection protection) {
 
   intptr_t size = limit_ - base_;
   mx_status_t status = mx_vmar_protect(vmar, base_, size, prot);
-  if (status != NO_ERROR) {
+  if (status != MX_OK) {
     FATAL1("mx_vmar_protect failed: %s\n", mx_status_get_string(status));
   }
   return true;
