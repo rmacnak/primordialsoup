@@ -33,6 +33,10 @@ public class ActivationMirror reflecting: activation thread: thr = (
 	|
 	reflectees at: self put: activation
 ) (
+public = other ^<Boolean> = (
+	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
+	^other isKindOfActivationMirror
+)
 public closure ^<ObjectMirror> = (
 	| rawClosure = reflectee closure. |
 	nil = rawClosure ifTrue: [^nil].
@@ -76,6 +80,12 @@ public evaluateSuspended: expression <String> ^<ThreadMirror> = (
 	thread suspendedActivation: simulator activation.
 
 	^ThreadMirror reflecting: thread
+)
+public hash ^<Integer> = (
+	^(identityHashOf: reflectee) bitXor: class hash
+)
+public isKindOfActivationMirror ^<Boolean> = (
+	^true
 )
 public locals ^<List[LocalSlotMirror]> = (
 	| mapper = computeDebugMapper. result = List new. |
@@ -448,8 +458,8 @@ public headerFromSource: newHeader <String> = (
 
 	(* only top-level classes can specify categories *)
 	prefix:: intermediate isTopLevel
-		ifTrue: [ 'Newspeak3 ''category'' ' ]
-		ifFalse: [ ' ' ].
+		ifTrue: [ 'Newspeak3 ''Category'' ' ]
+		ifFalse: [ '' ].
 
 	self enclosingClass. (* For side effect. *)
 	newIR:: compiler
@@ -508,7 +518,7 @@ private to: sb writeClassDeclaration: declIR = (
 )
 ) : (
 public fromSource: source <String> ^<ClassDeclarationBuilder> = (
-	^self fromUnitSource: 'Newspeak3 ''Uncategorized'' ', source
+	^self fromUnitSource: 'Newspeak3 ''Category'' ', source
 )
 public fromUnitSource: source <String> ^<ClassDeclarationBuilder> = (
 	| ir <IntermediateClassDeclaration> builder |
@@ -981,16 +991,8 @@ private compileExpression: expression <String> ^<Method> = (
 
 	^imethod compiledMethod
 )
-public evaluate: expression <String>
-ifCompilerError: compilationErrorHandler <[:Error]> 
-ifError: evalErrorHandler <[:ObjectMirror[Error] :ActivationMirror]> ^<ObjectMirror> = (
-	(* Evaluate [expression] with the reflectee as the receiver. If [expression] cannot be compiled, activate [compilationErrorHandler] with the exception. If the evaluation of [expression] raises an error, activate [evalErrorHandler] with the error. Otherwise return an ObjectMirror on the result of [expression]. *)
-	| expressionMethod result |
-	[expressionMethod:: compileExpression: expression]
-		on: Error do: [:e | ^compilationErrorHandler cull: e ].
-	[result:: object: reflectee executeMethod: expressionMethod with: {}]
-		on: Error do: [:e | ^evalErrorHandler cull: e].
-	^ObjectMirror reflecting: result
+public evaluate: expression <String> ^<ThreadMirror> = (
+	^(evaluateSuspended: expression) resume
 )
 public evaluateSuspended: expression <String> ^<ThreadMirror> = (
 	| expressionMethod thread simulator |

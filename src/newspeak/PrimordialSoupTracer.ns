@@ -859,7 +859,7 @@ public main: p args: a = (
 	(Tracer usingPlatform: p with: runtime source: false) 
 		serialize: helloApp to: 'primordialsoup/snapshots/hello.vfuel'.
 
-	(Tracer usingPlatform: p with: runtimeWithBuilders source: false) 
+	(Tracer usingPlatform: p with: runtimeWithBuilders source: true)
 		serialize: testApp to: 'primordialsoup/snapshots/tests.vfuel'.
 
 	(Tracer usingPlatform: p with: runtime source: false) 
