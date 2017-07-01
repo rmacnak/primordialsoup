@@ -117,6 +117,10 @@ Isolate::~Isolate() {
 
 void Isolate::InitWithStringArray(int argc, const char** argv) {
   Array* message = heap_->AllocateArray(argc);  // SAFEPOINT
+  for (intptr_t i = 0; i < argc; i++) {
+    message->set_element(i, SmallInteger::New(0));
+  }
+
   {
     HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
     for (intptr_t i = 0; i < argc; i++) {
