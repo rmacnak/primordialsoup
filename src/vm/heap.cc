@@ -34,7 +34,7 @@ Heap::Heap(Isolate* isolate, int64_t seed) :
   from_.Allocate(kInitialSemispaceSize);
 
   // Class table.
-  class_table_capacity_ = 1028;
+  class_table_capacity_ = 1024;
   class_table_ = new Object*[class_table_capacity_];
   for (intptr_t i = 0; i < kFirstRegularObjectCid; i++) {
     class_table_[i] = reinterpret_cast<Object*>(kZapWord);
@@ -106,23 +106,16 @@ void Heap::Scavenge() {
 
   // Strong references.
   ProcessRoots();
-
   uword scan = to_.object_start();
   while (scan < to_.top_) {
     scan = ProcessToSpace(scan);
-    ASSERT(scan == to_.top_);
-    ProcessEphemeronListScavenge();
+    ProcessEphemeronList();
   }
-  ASSERT(scan == to_.top_);
 
   // Weak references.
-  ProcessEphemeronListMourn();
-  ASSERT(ephemeron_list_ == NULL);
-
-  ProcessWeakList();
-  ASSERT(weak_list_ == NULL);
-
-  ProcessClassTableWeak();
+  MournEphemeronList();
+  MournWeakList();
+  MournClassTable();
 
 #if LOOKUP_CACHE
   if (lookup_cache_ != NULL) {
@@ -340,7 +333,7 @@ static void SetForwarded(uword old_addr, uword new_addr) {
 }
 
 
-void Heap::ProcessClassTableWeak() {
+void Heap::MournClassTable() {
   for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
     Object** ptr = &class_table_[i];
 
@@ -408,7 +401,7 @@ void Heap::AddToEphemeronList(Ephemeron* survivor) {
 }
 
 
-void Heap::ProcessEphemeronListScavenge() {
+void Heap::ProcessEphemeronList() {
   Ephemeron* survivor = ephemeron_list_;
   ephemeron_list_ = NULL;
 
@@ -432,7 +425,7 @@ void Heap::ProcessEphemeronListScavenge() {
 }
 
 
-void Heap::ProcessEphemeronListMourn() {
+void Heap::MournEphemeronList() {
   Object* nil = object_store()->nil_obj();
   Ephemeron* survivor = ephemeron_list_;
   while (survivor != NULL) {
@@ -458,7 +451,7 @@ void Heap::AddToWeakList(WeakArray* survivor) {
 }
 
 
-void Heap::ProcessWeakList() {
+void Heap::MournWeakList() {
   WeakArray* survivor = weak_list_;
   while (survivor != NULL) {
     ASSERT(survivor->IsWeakArray());
@@ -467,7 +460,7 @@ void Heap::ProcessWeakList() {
     Object** to;
     survivor->Pointers(&from, &to);
     for (Object** ptr = from; ptr <= to; ptr++) {
-      ScavengeWeakPointer(ptr);
+      MournWeakPointer(ptr);
     }
 
     survivor = survivor->next();
@@ -476,7 +469,7 @@ void Heap::ProcessWeakList() {
 }
 
 
-void Heap::ScavengeWeakPointer(Object** ptr) {
+void Heap::MournWeakPointer(Object** ptr) {
   Object* old_target = *ptr;
 
   if (old_target->IsImmediateOrOldObject()) {

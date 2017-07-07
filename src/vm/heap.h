@@ -327,18 +327,18 @@ class Heap {
  private:
   void FlipSpaces();
   void ProcessRoots();
-  void ProcessClassTableWeak();
+  void MournClassTable();
   uword ProcessToSpace(uword scan);
   void ScavengePointer(Object** ptr);
   void ScavengeClass(intptr_t cid);
 
   void AddToEphemeronList(Ephemeron* ephemeron_corpse);
-  void ProcessEphemeronListScavenge();
-  void ProcessEphemeronListMourn();
+  void ProcessEphemeronList();
+  void MournEphemeronList();
 
   void AddToWeakList(WeakArray* weak_corpse);
-  void ProcessWeakList();
-  void ScavengeWeakPointer(Object** ptr);
+  void MournWeakList();
+  void MournWeakPointer(Object** ptr);
 
   void ForwardRoots();
   void ForwardClassTable();
