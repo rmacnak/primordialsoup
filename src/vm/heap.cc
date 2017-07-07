@@ -225,9 +225,9 @@ uword Heap::ProcessToSpace(uword scan) {
     intptr_t cid = obj->cid();
     ScavengeClass(cid);
     if (cid == kWeakArrayCid) {
-      // Processed later.
+      AddToWeakList(static_cast<WeakArray*>(obj));
     } else if (cid == kEphemeronCid) {
-      // Processed later.
+      AddToEphemeronList(static_cast<Ephemeron*>(obj));
     } else {
       Object** from;
       Object** to;
@@ -383,10 +383,7 @@ void Heap::ScavengePointer(Object** ptr) {
     new_target = ForwardingTarget(old_target_addr);
   } else {
     // Target is now known to be reachable. Move it to to-space.
-    intptr_t cid = old_target->cid();
-    ASSERT(cid != kForwardingCorpseCid);
-    uword size = old_target->HeapSize();
-    ASSERT((size & kObjectAlignmentMask) == 0);
+    intptr_t size = old_target->HeapSize();
     uword new_target_addr = TryAllocate(size);
     ASSERT(new_target_addr != 0);
     memcpy(reinterpret_cast<void*>(new_target_addr),
@@ -395,12 +392,6 @@ void Heap::ScavengePointer(Object** ptr) {
     SetForwarded(old_target_addr, new_target_addr);
 
     new_target = Object::FromAddr(new_target_addr);
-
-    if (cid == kEphemeronCid) {
-      AddToEphemeronList(static_cast<Ephemeron*>(new_target));
-    } else if (cid == kWeakArrayCid) {
-      AddToWeakList(static_cast<WeakArray*>(new_target));
-    }
   }
 
   uword new_target_addr = new_target->Addr();
@@ -428,7 +419,6 @@ void Heap::ProcessEphemeronListScavenge() {
 
     if (survivor->key()->IsImmediateOrOldObject() ||
         IsForwarded(survivor->key()->Addr())) {
-      // N.B. These scavenges may add to the ephemeron list.
       ScavengePointer(survivor->key_ptr());
       ScavengePointer(survivor->value_ptr());
       ScavengePointer(survivor->finalizer_ptr());
@@ -532,18 +522,13 @@ void Heap::ScavengeClass(intptr_t cid) {
   }
 
   // Target is now known to be reachable. Move it to to-space.
-  intptr_t target_cid = old_target->cid();
-  uword size = old_target->HeapSize();
-  ASSERT((size & kObjectAlignmentMask) == 0);
+  intptr_t size = old_target->HeapSize();
   uword new_target_addr = TryAllocate(size);
   ASSERT(new_target_addr != 0);
   memcpy(reinterpret_cast<void*>(new_target_addr),
          reinterpret_cast<void*>(old_target_addr),
          size);
   SetForwarded(old_target_addr, new_target_addr);
-
-  ASSERT(target_cid != kEphemeronCid);
-  ASSERT(target_cid != kWeakArrayCid);
 }
 
 
