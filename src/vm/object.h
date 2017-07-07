@@ -789,18 +789,18 @@ class Activation : public Object {
   Object* Stack(intptr_t depth) const {
     ASSERT(depth >= 0);
     ASSERT(depth < stack_depth());
-    return ptr()->temps_[stack_depth() - depth - 1];
+    return temp(stack_depth() - depth - 1);
   }
-  Object* StackPut(intptr_t depth, Object* o) {
+  void StackPut(intptr_t depth, Object* o) {
     ASSERT(depth >= 0);
     ASSERT(depth < stack_depth());
-    return ptr()->temps_[stack_depth() - depth - 1] = o;
+    set_temp(stack_depth() - depth - 1, o);
   }
   void PopNAndPush(intptr_t drop_count, Object* value) {
     ASSERT(drop_count >= 0);
     ASSERT(drop_count <= stack_depth());
     set_stack_depth(SmallInteger::New(stack_depth() - drop_count + 1));
-    ptr()->temps_[stack_depth() - 1] = value;
+    set_temp(stack_depth() - 1, value);
   }
   void Push(Object* value) {
     PopNAndPush(0, value);
