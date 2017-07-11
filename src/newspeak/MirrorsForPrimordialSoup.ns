@@ -558,6 +558,9 @@ public enclosingClass ^<ClassDeclarationMirror> = (
 	nil = em ifTrue: [^nil].
 	^ClassDeclarationMirror reflecting: em
 )
+public header ^<ClassHeaderMirror> = (
+	^ClassHeaderMirror reflecting: mixin
+)
 public instanceSide ^<MixinMirror> = (
 	^MixinMirror reflecting: mixin
 )
@@ -639,6 +642,15 @@ public name: newName <String> = (
 )
 public source ^<String> = (
 	^intermediate headerSource
+)
+) : (
+)
+private class ClassHeaderMirror reflecting: mxn = (| mixin <InstanceMixin> = mxn. |) (
+public name = (
+	^mixin _name
+)
+public source ^<String> = (
+	^mixin _headerSource
 )
 ) : (
 )
@@ -738,6 +750,9 @@ public accessModifier = (
 )
 public name = (
 	^intermediate selector
+)
+public source ^<String> = (
+	^intermediate source
 )
 ) : (
 )
@@ -1759,6 +1774,7 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 		imethod accessModifier: method accessModifier.
 		imethod isSynthetic: method isSynthetic.
 		imethod category: 42.
+		imethod source: method source.
 		(isSubinitializerSelector: selector) ifTrue:
 			[initializers add: imethod].
 		imethod isSynthetic ifFalse:
