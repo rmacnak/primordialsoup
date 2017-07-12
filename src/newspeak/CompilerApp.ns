@@ -2,91 +2,81 @@ Newspeak3
 'NS2PrimordialSoup'
 class CompilerApp packageUsing: manifest = (|
 |) (
-class Manifest forNamespace: ns = (|
-namespace = ns.
-|) (
-protected doesNotUnderstand: message = (
-	^namespace at: message selector ifAbsent: [Error signal: 'Missing ', message selector]
-)
-) : (
-)
-public childMain: platform args: args = (
-	|
-	List = platform collections List.
-	Stopwatch = platform kernel Stopwatch.
-	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
-	Port = platform actors Port.
-	replyPort = Port fromId: (args at: 2).
-	stopwatch
-	source 
-	builder 
-	klass
-	result = List new.
-	|
-	
+class CommandLineCompiler usingPlatform: platform = (
+|
+	private List = platform collections List.
+	private Map = platform collections Map.
+	private Stopwatch = platform kernel Stopwatch.
+	private ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
+	private Port = platform actors Port.
+	private Snapshotter = platform victoryFuel Snapshotter.
+|
+) (
+childMain: args = (
+	| stopwatch replyPort result |
 	stopwatch:: Stopwatch new start.
-	3 to: args size do: [:index |
-		('Compiling ', (args at: index)) out.
-		source:: readFileAsString: (args at: index) using: platform.
-		builder:: ClassDeclarationBuilder fromUnitSource: source.
-		klass:: builder install applyToObject reflectee.
-		result add: klass].
+	replyPort:: Port fromId: (args at: 2).
+	result:: List new.
+
+	3 to: args size do: [:index | result add: (compileFile: (args at: index))].
 
 	('Worker done in ', stopwatch elapsedMilliseconds printString, ' ms') out.
 	replyPort send: result asArray.
 )
-decodeUtf8: bytes using: platform = (
-	| 
-	runes = platform collections List new.
+compileFile: filename = (
+	| source builder |
+	('Compiling ', filename) out.
+	source:: readFileAsString: filename.
+	builder:: ClassDeclarationBuilder fromUnitSource: source.
+	^builder install applyToObject reflectee.
+)
+decodeUtf8: bytes = (
+	|
+	runes = List new.
 	position ::= 0.
 	a b c d
 	|
-	
-	[position < bytes size] whileTrue: [
-		a:: bytes at: 1 + position.
-		(a >> 7) = 0 ifTrue: 
-			[runes add: a. 
+
+	[position < bytes size] whileTrue:
+		[a:: bytes at: 1 + position.
+		 (a >> 7) = 0 ifTrue:
+			[runes add: a.
 			 position:: position + 1].
 
-		(a >> 5) = 2r110 ifTrue: 
+		 (a >> 5) = 2r110 ifTrue:
 			[a:: a bitAnd: 2r11111.
-			b:: (bytes at: 2 + position) bitAnd: 2r111111.
-			runes add: (a << 6) + b.
-			position:: position + 2].
+			 b:: (bytes at: 2 + position) bitAnd: 2r111111.
+			 runes add: (a << 6) + b.
+			 position:: position + 2].
 
-		(a >> 4) = 2r1110 ifTrue: 
+		 (a >> 4) = 2r1110 ifTrue:
 			[a:: a bitAnd: 2r1111.
-			b:: (bytes at: 2 + position) bitAnd: 2r111111.
-			c:: (bytes at: 3 + position) bitAnd: 2r111111.
-			runes add: (a << 12) + (b << 6) + c.
-			position:: position + 3].
-	
-		(a >> 3) = 2r11110 ifTrue:
+			 b:: (bytes at: 2 + position) bitAnd: 2r111111.
+			 c:: (bytes at: 3 + position) bitAnd: 2r111111.
+			 runes add: (a << 12) + (b << 6) + c.
+			 position:: position + 3].
+
+		 (a >> 3) = 2r11110 ifTrue:
 			[a:: a bitAnd: 2r111.
-			b:: (bytes at: 2 + position) bitAnd: 2r111111.
-			c:: (bytes at: 3 + position) bitAnd: 2r111111.
-			d:: (bytes at: 4 + position) bitAnd: 2r111111.
-			runes add: (a << 18) + (b << 12) + (c << 6) + d.
-			position:: position + 4]].
-	
+			 b:: (bytes at: 2 + position) bitAnd: 2r111111.
+			 c:: (bytes at: 3 + position) bitAnd: 2r111111.
+			 d:: (bytes at: 4 + position) bitAnd: 2r111111.
+			 runes add: (a << 18) + (b << 12) + (c << 6) + d.
+			 position:: position + 4]].
+
 	^String fromRunes: runes
 )
-public main: platform args: args = (
+public main: args = (
 	(args at: 1) = 'child'
-		ifTrue: [childMain: platform args: args]
-		ifFalse: [parentMain: platform args: args].
+		ifTrue: [childMain: args]
+		ifFalse: [parentMain: args].
 )
-public parentMain: platform args: args = (
+parentMain: args = (
 	|
-	List = platform collections List.
-	Stopwatch = platform kernel Stopwatch.
-	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
-	Snapshotter = platform victoryFuel Snapshotter.
-	namespace = platform collections Map new.
+	namespace = Map new.
 	manifest = Manifest forNamespace: namespace.
-	Port = platform actors Port.
 	receivePort = Port new.
-	n = 4. 
+	numJobs = 4.
 	workLists
 	stopwatch 
 	index ::= 1.
@@ -94,24 +84,25 @@ public parentMain: platform args: args = (
 	|
 	
 	stopwatch:: Stopwatch new start.
-	workLists:: Array new: n.
-	1 to: n do: [:i | workLists at: i put: List new].
 
+	workLists:: Array new: numJobs.
+	1 to: numJobs do: [:i | workLists at: i put: List new].
 	[(args at: index) endsWith: '.ns'] whileTrue:
-		[(workLists at: index \\ n + 1) add: (args at: index).
-		index:: index + 1].
+		[(workLists at: index \\ numJobs + 1) add: (args at: index).
+		 index:: index + 1].
+
 	workLists do: 
 		[:workList | 
-		workList addFirst: receivePort id.
-		workList addFirst: 'child'.
-		receivePort spawn: workList asArray].
-	n timesRepeat:
-		[ | klasses |
-		klasses:: receivePort receive.
-		klasses do: [:klass | 
-		namespace at: klass name put: klass]].
-	('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out.
+		 workList addFirst: receivePort id.
+		 workList addFirst: 'child'.
+		 receivePort spawn: workList asArray].
 
+	numJobs timesRepeat:
+		[ | klasses |
+		 klasses:: receivePort receive.
+		 klasses do: [:klass | namespace at: klass name put: klass]].
+
+	('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out.
 
 	[(index + 2) <= args size] whileTrue: 
 		[ | runtimeName appName snapshotName runtime app fuel bytes |	
@@ -131,16 +122,29 @@ public parentMain: platform args: args = (
 	
 		('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out].
 )
-private readFileAsBytes: filename = (
+readFileAsBytes: filename = (
 	(* :literalmessage: primitive: 130 *)
 	halt.
 )
-private readFileAsString: filename using: platform = (
-	^decodeUtf8: (readFileAsBytes: filename) using: platform
+readFileAsString: filename = (
+	^decodeUtf8: (readFileAsBytes: filename)
 )
-private writeBytes: bytes toFileNamed: filename = (
+writeBytes: bytes toFileNamed: filename = (
 	(* :literalmessage: primitive: 128 *)
 	halt.
+)
+) : (
+)
+class Manifest forNamespace: ns = (|
+namespace = ns.
+|) (
+protected doesNotUnderstand: message = (
+	^namespace at: message selector ifAbsent: [Error signal: 'Missing ', message selector]
+)
+) : (
+)
+public main: platform args: args = (
+	^(CommandLineCompiler usingPlatform: platform) main: args
 )
 ) : (
 )
