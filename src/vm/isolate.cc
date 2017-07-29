@@ -90,14 +90,16 @@ void Isolate::PrintStack() {
 }
 
 
-Isolate::Isolate() :
+Isolate::Isolate(void* snapshot, size_t snapshot_length) :
     heap_(NULL),
     interpreter_(NULL),
     queue_(NULL),
+    snapshot_(snapshot),
+    snapshot_length_(snapshot_length),
     next_(NULL) {
   heap_ = new Heap(this, OS::CurrentMonotonicMicros());
   {
-    Deserializer deserializer(heap_);
+    Deserializer deserializer(heap_, snapshot, snapshot_length);
     deserializer.Deserialize();
   }
   interpreter_ = new Interpreter(heap_, this);
@@ -183,8 +185,14 @@ void Isolate::Interpret() {
 
 class SpawnIsolateTask : public ThreadPool::Task {
  public:
-  SpawnIsolateTask(uint8_t* data, intptr_t length) :
-    data_(data), length_(length) {
+  SpawnIsolateTask(void* snapshot,
+                   size_t snapshot_length,
+                   uint8_t* message,
+                   intptr_t message_length) :
+    snapshot_(snapshot),
+    snapshot_length_(snapshot_length),
+    message_(message),
+    message_length_(message_length) {
   }
 
   virtual void Run() {
@@ -192,12 +200,12 @@ class SpawnIsolateTask : public ThreadPool::Task {
       intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
       OS::PrintErr("Starting isolate on thread %" Pd "\n", id);
     }
-    Isolate* child_isolate = new Isolate();
+    Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_);
 
-    child_isolate->InitWithByteArray(data_, length_);
-    free(data_);
-    data_ = NULL;
-    length_ = 0;
+    child_isolate->InitWithByteArray(message_, message_length_);
+    free(message_);
+    message_ = NULL;
+    message_length_ = 0;
 
     child_isolate->Interpret();
 
@@ -209,15 +217,18 @@ class SpawnIsolateTask : public ThreadPool::Task {
   }
 
  private:
-  uint8_t* data_;
-  intptr_t length_;
+  void* snapshot_;
+  size_t snapshot_length_;
+  uint8_t* message_;
+  intptr_t message_length_;
 
   DISALLOW_COPY_AND_ASSIGN(SpawnIsolateTask);
 };
 
 
-void Isolate::Spawn(uint8_t* data, intptr_t length) {
-  thread_pool_->Run(new SpawnIsolateTask(data, length));
+void Isolate::Spawn(uint8_t* message, intptr_t message_length) {
+  thread_pool_->Run(new SpawnIsolateTask(snapshot_, snapshot_length_,
+                                         message, message_length));
 }
 
 }  // namespace psoup

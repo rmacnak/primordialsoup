@@ -13,20 +13,17 @@
 #include "vm/primitives.h"
 #include "vm/snapshot.h"
 
-PSOUP_EXTERN_C void PrimordialSoup_Startup(void* snapshot,
-                                           size_t snapshot_length) {
+PSOUP_EXTERN_C void PrimordialSoup_Startup() {
   psoup::OS::Startup();
   psoup::OSThread::Startup();
   psoup::Primitives::Startup();
   psoup::PortMap::Startup();
-  psoup::Snapshot::Startup(snapshot, snapshot_length);
   psoup::Isolate::Startup();
 }
 
 
 PSOUP_EXTERN_C void PrimordialSoup_Shutdown() {
   psoup::Isolate::Shutdown();
-  psoup::Snapshot::Shutdown();
   psoup::PortMap::Shutdown();
   psoup::Primitives::Shutdown();
   psoup::OSThread::Shutdown();
@@ -34,14 +31,17 @@ PSOUP_EXTERN_C void PrimordialSoup_Shutdown() {
 }
 
 
-PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(int argc, const char** argv) {
+PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(void* snapshot,
+                                              size_t snapshot_length,
+                                              int argc,
+                                              const char** argv) {
   if (TRACE_ISOLATES) {
     intptr_t id = psoup::OSThread::ThreadIdToIntPtr(
         psoup::OSThread::Current()->trace_id());
     psoup::OS::PrintErr("Starting isolate on thread %" Pd "\n", id);
   }
 
-  psoup::Isolate* isolate = new psoup::Isolate();
+  psoup::Isolate* isolate = new psoup::Isolate(snapshot, snapshot_length);
   isolate->InitWithStringArray(argc, argv);
   isolate->Interpret();
   delete isolate;

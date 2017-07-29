@@ -10,24 +10,9 @@
 
 namespace psoup {
 
-static void* isolate_snapshot_ = NULL;
-static size_t isolate_snapshot_length_ = 0;
-
-void Snapshot::Startup(void* snapshot, size_t snapshot_length) {
-  isolate_snapshot_ = snapshot;
-  isolate_snapshot_length_ = snapshot_length;
-}
-
-
-void Snapshot::Shutdown() {
-  isolate_snapshot_ = NULL;
-  isolate_snapshot_length_ = 0;
-}
-
-
-Deserializer::Deserializer(Heap* heap) :
-  snapshot_(reinterpret_cast<const uint8_t*>(isolate_snapshot_)),
-  snapshot_length_(isolate_snapshot_length_),
+Deserializer::Deserializer(Heap* heap, void* snapshot, size_t snapshot_length) :
+  snapshot_(reinterpret_cast<const uint8_t*>(snapshot)),
+  snapshot_length_(snapshot_length),
   cursor_(snapshot_),
   heap_(heap),
   clusters_(NULL),

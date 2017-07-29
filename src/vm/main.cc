@@ -21,11 +21,11 @@ int main(int argc, const char** argv) {
   }
 
   psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);
-  PrimordialSoup_Startup(reinterpret_cast<void*>(snapshot.base()),
-                         snapshot.size());
+  PrimordialSoup_Startup();
   void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
 
-  PrimordialSoup_RunIsolate(argc - 2, &argv[2]);
+  PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot.base()),
+                            snapshot.size(), argc - 2, &argv[2]);
 
   signal(SIGINT, defaultSIGINT);
   PrimordialSoup_Shutdown();

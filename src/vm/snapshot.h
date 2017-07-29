@@ -14,18 +14,10 @@ class Cluster;
 class Heap;
 class Object;
 
-
-class Snapshot {
- public:
-  static void Startup(void* snapshot, size_t snapshot_length);
-  static void Shutdown();
-};
-
-
 // Reads a variant of VictoryFuel.
 class Deserializer : public ValueObject {
  public:
-  explicit Deserializer(Heap* heap);
+  Deserializer(Heap* heap, void* snapshot, size_t snapshot_length);
   ~Deserializer();
 
   intptr_t position() { return cursor_ - snapshot_; }

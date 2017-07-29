@@ -15,10 +15,11 @@
 #define PSOUP_EXTERN_C
 #endif
 
-PSOUP_EXTERN_C void PrimordialSoup_Startup(void* snapshot,
-                                           size_t snapshot_length);
+PSOUP_EXTERN_C void PrimordialSoup_Startup();
 PSOUP_EXTERN_C void PrimordialSoup_Shutdown();
-PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(int argc, const char** argv);
+PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(void* snapshot,
+                                              size_t snapshot_length,
+                                              int argc, const char** argv);
 PSOUP_EXTERN_C void PrimordialSoup_InterruptAll();
 
 #endif /* VM_PRIMORDIAL_SOUP_H_ */

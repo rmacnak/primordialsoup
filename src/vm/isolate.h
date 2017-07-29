@@ -19,7 +19,7 @@ class ThreadPool;
 
 class Isolate {
  public:
-  Isolate();
+  Isolate(void* snapshot, size_t snapshot_length);
   ~Isolate();
 
   MessageQueue* queue() const { return queue_; }
@@ -27,11 +27,11 @@ class Isolate {
   // Create the initial activation from either the command line arguments or
   // spawn message.
   void InitWithStringArray(int argc, const char** argv);
-  void InitWithByteArray(uint8_t* data, intptr_t length);
+  void InitWithByteArray(uint8_t* message, intptr_t message_length);
 
   void Interpret();
 
-  static void Spawn(uint8_t* data, intptr_t length);
+  void Spawn(uint8_t* message, intptr_t message_length);
 
   static void Startup();
   static void Shutdown();
@@ -46,6 +46,8 @@ class Isolate {
   Heap* heap_;
   Interpreter* interpreter_;
   MessageQueue* queue_;
+  void* snapshot_;
+  size_t snapshot_length_;
   Isolate* next_;
 
   void AddIsolateToList(Isolate* isolate);
