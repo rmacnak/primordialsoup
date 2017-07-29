@@ -31,7 +31,6 @@ class Semispace {
 
     ASSERT(Utils::IsAligned(memory_.base(), kObjectAlignment));
     ASSERT(memory_.size() == size);
-    ResetTop();
 #if defined(DEBUG)
     Zap();
 #endif
@@ -44,13 +43,8 @@ class Semispace {
   intptr_t size() const { return memory_.size(); }
   uword base() const { return memory_.base(); }
   uword limit() const { return memory_.limit(); }
-  intptr_t object_start() const {
+  uword object_start() const {
     return memory_.base() + kNewObjectAlignmentOffset;
-  }
-  intptr_t used() const { return top_ - object_start(); }
-
-  void ResetTop() {
-    top_ = object_start();
   }
 
   void Zap() const {
@@ -67,9 +61,8 @@ class Semispace {
     memory_.Protect(VirtualMemory::kNoAccess);
   }
 
-  Semispace() : top_(0), memory_() { }
+  Semispace() : memory_() { }
 
-  uword top_;
   VirtualMemory memory_;
 };
 
@@ -99,7 +92,7 @@ class Heap {
     return Utils::RoundUp(size, kObjectAlignment);
   }
 
-  intptr_t used() const { return to_.used(); }
+  intptr_t used() const { return top_ - to_.object_start(); }
 
   RegularObject* AllocateRegularObject(intptr_t cid, intptr_t num_slots) {
     ASSERT(cid == kEphemeronCid || cid >= kFirstRegularObjectCid);
@@ -346,13 +339,13 @@ class Heap {
 
   uword TryAllocate(intptr_t size) {
     ASSERT(Utils::IsAligned(size, kObjectAlignment));
-    uword result = to_.top_;
-    intptr_t remaining = to_.limit() - to_.top_;
+    uword result = top_;
+    intptr_t remaining = end_ - top_;
     if (remaining < size) {
       return 0;
     }
     ASSERT((result & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
-    to_.top_ += size;
+    top_ += size;
     return result;
   }
   uword Allocate(intptr_t size);
@@ -365,6 +358,8 @@ class Heap {
     return (addr >= to_.base()) && (addr < to_.limit());
   }
 
+  uword top_;
+  uword end_;
   Semispace to_;
   Semispace from_;
 

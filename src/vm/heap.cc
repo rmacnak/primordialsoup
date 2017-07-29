@@ -9,6 +9,8 @@
 namespace psoup {
 
 Heap::Heap(Isolate* isolate, int64_t seed) :
+    top_(0),
+    end_(0),
     to_(),
     from_(),
     ephemeron_list_(NULL),
@@ -32,6 +34,8 @@ Heap::Heap(Isolate* isolate, int64_t seed) :
     isolate_(isolate) {
   to_.Allocate(kInitialSemispaceSize);
   from_.Allocate(kInitialSemispaceSize);
+  top_ = to_.object_start();
+  end_ = to_.limit();
 
   // Class table.
   class_table_capacity_ = 1024;
@@ -107,7 +111,7 @@ void Heap::Scavenge() {
   // Strong references.
   ProcessRoots();
   uword scan = to_.object_start();
-  while (scan < to_.top_) {
+  while (scan < top_) {
     scan = ProcessToSpace(scan);
     ProcessEphemeronList();
   }
@@ -159,8 +163,9 @@ void Heap::FlipSpaces() {
     to_.Allocate(from_.size());
   }
 
-  to_.ResetTop();
-  ASSERT((to_.top_ & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
+  top_ = to_.object_start();
+  end_ = to_.limit();
+  ASSERT((top_ & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
 }
 
 
@@ -213,7 +218,7 @@ void Heap::ForwardRoots() {
 
 
 uword Heap::ProcessToSpace(uword scan) {
-  while (scan < to_.top_) {
+  while (scan < top_) {
     Object* obj = Object::FromAddr(scan);
     intptr_t cid = obj->cid();
     ScavengeClass(cid);
@@ -237,7 +242,7 @@ uword Heap::ProcessToSpace(uword scan) {
 
 void Heap::ForwardToSpace() {
   uword scan = to_.object_start();
-  while (scan < to_.top_) {
+  while (scan < top_) {
     Object* obj = Object::FromAddr(scan);
     if (!obj->IsForwardingCorpse()) {
       ForwardClass(this, obj);
@@ -528,7 +533,7 @@ void Heap::ScavengeClass(intptr_t cid) {
 intptr_t Heap::CountInstances(intptr_t cid) {
   intptr_t instances = 0;
   uword scan = to_.object_start();
-  while (scan < to_.top_) {
+  while (scan < top_) {
     Object* obj = Object::FromAddr(scan);
     if (obj->cid() == cid) {
       instances++;
@@ -542,7 +547,7 @@ intptr_t Heap::CountInstances(intptr_t cid) {
 intptr_t Heap::CollectInstances(intptr_t cid, Array* array) {
   intptr_t instances = 0;
   uword scan = to_.object_start();
-  while (scan < to_.top_) {
+  while (scan < top_) {
     Object* obj = Object::FromAddr(scan);
     if (obj->cid() == cid) {
       array->set_element(instances, obj);
