@@ -1441,7 +1441,7 @@ replaceSymbolTable = (
 	backRefs at: newSymbolTable put: 0. 
 )
 public serialize: root = (
-	| s rewind fastforward |
+	| interpreter s rewind fastforward |
 	s:: Stopwatch new start.
 	nextBackRef:: 1.
 
@@ -1450,6 +1450,9 @@ public serialize: root = (
 	
 	replaceSymbolTable.
 	
+	interpreter:: '#!fuchsia primordialsoup'.
+	1 to: interpreter size do: [:index | stream uint8: (interpreter runeAt: index)].
+	stream uint8: 10. (* \n *)
 	stream uint16: 16r1984.
 	stream uint16: Version.
 	stream uint16: orderedClusters size.

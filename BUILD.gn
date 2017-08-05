@@ -7,6 +7,12 @@ executable("primordialsoup") {
 
   if (is_fuchsia) {
     libs = [ "magenta" ]
+    deps = [
+      "//application/lib/app",
+      "//application/lib/svc",
+      "//lib/ftl",
+      "//lib/mtl",
+    ]
   } else {
     libs = [ "pthread" ]
   }
@@ -54,7 +60,6 @@ executable("primordialsoup") {
     "src/vm/lockers.h",
     "src/vm/lookup_cache.cc",
     "src/vm/lookup_cache.h",
-    "src/vm/main.cc",
     "src/vm/math.h",
     "src/vm/message.cc",
     "src/vm/message.h",
@@ -104,6 +109,12 @@ executable("primordialsoup") {
     "src/vm/virtual_memory_macos.cc",
     "src/vm/virtual_memory_win.cc",
   ]
+
+  if (is_fuchsia) {
+    sources += [ "src/vm/main_fuchsia.cc" ]
+  } else {
+    sources += [ "src/vm/main.cc" ]
+  }
 }
 
 action("snapshots") {

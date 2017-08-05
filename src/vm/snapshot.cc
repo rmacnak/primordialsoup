@@ -33,6 +33,14 @@ Deserializer::~Deserializer() {
 
 void Deserializer::Deserialize() {
   int64_t start = OS::CurrentMonotonicMicros();
+
+  // Skip interpreter directive, if any.
+  if ((cursor_[0] == static_cast<uint8_t>('#')) &&
+      (cursor_[1] == static_cast<uint8_t>('!'))) {
+    cursor_ += 2;
+    while (*cursor_++ != static_cast<uint8_t>('\n')) {}
+  }
+
   uint16_t magic = ReadUint16();
   if (magic != 0x1984) {
     FATAL("Wrong magic value");

@@ -800,7 +800,7 @@ replaceClass: oldClass with: newClass = (
 	replacements at: (vmmirror classOf: oldClass) put: (vmmirror classOf: newClass).
 )
 serialize: root = (
-	| rewind fastforward finalSymbols |
+	| interpreter rewind fastforward finalSymbols |
 	nextBackRef:: 1.
 
 	(* Side-effect these clusters first. *)
@@ -815,6 +815,9 @@ serialize: root = (
 	(clusters at: psoup _Array) replace: symbolsPlaceholder with: finalSymbols. (* swap node *)
 	replacements at: symbolsPlaceholder put: finalSymbols. (* swap incoming edges *)
 	
+	interpreter:: '#!fuchsia primordialsoup'.
+	1 to: interpreter size do: [:index | stream nextPut: (interpreter runeAt: index)].
+	stream nextPut: 10. (* \n *)
 	stream uint16: 16r1984.
 	stream uint16: 0.
 	stream uint16: orderedClusters size.
