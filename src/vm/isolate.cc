@@ -7,7 +7,7 @@
 #include "vm/heap.h"
 #include "vm/interpreter.h"
 #include "vm/lockers.h"
-#include "vm/message.h"
+#include "vm/message_loop.h"
 #include "vm/os_thread.h"
 #include "vm/snapshot.h"
 #include "vm/thread_pool.h"
@@ -79,7 +79,7 @@ void Isolate::InterruptAll() {
 
 void Isolate::Interrupt() {
   interpreter_->Interrupt();
-  queue_->Interrupt();
+  loop_->Interrupt();
 }
 
 
@@ -93,7 +93,7 @@ void Isolate::PrintStack() {
 Isolate::Isolate(void* snapshot, size_t snapshot_length) :
     heap_(NULL),
     interpreter_(NULL),
-    queue_(NULL),
+    loop_(NULL),
     snapshot_(snapshot),
     snapshot_length_(snapshot_length),
     next_(NULL) {
@@ -103,7 +103,7 @@ Isolate::Isolate(void* snapshot, size_t snapshot_length) :
     deserializer.Deserialize();
   }
   interpreter_ = new Interpreter(heap_, this);
-  queue_ = new MessageQueue();
+  loop_ = new PlatformMessageLoop(this);
 
   AddIsolateToList(this);
 }
@@ -113,7 +113,7 @@ Isolate::~Isolate() {
   RemoveIsolateFromList(this);
   delete heap_;
   delete interpreter_;
-  delete queue_;
+  delete loop_;
 }
 
 
@@ -134,28 +134,54 @@ void Isolate::InitWithStringArray(int argc, const char** argv) {
     }
   }
 
-  InitMessage(message);
+  InitMessage(message, heap_->object_store()->nil_obj());
 }
 
 
-void Isolate::InitWithByteArray(uint8_t* data, intptr_t length) {
+void Isolate::InitWithByteArray(const uint8_t* data, intptr_t length) {
   ByteArray* message = heap_->AllocateByteArray(length);  // SAFEPOINT
   memcpy(message->element_addr(0), data, length);
 
-  InitMessage(message);
+  InitMessage(message, heap_->object_store()->nil_obj());
 }
 
 
-void Isolate::InitMessage(Object* message) {
-  HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
+void Isolate::InitWithByteArray(const uint8_t* data, intptr_t length,
+                                Port port_id) {
+  ByteArray* message = heap_->AllocateByteArray(length);  // SAFEPOINT
+  memcpy(message->element_addr(0), data, length);
+
+  Object* port;
+  if (SmallInteger::IsSmiValue(port_id)) {
+    port = SmallInteger::New(port_id);
+  } else {
+    HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
+    MediumInteger* mint = heap_->AllocateMediumInteger();  // SAFEPOINT
+    mint->set_value(port_id);
+    port = mint;
+  }
+
+  InitMessage(message, port);
+}
+
+
+void Isolate::InitWakeup() {
+  Object* nil = heap_->object_store()->nil_obj();
+  InitMessage(nil, nil);
+}
+
+
+void Isolate::InitMessage(Object* message, Object* port) {
   Scheduler* scheduler = heap_->object_store()->scheduler();
-  HandleScope h2(heap_, reinterpret_cast<Object**>(&scheduler));
 
   Behavior* cls = scheduler->Klass(heap_);
-  ByteString* selector = heap_->object_store()->start();
+  ByteString* selector = heap_->object_store()->dispatch_message();
   Method* method = interpreter_->MethodAt(cls, selector);
 
-  HandleScope h3(heap_, reinterpret_cast<Object**>(&method));
+  HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
+  HandleScope h2(heap_, reinterpret_cast<Object**>(&port));
+  HandleScope h3(heap_, reinterpret_cast<Object**>(&scheduler));
+  HandleScope h4(heap_, reinterpret_cast<Object**>(&method));
 
   Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
 
@@ -167,7 +193,9 @@ void Isolate::InitMessage(Object* message) {
   new_activation->set_receiver(scheduler);
   new_activation->set_stack_depth(0);
 
-  new_activation->Push(message);  // Argument.
+  ASSERT(method->NumArgs() == 2);
+  new_activation->Push(message);
+  new_activation->Push(port);
 
   intptr_t num_temps = method->NumTemps();
   for (intptr_t i = 0; i < num_temps; i++) {
@@ -206,8 +234,8 @@ class SpawnIsolateTask : public ThreadPool::Task {
     free(message_);
     message_ = NULL;
     message_length_ = 0;
-
     child_isolate->Interpret();
+    child_isolate->loop()->Run();
 
     if (TRACE_ISOLATES) {
       intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());

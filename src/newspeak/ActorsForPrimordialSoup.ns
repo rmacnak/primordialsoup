@@ -3,6 +3,7 @@ Newspeak3
 class ActorsForPrimordialSoup usingPlatform: p = (|
 private WeakMap = p kernel WeakMap.
 private List = p collections List.
+private Map = p collections Map.
 private Message = p kernel Message.
 
 public Promise = PromiseFactories new.
@@ -12,6 +13,7 @@ private internalRefs <WeakMap[Ref, InternalRef]> = WeakMap new.
 private currentActor ::= InternalActor named: 'Initial actor'.
 private pendingActors ::= List new.
 private timerHeap = TimerHeap new.
+private portMap = Map new.
 
 private cachedPlatform = p.
 |) (
@@ -564,16 +566,25 @@ public deliver = (
 )
 public class Port fromId: i = (|
 public id = i.
+public handler
 |) (
+public close = (
+	close: id.
+	portMap removeKey: id.
+)
+private close: portId = (
+	(* :literalmessage: primitive: 136 *)
+	halt
+)
+public deliver: bytes = (
+	| deserializer message |
+	deserializer:: cachedPlatform victoryFuel Deserializer new.
+	message:: deserializer deserialize: bytes.
+	handler value: message
+)
 private rawSpawn: bytes = (
 	(* :literalmessage: primitive: 137 *)
 	halt.
-)
-public receive = (
-	| bytes deserializer |
-	bytes:: receiveDeadlineMicros: 0.
-	deserializer:: cachedPlatform victoryFuel Deserializer new.
-	^deserializer deserialize: bytes.
 )
 public send: message = (
 	| serializer bytes |
@@ -597,7 +608,12 @@ private createPort = (
 	halt.
 )
 public new = (
-	^self fromId: createPort
+	| 
+	id = createPort.
+	port = self fromId: id.
+	|
+	portMap at: id put: port.
+	^port
 )
 )
 class PromiseFactories = () (
@@ -696,14 +712,55 @@ public isResolver ^<Boolean> = (
 ) : (
 )
 class Scheduler application: a platform: p = (|
-application = a.
-platform = p.
+	application ::= a.
+	platform ::= p.
 |) (
-public drainEventLoop = (	
-	[[pendingActors isEmpty] whileFalse:
-		[pendingActors removeLast drainWork].
+private dispatchHandle: handle status: status signals: signals count: count = (
+	halt.
+)
+private dispatchMessage: message port: port = (
+	nil = message ifFalse:
+		[nil = port 
+			ifTrue: [enqueueStartupMessage: message] 
+			ifFalse: [enqueuePortMessage: message port: port]].
+	finish: drainEventLoop.
+)
+public drainEventLoop = (
 	timerHeap drainWork.
-	pendingActors isEmpty not or: [timerHeap waitIfHasWork]] whileTrue.
+	[pendingActors isEmpty] whileFalse:
+		[pendingActors removeLast drainWork].
+	^timerHeap nextDueTime
+)
+private enqueuePortMessage: bytes port: portId = (
+	| port |
+	port:: portMap at: portId ifAbsent: [^self].
+	
+	currentActor enqueueMessage:
+		(PendingDelivery
+			receiver: port
+			selector: #deliver:
+			arguments: {bytes}
+			resolver: nil).
+)
+private enqueueStartupMessage: argvOrBytes = (
+	| args |
+	argvOrBytes isByteArray
+		ifTrue: 
+			[ | deserializer |
+			deserializer:: cachedPlatform victoryFuel Deserializer new.
+			args:: deserializer deserialize: argvOrBytes]
+		ifFalse:
+			[args:: argvOrBytes].
+	
+	currentActor enqueueMessage:
+		(PendingDelivery
+			receiver: application
+			selector: #main:args:
+			arguments: {platform. args}
+			resolver: nil).
+			
+	application:: nil.
+	platform:: nil.
 )
 public eventualSendTo: receiver selector: selector arguments: arguments = (
 	(* Sent from the compilation of an eventual send. *)
@@ -713,34 +770,9 @@ private exit: code = (
 	(* :literalmessage: primitive: 107 *)
 	halt
 )
-private finish = (
+private finish: wakeup = (
 	(* :literalmessage: primitive: 139 *)
 	halt.
-)
-private start: argvOrBytes = (
-
-	argvOrBytes isArray 
-		ifTrue: 
-			[currentActor enqueueMessage:
-				(PendingDelivery
-					receiver: application
-					selector: #main:args:
-					arguments: {platform. argvOrBytes}
-					resolver: nil)]
-		ifFalse:
-			[ | deserializer message |
-			deserializer:: cachedPlatform victoryFuel Deserializer new.
-			message:: deserializer deserialize: argvOrBytes.
-			currentActor enqueueMessage:
-				(PendingDelivery
-					receiver: application
-					selector: #main:args:
-					arguments: {platform. message}
-					resolver: nil)].
-		
-	drainEventLoop.
-	
-	finish.
 )
 public unhandledException: exception from: signalActivationSender = (
 	| activation |
@@ -814,11 +846,9 @@ downHeapFrom: startParentIndex = (
 )
 public drainWork = (
 	| now = currentMonotonicMillis. |
-	[ used > 0 ] whileTrue:
-		[ | remaining |	
-		remaining:: peek dueTime - currentMonotonicMillis.
-		remaining <= 0 ifFalse: [^self].
-		pop fire].
+	[used > 0] whileTrue:
+		[peek dueTime > now ifTrue: [^self].
+		 pop fire].
 )
 public insert: timer = (
 	used >= table size ifTrue: 
@@ -834,6 +864,11 @@ public insert: timer = (
 	nextId:: 1 + nextId. (* Heap isn't a stable sort. Use a tie breaker to ensure timers fire in the order they are scheduled if their due times are the same. *)
 
 	upheapFrom: used.
+)
+public nextDueTime = (
+	| next = peek. |
+	nil = next ifTrue: [^0].
+	^1000 * next dueTime
 )
 public peek = (
 	0 = used ifTrue: [^nil].
@@ -859,15 +894,6 @@ upheapFrom: startChildIndex = (
 		table at: childIndex put: parent.
 		table at: parentIndex put: child.
 		childIndex:: parentIndex].
-)
-public waitIfHasWork = (
-	| next message |
-	next:: peek.
-	nil = next ifTrue: [^false].
-	next dueTime <= 0 ifTrue: [^true]. (* Timer came due since last check. Don't call receive with 0 (no timeout). *)
-	message:: receiveDeadlineMicros: next dueTime * 1000.
-	nil = message ifFalse: [halt].
-	^true
 )
 ) : (
 )

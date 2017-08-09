@@ -1061,8 +1061,14 @@ class ObjectStore : public Object {
   class ByteString* about_to_return_through() const {
     return ptr()->about_to_return_through_;
   }
-  class ByteString* start() const {
-    return ptr()->start_;
+  class ByteString* unused_bytecode() const {
+    return ptr()->unused_bytecode_;
+  }
+  class ByteString* dispatch_message() const {
+    return ptr()->dispatch_message_;
+  }
+  class ByteString* dispatch_handle() const {
+    return ptr()->dispatch_handle_;
   }
   class Array* quick_selectors() const { return ptr()->quick_selectors_; }
   Behavior* Message() const { return ptr()->Message_; }
@@ -1091,7 +1097,8 @@ class ObjectStore : public Object {
   class ByteString* cannot_return_;
   class ByteString* about_to_return_through_;
   class ByteString* unused_bytecode_;
-  class ByteString* start_;
+  class ByteString* dispatch_message_;
+  class ByteString* dispatch_handle_;
   Behavior* Array_;
   Behavior* ByteArray_;
   Behavior* ByteString_;
@@ -1103,11 +1110,9 @@ class ObjectStore : public Object {
   Behavior* MediumInteger_;
   Behavior* Message_;
   Behavior* SmallInteger_;
-  Behavior* Thread_;
   Behavior* WeakArray_;
   Behavior* Activation_;
   Behavior* Method_;
-  Behavior* Scheduler_;
 };
 
 }  // namespace psoup

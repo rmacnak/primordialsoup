@@ -913,6 +913,9 @@ void Interpreter::Enter() {
   }
 
   environment_ = NULL;
+
+  // The longjmp skipped the HandleScope destructors.
+  H->DropHandles();
 }
 
 

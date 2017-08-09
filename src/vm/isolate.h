@@ -7,12 +7,13 @@
 
 #include "vm/allocation.h"
 #include "vm/globals.h"
+#include "vm/port.h"
 
 namespace psoup {
 
 class Heap;
 class Interpreter;
-class MessageQueue;
+class MessageLoop;
 class Monitor;
 class Object;
 class ThreadPool;
@@ -22,12 +23,15 @@ class Isolate {
   Isolate(void* snapshot, size_t snapshot_length);
   ~Isolate();
 
-  MessageQueue* queue() const { return queue_; }
+  MessageLoop* loop() const { return loop_; }
 
   // Create the initial activation from either the command line arguments or
   // spawn message.
   void InitWithStringArray(int argc, const char** argv);
-  void InitWithByteArray(uint8_t* message, intptr_t message_length);
+  void InitWithByteArray(const uint8_t* message, intptr_t message_length);
+  void InitWithByteArray(const uint8_t* message, intptr_t message_length,
+                         Port port);
+  void InitWakeup();
 
   void Interpret();
 
@@ -41,11 +45,11 @@ class Isolate {
   void PrintStack();
 
  private:
-  void InitMessage(Object* message);
+  void InitMessage(Object* message, Object* port);
 
   Heap* heap_;
   Interpreter* interpreter_;
-  MessageQueue* queue_;
+  MessageLoop* loop_;
   void* snapshot_;
   size_t snapshot_length_;
   Isolate* next_;

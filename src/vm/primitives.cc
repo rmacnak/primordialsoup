@@ -13,11 +13,9 @@
 #include "vm/interpreter.h"
 #include "vm/isolate.h"
 #include "vm/math.h"
-#include "vm/message.h"
+#include "vm/message_loop.h"
 #include "vm/object.h"
 #include "vm/os.h"
-#include "vm/port.h"
-#include "vm/thread_pool.h"
 
 #define A H->activation()
 #define nil H->object_store()->nil_obj()
@@ -123,7 +121,7 @@ const bool kFailure = false;
   V(100, Time_monotonicMicros)                                                 \
   V(101, Time_utcEpochMicros)                                                  \
   V(102, print)                                                                \
-  V(103, exitWithBacktrace)                                                    \
+  V(103, halt)                                                                 \
   V(104, flushCache)                                                           \
   V(105, collectGarbage)                                                       \
   V(107, processExit)                                                          \
@@ -145,14 +143,13 @@ const bool kFailure = false;
   V(126, Object_isCanonical)                                                   \
   V(127, Object_markCanonical)                                                 \
   V(128, writeBytesToFile)                                                     \
-  V(129, mainArguments)                                                        \
   V(130, readFileAsBytes)                                                      \
   V(131, Double_pow)                                                           \
   V(132, Double_class_parse)                                                   \
   V(133, currentActivation)                                                    \
   V(134, adoptInstance)                                                        \
-  V(135, createPort)                                                           \
-  V(136, receive)                                                              \
+  V(135, openPort)                                                             \
+  V(136, closePort)                                                            \
   V(137, spawn)                                                                \
   V(138, send)                                                                 \
   V(139, finish)                                                               \
@@ -2188,7 +2185,7 @@ DEFINE_PRIMITIVE(print) {
 }
 
 
-DEFINE_PRIMITIVE(exitWithBacktrace) {
+DEFINE_PRIMITIVE(halt) {
   H->PrintStack();
   OS::Exit(-1);
   UNREACHABLE();
@@ -2908,12 +2905,6 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
 }
 
 
-DEFINE_PRIMITIVE(mainArguments) {
-  UNREACHABLE();
-  return kFailure;
-}
-
-
 DEFINE_PRIMITIVE(readFileAsBytes) {
   ASSERT(num_args == 1);
   ByteString* filename = static_cast<ByteString*>(A->Stack(0));
@@ -3005,42 +2996,28 @@ DEFINE_PRIMITIVE(adoptInstance) {
 }
 
 
-DEFINE_PRIMITIVE(createPort) {
+DEFINE_PRIMITIVE(openPort) {
   ASSERT(num_args == 0);
-  MessageQueue* queue = H->isolate()->queue();
-  Port new_port = PortMap::CreatePort(queue);
+  Port new_port = H->isolate()->loop()->OpenPort();
   RETURN_MINT(new_port);
 }
 
 
-DEFINE_PRIMITIVE(receive) {
+DEFINE_PRIMITIVE(closePort) {
   ASSERT(num_args == 1);
-
-  Object* nsdeadline = A->Stack(0);
-  int64_t deadline;
-  if (nsdeadline->IsSmallInteger()) {
-    deadline = static_cast<SmallInteger*>(nsdeadline)->value();
-  } else if (nsdeadline->IsMediumInteger()) {
-    deadline = static_cast<MediumInteger*>(nsdeadline)->value();
+  Object* nsport = A->Stack(0);
+  Port cport;
+  if (nsport->IsSmallInteger()) {
+    cport = static_cast<SmallInteger*>(nsport)->value();
+  } else if (nsport->IsMediumInteger()) {
+    cport = static_cast<MediumInteger*>(nsport)->value();
   } else {
     return kFailure;
   }
 
-  MessageQueue* queue = H->isolate()->queue();
+  H->isolate()->loop()->ClosePort(cport);
 
-  IsolateMessage* message = queue->Receive(deadline);
-  if (message == NULL) {
-    // Interrupt or timeout.
-    A->PopNAndPush(num_args + 1, nil);
-    return kSuccess;
-  }
-
-  ByteArray* result = H->AllocateByteArray(message->length());  // SAFEPOINT
-  memcpy(result->element_addr(0), message->data(), message->length());
-
-  delete message;
-
-  A->PopNAndPush(num_args + 1, result);
+  A->Drop(num_args);
   return kSuccess;
 }
 
@@ -3091,7 +3068,17 @@ DEFINE_PRIMITIVE(send) {
 
 
 DEFINE_PRIMITIVE(finish) {
-  ASSERT(num_args == 0);
+  ASSERT(num_args == 1);
+  Object* nswakeup = A->Stack(0);
+  int64_t cwakeup;
+  if (nswakeup->IsSmallInteger()) {
+    cwakeup = static_cast<SmallInteger*>(nswakeup)->value();
+  } else if (nswakeup->IsMediumInteger()) {
+    cwakeup = static_cast<MediumInteger*>(nswakeup)->value();
+  } else {
+    return kFailure;
+  }
+  H->isolate()->loop()->AdjustWakeup(cwakeup);
   I->Exit();
   UNREACHABLE();
   return kFailure;

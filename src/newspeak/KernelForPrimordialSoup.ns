@@ -1874,7 +1874,8 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 		#cannotReturn:.
 		#aboutToReturn:through:.
 		#unusedBytecode.
-		#start:.
+		#dispatchMessage:port:.
+		#dispatchHandle:status:signals:count:.
 		_Array.
 		ByteArray.
 		ByteString.
@@ -1886,7 +1887,6 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 		MediumInteger.
 		Message.
 		SmallInteger.
-		nil.
 		WeakArray.
 		Activation.
 		Method.

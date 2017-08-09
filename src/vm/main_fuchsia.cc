@@ -46,6 +46,7 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
       }
     }
 
+    mtl::MessageLoop loop;
     PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot), snapshot_size,
                               argc, argv);
 

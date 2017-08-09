@@ -361,7 +361,7 @@ public analyze: object = (
 	enqueue: object enclosingMixin.
 	enqueue: object slots.
 	enqueue: object nestedMixins.
-	enqueue: object applications.
+	enqueue: (object applications size = 0 ifFalse: [object applications]).
 	enqueue: object classMixin.
 	enqueue: object accessModifier.
 	enqueue: object cachedConstructorName.
@@ -376,7 +376,7 @@ public writeEdges = (
 		writeBackRef: object enclosingMixin.
 		writeBackRef: object slots.
 		writeBackRef: object nestedMixins.
-		writeBackRef: object applications.
+		writeBackRef: (object applications size = 0 ifFalse: [object applications]).
 		writeBackRef: object classMixin.
 		writeBackRef: object accessModifier.
 		writeBackRef: object cachedConstructorName.
@@ -803,9 +803,16 @@ serialize: root = (
 	| interpreter rewind fastforward finalSymbols |
 	nextBackRef:: 1.
 
+	backRefs at: nil put: 0.
+	analyze: nil.
+	backRefs at: false put: 0.
+	analyze: false.
+	backRefs at: true put: 0.
+	analyze: true.	
+	
 	(* Side-effect these clusters first. *)
 	clusterFor: SmallInteger.
-	clusterFor: ByteString.	
+	clusterFor: ByteString.
 	
 	enqueue: root.
 	[stack isEmpty] whileFalse: [analyze: stack removeLast].

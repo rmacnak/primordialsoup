@@ -18,7 +18,8 @@ public blockFor: promise ifFulfilled: onFulfilled ifBroken: onBroken ifTimeout: 
 		fulfilled: [:value | resolution:: value. state:: #fulfilled]
 		broken: [:error | resolution:: error. state:: #broken].
 
-	scheduler drainEventLoop.
+	(* This will not process any inter-isolate messages. *)
+	[scheduler drainEventLoop > 0] whileTrue.
 	
 	state = #unresolved ifTrue: [^onTimeout value].
 	state = #fulfilled ifTrue: [^onFulfilled value: resolution].

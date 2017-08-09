@@ -7,6 +7,7 @@
 #include "vm/flags.h"
 #include "vm/globals.h"
 #include "vm/isolate.h"
+#include "vm/message_loop.h"
 #include "vm/os.h"
 #include "vm/os_thread.h"
 #include "vm/port.h"
@@ -44,6 +45,7 @@ PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(void* snapshot,
   psoup::Isolate* isolate = new psoup::Isolate(snapshot, snapshot_length);
   isolate->InitWithStringArray(argc, argv);
   isolate->Interpret();
+  isolate->loop()->Run();
   delete isolate;
 
   if (TRACE_ISOLATES) {

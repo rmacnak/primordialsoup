@@ -317,6 +317,10 @@ class Heap {
   intptr_t string_hash_salt() { return string_hash_salt_; }
   uint64_t NextIdentityHash() { return identity_hash_random_.NextUInt64(); }
 
+  void DropHandles() {
+    handles_top_ = 0;
+  }
+
  private:
   void FlipSpaces();
   void ProcessRoots();

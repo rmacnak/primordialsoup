@@ -10,13 +10,13 @@
 #include "vm/os_thread.h"
 #include "vm/random.h"
 #include "vm/utils.h"
-#include "vm/message.h"
+#include "vm/message_loop.h"
 
 namespace psoup {
 
 Mutex* PortMap::mutex_ = NULL;
 PortMap::Entry* PortMap::map_ = NULL;
-MessageQueue* PortMap::deleted_entry_ = reinterpret_cast<MessageQueue*>(1);
+MessageLoop* PortMap::deleted_entry_ = reinterpret_cast<MessageLoop*>(1);
 intptr_t PortMap::capacity_ = 0;
 intptr_t PortMap::used_ = 0;
 intptr_t PortMap::deleted_ = 0;
@@ -35,7 +35,7 @@ intptr_t PortMap::FindPort(Port port) {
   intptr_t index = port % capacity_;
   intptr_t start_index = index;
   Entry entry = map_[index];
-  while (entry.queue != NULL) {
+  while (entry.loop != NULL) {
     if (entry.port == port) {
       return index;
     }
@@ -98,8 +98,8 @@ void PortMap::MaintainInvariants() {
 }
 
 
-Port PortMap::CreatePort(MessageQueue* queue) {
-  ASSERT(queue != NULL);
+Port PortMap::CreatePort(MessageLoop* loop) {
+  ASSERT(loop != NULL);
   MutexLocker ml(mutex_);
 #if defined(DEBUG)
   /// queue->CheckAccess();
@@ -107,7 +107,7 @@ Port PortMap::CreatePort(MessageQueue* queue) {
 
   Entry entry;
   entry.port = AllocatePort();
-  entry.queue = queue;
+  entry.loop = loop;
   /// entry.state = kNewPort;
 
   // Search for the first unused slot. Make use of the knowledge that here is
@@ -125,9 +125,9 @@ Port PortMap::CreatePort(MessageQueue* queue) {
   ASSERT(index >= 0);
   ASSERT(index < capacity_);
   ASSERT(map_[index].port == 0);
-  ASSERT((map_[index].queue == NULL) ||
-         (map_[index].queue == deleted_entry_));
-  if (map_[index].queue == deleted_entry_) {
+  ASSERT((map_[index].loop == NULL) ||
+         (map_[index].loop == deleted_entry_));
+  if (map_[index].loop == deleted_entry_) {
     // Consuming a deleted entry.
     deleted_--;
   }
@@ -154,11 +154,47 @@ bool PortMap::PostMessage(IsolateMessage* message) {
   }
   ASSERT(index >= 0);
   ASSERT(index < capacity_);
-  MessageQueue* queue = map_[index].queue;
+  MessageLoop* loop = map_[index].loop;
   ASSERT(map_[index].port != 0);
-  ASSERT((queue != NULL) && (queue != deleted_entry_));
-  queue->PostMessage(message);
+  ASSERT((loop != NULL) && (loop != deleted_entry_));
+  loop->PostMessage(message);
   return true;
+}
+
+
+bool PortMap::ClosePort(Port port) {
+  MutexLocker ml(mutex_);
+  intptr_t index = FindPort(port);
+  if (index < 0) {
+    return false;
+  }
+  ASSERT(index < capacity_);
+  ASSERT(map_[index].port != 0);
+  ASSERT(map_[index].loop != deleted_entry_);
+  ASSERT(map_[index].loop != NULL);
+
+  map_[index].port = 0;
+  map_[index].loop = deleted_entry_;
+
+  used_--;
+  deleted_++;
+  MaintainInvariants();
+  return true;
+}
+
+
+void PortMap::CloseAllPorts(MessageLoop* loop) {
+  MutexLocker ml(mutex_);
+  for (intptr_t index = 0; index < capacity_; index++) {
+    if (map_[index].loop == loop) {
+      ASSERT(map_[index].port != 0);
+      map_[index].port = 0;
+      map_[index].loop = deleted_entry_;
+      used_--;
+      deleted_++;
+    }
+  }
+  MaintainInvariants();
 }
 
 

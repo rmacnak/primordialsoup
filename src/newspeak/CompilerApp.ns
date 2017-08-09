@@ -75,7 +75,7 @@ parentMain: args = (
 	|
 	namespace = Map new.
 	manifest = Manifest forNamespace: namespace.
-	receivePort = Port new.
+	port = Port new.
 	numJobs = 4.
 	workLists
 	stopwatch 
@@ -93,34 +93,36 @@ parentMain: args = (
 
 	workLists do: 
 		[:workList | 
-		 workList addFirst: receivePort id.
+		 workList addFirst: port id.
 		 workList addFirst: 'child'.
-		 receivePort spawn: workList asArray].
+		 port spawn: workList asArray.
+		 outstanding:: outstanding + 1].
 
-	numJobs timesRepeat:
-		[ | klasses |
-		 klasses:: receivePort receive.
-		 klasses do: [:klass | namespace at: klass name put: klass]].
+	port handler: 
+		[:klasses |
+		klasses do: [:klass | namespace at: klass name put: klass].
+		outstanding:: outstanding - 1.
+		outstanding = 0 ifTrue: 
+			[port close.
+			 ('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out.
 
-	('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out.
-
-	[(index + 2) <= args size] whileTrue: 
-		[ | runtimeName appName snapshotName runtime app fuel bytes |	
-		runtimeName:: args at: index.
-		appName:: args at: index + 1.
-		snapshotName:: args at: index + 2.
-		index:: index + 3.
-		('Runtime configuration: ', runtimeName) out.
-		('Application configuration: ', appName) out.
+			 [(index + 2) <= args size] whileTrue: 
+				[ | runtimeName appName snapshotName runtime app fuel bytes |	
+				runtimeName:: args at: index.
+				appName:: args at: index + 1.
+				snapshotName:: args at: index + 2.
+				index:: index + 3.
+				('Runtime configuration: ', runtimeName) out.
+				('Application configuration: ', appName) out.
 	
-		runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.	
-		app:: (namespace at: appName) packageUsing: manifest.
+				runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.	
+				app:: (namespace at: appName) packageUsing: manifest.
 	
-		stopwatch:: Stopwatch new start.
-		bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
-		writeBytes: bytes toFileNamed: snapshotName.
+				stopwatch:: Stopwatch new start.
+				bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
+				writeBytes: bytes toFileNamed: snapshotName.
 	
-		('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out].
+				('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out]]].	
 )
 readFileAsBytes: filename = (
 	(* :literalmessage: primitive: 130 *)

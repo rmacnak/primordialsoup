@@ -14,14 +14,16 @@ typedef int64_t Port;
 #define ILLEGAL_PORT 0
 
 class IsolateMessage;
-class MessageQueue;
+class MessageLoop;
 class Mutex;
 class Random;
 
 class PortMap : public AllStatic {
  public:
-  static Port CreatePort(MessageQueue* queue);
+  static Port CreatePort(MessageLoop* loop);
   static bool PostMessage(IsolateMessage* message);
+  static bool ClosePort(Port port);
+  static void CloseAllPorts(MessageLoop* loop);
 
   static void Startup();
   static void Shutdown();
@@ -37,13 +39,13 @@ class PortMap : public AllStatic {
 
   typedef struct {
     Port port;
-    MessageQueue* queue;
+    MessageLoop* loop;
   } Entry;
 
   static Mutex* mutex_;
 
   static Entry* map_;
-  static MessageQueue* deleted_entry_;
+  static MessageLoop* deleted_entry_;
   static intptr_t capacity_;
   static intptr_t used_;
   static intptr_t deleted_;
