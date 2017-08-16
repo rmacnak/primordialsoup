@@ -41,18 +41,6 @@ namespace psoup {
 #endif
 
 
-static void ComputeTimeSpecMicros(struct timespec* ts, int64_t micros) {
-  // time in nanoseconds.
-  mx_time_t now = mx_time_get(MX_CLOCK_MONOTONIC);
-  mx_time_t target = now + (micros * kNanosecondsPerMicrosecond);
-  int64_t secs = target / kNanosecondsPerSecond;
-  int64_t nanos = target - (secs * kNanosecondsPerSecond);
-
-  ts->tv_sec = secs;
-  ts->tv_nsec = nanos;
-}
-
-
 class ThreadStartData {
  public:
   ThreadStartData(const char* name,
@@ -378,7 +366,7 @@ void Monitor::Wait() {
 }
 
 
-Monitor::WaitResult Monitor::WaitMicros(int64_t micros) {
+Monitor::WaitResult Monitor::WaitUntilMicros(int64_t deadline) {
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
   ASSERT(IsOwnedByCurrentThread());
@@ -388,7 +376,15 @@ Monitor::WaitResult Monitor::WaitMicros(int64_t micros) {
 
   Monitor::WaitResult retval = kNotified;
   struct timespec ts;
-  ComputeTimeSpecMicros(&ts, micros);
+  int64_t secs = deadline / kMicrosecondsPerSecond;
+  if (secs > kMaxInt32) {
+    // Avoid truncation of overly large timeout values.
+    secs = kMaxInt32;
+  }
+  int64_t nanos =
+      (deadline - (secs * kMicrosecondsPerSecond)) * kNanosecondsPerMicrosecond;
+  ts.tv_sec = static_cast<int32_t>(secs);
+  ts.tv_nsec = static_cast<long>(nanos);
   int result = pthread_cond_timedwait(data_.cond(), data_.mutex(), &ts);
   ASSERT((result == 0) || (result == ETIMEDOUT));
   if (result == ETIMEDOUT) {

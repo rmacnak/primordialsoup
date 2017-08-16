@@ -45,7 +45,7 @@ class MessageQueue {
   MessageQueue() : monitor_(), head_(NULL), tail_(NULL) {}
 
   void PostMessage(IsolateMessage* msg);
-  IsolateMessage* Receive(int64_t timeout_micros);
+  IsolateMessage* Receive(int64_t deadline_micros);
   void Interrupt();
 
  private:

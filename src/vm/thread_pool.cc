@@ -10,9 +10,6 @@
 
 namespace psoup {
 
-// Free workers when they have been idle for this amount of time.
-#define FLAG_worker_timeout_millis 5000
-
 ThreadPool::ThreadPool()
     : shutting_down_(false),
       all_workers_(NULL),
@@ -367,26 +364,6 @@ void ThreadPool::Worker::SetTask(Task* task) {
 }
 
 
-static int64_t ComputeTimeout(int64_t idle_start) {
-  int64_t worker_timeout_micros =
-      FLAG_worker_timeout_millis * kMicrosecondsPerMillisecond;
-  if (worker_timeout_micros <= 0) {
-    // No timeout.
-    return 0;
-  } else {
-    int64_t waited = OS::CurrentMonotonicMicros() - idle_start;
-    if (waited >= worker_timeout_micros) {
-      // We must have gotten a spurious wakeup just before we timed
-      // out.  Give the worker one last desperate chance to live.  We
-      // are merciful.
-      return 1;
-    } else {
-      return worker_timeout_micros - waited;
-    }
-  }
-}
-
-
 bool ThreadPool::Worker::Loop() {
   MonitorLocker ml(&monitor_);
   int64_t idle_start;
@@ -410,7 +387,8 @@ bool ThreadPool::Worker::Loop() {
     pool_->SetIdleAndReapExited(this);
     idle_start = OS::CurrentMonotonicMicros();
     while (true) {
-      Monitor::WaitResult result = ml.WaitMicros(ComputeTimeout(idle_start));
+      int64_t deadline = idle_start + (5 * kMicrosecondsPerSecond);
+      Monitor::WaitResult result = ml.WaitUntilMicros(deadline);
       if (task_ != NULL) {
         // We've found a task.  Process it, regardless of whether the
         // worker is done_.

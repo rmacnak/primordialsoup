@@ -571,7 +571,7 @@ private rawSpawn: bytes = (
 )
 public receive = (
 	| bytes deserializer |
-	bytes:: receiveTimeoutMicros: 0.
+	bytes:: receiveDeadlineMicros: 0.
 	deserializer:: cachedPlatform victoryFuel Deserializer new.
 	^deserializer deserialize: bytes.
 )
@@ -861,12 +861,11 @@ upheapFrom: startChildIndex = (
 		childIndex:: parentIndex].
 )
 public waitIfHasWork = (
-	| next remaining message |
+	| next message |
 	next:: peek.
 	nil = next ifTrue: [^false].
-	remaining:: next dueTime - currentMonotonicMillis.
-	remaining <= 0 ifTrue: [^true]. (* Timer came due since last check. Don't call receive with 0 (no timeout). *)
-	message:: receiveTimeoutMicros: 1000 * remaining.
+	next dueTime <= 0 ifTrue: [^true]. (* Timer came due since last check. Don't call receive with 0 (no timeout). *)
+	message:: receiveDeadlineMicros: next dueTime * 1000.
 	nil = message ifFalse: [halt].
 	^true
 )
@@ -936,7 +935,7 @@ private isValueObject: object <Object> ^<Boolean> = (
 	Promise = object ifTrue: [^true].
 	^false
 )
-private receiveTimeoutMicros: micros = (
+private receiveDeadlineMicros: micros = (
 	(* :literalmessage: primitive: 136 *)
 	halt
 )

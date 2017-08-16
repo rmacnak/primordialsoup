@@ -22,15 +22,15 @@ void MessageQueue::PostMessage(IsolateMessage* message) {
 }
 
 
-IsolateMessage* MessageQueue::Receive(int64_t timeout_micros) {
+IsolateMessage* MessageQueue::Receive(int64_t deadline_micros) {
   IsolateMessage* message = NULL;
   MonitorLocker locker(&monitor_);
 
   if (head_ == NULL) {
-    if (timeout_micros == 0) {
+    if (deadline_micros == 0) {
       locker.Wait();
     } else {
-      locker.WaitMicros(timeout_micros);
+      locker.WaitUntilMicros(deadline_micros);
     }
   }
   if (head_ == NULL) {

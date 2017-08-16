@@ -3016,19 +3016,19 @@ DEFINE_PRIMITIVE(createPort) {
 DEFINE_PRIMITIVE(receive) {
   ASSERT(num_args == 1);
 
-  Object* nstimeout = A->Stack(0);
-  int64_t timeout;
-  if (nstimeout->IsSmallInteger()) {
-    timeout = static_cast<SmallInteger*>(nstimeout)->value();
-  } else if (nstimeout->IsMediumInteger()) {
-    timeout = static_cast<MediumInteger*>(nstimeout)->value();
+  Object* nsdeadline = A->Stack(0);
+  int64_t deadline;
+  if (nsdeadline->IsSmallInteger()) {
+    deadline = static_cast<SmallInteger*>(nsdeadline)->value();
+  } else if (nsdeadline->IsMediumInteger()) {
+    deadline = static_cast<MediumInteger*>(nsdeadline)->value();
   } else {
     return kFailure;
   }
 
   MessageQueue* queue = H->isolate()->queue();
 
-  IsolateMessage* message = queue->Receive(timeout);
+  IsolateMessage* message = queue->Receive(deadline);
   if (message == NULL) {
     // Interrupt or timeout.
     A->PopNAndPush(num_args + 1, nil);

@@ -115,8 +115,8 @@ class MonitorLocker : public ValueObject {
     monitor_->Wait();
   }
 
-  Monitor::WaitResult WaitMicros(int64_t micros) {
-    return monitor_->WaitMicros(micros);
+  Monitor::WaitResult WaitUntilMicros(int64_t deadline) {
+    return monitor_->WaitUntilMicros(deadline);
   }
 
   void Notify() {

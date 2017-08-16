@@ -259,9 +259,9 @@ class Monitor {
   void Enter();
   void Exit();
 
-  // Wait for notification or timeout.
+  // Wait for notification or deadline.
   void Wait();
-  WaitResult WaitMicros(int64_t micros);
+  WaitResult WaitUntilMicros(int64_t deadline);
 
   // Notify waiting threads.
   void Notify();

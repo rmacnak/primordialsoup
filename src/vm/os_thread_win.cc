@@ -7,6 +7,7 @@
 
 #include "vm/assert.h"
 #include "vm/lockers.h"
+#include "vm/os.h"
 #include "vm/os_thread.h"
 
 #include <process.h>  // NOLINT
@@ -288,15 +289,13 @@ void Monitor::Wait() {
 }
 
 
-Monitor::WaitResult Monitor::WaitMicros(int64_t micros) {
-  // TODO(johnmccutchan): Investigate sub-millisecond sleep times on Windows.
-  int64_t millis = micros / kMicrosecondsPerMillisecond;
-  if ((millis * kMicrosecondsPerMillisecond) < micros) {
-    // We've been asked to sleep for a fraction of a millisecond,
-    // this isn't supported on Windows. Bumps milliseconds up by one
-    // so that we never return too early. We likely return late though.
-    millis += 1;
+Monitor::WaitResult Monitor::WaitUntilMicros(int64_t deadline) {
+  int64_t now = OS::CurrentMonotonicMicros();
+  if (deadline <= now) {
+    return kTimedOut;
   }
+
+  int64_t millis = (deadline - now) / kMicrosecondsPerMillisecond;
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
