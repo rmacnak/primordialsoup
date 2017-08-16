@@ -351,8 +351,24 @@ void Monitor::Exit() {
 }
 
 
-Monitor::WaitResult Monitor::Wait(int64_t millis) {
-  return WaitMicros(millis * kMicrosecondsPerMillisecond);
+void Monitor::Wait() {
+#if defined(DEBUG)
+  // When running with assertions enabled we track the owner.
+  ASSERT(IsOwnedByCurrentThread());
+  ThreadId saved_owner = owner_;
+  owner_ = OSThread::kInvalidThreadId;
+#endif  // defined(DEBUG)
+
+  // Wait forever.
+  int result = pthread_cond_wait(data_.cond(), data_.mutex());
+  VALIDATE_PTHREAD_RESULT(result);
+
+#if defined(DEBUG)
+  // When running with assertions enabled we track the owner.
+  ASSERT(owner_ == OSThread::kInvalidThreadId);
+  owner_ = OSThread::GetCurrentThreadId();
+  ASSERT(owner_ == saved_owner);
+#endif  // defined(DEBUG)
 }
 
 
@@ -365,27 +381,21 @@ Monitor::WaitResult Monitor::WaitMicros(int64_t micros) {
 #endif  // defined(DEBUG)
 
   Monitor::WaitResult retval = kNotified;
-  if (micros == kNoTimeout) {
-    // Wait forever.
-    int result = pthread_cond_wait(data_.cond(), data_.mutex());
-    VALIDATE_PTHREAD_RESULT(result);
-  } else {
-    struct timespec ts;
-    int64_t secs = micros / kMicrosecondsPerSecond;
-    if (secs > kMaxInt32) {
-      // Avoid truncation of overly large timeout values.
-      secs = kMaxInt32;
-    }
-    int64_t nanos =
-        (micros - (secs * kMicrosecondsPerSecond)) * kNanosecondsPerMicrosecond;
-    ts.tv_sec = static_cast<int32_t>(secs);
-    ts.tv_nsec = static_cast<long>(nanos);  // NOLINT (long used in timespec).
-    int result =
-        pthread_cond_timedwait_relative_np(data_.cond(), data_.mutex(), &ts);
-    ASSERT((result == 0) || (result == ETIMEDOUT));
-    if (result == ETIMEDOUT) {
-      retval = kTimedOut;
-    }
+  struct timespec ts;
+  int64_t secs = micros / kMicrosecondsPerSecond;
+  if (secs > kMaxInt32) {
+    // Avoid truncation of overly large timeout values.
+    secs = kMaxInt32;
+  }
+  int64_t nanos =
+    (micros - (secs * kMicrosecondsPerSecond)) * kNanosecondsPerMicrosecond;
+  ts.tv_sec = static_cast<int32_t>(secs);
+  ts.tv_nsec = static_cast<long>(nanos);  // NOLINT (long used in timespec).
+  int result =
+    pthread_cond_timedwait_relative_np(data_.cond(), data_.mutex(), &ts);
+  ASSERT((result == 0) || (result == ETIMEDOUT));
+  if (result == ETIMEDOUT) {
+    retval = kTimedOut;
   }
 
 #if defined(DEBUG)

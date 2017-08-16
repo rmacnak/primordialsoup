@@ -240,8 +240,6 @@ class Monitor {
  public:
   enum WaitResult { kNotified, kTimedOut };
 
-  static const int64_t kNoTimeout = 0;
-
   Monitor();
   ~Monitor();
 
@@ -262,7 +260,7 @@ class Monitor {
   void Exit();
 
   // Wait for notification or timeout.
-  WaitResult Wait(int64_t millis);
+  void Wait();
   WaitResult WaitMicros(int64_t micros);
 
   // Notify waiting threads.

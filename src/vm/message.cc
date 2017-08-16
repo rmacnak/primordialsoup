@@ -27,7 +27,11 @@ IsolateMessage* MessageQueue::Receive(int64_t timeout_micros) {
   MonitorLocker locker(&monitor_);
 
   if (head_ == NULL) {
-    locker.WaitMicros(timeout_micros);
+    if (timeout_micros == 0) {
+      locker.Wait();
+    } else {
+      locker.WaitMicros(timeout_micros);
+    }
   }
   if (head_ == NULL) {
     return NULL;

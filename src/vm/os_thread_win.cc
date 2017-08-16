@@ -269,7 +269,7 @@ void Monitor::Exit() {
 }
 
 
-Monitor::WaitResult Monitor::Wait(int64_t millis) {
+void Monitor::Wait() {
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
   ASSERT(IsOwnedByCurrentThread());
@@ -277,17 +277,7 @@ Monitor::WaitResult Monitor::Wait(int64_t millis) {
   owner_ = OSThread::kInvalidThreadId;
 #endif  // defined(DEBUG)
 
-  Monitor::WaitResult retval = kNotified;
-  if (millis == kNoTimeout) {
-    SleepConditionVariableSRW(&data_.cond_, &data_.lock_, INFINITE, 0);
-  } else {
-    // Wait for the given period of time for a Notify or a NotifyAll
-    // event.
-    if (!SleepConditionVariableSRW(&data_.cond_, &data_.lock_, millis, 0)) {
-      ASSERT(GetLastError() == ERROR_TIMEOUT);
-      retval = kTimedOut;
-    }
-  }
+  SleepConditionVariableSRW(&data_.cond_, &data_.lock_, INFINITE, 0);
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
@@ -295,7 +285,6 @@ Monitor::WaitResult Monitor::Wait(int64_t millis) {
   owner_ = OSThread::GetCurrentThreadId();
   ASSERT(owner_ == saved_owner);
 #endif  // defined(DEBUG)
-  return retval;
 }
 
 
@@ -308,7 +297,29 @@ Monitor::WaitResult Monitor::WaitMicros(int64_t micros) {
     // so that we never return too early. We likely return late though.
     millis += 1;
   }
-  return Wait(millis);
+
+#if defined(DEBUG)
+  // When running with assertions enabled we track the owner.
+  ASSERT(IsOwnedByCurrentThread());
+  ThreadId saved_owner = owner_;
+  owner_ = OSThread::kInvalidThreadId;
+#endif  // defined(DEBUG)
+
+  Monitor::WaitResult retval = kNotified;
+  // Wait for the given period of time for a Notify or a NotifyAll
+  // event.
+  if (!SleepConditionVariableSRW(&data_.cond_, &data_.lock_, millis, 0)) {
+    ASSERT(GetLastError() == ERROR_TIMEOUT);
+    retval = kTimedOut;
+  }
+
+#if defined(DEBUG)
+  // When running with assertions enabled we track the owner.
+  ASSERT(owner_ == OSThread::kInvalidThreadId);
+  owner_ = OSThread::GetCurrentThreadId();
+  ASSERT(owner_ == saved_owner);
+#endif  // defined(DEBUG)
+  return retval;
 }
 
 

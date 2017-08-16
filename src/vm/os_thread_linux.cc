@@ -370,9 +370,24 @@ void Monitor::Exit() {
 }
 
 
-Monitor::WaitResult Monitor::Wait(int64_t millis) {
-  Monitor::WaitResult retval = WaitMicros(millis * kMicrosecondsPerMillisecond);
-  return retval;
+void Monitor::Wait() {
+#if defined(DEBUG)
+  // When running with assertions enabled we track the owner.
+  ASSERT(IsOwnedByCurrentThread());
+  ThreadId saved_owner = owner_;
+  owner_ = OSThread::kInvalidThreadId;
+#endif  // defined(DEBUG)
+
+  // Wait forever.
+  int result = pthread_cond_wait(data_.cond(), data_.mutex());
+  VALIDATE_PTHREAD_RESULT(result);
+
+#if defined(DEBUG)
+  // When running with assertions enabled we track the owner.
+  ASSERT(owner_ == OSThread::kInvalidThreadId);
+  owner_ = OSThread::GetCurrentThreadId();
+  ASSERT(owner_ == saved_owner);
+#endif  // define
 }
 
 
@@ -385,18 +400,12 @@ Monitor::WaitResult Monitor::WaitMicros(int64_t micros) {
 #endif  // defined(DEBUG)
 
   Monitor::WaitResult retval = kNotified;
-  if (micros == kNoTimeout) {
-    // Wait forever.
-    int result = pthread_cond_wait(data_.cond(), data_.mutex());
-    VALIDATE_PTHREAD_RESULT(result);
-  } else {
-    struct timespec ts;
-    ComputeTimeSpecMicros(&ts, micros);
-    int result = pthread_cond_timedwait(data_.cond(), data_.mutex(), &ts);
-    ASSERT((result == 0) || (result == ETIMEDOUT));
-    if (result == ETIMEDOUT) {
-      retval = kTimedOut;
-    }
+  struct timespec ts;
+  ComputeTimeSpecMicros(&ts, micros);
+  int result = pthread_cond_timedwait(data_.cond(), data_.mutex(), &ts);
+  ASSERT((result == 0) || (result == ETIMEDOUT));
+  if (result == ETIMEDOUT) {
+    retval = kTimedOut;
   }
 
 #if defined(DEBUG)

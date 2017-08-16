@@ -111,11 +111,11 @@ class MonitorLocker : public ValueObject {
     monitor_->Exit();
   }
 
-  Monitor::WaitResult Wait(int64_t millis = Monitor::kNoTimeout) {
-    return monitor_->Wait(millis);
+  void Wait() {
+    monitor_->Wait();
   }
 
-  Monitor::WaitResult WaitMicros(int64_t micros = Monitor::kNoTimeout) {
+  Monitor::WaitResult WaitMicros(int64_t micros) {
     return monitor_->WaitMicros(micros);
   }
 
