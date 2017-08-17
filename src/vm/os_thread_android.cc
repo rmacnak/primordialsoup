@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"  // NOLINT
-#if defined(TARGET_OS_ANDROID)
+#if defined(OS_ANDROID)
 
 #include "vm/os_thread.h"
 
@@ -390,7 +390,7 @@ Monitor::WaitResult Monitor::WaitUntilMicros(int64_t deadline) {
   int64_t nanos =
       (deadline - (secs * kMicrosecondsPerSecond)) * kNanosecondsPerMicrosecond;
   ts.tv_sec = static_cast<int32_t>(secs);
-  ts.tv_nsec = static_cast<long>(nanos);
+  ts.tv_nsec = static_cast<long>(nanos);  // NOLINT (long used in timespec).
   int result = pthread_cond_timedwait(data_.cond(), data_.mutex(), &ts);
   ASSERT((result == 0) || (result == ETIMEDOUT));
   if (result == ETIMEDOUT) {
@@ -424,4 +424,4 @@ void Monitor::NotifyAll() {
 
 }  // namespace psoup
 
-#endif  // defined(TARGET_OS_ANDROID)
+#endif  // defined(OS_ANDROID)

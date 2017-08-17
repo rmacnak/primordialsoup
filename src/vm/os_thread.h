@@ -9,15 +9,15 @@
 #include "vm/globals.h"
 
 // Declare the OS-specific types ahead of defining the generic classes.
-#if defined(TARGET_OS_ANDROID)
+#if defined(OS_ANDROID)
 #include "vm/os_thread_android.h"
-#elif defined(TARGET_OS_FUCHSIA)
+#elif defined(OS_FUCHSIA)
 #include "vm/os_thread_fuchsia.h"
-#elif defined(TARGET_OS_LINUX)
+#elif defined(OS_LINUX)
 #include "vm/os_thread_linux.h"
-#elif defined(TARGET_OS_MACOS)
+#elif defined(OS_MACOS)
 #include "vm/os_thread_macos.h"
-#elif defined(TARGET_OS_WINDOWS)
+#elif defined(OS_WINDOWS)
 #include "vm/os_thread_win.h"
 #else
 #error Unknown target os.

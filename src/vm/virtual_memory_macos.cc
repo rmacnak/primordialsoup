@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"
-#if defined(TARGET_OS_MACOS)
+#if defined(OS_MACOS)
 
 #include "vm/virtual_memory.h"
 
@@ -94,4 +94,4 @@ bool VirtualMemory::Protect(Protection protection) {
 
 }  // namespace psoup
 
-#endif  // defined(TARGET_OS_MACOS)
+#endif  // defined(OS_MACOS)

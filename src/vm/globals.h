@@ -21,23 +21,21 @@
 //   - http://msdn.microsoft.com/en-us/library/b0084kay.aspx
 //   - with gcc, run: "echo | gcc -E -dM -"
 #if defined(__ANDROID__)
-#define TARGET_OS_ANDROID 1
+#define OS_ANDROID 1
 #elif defined(__linux__) || defined(__FreeBSD__)
-#define TARGET_OS_LINUX 1
+#define OS_LINUX 1
 #elif defined(__APPLE__)
 // Define the flavor of Mac OS we are running on.
 #include <TargetConditionals.h>
-// TODO(iposva): Rename TARGET_OS_MACOS to TARGET_OS_MAC to inherit
-// the value defined in TargetConditionals.h
-#define TARGET_OS_MACOS 1
+#define OS_MACOS 1
 #if TARGET_OS_IPHONE
-#define TARGET_OS_IOS 1
+#define OS_IOS 1
 #endif
 
 #elif defined(_WIN32)
-#define TARGET_OS_WINDOWS 1
+#define OS_WINDOWS 1
 #elif defined(__Fuchsia__)
-#define TARGET_OS_FUCHSIA 1
+#define OS_FUCHSIA 1
 #else
 #error Automatic target os detection failed.
 #endif
@@ -222,7 +220,7 @@ inline D bit_cast(const S& source) {
 }
 
 
-#if defined(TARGET_OS_LINUX) || defined(TARGET_OS_MACOS)
+#if defined(__GNUC__) || defined(__clang__)
 // Tell the compiler to do printf format string checking if the
 // compiler supports it; see the 'format' attribute in
 // <http://gcc.gnu.org/onlinedocs/gcc-4.3.0/gcc/Function-Attributes.html>.

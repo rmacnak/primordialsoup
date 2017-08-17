@@ -64,15 +64,15 @@ class Utils {
 
 }  // namespace psoup
 
-#if defined(TARGET_OS_ANDROID)
+#if defined(OS_ANDROID)
 #include "vm/utils_android.h"
-#elif defined(TARGET_OS_FUCHSIA)
+#elif defined(OS_FUCHSIA)
 #include "vm/utils_fuchsia.h"
-#elif defined(TARGET_OS_LINUX)
+#elif defined(OS_LINUX)
 #include "vm/utils_linux.h"
-#elif defined(TARGET_OS_MACOS)
+#elif defined(OS_MACOS)
 #include "vm/utils_macos.h"
-#elif defined(TARGET_OS_WINDOWS)
+#elif defined(OS_WINDOWS)
 #include "vm/utils_win.h"
 #else
 #error Unknown target os.

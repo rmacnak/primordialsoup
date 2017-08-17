@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"  // NOLINT
-#if defined(TARGET_OS_MACOS)
+#if defined(OS_MACOS)
 
 #include "vm/os_thread.h"
 
@@ -424,4 +424,4 @@ void Monitor::NotifyAll() {
 
 }  // namespace psoup
 
-#endif  // defined(TARGET_OS_MACOS)
+#endif  // defined(OS_MACOS)

@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"
-#if defined(TARGET_OS_FUCHSIA)
+#if defined(OS_FUCHSIA)
 
 #include "vm/virtual_memory.h"
 
@@ -151,4 +151,4 @@ bool VirtualMemory::Protect(Protection protection) {
 
 }  // namespace psoup
 
-#endif  // defined(TARGET_OS_FUCHSIA)
+#endif  // defined(OS_FUCHSIA)

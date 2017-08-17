@@ -32,7 +32,7 @@ int main(int argc, const char** argv) {
 
   // TODO(rmacnak): File and anonymous mappings are freed differently on
   // Windows. mmap seems to only support anonymous mappings on Fuchsia.
-#if !defined(TARGET_OS_WINDOWS) && !defined(TARGET_OS_FUCHSIA)
+#if !defined(OS_WINDOWS) && !defined(OS_FUCHSIA)
   snapshot.Free();
 #endif
 }

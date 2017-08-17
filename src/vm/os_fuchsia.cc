@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"
-#if defined(TARGET_OS_FUCHSIA)
+#if defined(OS_FUCHSIA)
 
 #include "vm/os.h"
 
@@ -89,4 +89,4 @@ void OS::Exit(int code) {
 
 }  // namespace psoup
 
-#endif  // defined(TARGET_OS_FUCHSIA)
+#endif  // defined(OS_FUCHSIA)

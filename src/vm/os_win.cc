@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"
-#if defined(TARGET_OS_WINDOWS)
+#if defined(OS_WINDOWS)
 
 #include "vm/os.h"
 
@@ -196,4 +196,4 @@ void OS::Exit(int code) {
 
 }  // namespace psoup
 
-#endif  // defined(TARGET_OS_WINDOWS)
+#endif  // defined(OS_WINDOWS)

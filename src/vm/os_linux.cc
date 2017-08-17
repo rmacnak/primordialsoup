@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"
-#if defined(TARGET_OS_LINUX)
+#if defined(OS_LINUX)
 
 #include "vm/os.h"
 
