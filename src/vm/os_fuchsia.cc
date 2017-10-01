@@ -8,10 +8,10 @@
 #include "vm/os.h"
 
 #include <errno.h>
-#include <magenta/syscalls.h>
-#include <magenta/types.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <zircon/syscalls.h>
+#include <zircon/types.h>
 
 #include "vm/assert.h"
 
@@ -22,7 +22,7 @@ void OS::Shutdown() {}
 
 
 int64_t OS::CurrentMonotonicMicros() {
-  return mx_time_get(MX_CLOCK_MONOTONIC) / kNanosecondsPerMicrosecond;
+  return zx_time_get(ZX_CLOCK_MONOTONIC) / kNanosecondsPerMicrosecond;
 }
 
 

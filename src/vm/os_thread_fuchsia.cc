@@ -8,8 +8,8 @@
 #include "vm/os_thread.h"
 
 #include <errno.h>  // NOLINT
-#include <magenta/syscalls.h>
-#include <magenta/types.h>
+#include <zircon/syscalls.h>
+#include <zircon/types.h>
 
 #include "vm/assert.h"
 

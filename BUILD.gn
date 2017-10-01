@@ -6,12 +6,12 @@ executable("primordialsoup") {
   include_dirs = [ "src" ]
 
   if (is_fuchsia) {
-    libs = [ "magenta" ]
+    libs = [ "zircon" ]
     deps = [
-      "//application/lib/app",
-      "//application/lib/svc",
-      "//lib/ftl",
-      "//lib/mtl",
+      "//garnet/public/lib/app/cpp",
+      "//garnet/public/lib/svc/cpp",
+      "//garnet/public/lib/fxl",
+      "//garnet/public/lib/fsl",
     ]
   } else {
     libs = [ "pthread" ]
@@ -192,10 +192,10 @@ action("snapshots") {
 
   inputs = newspeak_sources + [ bootstrap_compiler_snapshot ]
 
-  hello_snapshot = "$target_gen_dir/HelloApp.vfuel"
-  tests_snapshot = "$target_gen_dir/TestRunner.vfuel"
-  benchmarks_snapshot = "$target_gen_dir/BenchmarkRunner.vfuel"
-  compiler_snapshot = "$target_gen_dir/CompilerApp.vfuel"
+  hello_snapshot = "$root_out_dir/HelloApp.vfuel"
+  tests_snapshot = "$root_out_dir/TestRunner.vfuel"
+  benchmarks_snapshot = "$root_out_dir/BenchmarkRunner.vfuel"
+  compiler_snapshot = "$root_out_dir/CompilerApp.vfuel"
 
   outputs = [
     hello_snapshot,

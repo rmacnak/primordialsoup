@@ -10,7 +10,7 @@
   instead.
 #endif
 
-#include "lib/mtl/tasks/message_loop.h"
+#include "lib/fsl/tasks/message_loop.h"
 
 #include "vm/port.h"
 
@@ -18,7 +18,7 @@ namespace psoup {
 
 #define PlatformMessageLoop FuchsiaMessageLoop
 
-class FuchsiaMessageLoop : public MessageLoop, private mtl::MessageLoopHandler {
+class FuchsiaMessageLoop : public MessageLoop, private fsl::MessageLoopHandler {
  public:
   explicit FuchsiaMessageLoop(Isolate* isolate);
   ~FuchsiaMessageLoop();
@@ -32,11 +32,11 @@ class FuchsiaMessageLoop : public MessageLoop, private mtl::MessageLoopHandler {
   void Interrupt();
 
  private:
-  void OnHandleReady(mx_handle_t handle, mx_signals_t pending, uint64_t count);
-  void OnHandleError(mx_handle_t handle, mx_status_t error);
+  void OnHandleReady(zx_handle_t handle, zx_signals_t pending, uint64_t count);
+  void OnHandleError(zx_handle_t handle, zx_status_t error);
 
-  mtl::MessageLoop* loop_;
-  mx_handle_t timer_;
+  fsl::MessageLoop* loop_;
+  zx_handle_t timer_;
 
   DISALLOW_COPY_AND_ASSIGN(FuchsiaMessageLoop);
 };

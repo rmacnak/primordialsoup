@@ -7,8 +7,8 @@
 
 #include "vm/message_loop.h"
 
-#include <magenta/status.h>
-#include <magenta/syscalls.h>
+#include <zircon/status.h>
+#include <zircon/syscalls.h>
 
 #include "vm/os.h"
 
@@ -16,42 +16,42 @@ namespace psoup {
 
 FuchsiaMessageLoop::FuchsiaMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
-      loop_(mtl::MessageLoop::GetCurrent()),
-      timer_(MX_HANDLE_INVALID) {
-  mx_status_t result = mx_timer_create(0, MX_CLOCK_MONOTONIC, &timer_);
-  ASSERT(result == MX_OK);
-  loop_->AddHandler(this, timer_, MX_TIMER_SIGNALED);
+      loop_(fsl::MessageLoop::GetCurrent()),
+      timer_(ZX_HANDLE_INVALID) {
+  zx_status_t result = zx_timer_create(0, ZX_CLOCK_MONOTONIC, &timer_);
+  ASSERT(result == ZX_OK);
+  loop_->AddHandler(this, timer_, ZX_TIMER_SIGNALED);
 }
 
 FuchsiaMessageLoop::~FuchsiaMessageLoop() {
-  mx_status_t result = mx_timer_cancel(timer_);
-  ASSERT(result == MX_OK);
-  mx_handle_close(timer_);
-  ASSERT(result == MX_OK);
+  zx_status_t result = zx_timer_cancel(timer_);
+  ASSERT(result == ZX_OK);
+  zx_handle_close(timer_);
+  ASSERT(result == ZX_OK);
 }
 
 intptr_t FuchsiaMessageLoop::AwaitSignal(intptr_t handle,
                                          intptr_t signals,
                                          int64_t deadline) {
-  // It seems odd that mtl should take a timeout here instead of deadline,
-  // since the underlying mx_port_wait operates in terms of a deadline.
+  // It seems odd that fsl should take a timeout here instead of deadline,
+  // since the underlying zx_port_wait operates in terms of a deadline.
   // This is probably a straggler from the conversion.
   int64_t timeout = deadline - OS::CurrentMonotonicMicros();
   return loop_->AddHandler(this, handle, signals,
                            ftl::TimeDelta::FromMicroseconds(timeout));
 }
 
-void FuchsiaMessageLoop::OnHandleReady(mx_handle_t handle,
-                                       mx_signals_t pending,
+void FuchsiaMessageLoop::OnHandleReady(zx_handle_t handle,
+                                       zx_signals_t pending,
                                        uint64_t count) {
   if (handle == timer_) {
     DispatchWakeup();
   } else {
-    DispatchSignal(handle, MX_OK, pending, count);
+    DispatchSignal(handle, ZX_OK, pending, count);
   }
 }
 
-void FuchsiaMessageLoop::OnHandleError(mx_handle_t handle, mx_status_t error) {
+void FuchsiaMessageLoop::OnHandleError(zx_handle_t handle, zx_status_t error) {
   DispatchSignal(handle, error, 0, 0);
 }
 
@@ -60,13 +60,13 @@ void FuchsiaMessageLoop::CancelSignalWait(intptr_t wait_id) {
 }
 
 void FuchsiaMessageLoop::AdjustWakeup(int64_t new_wakeup_micros) {
-  mx_time_t new_wakeup = new_wakeup_micros * 1000;
+  zx_time_t new_wakeup = new_wakeup_micros * 1000;
   if (new_wakeup == 0) {
-    mx_status_t result = mx_timer_cancel(timer_);
-    ASSERT(result == MX_OK);
+    zx_status_t result = zx_timer_cancel(timer_);
+    ASSERT(result == ZX_OK);
   } else {
-    mx_status_t result = mx_timer_start(timer_, new_wakeup, 0, 0);
-    ASSERT(result == MX_OK);
+    zx_status_t result = zx_timer_start(timer_, new_wakeup, 0, 0);
+    ASSERT(result == ZX_OK);
   }
 }
 
