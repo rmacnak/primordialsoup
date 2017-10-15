@@ -261,7 +261,7 @@ class Monitor {
 
   // Wait for notification or deadline.
   void Wait();
-  WaitResult WaitUntilMicros(int64_t deadline);
+  WaitResult WaitUntilNanos(int64_t deadline);
 
   // Notify waiting threads.
   void Notify();

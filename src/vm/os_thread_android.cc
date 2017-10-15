@@ -284,6 +284,10 @@ Monitor::Monitor() {
   result = pthread_condattr_init(&cond_attr);
   VALIDATE_PTHREAD_RESULT(result);
 
+  // Since Android 5.0 (API level 21).
+  result = pthread_condattr_setclock(&cond_attr, CLOCK_MONOTONIC);
+  VALIDATE_PTHREAD_RESULT(result);
+
   result = pthread_cond_init(data_.cond(), &cond_attr);
   VALIDATE_PTHREAD_RESULT(result);
 
@@ -372,7 +376,7 @@ void Monitor::Wait() {
 }
 
 
-Monitor::WaitResult Monitor::WaitUntilMicros(int64_t deadline) {
+Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
   ASSERT(IsOwnedByCurrentThread());
@@ -382,13 +386,12 @@ Monitor::WaitResult Monitor::WaitUntilMicros(int64_t deadline) {
 
   Monitor::WaitResult retval = kNotified;
   struct timespec ts;
-  int64_t secs = deadline / kMicrosecondsPerSecond;
+  int64_t secs = deadline / kNanosecondsPerSecond;
+  int64_t nanos = deadline % kNanosecondsPerSecond;
   if (secs > kMaxInt32) {
     // Avoid truncation of overly large timeout values.
     secs = kMaxInt32;
   }
-  int64_t nanos =
-      (deadline - (secs * kMicrosecondsPerSecond)) * kNanosecondsPerMicrosecond;
   ts.tv_sec = static_cast<int32_t>(secs);
   ts.tv_nsec = static_cast<long>(nanos);  // NOLINT (long used in timespec).
   int result = pthread_cond_timedwait(data_.cond(), data_.mutex(), &ts);

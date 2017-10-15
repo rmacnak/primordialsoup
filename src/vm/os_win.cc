@@ -42,15 +42,15 @@ static int64_t GetCurrentMonotonicFrequency() {
 }
 
 
-int64_t OS::CurrentMonotonicMicros() {
+int64_t OS::CurrentMonotonicNanos() {
   int64_t ticks = GetCurrentMonotonicTicks();
   int64_t frequency = GetCurrentMonotonicFrequency();
 
   // Convert to microseconds.
   int64_t seconds = ticks / frequency;
   int64_t leftover_ticks = ticks - (seconds * frequency);
-  int64_t result = seconds * kMicrosecondsPerSecond;
-  result += ((leftover_ticks * kMicrosecondsPerSecond) / frequency);
+  int64_t result = seconds * kNanosecondsPerSecond;
+  result += ((leftover_ticks * kNanosecondsPerSecond) / frequency);
   return result;
 }
 

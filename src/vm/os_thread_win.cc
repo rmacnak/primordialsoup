@@ -289,13 +289,13 @@ void Monitor::Wait() {
 }
 
 
-Monitor::WaitResult Monitor::WaitUntilMicros(int64_t deadline) {
-  int64_t now = OS::CurrentMonotonicMicros();
+Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
+  int64_t now = OS::CurrentMonotonicNanos();
   if (deadline <= now) {
     return kTimedOut;
   }
 
-  int64_t millis = (deadline - now) / kMicrosecondsPerMillisecond;
+  int64_t millis = (deadline - now) / kNanosecondsPerMillisecond;
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.

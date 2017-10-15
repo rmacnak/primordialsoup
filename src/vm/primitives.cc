@@ -118,8 +118,8 @@ const bool kFailure = false;
   V(96, Behavior_allInstances)                                                 \
   V(97, Behavior_adoptInstance)                                                \
   V(98, Array_elementsForwardIdentity)                                         \
-  V(100, Time_monotonicMicros)                                                 \
-  V(101, Time_utcEpochMicros)                                                  \
+  V(100, Time_monotonicNanos)                                                  \
+  V(101, Time_utcEpochNanos)                                                   \
   V(102, print)                                                                \
   V(103, halt)                                                                 \
   V(104, flushCache)                                                           \
@@ -2149,14 +2149,14 @@ DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
 }
 
 
-DEFINE_PRIMITIVE(Time_monotonicMicros) {
+DEFINE_PRIMITIVE(Time_monotonicNanos) {
   ASSERT(num_args == 0);
-  int64_t now = OS::CurrentMonotonicMicros();
+  int64_t now = OS::CurrentMonotonicNanos();
   RETURN_MINT(now);
 }
 
 
-DEFINE_PRIMITIVE(Time_utcEpochMicros) { UNIMPLEMENTED(); return kSuccess; }
+DEFINE_PRIMITIVE(Time_utcEpochNanos) { UNIMPLEMENTED(); return kSuccess; }
 
 
 DEFINE_PRIMITIVE(print) {

@@ -31,13 +31,13 @@ void OS::Startup() {
 void OS::Shutdown() {}
 
 
-int64_t OS::CurrentMonotonicMicros() {
+int64_t OS::CurrentMonotonicNanos() {
   ASSERT(timebase_info.denom != 0);
   // timebase_info converts absolute time tick units into nanoseconds.
   int64_t result = mach_absolute_time();
   result *= timebase_info.numer;
   result /= timebase_info.denom;
-  return result / kNanosecondsPerMicrosecond;
+  return result;
 }
 
 

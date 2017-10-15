@@ -1438,24 +1438,27 @@ public class SmallInteger _cannotInstantiate = Integer () (
 ) : (
 )
 public class Stopwatch = (|
-private cumulativeMicros ::= 0.
-private startMicros
+private cumulativeNanos ::= 0.
+private startNanos
 |) (
+public elapsedNanoseconds ^<Integer> = (
+	nil = startNanos ifTrue: [^cumulativeNanos].
+	^cumulativeNanos + (currentMonotonicNanos - startNanos)
+)
 public elapsedMicroseconds ^<Integer> = (
-	nil = startMicros ifTrue: [^cumulativeMicros].
-	^cumulativeMicros + (currentMonotonicMicros - startMicros)
+	^elapsedNanoseconds quo: 1000
 )
 public elapsedMilliseconds ^<Integer> = (
-	^elapsedMicroseconds quo: 1000
+	^elapsedNanoseconds quo: 1000000
 )
 public start = (
-	nil = startMicros ifFalse: [^self (* Already running. *)].
-	startMicros:: currentMonotonicMicros.
+	nil = startNanos ifFalse: [^self (* Already running. *)].
+	startNanos:: currentMonotonicNanos.
 )
 public stop = (
-	nil = startMicros ifTrue: [^self (* Already stopped. *)].
-	cumulativeMicros:: cumulativeMicros + (currentMonotonicMicros - startMicros).
-	startMicros:: nil.
+	nil = startNanos ifTrue: [^self (* Already stopped. *)].
+	cumulativeNanos:: cumulativeNanos + (currentMonotonicNanos - startNanos).
+	startNanos:: nil.
 )
 ) : (
 )
@@ -1901,7 +1904,7 @@ private currentActivation ^<Activation> = (
 	(* :literalmessage: primitive: 133 *)
 	^halt
 )
-private currentMonotonicMicros = (
+private currentMonotonicNanos = (
 	(* :literalmessage: primitive: 100 *)
 	halt.
 )

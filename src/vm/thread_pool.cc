@@ -385,10 +385,11 @@ bool ThreadPool::Worker::Loop() {
     }
     ASSERT(!done_);
     pool_->SetIdleAndReapExited(this);
-    idle_start = OS::CurrentMonotonicMicros();
+    idle_start = OS::CurrentMonotonicNanos();
     while (true) {
-      int64_t deadline = idle_start + (5 * kMicrosecondsPerSecond);
-      Monitor::WaitResult result = ml.WaitUntilMicros(deadline);
+      int64_t deadline =
+          idle_start + (static_cast<int64_t>(5) * kNanosecondsPerSecond);
+      Monitor::WaitResult result = ml.WaitUntilNanos(deadline);
       if (task_ != NULL) {
         // We've found a task.  Process it, regardless of whether the
         // worker is done_.

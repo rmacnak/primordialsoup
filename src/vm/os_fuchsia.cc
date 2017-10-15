@@ -21,8 +21,8 @@ void OS::Startup() {}
 void OS::Shutdown() {}
 
 
-int64_t OS::CurrentMonotonicMicros() {
-  return zx_time_get(ZX_CLOCK_MONOTONIC) / kNanosecondsPerMicrosecond;
+int64_t OS::CurrentMonotonicNanos() {
+  return zx_time_get(ZX_CLOCK_MONOTONIC);
 }
 
 

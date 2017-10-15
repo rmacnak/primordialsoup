@@ -97,7 +97,7 @@ Isolate::Isolate(void* snapshot, size_t snapshot_length) :
     snapshot_(snapshot),
     snapshot_length_(snapshot_length),
     next_(NULL) {
-  heap_ = new Heap(this, OS::CurrentMonotonicMicros());
+  heap_ = new Heap(this, OS::CurrentMonotonicNanos());
   {
     Deserializer deserializer(heap_, snapshot, snapshot_length);
     deserializer.Deserialize();

@@ -56,7 +56,7 @@ IsolateMessage* DefaultMessageLoop::WaitMessage() {
     if (wakeup_ == 0) {
       locker.Wait();
     } else {
-      locker.WaitUntilMicros(wakeup_);
+      locker.WaitUntilNanos(wakeup_);
     }
     if (head_ == NULL) {
       return NULL;

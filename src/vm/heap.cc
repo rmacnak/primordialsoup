@@ -95,7 +95,7 @@ void Heap::Grow(intptr_t size_requested, const char* reason) {
 
 
 void Heap::Scavenge() {
-  int64_t start = OS::CurrentMonotonicMicros();
+  int64_t start = OS::CurrentMonotonicNanos();
   intptr_t size_before = used();
 
   if (REPORT_GC) {
@@ -137,11 +137,12 @@ void Heap::Scavenge() {
 #endif
 
   intptr_t size_after = used();
-  int64_t stop = OS::CurrentMonotonicMicros();
+  int64_t stop = OS::CurrentMonotonicNanos();
   intptr_t time = stop - start;
   if (REPORT_GC) {
     OS::PrintErr("End scavenge (%" Pd "kB used, %" Pd "kB freed, %" Pd " us)\n",
-                 size_after / KB, (size_before - size_after) / KB, time);
+                 size_after / KB, (size_before - size_after) / KB,
+                 time / kNanosecondsPerMicrosecond);
   }
 
   if (used() > (7 * to_.size() / 8)) {

@@ -868,7 +868,7 @@ public insert: timer = (
 public nextDueTime = (
 	| next = peek. |
 	nil = next ifTrue: [^0].
-	^1000 * next dueTime
+	^1000000 * next dueTime
 )
 public peek = (
 	0 = used ifTrue: [^nil].
@@ -941,12 +941,12 @@ private classOf: object = (
 private createFarReferenceTo: target in: targetActor for: sourceActor = (
 	^(InternalFarReference target: target targetsActor: targetActor) externalRef.
 )
-private currentMonotonicMicros = (
+private currentMonotonicNanos = (
 	(* :literalmessage: primitive: 100 *)
 	halt.
 )
 private currentMonotonicMillis = (
-	^currentMonotonicMicros quo: 1000
+	^currentMonotonicNanos quo: 1000000
 )
 private isRef: object <Object> ^<Boolean> = (
 	^Ref = (classOf: object)
@@ -960,10 +960,6 @@ private isValueObject: object <Object> ^<Boolean> = (
 	object isBehavior ifTrue: [^true (* ^isValueObject: object enclosingClass *)].
 	Promise = object ifTrue: [^true].
 	^false
-)
-private receiveDeadlineMicros: micros = (
-	(* :literalmessage: primitive: 136 *)
-	halt
 )
 private wrapArgument: argument from: sourceActor to: targetActor = (
 	(* [argument] lives in [sourceActor], answer the corresponding proxy that lives in [targetActor] *)

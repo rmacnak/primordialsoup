@@ -3,9 +3,10 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include <signal.h>
-#include <thread>  // NOLINT
 #include <zx/vmar.h>
 #include <zx/vmo.h>
+
+#include <thread>  // NOLINT
 
 #include "garnet/public/lib/app/cpp/application_context.h"
 #include "garnet/public/lib/app/cpp/connect.h"

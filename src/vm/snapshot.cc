@@ -32,7 +32,7 @@ Deserializer::~Deserializer() {
 
 
 void Deserializer::Deserialize() {
-  int64_t start = OS::CurrentMonotonicMicros();
+  int64_t start = OS::CurrentMonotonicNanos();
 
   // Skip interpreter directive, if any.
   if ((cursor_[0] == static_cast<uint8_t>('#')) &&
@@ -104,7 +104,7 @@ void Deserializer::Deserialize() {
 
   heap_->InitializeRoot(os);
 
-  int64_t stop = OS::CurrentMonotonicMicros();
+  int64_t stop = OS::CurrentMonotonicNanos();
   intptr_t time = stop - start;
   if (TRACE_GROWTH) {
     OS::PrintErr("Deserialized %" Pd "kB snapshot "
@@ -114,7 +114,7 @@ void Deserializer::Deserialize() {
                  snapshot_length_ / KB,
                  heap_->used() / KB,
                  next_back_ref_ - 1,
-                 time);
+                 time / kNanosecondsPerMicrosecond);
   }
 
 #if defined(DEBUG)

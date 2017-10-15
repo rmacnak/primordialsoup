@@ -19,6 +19,7 @@
 #include <mach/thread_act.h>   // NOLINT
 
 #include "vm/assert.h"
+#include "vm/os.h"
 #include "vm/utils.h"
 
 namespace psoup {
@@ -372,7 +373,7 @@ void Monitor::Wait() {
 }
 
 
-Monitor::WaitResult Monitor::WaitUntilMicros(int64_t deadline) {
+Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
   ASSERT(IsOwnedByCurrentThread());
@@ -380,18 +381,25 @@ Monitor::WaitResult Monitor::WaitUntilMicros(int64_t deadline) {
   owner_ = OSThread::kInvalidThreadId;
 #endif  // defined(DEBUG)
 
+  // Convert to timeout since pthread_cond_timedwait uses the wrong clock.
+  int64_t now = OS::CurrentMonotonicNanos();
+  if (now >= deadline) {
+    return kTimedOut;
+  }
+  int64_t timeout = deadline - now;
+
   Monitor::WaitResult retval = kNotified;
   struct timespec ts;
-  int64_t secs = deadline / kMicrosecondsPerSecond;
+  int64_t secs = timeout / kNanosecondsPerSecond;
+  int64_t nanos = timeout % kNanosecondsPerSecond;
   if (secs > kMaxInt32) {
     // Avoid truncation of overly large timeout values.
     secs = kMaxInt32;
   }
-  int64_t nanos =
-      (deadline - (secs * kMicrosecondsPerSecond)) * kNanosecondsPerMicrosecond;
   ts.tv_sec = static_cast<int32_t>(secs);
   ts.tv_nsec = static_cast<long>(nanos);  // NOLINT (long used in timespec).
-  int result = pthread_cond_timedwait(data_.cond(), data_.mutex(), &ts);
+  int result =
+      pthread_cond_timedwait_relative_np(data_.cond(), data_.mutex(), &ts);
   ASSERT((result == 0) || (result == ETIMEDOUT));
   if (result == ETIMEDOUT) {
     retval = kTimedOut;

@@ -200,7 +200,7 @@ void PortMap::CloseAllPorts(MessageLoop* loop) {
 
 void PortMap::Startup() {
   mutex_ = new Mutex();
-  prng_ = new Random(OS::CurrentMonotonicMicros());
+  prng_ = new Random(OS::CurrentMonotonicNanos());
 
   static const intptr_t kInitialCapacity = 8;
   // TODO(iposva): Verify whether we want to keep exponentially growing.

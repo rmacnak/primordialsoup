@@ -22,7 +22,7 @@ void OS::Startup() {}
 void OS::Shutdown() {}
 
 
-int64_t OS::CurrentMonotonicMicros() {
+int64_t OS::CurrentMonotonicNanos() {
   struct timespec ts;
   if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
     UNREACHABLE();
@@ -33,7 +33,7 @@ int64_t OS::CurrentMonotonicMicros() {
   result *= kNanosecondsPerSecond;
   result += ts.tv_nsec;
 
-  return result / kNanosecondsPerMicrosecond;
+  return result;
 }
 
 
