@@ -6,9 +6,425 @@
 
 #include "vm/heap.h"
 #include "vm/object.h"
-#include "vm/virtual_memory.h"
 
 namespace psoup {
+
+class Cluster {
+ public:
+  Cluster() : ref_start_(0), ref_stop_(0) {}
+
+  virtual ~Cluster() {}
+
+  virtual void ReadNodes(Deserializer* d, Heap* h) = 0;
+  virtual void ReadEdges(Deserializer* d, Heap* h) = 0;
+
+ protected:
+  intptr_t ref_start_;
+  intptr_t ref_stop_;
+};
+
+class RegularObjectCluster : public Cluster {
+ public:
+  explicit RegularObjectCluster(intptr_t format) : format_(format), cid_(0) {}
+  ~RegularObjectCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes format=%" Pd " objects=%" Pd " %" Pd "\n",
+                   format_, num_objects, d->position());
+    }
+
+    cid_ = h->AllocateClassId();
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      Object* object = h->AllocateRegularObject(cid_, format_);
+      d->RegisterRef(object);
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges format=%" Pd " objects=%" Pd " %" Pd "\n",
+                   format_, ref_stop_ - ref_start_, d->position());
+    }
+    Object* cls = d->ReadRef();
+    h->RegisterClass(cid_, cls);
+
+    for (intptr_t i = ref_start_; i < ref_stop_; i++) {
+      RegularObject* object = static_cast<RegularObject*>(d->Ref(i));
+      for (intptr_t j = 0; j < format_; j++) {
+        object->set_slot(j, d->ReadRef());
+      }
+    }
+  }
+
+ private:
+  intptr_t format_;
+  intptr_t cid_;
+};
+
+class ByteArrayCluster : public Cluster {
+ public:
+  ByteArrayCluster() {}
+  ~ByteArrayCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes bytearray objects=%" Pd " %" Pd "\n",
+                   num_objects, d->position());
+    }
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      intptr_t size = d->ReadUint32();
+      ByteArray* object = h->AllocateByteArray(size);
+      for (intptr_t j = 0; j < size; j++) {
+        object->set_element(j, d->ReadUint8());
+      }
+      d->RegisterRef(object);
+      ASSERT(object->IsByteArray());
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges bytearray objects=%" Pd " %" Pd "\n",
+                   ref_stop_ - ref_start_, d->position());
+    }
+  }
+};
+
+class ByteStringCluster : public Cluster {
+ public:
+  ByteStringCluster() {}
+  ~ByteStringCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    ReadNodes(d, h, false);
+    ReadNodes(d, h, true);
+  }
+
+  void ReadNodes(Deserializer* d, Heap* h, bool is_canonical) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes bytestring objects=%" Pd " %" Pd "\n",
+                   num_objects, d->position());
+    }
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      intptr_t size = d->ReadUint32();
+      ByteString* object = h->AllocateByteString(size);
+      ASSERT(!object->is_canonical());
+      object->set_is_canonical(is_canonical);
+      for (intptr_t j = 0; j < size; j++) {
+        object->set_element(j, d->ReadUint8());
+      }
+      d->RegisterRef(object);
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges bytestring objects=%" Pd " %" Pd "\n",
+                   ref_stop_ - ref_start_, d->position());
+    }
+  }
+};
+
+class WideStringCluster : public Cluster {
+ public:
+  WideStringCluster() {}
+  ~WideStringCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    ReadNodes(d, h, false);
+    ReadNodes(d, h, true);
+  }
+
+  void ReadNodes(Deserializer* d, Heap* h, bool is_canonical) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes bytesymbol objects=%" Pd " %" Pd "\n",
+                   num_objects, d->position());
+    }
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      intptr_t size = d->ReadUint32();
+      WideString* object = h->AllocateWideString(size);
+      ASSERT(!object->is_canonical());
+      object->set_is_canonical(is_canonical);
+      for (intptr_t j = 0; j < size; j++) {
+        object->set_element(j, d->ReadUint32());
+      }
+      ASSERT(object->IsWideString());
+      d->RegisterRef(object);
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges bytesymbol objects=%" Pd " %" Pd "\n",
+                   ref_stop_ - ref_start_, d->position());
+    }
+  }
+};
+
+class ArrayCluster : public Cluster {
+ public:
+  ArrayCluster() {}
+  ~ArrayCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes array objects=%" Pd " %" Pd "\n",
+                   num_objects, d->position());
+    }
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      intptr_t size = d->ReadUint16();
+      Array* object = h->AllocateArray(size);
+      d->RegisterRef(object);
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges array objects=%" Pd " %" Pd "\n",
+                   ref_stop_ - ref_start_, d->position());
+    }
+
+    for (intptr_t i = ref_start_; i < ref_stop_; i++) {
+      Array* object = Array::Cast(d->Ref(i));
+      intptr_t size = object->Size();
+      for (intptr_t j = 0; j < size; j++) {
+        object->set_element(j, d->ReadRef());
+      }
+    }
+  }
+};
+
+class WeakArrayCluster : public Cluster {
+ public:
+  WeakArrayCluster() {}
+  ~WeakArrayCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes weakarray objects=%" Pd " %" Pd "\n",
+                   num_objects, d->position());
+    }
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      intptr_t size = d->ReadUint16();
+      WeakArray* object = h->AllocateWeakArray(size);
+      d->RegisterRef(object);
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges weakarray objects=%" Pd " %" Pd "\n",
+                   ref_stop_ - ref_start_, d->position());
+    }
+
+    for (intptr_t i = ref_start_; i < ref_stop_; i++) {
+      WeakArray* object = WeakArray::Cast(d->Ref(i));
+      intptr_t size = object->Size();
+      for (intptr_t j = 0; j < size; j++) {
+        object->set_element(j, d->ReadRef());
+      }
+    }
+  }
+};
+
+class ClosureCluster : public Cluster {
+ public:
+  ClosureCluster() {}
+  ~ClosureCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes closure objects=%" Pd " %" Pd "\n",
+                   num_objects, d->position());
+    }
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      intptr_t size = d->ReadUint16();
+      Closure* object = h->AllocateClosure(size);
+      d->RegisterRef(object);
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges closure objects=%" Pd " %" Pd "\n",
+                   ref_stop_ - ref_start_, d->position());
+    }
+
+    for (intptr_t i = ref_start_; i < ref_stop_; i++) {
+      Closure* object = Closure::Cast(d->Ref(i));
+
+      object->set_defining_activation(Activation::Cast(d->ReadRef()));
+      object->set_initial_bci(static_cast<SmallInteger*>(d->ReadRef()));
+      object->set_num_args(static_cast<SmallInteger*>(d->ReadRef()));
+
+      intptr_t size = object->num_copied();
+      for (intptr_t j = 0; j < size; j++) {
+        object->set_copied(j, d->ReadRef());
+      }
+    }
+  }
+};
+
+
+class ActivationCluster : public Cluster {
+ public:
+  ActivationCluster() {}
+  ~ActivationCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes activation objects=%" Pd " %" Pd "\n",
+                   num_objects, d->position());
+    }
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      Activation* object = h->AllocateActivation();
+      d->RegisterRef(object);
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges activation objects=%" Pd " %" Pd "\n",
+                   ref_stop_ - ref_start_, d->position());
+    }
+
+    for (intptr_t i = ref_start_; i < ref_stop_; i++) {
+      Activation* object = Activation::Cast(d->Ref(i));
+
+      object->set_sender(Activation::Cast(d->ReadRef()));
+      object->set_bci(static_cast<SmallInteger*>(d->ReadRef()));
+      object->set_method(Method::Cast(d->ReadRef()));
+      object->set_closure(Closure::Cast(d->ReadRef()));
+      object->set_receiver(d->ReadRef());
+
+      intptr_t size = d->ReadUint32();
+      if (TRACE_FUEL) OS::PrintErr(" stack %" Pd "\n", size);
+      ASSERT(size < Activation::kMaxTemps);
+      object->set_stack_depth(SmallInteger::New(size));
+
+      for (intptr_t j = 0; j < size; j++) {
+        object->set_temp(j, d->ReadRef());
+      }
+      for (intptr_t j = size; j < Activation::kMaxTemps; j++) {
+        object->set_temp(j, SmallInteger::New(0));
+      }
+    }
+  }
+};
+
+class SmallIntegerCluster : public Cluster {
+ public:
+  SmallIntegerCluster() {}
+  ~SmallIntegerCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadUint16();
+    if (TRACE_FUEL) {
+      OS::PrintErr("Nodes smi objects=%" Pd " %" Pd "\n",
+                   num_objects, d->position());
+    }
+
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      int64_t value = d->ReadInt64();
+      if (SmallInteger::IsSmiValue(value)) {
+        SmallInteger* object = SmallInteger::New(value);
+        ASSERT(object->IsSmallInteger());
+        d->RegisterRef(object);
+      } else {
+        MediumInteger* object = h->AllocateMediumInteger();
+        object->set_value(value);
+        d->RegisterRef(object);
+      }
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+
+    intptr_t num_large = d->ReadUint16();
+    for (intptr_t i = 0; i < num_large; i++) {
+      bool negative = d->ReadUint8();
+      intptr_t bytes = d->ReadUint16();
+      intptr_t digits = (bytes + (sizeof(digit_t) - 1)) / sizeof(digit_t);
+      intptr_t full_digits = bytes / sizeof(digit_t);
+
+      LargeInteger* object = h->AllocateLargeInteger(digits);
+      object->set_negative(negative);
+      object->set_size(digits);
+
+      for (intptr_t j = 0; j < full_digits; j++) {
+        digit_t digit = 0;
+        for (intptr_t shift = 0;
+             shift < static_cast<intptr_t>(kDigitBits);
+             shift += 8) {
+          digit = digit | (d->ReadUint8() << shift);
+        }
+        object->set_digit(j, digit);
+      }
+
+      if (full_digits != digits) {
+        intptr_t leftover_bytes = bytes % sizeof(digit_t);
+        ASSERT(leftover_bytes != 0);
+        digit_t digit = 0;
+        for (intptr_t shift = 0;
+             shift < (leftover_bytes * 8);
+             shift += 8) {
+          digit = digit | (d->ReadUint8() << shift);
+        }
+        object->set_digit(digits - 1, digit);
+      }
+
+      d->RegisterRef(object);
+    }
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {
+    if (TRACE_FUEL) {
+      OS::PrintErr("Edges smi objects=%" Pd " %" Pd "\n",
+                   ref_stop_ - ref_start_, d->position());
+    }
+  }
+};
 
 Deserializer::Deserializer(Heap* heap, void* snapshot, size_t snapshot_length) :
   snapshot_(reinterpret_cast<const uint8_t*>(snapshot)),
@@ -16,8 +432,8 @@ Deserializer::Deserializer(Heap* heap, void* snapshot, size_t snapshot_length) :
   cursor_(snapshot_),
   heap_(heap),
   clusters_(NULL),
-  back_refs_(NULL),
-  next_back_ref_(0) {
+  refs_(NULL),
+  next_ref_(0) {
 }
 
 
@@ -27,7 +443,7 @@ Deserializer::~Deserializer() {
   }
 
   delete[] clusters_;
-  delete[] back_refs_;
+  delete[] refs_;
 }
 
 
@@ -60,20 +476,20 @@ void Deserializer::Deserialize() {
   if (TRACE_FUEL) {
     OS::PrintErr("num_nodes=%" Pd "\n", num_nodes);
   }
-  back_refs_ = new Object*[num_nodes + 1];  // Back refs are 1-origin.
-  next_back_ref_ = 1;
+  refs_ = new Object*[num_nodes + 1];  // Back refs are 1-origin.
+  next_ref_ = 1;
 
   for (intptr_t i = 0; i < num_clusters_; i++) {
     Cluster* c = ReadCluster();
     clusters_[i] = c;
     c->ReadNodes(this, heap_);
   }
-  ASSERT((next_back_ref_ - 1) == num_nodes);
+  ASSERT((next_ref_ - 1) == num_nodes);
   for (intptr_t i = 0; i < num_clusters_; i++) {
     clusters_[i]->ReadEdges(this, heap_);
   }
 
-  ObjectStore* os = static_cast<ObjectStore*>(ReadBackRef());
+  ObjectStore* os = static_cast<ObjectStore*>(ReadRef());
   ASSERT(position() == snapshot_length_);
 
   heap_->RegisterClass(kSmiCid, os->SmallInteger());
@@ -113,7 +529,7 @@ void Deserializer::Deserialize() {
                  "in %" Pd " us\n",
                  snapshot_length_ / KB,
                  heap_->used() / KB,
-                 next_back_ref_ - 1,
+                 next_ref_ - 1,
                  time / kNanosecondsPerMicrosecond);
   }
 
@@ -234,375 +650,6 @@ Cluster* Deserializer::ReadCluster() {
     }
     FATAL1("Unknown cluster format %" Pd "\n", format);
     return NULL;
-  }
-}
-
-
-void RegularObjectCluster::ReadNodes(Deserializer* d, Heap* h) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes format=%" Pd " objects=%" Pd " %" Pd "\n",
-                 format_, num_objects, d->position());
-  }
-
-  cid_ = h->AllocateClassId();
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    Object* object = h->AllocateRegularObject(cid_, format_);
-    d->RegisterBackRef(object);
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-}
-
-
-void RegularObjectCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges format=%" Pd " objects=%" Pd " %" Pd "\n",
-                 format_, back_ref_stop_ - back_ref_start_, d->position());
-  }
-  class_ = d->ReadBackRef();
-  h->RegisterClass(cid_, class_);
-
-  for (intptr_t i = back_ref_start_; i < back_ref_stop_; i++) {
-    RegularObject* object = static_cast<RegularObject*>(d->BackRef(i));
-    for (intptr_t j = 0; j < format_; j++) {
-      object->set_slot(j, d->ReadBackRef());
-    }
-  }
-}
-
-
-void ByteArrayCluster::ReadNodes(Deserializer* d, Heap* h) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes bytearray objects=%" Pd " %" Pd "\n",
-                 num_objects, d->position());
-  }
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    intptr_t size = d->ReadUint32();
-    ByteArray* object = h->AllocateByteArray(size);
-    for (intptr_t j = 0; j < size; j++) {
-      object->set_element(j, d->ReadUint8());
-    }
-    d->RegisterBackRef(object);
-    ASSERT(object->IsByteArray());
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-}
-
-
-void ByteArrayCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges bytearray objects=%" Pd " %" Pd "\n",
-                 back_ref_stop_ - back_ref_start_, d->position());
-  }
-}
-
-
-void ByteStringCluster::ReadNodes(Deserializer* d, Heap* h) {
-  ReadNodes(d, h, false);
-  ReadNodes(d, h, true);
-}
-
-
-void ByteStringCluster::ReadNodes(Deserializer* d, Heap* h, bool is_canonical) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes bytestring objects=%" Pd " %" Pd "\n",
-                 num_objects, d->position());
-  }
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    intptr_t size = d->ReadUint32();
-    ByteString* object = h->AllocateByteString(size);
-    ASSERT(!object->is_canonical());
-    object->set_is_canonical(is_canonical);
-    for (intptr_t j = 0; j < size; j++) {
-      object->set_element(j, d->ReadUint8());
-    }
-    d->RegisterBackRef(object);
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-}
-
-
-void ByteStringCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges bytestring objects=%" Pd " %" Pd "\n",
-                 back_ref_stop_ - back_ref_start_, d->position());
-  }
-}
-
-
-void WideStringCluster::ReadNodes(Deserializer* d, Heap* h) {
-  ReadNodes(d, h, false);
-  ReadNodes(d, h, true);
-}
-
-
-void WideStringCluster::ReadNodes(Deserializer* d, Heap* h, bool is_canonical) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes bytesymbol objects=%" Pd " %" Pd "\n",
-                 num_objects, d->position());
-  }
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    intptr_t size = d->ReadUint32();
-    WideString* object = h->AllocateWideString(size);
-    ASSERT(!object->is_canonical());
-    object->set_is_canonical(is_canonical);
-    for (intptr_t j = 0; j < size; j++) {
-      object->set_element(j, d->ReadUint32());
-    }
-    ASSERT(object->IsWideString());
-    d->RegisterBackRef(object);
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-}
-
-
-void WideStringCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges bytesymbol objects=%" Pd " %" Pd "\n",
-                 back_ref_stop_ - back_ref_start_, d->position());
-  }
-}
-
-
-void ArrayCluster::ReadNodes(Deserializer* d, Heap* h) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes array objects=%" Pd " %" Pd "\n",
-                 num_objects, d->position());
-  }
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    intptr_t size = d->ReadUint16();
-    Array* object = h->AllocateArray(size);
-    ASSERT(object->IsArray());
-    d->RegisterBackRef(object);
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-}
-
-
-void ArrayCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges array objects=%" Pd " %" Pd "\n",
-                 back_ref_stop_ - back_ref_start_, d->position());
-  }
-
-  for (intptr_t i = back_ref_start_; i < back_ref_stop_; i++) {
-    Array* object = static_cast<Array*>(d->BackRef(i));
-    ASSERT(object->IsArray());
-    intptr_t size = object->Size();
-    for (intptr_t j = 0; j < size; j++) {
-      object->set_element(j, d->ReadBackRef());
-    }
-  }
-}
-
-void WeakArrayCluster::ReadNodes(Deserializer* d, Heap* h) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes weakarray objects=%" Pd " %" Pd "\n",
-                 num_objects, d->position());
-  }
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    intptr_t size = d->ReadUint16();
-    WeakArray* object = h->AllocateWeakArray(size);
-    ASSERT(object->IsWeakArray());
-    d->RegisterBackRef(object);
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-}
-
-
-void WeakArrayCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges weakarray objects=%" Pd " %" Pd "\n",
-                 back_ref_stop_ - back_ref_start_, d->position());
-  }
-
-  for (intptr_t i = back_ref_start_; i < back_ref_stop_; i++) {
-    WeakArray* object = static_cast<WeakArray*>(d->BackRef(i));
-    ASSERT(object->IsWeakArray());
-    intptr_t size = object->Size();
-    for (intptr_t j = 0; j < size; j++) {
-      object->set_element(j, d->ReadBackRef());
-    }
-  }
-}
-
-void ClosureCluster::ReadNodes(Deserializer* d, Heap* h) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes closure objects=%" Pd " %" Pd "\n",
-                 num_objects, d->position());
-  }
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    intptr_t size = d->ReadUint16();
-    Closure* object = h->AllocateClosure(size);
-    object->set_num_copied(size);
-    ASSERT(object->IsClosure());
-    d->RegisterBackRef(object);
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-}
-
-
-void ClosureCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges closure objects=%" Pd " %" Pd "\n",
-                 back_ref_stop_ - back_ref_start_, d->position());
-  }
-
-  for (intptr_t i = back_ref_start_; i < back_ref_stop_; i++) {
-    Closure* object = Closure::Cast(d->BackRef(i));
-    ASSERT(object->IsClosure());
-
-    object->set_defining_activation(Activation::Cast(d->ReadBackRef()));
-    object->set_initial_bci(static_cast<SmallInteger*>(d->ReadBackRef()));
-    object->set_num_args(static_cast<SmallInteger*>(d->ReadBackRef()));
-
-    intptr_t size = object->num_copied();
-    for (intptr_t j = 0; j < size; j++) {
-      object->set_copied(j, d->ReadBackRef());
-    }
-  }
-}
-
-void ActivationCluster::ReadNodes(Deserializer* d, Heap* h) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes activation objects=%" Pd " %" Pd "\n",
-                 num_objects, d->position());
-  }
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    Activation* object = h->AllocateActivation();
-    d->RegisterBackRef(object);
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-}
-
-
-void ActivationCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges activation objects=%" Pd " %" Pd "\n",
-                 back_ref_stop_ - back_ref_start_, d->position());
-  }
-
-  for (intptr_t i = back_ref_start_; i < back_ref_stop_; i++) {
-    Activation* object = Activation::Cast(d->BackRef(i));
-
-    object->set_sender(Activation::Cast(d->ReadBackRef()));
-    object->set_bci(static_cast<SmallInteger*>(d->ReadBackRef()));  // nullable
-    object->set_method(Method::Cast(d->ReadBackRef()));
-    object->set_closure(Closure::Cast(d->ReadBackRef()));
-    object->set_receiver(d->ReadBackRef());
-
-    intptr_t size = d->ReadUint32();
-    if (TRACE_FUEL) OS::PrintErr(" stack %" Pd "\n", size);
-    ASSERT(size < Activation::kMaxTemps);
-    object->set_stack_depth(SmallInteger::New(size));
-
-    for (intptr_t j = 0; j < size; j++) {
-      object->set_temp(j, d->ReadBackRef());
-    }
-    for (intptr_t j = size; j < Activation::kMaxTemps; j++) {
-      object->set_temp(j, SmallInteger::New(0));
-    }
-  }
-}
-
-
-void SmallIntegerCluster::ReadNodes(Deserializer* d, Heap* h) {
-  intptr_t num_objects = d->ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("Nodes smi objects=%" Pd " %" Pd "\n",
-                 num_objects, d->position());
-  }
-
-  back_ref_start_ = d->next_back_ref();
-  back_ref_stop_ = back_ref_start_ + num_objects;
-  for (intptr_t i = 0; i < num_objects; i++) {
-    int64_t value = d->ReadInt64();
-    if (SmallInteger::IsSmiValue(value)) {
-      SmallInteger* object = SmallInteger::New(value);
-      ASSERT(object->IsSmallInteger());
-      d->RegisterBackRef(object);
-    } else {
-      MediumInteger* object = h->AllocateMediumInteger();
-      ASSERT(object->IsMediumInteger());
-      object->set_value(value);
-      d->RegisterBackRef(object);
-    }
-  }
-  ASSERT(d->next_back_ref() == back_ref_stop_);
-
-  intptr_t num_large = d->ReadUint16();
-  for (intptr_t i = 0; i < num_large; i++) {
-    bool negative = d->ReadUint8();
-    intptr_t bytes = d->ReadUint16();
-    intptr_t digits = (bytes + (sizeof(digit_t) - 1)) / sizeof(digit_t);
-    intptr_t full_digits = bytes / sizeof(digit_t);
-
-    LargeInteger* object = h->AllocateLargeInteger(digits);
-    object->set_negative(negative);
-    object->set_size(digits);
-
-    for (intptr_t j = 0; j < full_digits; j++) {
-      digit_t digit = 0;
-      for (intptr_t shift = 0;
-           shift < static_cast<intptr_t>(kDigitBits);
-           shift += 8) {
-        digit = digit | (d->ReadUint8() << shift);
-      }
-      object->set_digit(j, digit);
-    }
-
-    if (full_digits != digits) {
-      intptr_t leftover_bytes = bytes % sizeof(digit_t);
-      ASSERT(leftover_bytes != 0);
-      digit_t digit = 0;
-      for (intptr_t shift = 0;
-           shift < (leftover_bytes * 8);
-           shift += 8) {
-        digit = digit | (d->ReadUint8() << shift);
-      }
-      object->set_digit(digits - 1, digit);
-    }
-
-    d->RegisterBackRef(object);
-  }
-}
-
-
-void SmallIntegerCluster::ReadEdges(Deserializer* d, Heap* h) {
-  if (TRACE_FUEL) {
-    OS::PrintErr("Edges smi objects=%" Pd " %" Pd "\n",
-                 back_ref_stop_ - back_ref_start_, d->position());
   }
 }
 

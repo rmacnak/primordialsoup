@@ -32,18 +32,18 @@ class Deserializer : public ValueObject {
 
   Cluster* ReadCluster();
 
-  intptr_t next_back_ref() const { return next_back_ref_; }
+  intptr_t next_ref() const { return next_ref_; }
 
-  void RegisterBackRef(Object* object) {
-    back_refs_[next_back_ref_++] = object;
+  void RegisterRef(Object* object) {
+    refs_[next_ref_++] = object;
   }
-  Object* ReadBackRef() {
-    return BackRef(ReadUnsigned32());
+  Object* ReadRef() {
+    return Ref(ReadUnsigned32());
   }
-  Object* BackRef(intptr_t i) {
+  Object* Ref(intptr_t i) {
     ASSERT(i > 0);
-    ASSERT(i < next_back_ref_);
-    return back_refs_[i];
+    ASSERT(i < next_ref_);
+    return refs_[i];
   }
 
  private:
@@ -56,125 +56,8 @@ class Deserializer : public ValueObject {
   intptr_t num_clusters_;
   Cluster** clusters_;
 
-  Object** back_refs_;
-  intptr_t next_back_ref_;
-};
-
-
-class Cluster {
- public:
-  Cluster() :
-    class_(NULL),
-    back_ref_start_(0),
-    back_ref_stop_(0) {
-  }
-
-  virtual ~Cluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap) = 0;
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap) = 0;
-
- protected:
-  Object* class_;
-  intptr_t back_ref_start_;
-  intptr_t back_ref_stop_;
-};
-
-
-class RegularObjectCluster : public Cluster {
- public:
-  explicit RegularObjectCluster(intptr_t format) : format_(format), cid_(0) {}
-
-  virtual ~RegularObjectCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
-
- private:
-  intptr_t format_;
-  intptr_t cid_;
-};
-
-
-class ByteArrayCluster : public Cluster {
- public:
-  ByteArrayCluster() {}
-  virtual ~ByteArrayCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
-};
-
-
-class ByteStringCluster : public Cluster {
- public:
-  ByteStringCluster() {}
-  virtual ~ByteStringCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  void ReadNodes(Deserializer* deserializer, Heap* heap, bool is_canonical);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
-};
-
-
-class WideStringCluster : public Cluster {
- public:
-  WideStringCluster() {}
-  virtual ~WideStringCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  void ReadNodes(Deserializer* deserializer, Heap* heap, bool is_canonical);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
-};
-
-
-class ArrayCluster : public Cluster {
- public:
-  ArrayCluster() {}
-  virtual ~ArrayCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
-};
-
-
-class WeakArrayCluster : public Cluster {
- public:
-  WeakArrayCluster() {}
-  virtual ~WeakArrayCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
-};
-
-
-class ClosureCluster : public Cluster {
- public:
-  ClosureCluster() {}
-  virtual ~ClosureCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
-};
-
-
-class ActivationCluster : public Cluster {
- public:
-  ActivationCluster() {}
-  virtual ~ActivationCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
-};
-
-
-class SmallIntegerCluster : public Cluster {
- public:
-  SmallIntegerCluster() {}
-  virtual ~SmallIntegerCluster() {}
-
-  virtual void ReadNodes(Deserializer* deserializer, Heap* heap);
-  virtual void ReadEdges(Deserializer* deserializer, Heap* heap);
+  Object** refs_;
+  intptr_t next_ref_;
 };
 
 }  // namespace psoup
