@@ -39,16 +39,13 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   r = CloseHandle(file);
   ASSERT(r);
 
-  uword base = reinterpret_cast<uword>(address);
-  uword limit = base + size;
-  return VirtualMemory(base, limit);
+  return VirtualMemory(address, size);
 }
 
 
-VirtualMemory VirtualMemory::Allocate(intptr_t size,
+VirtualMemory VirtualMemory::Allocate(size_t size,
                                       Protection protection,
                                       const char* name) {
-  ASSERT(size > 0);
   DWORD prot;
   switch (protection) {
     case kNoAccess: prot = PAGE_NOACCESS; break;
@@ -64,15 +61,12 @@ VirtualMemory VirtualMemory::Allocate(intptr_t size,
     FATAL1("Failed to VirtualAlloc %" Pd " bytes\n", size);
   }
 
-  uword base = reinterpret_cast<uword>(address);
-  uword limit = base + size;
-  return VirtualMemory(base, limit);
+  return VirtualMemory(address, size);
 }
 
 
 void VirtualMemory::Free() {
-  void* address = reinterpret_cast<void*>(base_);
-  if (VirtualFree(address, 0, MEM_RELEASE) == 0) {
+  if (VirtualFree(address_, 0, MEM_RELEASE) == 0) {
     FATAL1("VirtualFree failed %d", GetLastError());
   }
 }
@@ -88,12 +82,8 @@ bool VirtualMemory::Protect(Protection protection) {
      UNREACHABLE();
      prot = 0;
   }
-  intptr_t size = limit_ - base_;
   DWORD old_prot = 0;
-  bool result = VirtualProtect(reinterpret_cast<void*>(base_),
-                               size,
-                               prot,
-                               &old_prot);
+  bool result = VirtualProtect(address_, size_, prot, &old_prot);
   return result;
 }
 

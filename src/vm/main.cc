@@ -31,8 +31,8 @@ int main(int argc, const char** argv) {
   PrimordialSoup_Shutdown();
 
   // TODO(rmacnak): File and anonymous mappings are freed differently on
-  // Windows. mmap seems to only support anonymous mappings on Fuchsia.
-#if !defined(OS_WINDOWS) && !defined(OS_FUCHSIA)
+  // Windows.
+#if !defined(OS_WINDOWS)
   snapshot.Free();
 #endif
 }

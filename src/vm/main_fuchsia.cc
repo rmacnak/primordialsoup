@@ -136,6 +136,7 @@ int main(int argc, const char** argv) {
     PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot.base()),
                               snapshot.size(), argc - 2, &argv[2]);
     signal(SIGINT, defaultSIGINT);
+    snapshot.Free();
   }
 
   PrimordialSoup_Shutdown();

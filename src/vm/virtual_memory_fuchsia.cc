@@ -7,7 +7,8 @@
 
 #include "vm/virtual_memory.h"
 
-#include <sys/stat.h>
+#include <fcntl.h>
+#include <fdio/io.h>
 #include <zircon/process.h>
 #include <zircon/status.h>
 #include <zircon/syscalls.h>
@@ -17,49 +18,40 @@
 namespace psoup {
 
 VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
-  FILE* file = fopen(filename, "r");
-  if (file == NULL) {
+  int fd = open(filename, O_RDONLY);
+  if (fd < 0) {
     FATAL1("Failed to open '%s'\n", filename);
   }
-  struct stat st;
-  if (fstat(fileno(file), &st) != 0) {
-    FATAL1("Failed to stat '%s'\n", filename);
+  zx_handle_t vmo = ZX_HANDLE_INVALID;
+  zx_status_t status = fdio_get_vmo(fd, &vmo);
+  close(fd);
+  if (status != ZX_OK) {
+    FATAL1("fdio_get_vmo() failed: %s\n", zx_status_get_string(status));
   }
-  intptr_t size = st.st_size;
-  char* buffer = reinterpret_cast<char*>(malloc(size));
-  if (buffer == 0) {
-    FATAL1("Failed to malloc %" Pd " bytes\n", size);
+  size_t size;
+  status = zx_vmo_get_size(vmo, &size);
+  if (status != ZX_OK) {
+    FATAL1("zx_vmo_get_size() failed: %s\n", zx_status_get_string(status));
   }
-
-  size_t start = 0;
-  size_t remaining = size;
-  while (remaining > 0) {
-    size_t bytes_read = fread(buffer + start, 1, remaining, file);
-    if (bytes_read == 0) {
-      FATAL1("Failed to read '%s'\n", filename);
-    }
-    start += bytes_read;
-    remaining -= bytes_read;
+  zx_handle_t vmar = zx_vmar_root_self();
+  uintptr_t addr;
+  status = zx_vmar_map(vmar, 0, vmo, 0, size, ZX_VM_FLAG_PERM_READ, &addr);
+  zx_handle_close(vmo);
+  if (status != ZX_OK) {
+    FATAL2("zx_vmar_map(%" Pd ") failed: %s\n", size,
+           zx_status_get_string(status));
   }
-
-  int result = fclose(file);
-  ASSERT(result == 0);
-
-  uword base = reinterpret_cast<uword>(buffer);
-  uword limit = base + size;
-  return VirtualMemory(base, limit, ZX_HANDLE_INVALID);
+  return VirtualMemory(reinterpret_cast<void*>(addr), size);
 }
 
 
-VirtualMemory VirtualMemory::Allocate(intptr_t size,
+VirtualMemory VirtualMemory::Allocate(size_t size,
                                       Protection protection,
                                       const char* name) {
-  ASSERT(size > 0);
   uint32_t prot;
   switch (protection) {
     case kNoAccess:
-      // ZX-426: zx_vmar_protect() requires at least one permission.
-      prot = ZX_VM_FLAG_PERM_READ;
+      prot = 0;
       break;
     case kReadOnly:
       prot = ZX_VM_FLAG_PERM_READ;
@@ -72,51 +64,36 @@ VirtualMemory VirtualMemory::Allocate(intptr_t size,
       prot = 0;
   }
 
-  zx_handle_t vmar = ZX_HANDLE_INVALID;
-  uint32_t flags = ZX_VM_FLAG_CAN_MAP_READ | ZX_VM_FLAG_CAN_MAP_WRITE;
-  uword vmar_addr = 0;
-  zx_status_t status = zx_vmar_allocate(zx_vmar_root_self(), 0, size,
-                                        flags, &vmar, &vmar_addr);
-  if (status != ZX_OK) {
-    FATAL2("zx_vmar_allocate(%" Pd ") failed: %s\n", size,
-            zx_status_get_string(status));
-  }
-
+  zx_handle_t vmar = zx_vmar_root_self();
   zx_handle_t vmo = ZX_HANDLE_INVALID;
-  status = zx_vmo_create(size, 0u, &vmo);
+  zx_status_t status = zx_vmo_create(size, 0u, &vmo);
   if (status != ZX_OK) {
     FATAL2("zx_vmo_create(%" Pd ") failed: %s\n", size,
-            zx_status_get_string(status));
+           zx_status_get_string(status));
   }
 
-  if (name != NULL) {
-    zx_object_set_property(vmo, ZX_PROP_NAME, name, strlen(name));
-  }
+  ASSERT(name != NULL);
+  zx_object_set_property(vmo, ZX_PROP_NAME, name, strlen(name));
 
-  uintptr_t vmo_addr;
-  status = zx_vmar_map(vmar, 0, vmo, 0, size, prot, &vmo_addr);
+  uintptr_t addr;
+  status = zx_vmar_map(vmar, 0, vmo, 0, size, prot, &addr);
+  zx_handle_close(vmo);
   if (status != ZX_OK) {
     FATAL2("zx_vmar_map(%" Pd ") failed: %s\n", size,
-            zx_status_get_string(status));
+           zx_status_get_string(status));
   }
-  ASSERT(vmar_addr == vmo_addr);
-  zx_handle_close(vmo);
 
-  uword base = reinterpret_cast<uword>(vmo_addr);
-  uword limit = base + size;
-  return VirtualMemory(base, limit, vmar);
+  return VirtualMemory(reinterpret_cast<void*>(addr), size);
 }
 
 
 void VirtualMemory::Free() {
-  zx_handle_t vmar = static_cast<zx_handle_t>(handle_);
-  zx_status_t status = zx_vmar_destroy(vmar);
+  zx_handle_t vmar = zx_vmar_root_self();
+  zx_status_t status = zx_vmar_unmap(vmar,
+                                     reinterpret_cast<uintptr_t>(address_),
+                                     size_);
   if (status != ZX_OK) {
-    FATAL1("zx_vmar_destroy failed: %s\n", zx_status_get_string(status));
-  }
-  status = zx_handle_close(vmar);
-  if (status != ZX_OK) {
-    FATAL1("zx_handle_close failed: %s\n", zx_status_get_string(status));
+    FATAL1("zx_vmar_unmap failed: %s\n", zx_status_get_string(status));
   }
 }
 
@@ -125,8 +102,7 @@ bool VirtualMemory::Protect(Protection protection) {
   uint32_t prot;
   switch (protection) {
     case kNoAccess:
-      // MG-426: zx_vmar_protect() requires at least one permission.
-      prot = ZX_VM_FLAG_PERM_READ;
+      prot = 0;
       break;
     case kReadOnly:
       prot = ZX_VM_FLAG_PERM_READ;
@@ -138,11 +114,10 @@ bool VirtualMemory::Protect(Protection protection) {
       UNREACHABLE();
       prot = 0;
   }
-  zx_handle_t vmar = static_cast<zx_handle_t>(handle_);
-  ASSERT(vmar != ZX_HANDLE_INVALID);
-
-  intptr_t size = limit_ - base_;
-  zx_status_t status = zx_vmar_protect(vmar, base_, size, prot);
+  zx_handle_t vmar = zx_vmar_root_self();
+  zx_status_t status = zx_vmar_protect(vmar,
+                                       reinterpret_cast<uintptr_t>(address_),
+                                       size_, prot);
   if (status != ZX_OK) {
     FATAL1("zx_vmar_protect failed: %s\n", zx_status_get_string(status));
   }

@@ -9,7 +9,6 @@
 
 #include <errno.h>
 #include <stdarg.h>
-#include <unistd.h>
 #include <zircon/syscalls.h>
 #include <zircon/types.h>
 
@@ -27,12 +26,12 @@ int64_t OS::CurrentMonotonicNanos() {
 
 
 int OS::NumberOfAvailableProcessors() {
-  return sysconf(_SC_NPROCESSORS_CONF);
+  return zx_system_get_num_cpus();
 }
 
 
 void OS::DebugBreak() {
-  UNIMPLEMENTED();
+  __builtin_trap();
 }
 
 

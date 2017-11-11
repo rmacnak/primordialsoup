@@ -34,16 +34,13 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   int result = fclose(file);
   ASSERT(result == 0);
 
-  uword base = reinterpret_cast<uword>(address);
-  uword limit = base + size;
-  return VirtualMemory(base, limit);
+  return VirtualMemory(address, size);
 }
 
 
-VirtualMemory VirtualMemory::Allocate(intptr_t size,
+VirtualMemory VirtualMemory::Allocate(size_t size,
                                       Protection protection,
                                       const char* name) {
-  ASSERT(size > 0);
   int prot;
   switch (protection) {
     case kNoAccess: prot = PROT_NONE; break;
@@ -61,17 +58,14 @@ VirtualMemory VirtualMemory::Allocate(intptr_t size,
     FATAL1("Failed to mmap %" Pd " bytes\n", size);
   }
 
-  uword base = reinterpret_cast<uword>(address);
-  uword limit = base + size;
-  return VirtualMemory(base, limit);
+  return VirtualMemory(address, size);
 }
 
 
 void VirtualMemory::Free() {
-  intptr_t size = limit_ - base_;
-  int result = munmap(reinterpret_cast<void*>(base_), size);
+  int result = munmap(address_, size_);
   if (result != 0) {
-    FATAL1("Failed to munmap %" Pd " bytes\n", size);
+    FATAL1("Failed to munmap %" Pd " bytes\n", size_);
   }
 }
 
@@ -87,8 +81,7 @@ bool VirtualMemory::Protect(Protection protection) {
      prot = 0;
   }
 
-  intptr_t size = limit_ - base_;
-  int result = mprotect(reinterpret_cast<void*>(base_), size, prot);
+  int result = mprotect(address_, size_, prot);
   return result == 0;
 }
 

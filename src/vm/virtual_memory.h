@@ -18,25 +18,24 @@ class VirtualMemory {
   };
 
   static VirtualMemory MapReadOnly(const char* filename);
-  static VirtualMemory Allocate(intptr_t size,
+  static VirtualMemory Allocate(size_t size,
                                 Protection protection,
                                 const char* name);
   void Free();
   bool Protect(Protection protection);
 
-  uword base() const { return base_; }
-  uword limit() const { return limit_; }
-  intptr_t size() const { return limit_ - base_; }
+  uword base() const { return reinterpret_cast<uword>(address_); }
+  uword limit() const { return base() + size(); }
+  size_t size() const { return size_; }
 
-  VirtualMemory() : base_(0), limit_(0), handle_(0) { }
+  VirtualMemory() : address_(0), size_(0) { }
 
  private:
-  VirtualMemory(uword base, uword limit, int32_t handle = 0)
-     : base_(base), limit_(limit), handle_(handle) { }
+  VirtualMemory(void* address, size_t size)
+      : address_(address), size_(size) { }
 
-  uword base_;
-  uword limit_;
-  int32_t handle_;
+  void* address_;
+  size_t size_;
 };
 
 }  // namespace psoup

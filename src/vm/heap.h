@@ -24,7 +24,7 @@ class Semispace {
  private:
   friend class Heap;
 
-  void Allocate(intptr_t size) {
+  void Allocate(size_t size) {
     memory_ = VirtualMemory::Allocate(size,
                                       VirtualMemory::kReadWrite,
                                       "primordialsoup-heap");
@@ -40,7 +40,7 @@ class Semispace {
     memory_.Free();
   }
 
-  intptr_t size() const { return memory_.size(); }
+  size_t size() const { return memory_.size(); }
   uword base() const { return memory_.base(); }
   uword limit() const { return memory_.limit(); }
   uword object_start() const {
@@ -92,7 +92,7 @@ class Heap {
     return Utils::RoundUp(size, kObjectAlignment);
   }
 
-  intptr_t used() const { return top_ - to_.object_start(); }
+  size_t used() const { return top_ - to_.object_start(); }
 
   RegularObject* AllocateRegularObject(intptr_t cid, intptr_t num_slots) {
     ASSERT(cid == kEphemeronCid || cid >= kFirstRegularObjectCid);
