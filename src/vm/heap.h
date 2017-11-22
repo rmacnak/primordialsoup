@@ -20,6 +20,18 @@ class Heap;
 class LookupCache;
 class Isolate;
 
+// Note that these values are odd, so they will not hide as SmallIntegers.
+// These values are not well-formed objects.
+#if defined(ARCH_IS_64_BIT)
+static const uword kUnallocatedWord = 0xabababababababab;
+static const uword kUninitializedWord = 0xcbcbcbcbcbcbcbcb;
+#else
+static const uword kUnallocatedWord = 0xabababab;
+static const uword kUninitializedWord = 0xcbcbcbcb;
+#endif
+static const uint8_t kUnallocatedByte = 0xab;
+static const uint8_t kUninitializedByte = 0xcb;
+
 class Semispace {
  private:
   friend class Heap;
@@ -28,17 +40,14 @@ class Semispace {
     memory_ = VirtualMemory::Allocate(size,
                                       VirtualMemory::kReadWrite,
                                       "primordialsoup-heap");
-
     ASSERT(Utils::IsAligned(memory_.base(), kObjectAlignment));
     ASSERT(memory_.size() == size);
 #if defined(DEBUG)
-    Zap();
+    MarkUnallocated();
 #endif
   }
 
-  void Free() {
-    memory_.Free();
-  }
+  void Free() { memory_.Free(); }
 
   size_t size() const { return memory_.size(); }
   uword base() const { return memory_.base(); }
@@ -47,19 +56,12 @@ class Semispace {
     return memory_.base() + kNewObjectAlignmentOffset;
   }
 
-  void Zap() const {
-    // Note this value is odd, so it will not hide as a SmallInteger.
-    const uint8_t kZapByte = 0xab;
-    memset(reinterpret_cast<void*>(memory_.base()), kZapByte, size());
+  void MarkUnallocated() const {
+    memset(reinterpret_cast<void*>(base()), kUnallocatedByte, size());
   }
 
-  void ReadWrite() {
-    memory_.Protect(VirtualMemory::kReadWrite);
-  }
-
-  void NoAccess() {
-    memory_.Protect(VirtualMemory::kNoAccess);
-  }
+  void ReadWrite() { memory_.Protect(VirtualMemory::kReadWrite); }
+  void NoAccess() { memory_.Protect(VirtualMemory::kNoAccess); }
 
   Semispace() : memory_() { }
 
@@ -73,13 +75,6 @@ class Semispace {
 // Languages, Programming, Systems, and Applications. 1997.
 class Heap {
  public:
-  // Note that these values are odd, so they will not hide as SmallIntegers.
-#if defined(ARCH_IS_64_BIT)
-  static const uword kZapWord = 0xabababababababab;
-#else
-  static const uword kZapWord = 0xabababab;
-#endif
-  static const uint8_t kAllocUninitByte = 0xcd;
   static const intptr_t kInitialSemispaceSize = sizeof(uword) * MB;
   static const intptr_t kMaxSemispaceSize = 16 * sizeof(uword) * MB;
   static const intptr_t kMaxHandles = 8;
@@ -87,8 +82,7 @@ class Heap {
   Heap(Isolate* isolate, int64_t seed);
   ~Heap();
 
-  // TODO(rmacnak): use the one on Object.
-  intptr_t AllocationSize(intptr_t size) {
+  static intptr_t AllocationSize(intptr_t size) {
     return Utils::RoundUp(size, kObjectAlignment);
   }
 
@@ -276,9 +270,10 @@ class Heap {
   bool BecomeForward(Array* old, Array* neu);
 
   intptr_t AllocateClassId();
-  void RegisterClass(intptr_t cid, Object* cls) {
-    ASSERT(class_table_[cid] == reinterpret_cast<Object*>(kZapWord));
+  void RegisterClass(intptr_t cid, Behavior* cls) {
+    ASSERT(class_table_[cid] == reinterpret_cast<Object*>(kUninitializedWord));
     class_table_[cid] = cls;
+    cls->set_id(SmallInteger::New(cid));
     cls->AssertCouldBeBehavior();
     ASSERT(cls->cid() >= kFirstRegularObjectCid);
   }
@@ -354,13 +349,14 @@ class Heap {
   }
   uword Allocate(intptr_t size);
 
-  bool InFromSpace(uword addr) {
-    return (addr >= from_.base()) && (addr < from_.limit());
+#if defined(DEBUG)
+  bool InFromSpace(Object* obj) {
+    return (obj->Addr() >= from_.base()) && (obj->Addr() < from_.limit());
   }
-
-  bool InToSpace(uword addr) {
-    return (addr >= to_.base()) && (addr < to_.limit());
+  bool InToSpace(Object* obj) {
+    return (obj->Addr() >= to_.base()) && (obj->Addr() < to_.limit());
   }
+#endif
 
   uword top_;
   uword end_;

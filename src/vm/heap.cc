@@ -40,9 +40,11 @@ Heap::Heap(Isolate* isolate, int64_t seed) :
   // Class table.
   class_table_capacity_ = 1024;
   class_table_ = new Object*[class_table_capacity_];
-  for (intptr_t i = 0; i < kFirstRegularObjectCid; i++) {
-    class_table_[i] = reinterpret_cast<Object*>(kZapWord);
+#if defined(DEBUG)
+  for (intptr_t i = 0; i < class_table_capacity_; i++) {
+    class_table_[i] = reinterpret_cast<Object*>(kUninitializedWord);
   }
+#endif
   class_table_top_ = kFirstRegularObjectCid;
 }
 
@@ -69,7 +71,7 @@ uword Heap::Allocate(intptr_t size) {
     }
   }
 #if defined(DEBUG)
-  memset(reinterpret_cast<void*>(raw), Heap::kAllocUninitByte, size);
+  memset(reinterpret_cast<void*>(raw), kUninitializedByte, size);
 #endif
   return raw;
 }
@@ -132,7 +134,7 @@ void Heap::Scavenge() {
 #endif
 
 #ifdef DEBUG
-  from_.Zap();
+  from_.MarkUnallocated();
   from_.NoAccess();
 #endif
 
@@ -282,7 +284,7 @@ intptr_t Heap::AllocateClassId() {
     cid = class_table_top_;
     class_table_top_++;
   }
-  class_table_[cid] = reinterpret_cast<Object*>(kZapWord);
+  class_table_[cid] = reinterpret_cast<Object*>(kUninitializedWord);
   return cid;
 }
 
@@ -349,13 +351,12 @@ void Heap::MournClassTable() {
     }
 
     uword old_target_addr = old_target->Addr();
-    ASSERT(InFromSpace(old_target_addr));
+    DEBUG_ASSERT(InFromSpace(old_target));
 
     Object* new_target;
     if (IsForwarded(old_target_addr)) {
       new_target = ForwardingTarget(old_target_addr);
-      uword new_target_addr = new_target->Addr();
-      ASSERT(InToSpace(new_target_addr));
+      DEBUG_ASSERT(InToSpace(new_target));
     } else {
       new_target = SmallInteger::New(class_table_free_);
       class_table_free_ = i;
@@ -375,7 +376,7 @@ void Heap::ScavengePointer(Object** ptr) {
   }
 
   uword old_target_addr = old_target->Addr();
-  ASSERT(InFromSpace(old_target_addr));
+  DEBUG_ASSERT(InFromSpace(old_target));
 
   Object* new_target;
   if (IsForwarded(old_target_addr)) {
@@ -393,15 +394,14 @@ void Heap::ScavengePointer(Object** ptr) {
     new_target = Object::FromAddr(new_target_addr);
   }
 
-  uword new_target_addr = new_target->Addr();
-  ASSERT(InToSpace(new_target_addr));
+  DEBUG_ASSERT(InToSpace(new_target));
 
   *ptr = new_target;
 }
 
 
 void Heap::AddToEphemeronList(Ephemeron* survivor) {
-  ASSERT(InToSpace(survivor->Addr()));
+  DEBUG_ASSERT(InToSpace(survivor));
   survivor->set_next(ephemeron_list_);
   ephemeron_list_ = survivor;
 }
@@ -437,7 +437,7 @@ void Heap::MournEphemeronList() {
   while (survivor != NULL) {
     ASSERT(survivor->IsEphemeron());
 
-    ASSERT(InFromSpace(survivor->key()->Addr()));
+    DEBUG_ASSERT(InFromSpace(survivor->key()));
     survivor->set_key(nil);
     survivor->set_value(nil);
     // TODO(rmacnak): Put the finalizer on a queue for the event loop
@@ -451,7 +451,7 @@ void Heap::MournEphemeronList() {
 
 
 void Heap::AddToWeakList(WeakArray* survivor) {
-  ASSERT(InToSpace(survivor->Addr()));
+  DEBUG_ASSERT(InToSpace(survivor));
   survivor->set_next(weak_list_);
   weak_list_ = survivor;
 }
@@ -484,7 +484,7 @@ void Heap::MournWeakPointer(Object** ptr) {
   }
 
   uword old_target_addr = old_target->Addr();
-  ASSERT(InFromSpace(old_target_addr));
+  DEBUG_ASSERT(InFromSpace(old_target));
 
   Object* new_target;
   if (IsForwarded(old_target_addr)) {
@@ -494,8 +494,7 @@ void Heap::MournWeakPointer(Object** ptr) {
     new_target = object_store()->nil_obj();
   }
 
-  uword new_target_addr = new_target->Addr();
-  ASSERT(InToSpace(new_target_addr));
+  DEBUG_ASSERT(InToSpace(new_target));
 
   *ptr = new_target;
 }
@@ -513,7 +512,7 @@ void Heap::ScavengeClass(intptr_t cid) {
   }
 
   uword old_target_addr = old_target->Addr();
-  ASSERT(InFromSpace(old_target_addr));
+  DEBUG_ASSERT(InFromSpace(old_target));
 
   if (IsForwarded(old_target_addr)) {
     // Already scavenged.

@@ -286,10 +286,6 @@ class Object {
   intptr_t HeapSizeFromClass();
   void Pointers(Object*** from, Object*** to);
 
-  static intptr_t AllocationSize(intptr_t size) {
-    return Utils::RoundUp(size, kObjectAlignment);
-  }
-
   const char* ToCString(Heap* heap);
   void Print(Heap* heap);
 

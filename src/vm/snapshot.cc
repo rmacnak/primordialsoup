@@ -52,7 +52,7 @@ class RegularObjectCluster : public Cluster {
                    format_, ref_stop_ - ref_start_, d->position());
     }
     Object* cls = d->ReadRef();
-    h->RegisterClass(cid_, cls);
+    h->RegisterClass(cid_, static_cast<Behavior*>(cls));
 
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
       RegularObject* object = static_cast<RegularObject*>(d->Ref(i));
@@ -504,19 +504,6 @@ void Deserializer::Deserialize() {
   heap_->RegisterClass(kEphemeronCid, os->Ephemeron());
   heap_->RegisterClass(kActivationCid, os->Activation());
   heap_->RegisterClass(kClosureCid, os->Closure());
-
-  heap_->ClassAt(kSmiCid)->set_id(SmallInteger::New(kSmiCid));
-  heap_->ClassAt(kMintCid)->set_id(SmallInteger::New(kMintCid));
-  heap_->ClassAt(kBigintCid)->set_id(SmallInteger::New(kBigintCid));
-  heap_->ClassAt(kFloat64Cid)->set_id(SmallInteger::New(kFloat64Cid));
-  heap_->ClassAt(kByteArrayCid)->set_id(SmallInteger::New(kByteArrayCid));
-  heap_->ClassAt(kByteStringCid)->set_id(SmallInteger::New(kByteStringCid));
-  heap_->ClassAt(kWideStringCid)->set_id(SmallInteger::New(kWideStringCid));
-  heap_->ClassAt(kArrayCid)->set_id(SmallInteger::New(kArrayCid));
-  heap_->ClassAt(kWeakArrayCid)->set_id(SmallInteger::New(kWeakArrayCid));
-  heap_->ClassAt(kEphemeronCid)->set_id(SmallInteger::New(kEphemeronCid));
-  heap_->ClassAt(kActivationCid)->set_id(SmallInteger::New(kActivationCid));
-  heap_->ClassAt(kClosureCid)->set_id(SmallInteger::New(kClosureCid));
 
   heap_->InitializeRoot(os);
 

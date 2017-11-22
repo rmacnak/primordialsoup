@@ -22,34 +22,34 @@ intptr_t Object::HeapSizeFromClass() {
   case kSmiCid:
     UNREACHABLE();
   case kMintCid:
-    return AllocationSize(sizeof(MediumInteger));
+    return Heap::AllocationSize(sizeof(MediumInteger));
   case kFloat64Cid:
-    return AllocationSize(sizeof(Float64));
+    return Heap::AllocationSize(sizeof(Float64));
   case kBigintCid:
-    return AllocationSize(sizeof(LargeInteger) +
+    return Heap::AllocationSize(sizeof(LargeInteger) +
         sizeof(digit_t) * LargeInteger::Cast(this)->capacity());
   case kByteArrayCid:
-    return AllocationSize(sizeof(ByteArray) +
-                          sizeof(uint8_t) * ByteArray::Cast(this)->Size());
+    return Heap::AllocationSize(sizeof(ByteArray) +
+        sizeof(uint8_t) * ByteArray::Cast(this)->Size());
   case kByteStringCid:
-    return AllocationSize(sizeof(ByteString) +
-                          sizeof(uint8_t) * ByteString::Cast(this)->Size());
+    return Heap::AllocationSize(sizeof(ByteString) +
+        sizeof(uint8_t) * ByteString::Cast(this)->Size());
   case kWideStringCid:
-    return AllocationSize(sizeof(WideString) +
-                          sizeof(uint32_t) * WideString::Cast(this)->Size());
+    return Heap::AllocationSize(sizeof(WideString) +
+        sizeof(uint32_t) * WideString::Cast(this)->Size());
   case kArrayCid:
-    return AllocationSize(sizeof(Array) +
-                          sizeof(Object*) * Array::Cast(this)->Size());
+    return Heap::AllocationSize(sizeof(Array) +
+        sizeof(Object*) * Array::Cast(this)->Size());
   case kWeakArrayCid:
-    return AllocationSize(sizeof(WeakArray) +
-                          sizeof(Object*) * WeakArray::Cast(this)->Size());
+    return Heap::AllocationSize(sizeof(WeakArray) +
+        sizeof(Object*) * WeakArray::Cast(this)->Size());
   case kEphemeronCid:
-    return AllocationSize(sizeof(Ephemeron));
+    return Heap::AllocationSize(sizeof(Ephemeron));
   case kActivationCid:
-    return AllocationSize(sizeof(Activation));
+    return Heap::AllocationSize(sizeof(Activation));
   case kClosureCid:
-    return AllocationSize(sizeof(Closure) +
-                          sizeof(Object*) * Closure::Cast(this)->num_copied());
+    return Heap::AllocationSize(sizeof(Closure) +
+        sizeof(Object*) * Closure::Cast(this)->num_copied());
   default:
     UNREACHABLE();
     // Need to get num slots from class.
