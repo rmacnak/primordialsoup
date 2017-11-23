@@ -3030,7 +3030,7 @@ DEFINE_PRIMITIVE(spawn) {
     uint8_t* data = reinterpret_cast<uint8_t*>(malloc(length));
     memcpy(data, message->element_addr(0), length);
 
-    H->isolate()->Spawn(data, length);
+    H->isolate()->Spawn(new IsolateMessage(ILLEGAL_PORT, data, length));
 
     A->Drop(num_args);
     return kSuccess;

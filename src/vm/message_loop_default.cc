@@ -75,11 +75,6 @@ IsolateMessage* DefaultMessageLoop::WaitMessage() {
 
 void DefaultMessageLoop::Run() {
   while (running_) {
-    if ((open_ports_ == 0) && (wakeup_ == 0)) {
-      running_ = false;
-      break;
-    }
-
     IsolateMessage* message = WaitMessage();
     if (!running_) {
       if (message != NULL) {
@@ -91,6 +86,10 @@ void DefaultMessageLoop::Run() {
       DispatchWakeup();
     } else {
       DispatchMessage(message);
+    }
+
+    if ((open_ports_ == 0) && (wakeup_ == 0)) {
+      running_ = false;
     }
   }
 

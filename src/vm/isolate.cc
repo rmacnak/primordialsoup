@@ -117,42 +117,38 @@ Isolate::~Isolate() {
 }
 
 
-void Isolate::InitWithStringArray(int argc, const char** argv) {
-  Array* message = heap_->AllocateArray(argc);  // SAFEPOINT
-  for (intptr_t i = 0; i < argc; i++) {
-    message->set_element(i, SmallInteger::New(0));
-  }
-
-  {
-    HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
+void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
+  Object* message;
+  if (isolate_message->data() != NULL) {
+    intptr_t length = isolate_message->length();
+    ByteArray* bytes = heap_->AllocateByteArray(length);  // SAFEPOINT
+    memcpy(bytes->element_addr(0), isolate_message->data(), length);
+    message = bytes;
+  } else {
+    int argc = isolate_message->argc();
+    Array* strings = heap_->AllocateArray(argc);  // SAFEPOINT
     for (intptr_t i = 0; i < argc; i++) {
-      const char* cstr = argv[i];
-      intptr_t len = strlen(cstr);
-      ByteString* string = heap_->AllocateByteString(len);  // SAFEPOINT
-      memcpy(string->element_addr(0), cstr, len);
-      message->set_element(i, string);
+      strings->set_element(i, SmallInteger::New(0));
     }
+
+    {
+      HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
+      for (intptr_t i = 0; i < argc; i++) {
+        const char* cstr = isolate_message->argv()[i];
+        intptr_t len = strlen(cstr);
+        ByteString* string = heap_->AllocateByteString(len);  // SAFEPOINT
+        memcpy(string->element_addr(0), cstr, len);
+        strings->set_element(i, string);
+      }
+    }
+    message = strings;
   }
 
-  InitMessage(message, heap_->object_store()->nil_obj());
-}
-
-
-void Isolate::InitWithByteArray(const uint8_t* data, intptr_t length) {
-  ByteArray* message = heap_->AllocateByteArray(length);  // SAFEPOINT
-  memcpy(message->element_addr(0), data, length);
-
-  InitMessage(message, heap_->object_store()->nil_obj());
-}
-
-
-void Isolate::InitWithByteArray(const uint8_t* data, intptr_t length,
-                                Port port_id) {
-  ByteArray* message = heap_->AllocateByteArray(length);  // SAFEPOINT
-  memcpy(message->element_addr(0), data, length);
-
+  Port port_id = isolate_message->dest_port();
   Object* port;
-  if (SmallInteger::IsSmiValue(port_id)) {
+  if (port_id == ILLEGAL_PORT) {
+    port = heap_->object_store()->nil_obj();
+  } else if (SmallInteger::IsSmiValue(port_id)) {
     port = SmallInteger::New(port_id);
   } else {
     HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
@@ -161,17 +157,17 @@ void Isolate::InitWithByteArray(const uint8_t* data, intptr_t length,
     port = mint;
   }
 
-  InitMessage(message, port);
+  Activate(message, port);
 }
 
 
-void Isolate::InitWakeup() {
+void Isolate::ActivateWakeup() {
   Object* nil = heap_->object_store()->nil_obj();
-  InitMessage(nil, nil);
+  Activate(nil, nil);
 }
 
 
-void Isolate::InitMessage(Object* message, Object* port) {
+void Isolate::Activate(Object* message, Object* port) {
   Scheduler* scheduler = heap_->object_store()->scheduler();
 
   Behavior* cls = scheduler->Klass(heap_);
@@ -215,40 +211,32 @@ class SpawnIsolateTask : public ThreadPool::Task {
  public:
   SpawnIsolateTask(void* snapshot,
                    size_t snapshot_length,
-                   uint8_t* message,
-                   intptr_t message_length) :
+                   IsolateMessage* initial_message) :
     snapshot_(snapshot),
     snapshot_length_(snapshot_length),
-    message_(message),
-    message_length_(message_length) {
+    initial_message_(initial_message) {
   }
 
   virtual void Run() {
     Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_);
-
-    child_isolate->InitWithByteArray(message_, message_length_);
-    free(message_);
-    message_ = NULL;
-    message_length_ = 0;
-    child_isolate->Interpret();
+    child_isolate->loop()->PostMessage(initial_message_);
+    initial_message_ = NULL;
     child_isolate->loop()->Run();
-
     delete child_isolate;
   }
 
  private:
   void* snapshot_;
   size_t snapshot_length_;
-  uint8_t* message_;
-  intptr_t message_length_;
+  IsolateMessage* initial_message_;
 
   DISALLOW_COPY_AND_ASSIGN(SpawnIsolateTask);
 };
 
 
-void Isolate::Spawn(uint8_t* message, intptr_t message_length) {
+void Isolate::Spawn(IsolateMessage* initial_message) {
   thread_pool_->Run(new SpawnIsolateTask(snapshot_, snapshot_length_,
-                                         message, message_length));
+                                         initial_message));
 }
 
 }  // namespace psoup

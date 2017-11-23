@@ -15,14 +15,13 @@ MessageLoop::MessageLoop(Isolate* isolate)
 MessageLoop::~MessageLoop() {}
 
 void MessageLoop::DispatchMessage(IsolateMessage* message) {
-  isolate_->InitWithByteArray(message->data(), message->length(),
-                              message->dest_port());
+  isolate_->ActivateMessage(message);
   delete message;
   isolate_->Interpret();
 }
 
 void MessageLoop::DispatchWakeup() {
-  isolate_->InitWakeup();
+  isolate_->ActivateWakeup();
   isolate_->Interpret();
 }
 

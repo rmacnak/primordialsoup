@@ -37,8 +37,8 @@ PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(void* snapshot,
                                               int argc,
                                               const char** argv) {
   psoup::Isolate* isolate = new psoup::Isolate(snapshot, snapshot_length);
-  isolate->InitWithStringArray(argc, argv);
-  isolate->Interpret();
+  isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,
+                                                         argc, argv));
   isolate->loop()->Run();
   delete isolate;
 }

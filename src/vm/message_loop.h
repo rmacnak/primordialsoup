@@ -14,13 +14,21 @@ class Isolate;
 class IsolateMessage {
  public:
   IsolateMessage(Port dest, uint8_t* data, intptr_t length)
-      : next_(NULL), dest_(dest), data_(data), length_(length) {}
+      : next_(NULL), dest_(dest),
+        data_(data), length_(length),
+        argv_(NULL), argc_(0) {}
+  IsolateMessage(Port dest, int argc, const char** argv)
+      : next_(NULL), dest_(dest),
+        data_(NULL), length_(0),
+        argv_(argv), argc_(argc) {}
 
   ~IsolateMessage() { free(data_); }
 
   Port dest_port() const { return dest_; }
   uint8_t* data() const { return data_; }
   intptr_t length() const { return length_; }
+  int argc() const { return argc_; }
+  const char** argv() const { return argv_; }
 
  private:
   friend class MessageLoop;
@@ -29,8 +37,10 @@ class IsolateMessage {
 
   IsolateMessage* next_;
   Port dest_;
-  uint8_t* data_;
+  uint8_t* data_;  // Owned by message.
   intptr_t length_;
+  const char** argv_;  // Not owned by message.
+  int argc_;
 
   DISALLOW_COPY_AND_ASSIGN(IsolateMessage);
 };

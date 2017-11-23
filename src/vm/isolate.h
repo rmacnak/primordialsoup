@@ -25,17 +25,12 @@ class Isolate {
 
   MessageLoop* loop() const { return loop_; }
 
-  // Create the initial activation from either the command line arguments or
-  // spawn message.
-  void InitWithStringArray(int argc, const char** argv);
-  void InitWithByteArray(const uint8_t* message, intptr_t message_length);
-  void InitWithByteArray(const uint8_t* message, intptr_t message_length,
-                         Port port);
-  void InitWakeup();
+  void ActivateMessage(IsolateMessage* message);
+  void ActivateWakeup();
 
   void Interpret();
 
-  void Spawn(uint8_t* message, intptr_t message_length);
+  void Spawn(IsolateMessage* initial_message);
 
   static void Startup();
   static void Shutdown();
@@ -45,7 +40,7 @@ class Isolate {
   void PrintStack();
 
  private:
-  void InitMessage(Object* message, Object* port);
+  void Activate(Object* message, Object* port);
 
   Heap* heap_;
   Interpreter* interpreter_;
