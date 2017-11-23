@@ -70,7 +70,7 @@ class MessageLoop {
 
 }  // namespace psoup
 
-#if defined(TARGET_OS_FUCHSIA)
+#if defined(OS_FUCHSIA)
 #include "vm/message_loop_fuchsia.h"
 #else
 #include "vm/message_loop_default.h"

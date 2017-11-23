@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"  // NOLINT
-#if defined(TARGET_OS_FUCHSIA)
+#if defined(OS_FUCHSIA)
 
 #include "vm/message_loop.h"
 
@@ -18,7 +18,8 @@ FuchsiaMessageLoop::FuchsiaMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
       loop_(fsl::MessageLoop::GetCurrent()),
       timer_(ZX_HANDLE_INVALID) {
-  zx_status_t result = zx_timer_create(0, ZX_CLOCK_MONOTONIC, &timer_);
+  zx_status_t result = zx_timer_create(ZX_TIMER_SLACK_LATE, ZX_CLOCK_MONOTONIC,
+                                       &timer_);
   ASSERT(result == ZX_OK);
   loop_->AddHandler(this, timer_, ZX_TIMER_SIGNALED);
 }
@@ -38,7 +39,7 @@ intptr_t FuchsiaMessageLoop::AwaitSignal(intptr_t handle,
   // This is probably a straggler from the conversion.
   int64_t timeout = deadline - OS::CurrentMonotonicNanos();
   return loop_->AddHandler(this, handle, signals,
-                           ftl::TimeDelta::FromNanoseconds(timeout));
+                           fxl::TimeDelta::FromNanoseconds(timeout));
 }
 
 void FuchsiaMessageLoop::OnHandleReady(zx_handle_t handle,
@@ -64,7 +65,8 @@ void FuchsiaMessageLoop::AdjustWakeup(int64_t new_wakeup_nanos) {
     zx_status_t result = zx_timer_cancel(timer_);
     ASSERT(result == ZX_OK);
   } else {
-    zx_status_t result = zx_timer_start(timer_, new_wakeup_nanos, 0, 0);
+    zx_duration_t slack = ZX_MSEC(1);
+    zx_status_t result = zx_timer_set(timer_, new_wakeup_nanos, slack);
     ASSERT(result == ZX_OK);
   }
 }
@@ -87,4 +89,4 @@ void FuchsiaMessageLoop::Interrupt() {
 
 }  // namespace psoup
 
-#endif  // defined(TARGET_OS_FUCHSIA)
+#endif  // defined(OS_FUCHSIA)

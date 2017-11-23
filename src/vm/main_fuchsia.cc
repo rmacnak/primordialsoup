@@ -30,10 +30,9 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
       binding_.set_connection_error_handler([this] { Kill(); });
     }
 
-    zx::vmo& snapshot_vmo = application->data;
+    zx::vmo& snapshot_vmo = application->data->vmo;
+    size_t snapshot_size = application->data->size;
     uintptr_t snapshot = 0;
-    size_t snapshot_size = 0;
-    snapshot_vmo.get_size(&snapshot_size);
     zx::vmar::root_self().map(0, snapshot_vmo, 0, snapshot_size,
                               ZX_VM_FLAG_PERM_READ, &snapshot);
 
