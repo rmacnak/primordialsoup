@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Target OS detection.
+// OS detection.
 // for more information on predefined macros:
 //   - http://msdn.microsoft.com/en-us/library/b0084kay.aspx
 //   - with gcc, run: "echo | gcc -E -dM -"
@@ -37,7 +37,7 @@
 #elif defined(__Fuchsia__)
 #define OS_FUCHSIA 1
 #else
-#error Automatic target os detection failed.
+#error Automatic OS detection failed.
 #endif
 
 
@@ -177,7 +177,7 @@ public:                                                                        \
     abort();                                                                   \
   }                                                                            \
 private:                                                                       \
-  void* operator new(size_t size);
+  void* operator new(size_t size)
 #endif  // !defined(DISALLOW_ALLOCATION)
 
 

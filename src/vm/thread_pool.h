@@ -6,7 +6,7 @@
 #define VM_THREAD_POOL_H_
 
 #include "vm/globals.h"
-#include "vm/os_thread.h"
+#include "vm/thread.h"
 
 namespace psoup {
 
@@ -109,7 +109,6 @@ class ThreadPool {
     DISALLOW_COPY_AND_ASSIGN(JoinList);
   };
 
-  friend class PrimordialSoup;  // For Shutdown.
   void Shutdown();
 
   // Expensive.  Use only in assertions.

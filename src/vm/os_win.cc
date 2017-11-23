@@ -12,11 +12,11 @@
 #include <time.h>
 
 #include "vm/assert.h"
-#include "vm/os_thread.h"
+#include "vm/thread.h"
 
 namespace psoup {
 
-// Defined in vm/os_thread_win.cc
+// Defined in vm/thread_win.cc
 extern bool private_flag_windows_run_tls_destructors;
 
 

@@ -5,7 +5,7 @@
 #include "vm/globals.h"  // NOLINT
 #if defined(OS_LINUX)
 
-#include "vm/os_thread.h"
+#include "vm/thread.h"
 
 #include <errno.h>         // NOLINT
 #include <sys/resource.h>  // NOLINT
@@ -53,17 +53,17 @@ namespace psoup {
 class ThreadStartData {
  public:
   ThreadStartData(const char* name,
-                  OSThread::ThreadStartFunction function,
+                  Thread::ThreadStartFunction function,
                   uword parameter)
       : name_(name), function_(function), parameter_(parameter) {}
 
   const char* name() const { return name_; }
-  OSThread::ThreadStartFunction function() const { return function_; }
+  Thread::ThreadStartFunction function() const { return function_; }
   uword parameter() const { return parameter_; }
 
  private:
   const char* name_;
-  OSThread::ThreadStartFunction function_;
+  Thread::ThreadStartFunction function_;
   uword parameter_;
 
   DISALLOW_COPY_AND_ASSIGN(ThreadStartData);
@@ -77,27 +77,25 @@ static void* ThreadStart(void* data_ptr) {
   ThreadStartData* data = reinterpret_cast<ThreadStartData*>(data_ptr);
 
   const char* name = data->name();
-  OSThread::ThreadStartFunction function = data->function();
+  Thread::ThreadStartFunction function = data->function();
   uword parameter = data->parameter();
   delete data;
 
-  // Create new OSThread object and set as TLS for new thread.
-  OSThread* thread = OSThread::CreateOSThread();
-  if (thread != NULL) {
-    OSThread::SetCurrent(thread);
-    thread->set_name(name);
+  // Create new Thread object and set as TLS for new thread.
+  Thread* thread = new Thread();
+  Thread::SetCurrent(thread);
+  thread->set_name(name);
 
-    // Call the supplied thread start function handing it its parameters.
-    function(parameter);
-  }
+  // Call the supplied thread start function handing it its parameters.
+  function(parameter);
 
   return NULL;
 }
 
 
-int OSThread::Start(const char* name,
-                    ThreadStartFunction function,
-                    uword parameter) {
+int Thread::Start(const char* name,
+                  ThreadStartFunction function,
+                  uword parameter) {
   pthread_attr_t attr;
   int result = pthread_attr_init(&attr);
   RETURN_ON_PTHREAD_FAILURE(result);
@@ -115,12 +113,12 @@ int OSThread::Start(const char* name,
 }
 
 
-const ThreadId OSThread::kInvalidThreadId = static_cast<ThreadId>(0);
-const ThreadJoinId OSThread::kInvalidThreadJoinId =
+const ThreadId Thread::kInvalidThreadId = static_cast<ThreadId>(0);
+const ThreadJoinId Thread::kInvalidThreadJoinId =
     static_cast<ThreadJoinId>(0);
 
 
-ThreadLocalKey OSThread::CreateThreadLocal(ThreadDestructor destructor) {
+ThreadLocalKey Thread::CreateThreadLocal(ThreadDestructor destructor) {
   pthread_key_t key = kUnsetThreadLocalKey;
   int result = pthread_key_create(&key, destructor);
   VALIDATE_PTHREAD_RESULT(result);
@@ -129,31 +127,31 @@ ThreadLocalKey OSThread::CreateThreadLocal(ThreadDestructor destructor) {
 }
 
 
-void OSThread::DeleteThreadLocal(ThreadLocalKey key) {
+void Thread::DeleteThreadLocal(ThreadLocalKey key) {
   ASSERT(key != kUnsetThreadLocalKey);
   int result = pthread_key_delete(key);
   VALIDATE_PTHREAD_RESULT(result);
 }
 
 
-void OSThread::SetThreadLocal(ThreadLocalKey key, uword value) {
+void Thread::SetThreadLocal(ThreadLocalKey key, uword value) {
   ASSERT(key != kUnsetThreadLocalKey);
   int result = pthread_setspecific(key, reinterpret_cast<void*>(value));
   VALIDATE_PTHREAD_RESULT(result);
 }
 
 
-ThreadId OSThread::GetCurrentThreadId() {
+ThreadId Thread::GetCurrentThreadId() {
   return pthread_self();
 }
 
 
-ThreadId OSThread::GetCurrentThreadTraceId() {
+ThreadId Thread::GetCurrentThreadTraceId() {
   return syscall(__NR_gettid);
 }
 
 
-ThreadJoinId OSThread::GetCurrentThreadJoinId(OSThread* thread) {
+ThreadJoinId Thread::GetCurrentThreadJoinId(Thread* thread) {
   ASSERT(thread != NULL);
   // Make sure we're filling in the join id for the current thread.
   ASSERT(thread->id() == GetCurrentThreadId());
@@ -167,24 +165,24 @@ ThreadJoinId OSThread::GetCurrentThreadJoinId(OSThread* thread) {
 }
 
 
-void OSThread::Join(ThreadJoinId id) {
+void Thread::Join(ThreadJoinId id) {
   int result = pthread_join(id, NULL);
   ASSERT(result == 0);
 }
 
 
-intptr_t OSThread::ThreadIdToIntPtr(ThreadId id) {
+intptr_t Thread::ThreadIdToIntPtr(ThreadId id) {
   ASSERT(sizeof(id) == sizeof(intptr_t));
   return static_cast<intptr_t>(id);
 }
 
 
-ThreadId OSThread::ThreadIdFromIntPtr(intptr_t id) {
+ThreadId Thread::ThreadIdFromIntPtr(intptr_t id) {
   return static_cast<ThreadId>(id);
 }
 
 
-bool OSThread::Compare(ThreadId a, ThreadId b) {
+bool Thread::Compare(ThreadId a, ThreadId b) {
   return pthread_equal(a, b) != 0;
 }
 
@@ -208,7 +206,7 @@ Mutex::Mutex() {
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  owner_ = OSThread::kInvalidThreadId;
+  owner_ = Thread::kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
 
@@ -220,7 +218,7 @@ Mutex::~Mutex() {
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
+  ASSERT(owner_ == Thread::kInvalidThreadId);
 #endif  // defined(DEBUG)
 }
 
@@ -230,10 +228,7 @@ void Mutex::Lock() {
   // Specifically check for dead lock to help debugging.
   ASSERT(result != EDEADLK);
   ASSERT_PTHREAD_SUCCESS(result);  // Verify no other errors.
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  owner_ = OSThread::GetCurrentThreadId();
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
 }
 
 
@@ -244,20 +239,13 @@ bool Mutex::TryLock() {
     return false;
   }
   ASSERT_PTHREAD_SUCCESS(result);  // Verify no other errors.
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  owner_ = OSThread::GetCurrentThreadId();
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
   return true;
 }
 
 
 void Mutex::Unlock() {
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
-  owner_ = OSThread::kInvalidThreadId;
-#endif  // defined(DEBUG)
+  CheckHeldAndUnmark();
   int result = pthread_mutex_unlock(data_.mutex());
   // Specifically check for wrong thread unlocking to aid debugging.
   ASSERT(result != EPERM);
@@ -296,7 +284,7 @@ Monitor::Monitor() {
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  owner_ = OSThread::kInvalidThreadId;
+  owner_ = Thread::kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
 
@@ -304,7 +292,7 @@ Monitor::Monitor() {
 Monitor::~Monitor() {
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
+  ASSERT(owner_ == Thread::kInvalidThreadId);
 #endif  // defined(DEBUG)
 
   int result = pthread_mutex_destroy(data_.mutex());
@@ -322,11 +310,7 @@ bool Monitor::TryEnter() {
     return false;
   }
   ASSERT_PTHREAD_SUCCESS(result);  // Verify no other errors.
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
-  owner_ = OSThread::GetCurrentThreadId();
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
   return true;
 }
 
@@ -334,55 +318,27 @@ bool Monitor::TryEnter() {
 void Monitor::Enter() {
   int result = pthread_mutex_lock(data_.mutex());
   VALIDATE_PTHREAD_RESULT(result);
-
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
-  owner_ = OSThread::GetCurrentThreadId();
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
 }
 
 
 void Monitor::Exit() {
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
-  owner_ = OSThread::kInvalidThreadId;
-#endif  // defined(DEBUG)
-
+  CheckHeldAndUnmark();
   int result = pthread_mutex_unlock(data_.mutex());
   VALIDATE_PTHREAD_RESULT(result);
 }
 
 
 void Monitor::Wait() {
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
-  ThreadId saved_owner = owner_;
-  owner_ = OSThread::kInvalidThreadId;
-#endif  // defined(DEBUG)
-
-  // Wait forever.
+  CheckHeldAndUnmark();
   int result = pthread_cond_wait(data_.cond(), data_.mutex());
   VALIDATE_PTHREAD_RESULT(result);
-
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
-  owner_ = OSThread::GetCurrentThreadId();
-  ASSERT(owner_ == saved_owner);
-#endif  // define
+  CheckUnheldAndMark();
 }
 
 
 Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
-  ThreadId saved_owner = owner_;
-  owner_ = OSThread::kInvalidThreadId;
-#endif  // defined(DEBUG)
+  CheckHeldAndUnmark();
 
   Monitor::WaitResult retval = kNotified;
   struct timespec ts;
@@ -400,19 +356,14 @@ Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
     retval = kTimedOut;
   }
 
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
-  owner_ = OSThread::GetCurrentThreadId();
-  ASSERT(owner_ == saved_owner);
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
   return retval;
 }
 
 
 void Monitor::Notify() {
   // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
+  DEBUG_ASSERT(IsOwnedByCurrentThread());
   int result = pthread_cond_signal(data_.cond());
   VALIDATE_PTHREAD_RESULT(result);
 }
@@ -420,7 +371,7 @@ void Monitor::Notify() {
 
 void Monitor::NotifyAll() {
   // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
+  DEBUG_ASSERT(IsOwnedByCurrentThread());
   int result = pthread_cond_broadcast(data_.cond());
   VALIDATE_PTHREAD_RESULT(result);
 }

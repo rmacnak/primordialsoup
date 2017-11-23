@@ -8,7 +8,7 @@
 #include "vm/assert.h"
 #include "vm/lockers.h"
 #include "vm/os.h"
-#include "vm/os_thread.h"
+#include "vm/thread.h"
 
 #include <process.h>  // NOLINT
 
@@ -21,17 +21,17 @@ bool private_flag_windows_run_tls_destructors = true;
 class ThreadStartData {
  public:
   ThreadStartData(const char* name,
-                  OSThread::ThreadStartFunction function,
+                  Thread::ThreadStartFunction function,
                   uword parameter)
       : name_(name), function_(function), parameter_(parameter) {}
 
   const char* name() const { return name_; }
-  OSThread::ThreadStartFunction function() const { return function_; }
+  Thread::ThreadStartFunction function() const { return function_; }
   uword parameter() const { return parameter_; }
 
  private:
   const char* name_;
-  OSThread::ThreadStartFunction function_;
+  Thread::ThreadStartFunction function_;
   uword parameter_;
 
   DISALLOW_COPY_AND_ASSIGN(ThreadStartData);
@@ -45,27 +45,25 @@ static unsigned int __stdcall ThreadEntry(void* data_ptr) {
   ThreadStartData* data = reinterpret_cast<ThreadStartData*>(data_ptr);
 
   const char* name = data->name();
-  OSThread::ThreadStartFunction function = data->function();
+  Thread::ThreadStartFunction function = data->function();
   uword parameter = data->parameter();
   delete data;
 
-  // Create new OSThread object and set as TLS for new thread.
-  OSThread* thread = OSThread::CreateOSThread();
-  if (thread != NULL) {
-    OSThread::SetCurrent(thread);
-    thread->set_name(name);
+  // Create new Thread object and set as TLS for new thread.
+  Thread* thread = new Thread();
+  Thread::SetCurrent(thread);
+  thread->set_name(name);
 
-    // Call the supplied thread start function handing it its parameters.
-    function(parameter);
-  }
+  // Call the supplied thread start function handing it its parameters.
+  function(parameter);
 
   return 0;
 }
 
 
-int OSThread::Start(const char* name,
-                    ThreadStartFunction function,
-                    uword parameter) {
+int Thread::Start(const char* name,
+                  ThreadStartFunction function,
+                  uword parameter) {
   ThreadStartData* start_data = new ThreadStartData(name, function, parameter);
   uint32_t tid;
   uintptr_t thread = _beginthreadex(NULL, 0,
@@ -84,11 +82,11 @@ int OSThread::Start(const char* name,
 }
 
 
-const ThreadId OSThread::kInvalidThreadId = 0;
-const ThreadJoinId OSThread::kInvalidThreadJoinId = NULL;
+const ThreadId Thread::kInvalidThreadId = 0;
+const ThreadJoinId Thread::kInvalidThreadJoinId = NULL;
 
 
-ThreadLocalKey OSThread::CreateThreadLocal(ThreadDestructor destructor) {
+ThreadLocalKey Thread::CreateThreadLocal(ThreadDestructor destructor) {
   ThreadLocalKey key = TlsAlloc();
   if (key == kUnsetThreadLocalKey) {
     FATAL1("TlsAlloc failed %d", GetLastError());
@@ -98,7 +96,7 @@ ThreadLocalKey OSThread::CreateThreadLocal(ThreadDestructor destructor) {
 }
 
 
-void OSThread::DeleteThreadLocal(ThreadLocalKey key) {
+void Thread::DeleteThreadLocal(ThreadLocalKey key) {
   ASSERT(key != kUnsetThreadLocalKey);
   BOOL result = TlsFree(key);
   if (!result) {
@@ -108,17 +106,17 @@ void OSThread::DeleteThreadLocal(ThreadLocalKey key) {
 }
 
 
-ThreadId OSThread::GetCurrentThreadId() {
+ThreadId Thread::GetCurrentThreadId() {
   return ::GetCurrentThreadId();
 }
 
 
-ThreadId OSThread::GetCurrentThreadTraceId() {
+ThreadId Thread::GetCurrentThreadTraceId() {
   return ::GetCurrentThreadId();
 }
 
 
-ThreadJoinId OSThread::GetCurrentThreadJoinId(OSThread* thread) {
+ThreadJoinId Thread::GetCurrentThreadJoinId(Thread* thread) {
   ASSERT(thread != NULL);
   // Make sure we're filling in the join id for the current thread.
   ThreadId id = GetCurrentThreadId();
@@ -134,7 +132,7 @@ ThreadJoinId OSThread::GetCurrentThreadJoinId(OSThread* thread) {
 }
 
 
-void OSThread::Join(ThreadJoinId id) {
+void Thread::Join(ThreadJoinId id) {
   HANDLE handle = static_cast<HANDLE>(id);
   ASSERT(handle != NULL);
   DWORD res = WaitForSingleObject(handle, INFINITE);
@@ -143,23 +141,23 @@ void OSThread::Join(ThreadJoinId id) {
 }
 
 
-intptr_t OSThread::ThreadIdToIntPtr(ThreadId id) {
+intptr_t Thread::ThreadIdToIntPtr(ThreadId id) {
   ASSERT(sizeof(id) <= sizeof(intptr_t));
   return static_cast<intptr_t>(id);
 }
 
 
-ThreadId OSThread::ThreadIdFromIntPtr(intptr_t id) {
+ThreadId Thread::ThreadIdFromIntPtr(intptr_t id) {
   return static_cast<ThreadId>(id);
 }
 
 
-bool OSThread::Compare(ThreadId a, ThreadId b) {
+bool Thread::Compare(ThreadId a, ThreadId b) {
   return a == b;
 }
 
 
-void OSThread::SetThreadLocal(ThreadLocalKey key, uword value) {
+void Thread::SetThreadLocal(ThreadLocalKey key, uword value) {
   ASSERT(key != kUnsetThreadLocalKey);
   BOOL result = TlsSetValue(key, reinterpret_cast<void*>(value));
   if (!result) {
@@ -172,7 +170,7 @@ Mutex::Mutex() {
   InitializeSRWLock(&data_.lock_);
 #if defined(DEBUG)
   // When running with assertions enabled we do track the owner.
-  owner_ = OSThread::kInvalidThreadId;
+  owner_ = Thread::kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
 
@@ -180,26 +178,20 @@ Mutex::Mutex() {
 Mutex::~Mutex() {
 #if defined(DEBUG)
   // When running with assertions enabled we do track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
+  ASSERT(owner_ == Thread::kInvalidThreadId);
 #endif  // defined(DEBUG)
 }
 
 
 void Mutex::Lock() {
   AcquireSRWLockExclusive(&data_.lock_);
-#if defined(DEBUG)
-  // When running with assertions enabled we do track the owner.
-  owner_ = OSThread::GetCurrentThreadId();
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
 }
 
 
 bool Mutex::TryLock() {
   if (TryAcquireSRWLockExclusive(&data_.lock_)) {
-#if defined(DEBUG)
-    // When running with assertions enabled we do track the owner.
-    owner_ = OSThread::GetCurrentThreadId();
-#endif  // defined(DEBUG)
+    CheckUnheldAndMark();
     return true;
   }
   return false;
@@ -207,11 +199,7 @@ bool Mutex::TryLock() {
 
 
 void Mutex::Unlock() {
-#if defined(DEBUG)
-  // When running with assertions enabled we do track the owner.
-  ASSERT(IsOwnedByCurrentThread());
-  owner_ = OSThread::kInvalidThreadId;
-#endif  // defined(DEBUG)
+  CheckHeldAndUnmark();
   ReleaseSRWLockExclusive(&data_.lock_);
 }
 
@@ -222,7 +210,7 @@ Monitor::Monitor() {
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  owner_ = OSThread::kInvalidThreadId;
+  owner_ = Thread::kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
 
@@ -230,18 +218,14 @@ Monitor::Monitor() {
 Monitor::~Monitor() {
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
+  ASSERT(owner_ == Thread::kInvalidThreadId);
 #endif  // defined(DEBUG)
 }
 
 
 bool Monitor::TryEnter() {
   if (TryAcquireSRWLockExclusive(&data_.lock_)) {
-#if defined(DEBUG)
-    // When running with assertions enabled we do track the owner.
-    ASSERT(owner_ == OSThread::kInvalidThreadId);
-    owner_ = OSThread::GetCurrentThreadId();
-#endif  // defined(DEBUG)
+    CheckUnheldAndMark();
     return true;
   }
   return false;
@@ -250,42 +234,20 @@ bool Monitor::TryEnter() {
 
 void Monitor::Enter() {
   AcquireSRWLockExclusive(&data_.lock_);
-
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
-  owner_ = OSThread::GetCurrentThreadId();
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
 }
 
 
 void Monitor::Exit() {
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
-  owner_ = OSThread::kInvalidThreadId;
-#endif  // defined(DEBUG)
-
+  CheckHeldAndUnmark();
   ReleaseSRWLockExclusive(&data_.lock_);
 }
 
 
 void Monitor::Wait() {
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
-  ThreadId saved_owner = owner_;
-  owner_ = OSThread::kInvalidThreadId;
-#endif  // defined(DEBUG)
-
+  CheckHeldAndUnmark();
   SleepConditionVariableSRW(&data_.cond_, &data_.lock_, INFINITE, 0);
-
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
-  owner_ = OSThread::GetCurrentThreadId();
-  ASSERT(owner_ == saved_owner);
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
 }
 
 
@@ -297,12 +259,7 @@ Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
 
   int64_t millis = (deadline - now) / kNanosecondsPerMillisecond;
 
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
-  ThreadId saved_owner = owner_;
-  owner_ = OSThread::kInvalidThreadId;
-#endif  // defined(DEBUG)
+  CheckHeldAndUnmark();
 
   Monitor::WaitResult retval = kNotified;
   // Wait for the given period of time for a Notify or a NotifyAll
@@ -312,26 +269,21 @@ Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
     retval = kTimedOut;
   }
 
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == OSThread::kInvalidThreadId);
-  owner_ = OSThread::GetCurrentThreadId();
-  ASSERT(owner_ == saved_owner);
-#endif  // defined(DEBUG)
+  CheckUnheldAndMark();
   return retval;
 }
 
 
 void Monitor::Notify() {
   // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
+  DEBUG_ASSERT(IsOwnedByCurrentThread());
   WakeConditionVariable(&data_.cond_);
 }
 
 
 void Monitor::NotifyAll() {
   // When running with assertions enabled we track the owner.
-  ASSERT(IsOwnedByCurrentThread());
+  DEBUG_ASSERT(IsOwnedByCurrentThread());
   WakeAllConditionVariable(&data_.cond_);
 }
 
@@ -387,7 +339,7 @@ void ThreadLocalData::RunDestructors() {
   for (intptr_t i = 0; i < thread_locals_->length(); i++) {
     const ThreadLocalEntry& entry = thread_locals_->At(i);
     // We access the exiting thread's TLS variable here.
-    void* p = reinterpret_cast<void*>(OSThread::GetThreadLocal(entry.key()));
+    void* p = reinterpret_cast<void*>(Thread::GetThreadLocal(entry.key()));
     // We invoke the constructor here.
     entry.destructor()(p);
   }

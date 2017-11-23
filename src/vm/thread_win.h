@@ -2,11 +2,11 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-#ifndef VM_OS_THREAD_WIN_H_
-#define VM_OS_THREAD_WIN_H_
+#ifndef VM_THREAD_WIN_H_
+#define VM_THREAD_WIN_H_
 
-#if !defined(VM_OS_THREAD_H_)
-#error Do not include os_thread_win.h directly; use os_thread.h instead.
+#if !defined(VM_THREAD_H_)
+#error Do not include thread_win.h directly; use thread.h instead.
 #endif
 
 #include "vm/assert.h"
@@ -32,7 +32,7 @@ class ThreadInlineImpl {
     return reinterpret_cast<uword>(TlsGetValue(key));
   }
 
-  friend class OSThread;
+  friend class Thread;
   friend unsigned int __stdcall ThreadEntry(void* data_ptr);
 
   DISALLOW_ALLOCATION();
@@ -108,9 +108,9 @@ class ThreadLocalData : public AllStatic {
   static void Shutdown();
 
   friend class OS;
-  friend class OSThread;
+  friend class Thread;
 };
 
 }  // namespace psoup
 
-#endif  // VM_OS_THREAD_WIN_H_
+#endif  // VM_THREAD_WIN_H_

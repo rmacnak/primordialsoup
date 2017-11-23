@@ -75,7 +75,7 @@ class Utils {
 #elif defined(OS_WINDOWS)
 #include "vm/utils_win.h"
 #else
-#error Unknown target os.
+#error Unknown OS.
 #endif
 
 #endif  // VM_UTILS_H_

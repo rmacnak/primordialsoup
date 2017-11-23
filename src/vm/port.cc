@@ -6,11 +6,11 @@
 
 #include "vm/flags.h"
 #include "vm/lockers.h"
-#include "vm/os.h"
-#include "vm/os_thread.h"
-#include "vm/random.h"
-#include "vm/utils.h"
 #include "vm/message_loop.h"
+#include "vm/os.h"
+#include "vm/random.h"
+#include "vm/thread.h"
+#include "vm/utils.h"
 
 namespace psoup {
 
@@ -136,10 +136,6 @@ Port PortMap::CreatePort(MessageLoop* loop) {
   // Increment number of used slots and grow if necessary.
   used_++;
   MaintainInvariants();
-
-  if (TRACE_ISOLATES) {
-    OS::PrintErr("Opening port: %" Pd64 "\n", entry.port);
-  }
 
   return entry.port;
 }

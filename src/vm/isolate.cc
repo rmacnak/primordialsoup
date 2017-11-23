@@ -8,8 +8,8 @@
 #include "vm/interpreter.h"
 #include "vm/lockers.h"
 #include "vm/message_loop.h"
-#include "vm/os_thread.h"
 #include "vm/snapshot.h"
+#include "vm/thread.h"
 #include "vm/thread_pool.h"
 
 namespace psoup {
@@ -224,10 +224,6 @@ class SpawnIsolateTask : public ThreadPool::Task {
   }
 
   virtual void Run() {
-    if (TRACE_ISOLATES) {
-      intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
-      OS::PrintErr("Starting isolate on thread %" Pd "\n", id);
-    }
     Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_);
 
     child_isolate->InitWithByteArray(message_, message_length_);
@@ -237,10 +233,6 @@ class SpawnIsolateTask : public ThreadPool::Task {
     child_isolate->Interpret();
     child_isolate->loop()->Run();
 
-    if (TRACE_ISOLATES) {
-      intptr_t id = OSThread::ThreadIdToIntPtr(OSThread::Current()->trace_id());
-      OS::PrintErr("Finishing isolate on thread %" Pd "\n", id);
-    }
     delete child_isolate;
   }
 

@@ -98,9 +98,9 @@ void ThreadPool::Shutdown() {
 
     // First tell all the workers to shut down.
     Worker* current = saved;
-    OSThread* os_thread = OSThread::Current();
-    ASSERT(os_thread != NULL);
-    ThreadId id = os_thread->id();
+    Thread* thread = Thread::Current();
+    ASSERT(thread != NULL);
+    ThreadId id = thread->id();
     while (current != NULL) {
       Worker* next = current->all_next_;
       ThreadId currentId = current->id();
@@ -206,7 +206,7 @@ bool ThreadPool::RemoveWorkerFromAllList(Worker* worker) {
 
 
 void ThreadPool::SetIdleLocked(Worker* worker) {
-  ASSERT(mutex_.IsOwnedByCurrentThread());
+  DEBUG_ASSERT(mutex_.IsOwnedByCurrentThread());
   ASSERT(worker->owned_ && !IsIdle(worker));
   worker->idle_next_ = idle_workers_;
   idle_workers_ = worker;
@@ -259,9 +259,9 @@ bool ThreadPool::ReleaseIdleWorker(Worker* worker) {
 
   // The thread for worker will exit. Add its ThreadId to the join_list_
   // so that we can join on it at the next opportunity.
-  OSThread* os_thread = OSThread::Current();
-  ASSERT(os_thread != NULL);
-  ThreadJoinId join_id = OSThread::GetCurrentThreadJoinId(os_thread);
+  Thread* thread = Thread::Current();
+  ASSERT(thread != NULL);
+  ThreadJoinId join_id = Thread::GetCurrentThreadJoinId(thread);
   JoinList::AddLocked(join_id, &join_list_);
   count_stopped_++;
   count_idle_--;
@@ -271,7 +271,7 @@ bool ThreadPool::ReleaseIdleWorker(Worker* worker) {
 
 // Only call while holding the exit_monitor_
 void ThreadPool::AddWorkerToShutdownList(Worker* worker) {
-  ASSERT(exit_monitor_.IsOwnedByCurrentThread());
+  DEBUG_ASSERT(exit_monitor_.IsOwnedByCurrentThread());
   worker->shutdown_next_ = shutting_down_workers_;
   shutting_down_workers_ = worker;
 }
@@ -281,7 +281,7 @@ void ThreadPool::AddWorkerToShutdownList(Worker* worker) {
 bool ThreadPool::RemoveWorkerFromShutdownList(Worker* worker) {
   ASSERT(worker != NULL);
   ASSERT(shutting_down_workers_ != NULL);
-  ASSERT(exit_monitor_.IsOwnedByCurrentThread());
+  DEBUG_ASSERT(exit_monitor_.IsOwnedByCurrentThread());
 
   // Special case head of list.
   if (shutting_down_workers_ == worker) {
@@ -311,7 +311,7 @@ void ThreadPool::JoinList::Join(JoinList** list) {
   while (*list != NULL) {
     JoinList* current = *list;
     *list = current->next();
-    OSThread::Join(current->id());
+    Thread::Join(current->id());
     delete current;
   }
 }
@@ -326,7 +326,7 @@ ThreadPool::Task::~Task() {}
 ThreadPool::Worker::Worker(ThreadPool* pool)
     : pool_(pool),
       task_(NULL),
-      id_(OSThread::kInvalidThreadId),
+      id_(Thread::kInvalidThreadId),
       done_(false),
       owned_(false),
       all_next_(NULL),
@@ -348,8 +348,8 @@ void ThreadPool::Worker::StartThread() {
     ASSERT(task_ != NULL);
   }
 #endif
-  int result = OSThread::Start("Dart ThreadPool Worker", &Worker::Main,
-                               reinterpret_cast<uword>(this));
+  int result = Thread::Start("Dart ThreadPool Worker", &Worker::Main,
+                             reinterpret_cast<uword>(this));
   if (result != 0) {
     FATAL1("Could not start worker thread: result = %d.", result);
   }
@@ -418,9 +418,9 @@ void ThreadPool::Worker::Shutdown() {
 // static
 void ThreadPool::Worker::Main(uword args) {
   Worker* worker = reinterpret_cast<Worker*>(args);
-  OSThread* os_thread = OSThread::Current();
-  ASSERT(os_thread != NULL);
-  ThreadId id = os_thread->id();
+  Thread* thread = Thread::Current();
+  ASSERT(thread != NULL);
+  ThreadId id = thread->id();
   ThreadPool* pool;
 
   {
@@ -441,7 +441,7 @@ void ThreadPool::Worker::Main(uword args) {
     // Inform the thread pool that we are exiting. We remove this worker from
     // shutting_down_workers_ list because there will be no need for the
     // ThreadPool to take action for this worker.
-    ThreadJoinId join_id = OSThread::GetCurrentThreadJoinId(os_thread);
+    ThreadJoinId join_id = Thread::GetCurrentThreadJoinId(thread);
     {
       MutexLocker ml(&pool->mutex_);
       JoinList::AddLocked(join_id, &pool->join_list_);
@@ -452,7 +452,7 @@ void ThreadPool::Worker::Main(uword args) {
 #if defined(DEBUG)
     {
       MonitorLocker ml(&worker->monitor_);
-      worker->id_ = OSThread::kInvalidThreadId;
+      worker->id_ = Thread::kInvalidThreadId;
     }
 #endif
 

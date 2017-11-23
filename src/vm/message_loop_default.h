@@ -11,7 +11,7 @@
 #endif
 
 #include "vm/message_loop.h"
-#include "vm/os_thread.h"
+#include "vm/thread.h"
 
 namespace psoup {
 
