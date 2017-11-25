@@ -79,7 +79,7 @@ class Heap {
   static const intptr_t kMaxSemispaceSize = 16 * sizeof(uword) * MB;
   static const intptr_t kMaxHandles = 8;
 
-  Heap(Isolate* isolate, int64_t seed);
+  Heap(Isolate* isolate, uint64_t seed);
   ~Heap();
 
   static intptr_t AllocationSize(intptr_t size) {
@@ -296,20 +296,16 @@ class Heap {
     lookup_cache_ = cache;
   }
 
-  Activation* activation() const {
-    ASSERT(current_activation_->IsActivation());
-    return static_cast<Activation*>(current_activation_);
-  }
-  void set_activation(Activation* a) {
-    current_activation_ = a;
-  }
-  ObjectStore* object_store() const {
-    return object_store_;
+  ObjectStore* object_store() const { return object_store_; }
+  Activation* activation() const { return current_activation_; }
+  void set_activation(Activation* new_activation) {
+    ASSERT(new_activation->IsActivation());
+    current_activation_ = new_activation;
   }
 
   Isolate* isolate() const { return isolate_; }
 
-  intptr_t string_hash_salt() { return string_hash_salt_; }
+  uintptr_t string_hash_salt() { return string_hash_salt_; }
   uint64_t NextIdentityHash() { return identity_hash_random_.NextUInt64(); }
 
   void DropHandles() {
@@ -331,6 +327,8 @@ class Heap {
   void AddToWeakList(WeakArray* weak_corpse);
   void MournWeakList();
   void MournWeakPointer(Object** ptr);
+
+  void ClearCaches();
 
   void ForwardRoots();
   void ForwardClassTable();
@@ -372,7 +370,7 @@ class Heap {
   intptr_t class_table_free_;
 
   ObjectStore* object_store_;
-  Object* current_activation_;
+  Activation* current_activation_;
 
 #if RECYCLE_ACTIVATIONS
   Activation* recycle_list_;
@@ -383,7 +381,7 @@ class Heap {
   intptr_t handles_top_;
   friend class HandleScope;
 
-  intptr_t string_hash_salt_;
+  uintptr_t string_hash_salt_;
   Random identity_hash_random_;
 
   Isolate* isolate_;

@@ -8,7 +8,7 @@
 
 namespace psoup {
 
-Heap::Heap(Isolate* isolate, int64_t seed) :
+Heap::Heap(Isolate* isolate, uint64_t seed) :
     top_(0),
     end_(0),
     to_(),
@@ -29,7 +29,7 @@ Heap::Heap(Isolate* isolate, int64_t seed) :
 #endif
     handles_(),
     handles_top_(0),
-    string_hash_salt_(seed),
+    string_hash_salt_(static_cast<uintptr_t>(seed)),
     identity_hash_random_(seed),
     isolate_(isolate) {
   to_.Allocate(kInitialSemispaceSize);
@@ -41,8 +41,11 @@ Heap::Heap(Isolate* isolate, int64_t seed) :
   class_table_capacity_ = 1024;
   class_table_ = new Object*[class_table_capacity_];
 #if defined(DEBUG)
-  for (intptr_t i = 0; i < class_table_capacity_; i++) {
+  for (intptr_t i = 0; i < kFirstRegularObjectCid; i++) {
     class_table_[i] = reinterpret_cast<Object*>(kUninitializedWord);
+  }
+  for (intptr_t i = kFirstRegularObjectCid; i < class_table_capacity_; i++) {
+    class_table_[i] = reinterpret_cast<Object*>(kUnallocatedWord);
   }
 #endif
   class_table_top_ = kFirstRegularObjectCid;
@@ -97,16 +100,15 @@ void Heap::Grow(intptr_t size_requested, const char* reason) {
 
 
 void Heap::Scavenge() {
+#if REPORT_GC
   int64_t start = OS::CurrentMonotonicNanos();
   intptr_t size_before = used();
-
-  if (REPORT_GC) {
-    OS::PrintErr("Begin scavenge (%" Pd "kB used)\n", size_before / KB);
-  }
+  OS::PrintErr("Begin scavenge (%" Pd "kB used)\n", size_before / KB);
+#endif
 
   FlipSpaces();
 
-#ifdef DEBUG
+#if defined(DEBUG)
   to_.ReadWrite();
 #endif
 
@@ -123,29 +125,21 @@ void Heap::Scavenge() {
   MournWeakList();
   MournClassTable();
 
-#if LOOKUP_CACHE
-  if (lookup_cache_ != NULL) {
-    // TODO(rmacnak): null only from deserialization scavenge?
-    lookup_cache_->Clear();
-  }
-#endif
-#if RECYCLE_ACTIVATIONS
-  recycle_list_ = NULL;
-#endif
+  ClearCaches();
 
-#ifdef DEBUG
+#if defined(DEBUG)
   from_.MarkUnallocated();
   from_.NoAccess();
 #endif
 
+#if REPORT_GC
   intptr_t size_after = used();
   int64_t stop = OS::CurrentMonotonicNanos();
-  intptr_t time = stop - start;
-  if (REPORT_GC) {
-    OS::PrintErr("End scavenge (%" Pd "kB used, %" Pd "kB freed, %" Pd " us)\n",
-                 size_after / KB, (size_before - size_after) / KB,
-                 time / kNanosecondsPerMicrosecond);
-  }
+  int64_t time = stop - start;
+  OS::PrintErr("End scavenge (%" Pd "kB used, %" Pd "kB freed, %" Pd64 " us)\n",
+               size_after / KB, (size_before - size_after) / KB,
+               time / kNanosecondsPerMicrosecond);
+#endif
 
   if (used() > (7 * to_.size() / 8)) {
     // Grow before actually filling up the current capacity to avoid
@@ -202,7 +196,7 @@ static void ForwardPointer(Object** ptr) {
 
 void Heap::ProcessRoots() {
   ScavengePointer(reinterpret_cast<Object**>(&object_store_));
-  ScavengePointer(&current_activation_);
+  ScavengePointer(reinterpret_cast<Object**>(&current_activation_));
 
   for (intptr_t i = 0; i < handles_top_; i++) {
     ScavengePointer(handles_[i]);
@@ -212,7 +206,7 @@ void Heap::ProcessRoots() {
 
 void Heap::ForwardRoots() {
   ForwardPointer(reinterpret_cast<Object**>(&object_store_));
-  ForwardPointer(&current_activation_);
+  ForwardPointer(reinterpret_cast<Object**>(&current_activation_));
 
   for (intptr_t i = 0; i < handles_top_; i++) {
     ForwardPointer(handles_[i]);
@@ -266,7 +260,7 @@ intptr_t Heap::AllocateClassId() {
   if (class_table_free_ != 0) {
     cid = class_table_free_;
     class_table_free_ =
-      static_cast<SmallInteger*>(class_table_[cid])->value();
+        static_cast<SmallInteger*>(class_table_[cid])->value();
   } else if (class_table_top_ == class_table_capacity_) {
     if (TRACE_GROWTH) {
       OS::PrintErr("Scavenging to free class table entries\n");
@@ -275,7 +269,7 @@ intptr_t Heap::AllocateClassId() {
     if (class_table_free_ != 0) {
       cid = class_table_free_;
       class_table_free_ =
-        static_cast<SmallInteger*>(class_table_[cid])->value();
+          static_cast<SmallInteger*>(class_table_[cid])->value();
     } else {
       FATAL("Class table growth unimplemented");
       cid = -1;
@@ -284,7 +278,9 @@ intptr_t Heap::AllocateClassId() {
     cid = class_table_top_;
     class_table_top_++;
   }
+#if defined(DEBUG)
   class_table_[cid] = reinterpret_cast<Object*>(kUninitializedWord);
+#endif
   return cid;
 }
 
@@ -434,6 +430,7 @@ void Heap::ProcessEphemeronList() {
 void Heap::MournEphemeronList() {
   Object* nil = object_store()->nil_obj();
   Ephemeron* survivor = ephemeron_list_;
+  ephemeron_list_ = NULL;
   while (survivor != NULL) {
     ASSERT(survivor->IsEphemeron());
 
@@ -446,7 +443,6 @@ void Heap::MournEphemeronList() {
 
     survivor = survivor->next();
   }
-  ephemeron_list_ = NULL;
 }
 
 
@@ -459,6 +455,7 @@ void Heap::AddToWeakList(WeakArray* survivor) {
 
 void Heap::MournWeakList() {
   WeakArray* survivor = weak_list_;
+  weak_list_ = NULL;
   while (survivor != NULL) {
     ASSERT(survivor->IsWeakArray());
 
@@ -471,7 +468,6 @@ void Heap::MournWeakList() {
 
     survivor = survivor->next();
   }
-  weak_list_ = NULL;
 }
 
 
@@ -527,6 +523,16 @@ void Heap::ScavengeClass(intptr_t cid) {
          reinterpret_cast<void*>(old_target_addr),
          size);
   SetForwarded(old_target_addr, new_target_addr);
+}
+
+
+void Heap::ClearCaches() {
+#if LOOKUP_CACHE
+  lookup_cache_->Clear();
+#endif
+#if RECYCLE_ACTIVATIONS
+  recycle_list_ = NULL;
+#endif
 }
 
 
@@ -606,12 +612,7 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
   ForwardToSpace();  // Using old class table.
   ForwardClassTable();
 
-#if LOOKUP_CACHE
-  lookup_cache_->Clear();
-#endif
-#if RECYCLE_ACTIVATIONS
-  recycle_list_ = NULL;
-#endif
+  ClearCaches();
 
   return true;
 }

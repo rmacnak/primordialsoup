@@ -98,12 +98,12 @@ Isolate::Isolate(void* snapshot, size_t snapshot_length) :
     snapshot_length_(snapshot_length),
     next_(NULL) {
   heap_ = new Heap(this, OS::CurrentMonotonicNanos());
+  interpreter_ = new Interpreter(heap_, this);
+  loop_ = new PlatformMessageLoop(this);
   {
     Deserializer deserializer(heap_, snapshot, snapshot_length);
     deserializer.Deserialize();
   }
-  interpreter_ = new Interpreter(heap_, this);
-  loop_ = new PlatformMessageLoop(this);
 
   AddIsolateToList(this);
 }

@@ -11,7 +11,7 @@ namespace psoup {
 // Sebastiano Vigna. "Further scramblings of Marsaglia’s xorshift generators."
 class Random {
  public:
-  explicit Random(int64_t seed) {
+  explicit Random(uint64_t seed) {
     state0_ = seed;
     state1_ = 0;
   }
