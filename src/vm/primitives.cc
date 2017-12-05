@@ -922,7 +922,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
       return kFailure;
     }
     // bit length is for wrong size
-    if (Utils::BitLength(raw_left) + raw_right < kSmiBits) {
+    if (Utils::BitLength(raw_left) + raw_right < SmallInteger::kBits) {
       intptr_t raw_result = raw_left << raw_right;
       ASSERT((raw_result >> raw_right) == raw_left);
       RETURN_SMI(raw_result);
@@ -980,8 +980,8 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
     if (raw_right < 0) {
       return kFailure;
     }
-    if (raw_right > kSmiBits) {
-      raw_right = kSmiBits;
+    if (raw_right > SmallInteger::kBits) {
+      raw_right = SmallInteger::kBits;
     }
     intptr_t raw_result = raw_left >> raw_right;
     RETURN_SMI(raw_result);
@@ -1459,12 +1459,12 @@ DEFINE_PRIMITIVE(ByteString_hash) {
   Object* rcvr = A->Stack(0);
   if (rcvr->IsByteString()) {
     ByteString* string = static_cast<ByteString*>(rcvr);
-    string->EnsureHash(H);
+    string->EnsureHash(I->isolate());
     A->PopNAndPush(num_args + 1, string->hash());
     return kSuccess;
   } else if (rcvr->IsWideString()) {
     WideString* string = static_cast<WideString*>(rcvr);
-    string->EnsureHash(H);
+    string->EnsureHash(I->isolate());
     A->PopNAndPush(num_args + 1, string->hash());
     return kSuccess;
   }
@@ -1851,7 +1851,7 @@ DEFINE_PRIMITIVE(Object_identityHash) {
     }
   } else if (receiver->IsMediumInteger()) {
     hash = static_cast<MediumInteger*>(receiver)->value();
-    hash &= kSmiMax;
+    hash &= SmallInteger::kMax;
     if (hash == 0) {
       hash = 1;
     }
@@ -1859,7 +1859,7 @@ DEFINE_PRIMITIVE(Object_identityHash) {
     // TODO(rmacnak): Use the string's hash? ASSERT(!receiver->IsByteString());
     hash = receiver->identity_hash();
     if (hash == 0) {
-      hash = H->NextIdentityHash() & kSmiMax;
+      hash = I->isolate()->random().NextUInt64() & SmallInteger::kMax;
       if (hash == 0) {
         hash = 1;
       }
@@ -2202,7 +2202,7 @@ DEFINE_PRIMITIVE(flushCache) {
 
 
 DEFINE_PRIMITIVE(collectGarbage) {
-  H->Scavenge();  // SAFEPOINT
+  H->Scavenge("primitive");  // SAFEPOINT
   A->Drop(num_args);
   return kSuccess;
 }
@@ -2269,11 +2269,12 @@ DEFINE_PRIMITIVE(unwindProtect) {
 
 
 template<typename L, typename R>
-static bool StringEquals(L* left, R* right, Heap* H, intptr_t num_args) {
+static bool StringEquals(L* left, R* right,
+                         Heap* H, Isolate* isolate, intptr_t num_args) {
   if (left->size() != right->size()) {
     RETURN_BOOL(false);
   }
-  if (left->EnsureHash(H) != right->EnsureHash(H)) {
+  if (left->EnsureHash(isolate) != right->EnsureHash(isolate)) {
     RETURN_BOOL(false);
   }
   intptr_t length = left->Size();
@@ -2299,11 +2300,11 @@ DEFINE_PRIMITIVE(String_equals) {
     if (right->IsByteString()) {
       return StringEquals(static_cast<ByteString*>(left),
                           static_cast<ByteString*>(right),
-                          H, num_args);
+                          H, I->isolate(), num_args);
     } else if (right->IsWideString()) {
       return StringEquals(static_cast<ByteString*>(left),
                           static_cast<WideString*>(right),
-                          H, num_args);
+                          H, I->isolate(), num_args);
     } else {
       RETURN_BOOL(false);
     }
@@ -2311,11 +2312,11 @@ DEFINE_PRIMITIVE(String_equals) {
     if (right->IsByteString()) {
       return StringEquals(static_cast<WideString*>(left),
                           static_cast<ByteString*>(right),
-                          H, num_args);
+                          H, I->isolate(), num_args);
     } else if (right->IsWideString()) {
       return StringEquals(static_cast<WideString*>(left),
                           static_cast<WideString*>(right),
-                          H, num_args);
+                          H, I->isolate(), num_args);
     } else {
       RETURN_BOOL(false);
     }
@@ -2998,7 +2999,7 @@ DEFINE_PRIMITIVE(adoptInstance) {
 
 DEFINE_PRIMITIVE(openPort) {
   ASSERT(num_args == 0);
-  Port new_port = H->isolate()->loop()->OpenPort();
+  Port new_port = I->isolate()->loop()->OpenPort();
   RETURN_MINT(new_port);
 }
 
@@ -3015,7 +3016,7 @@ DEFINE_PRIMITIVE(closePort) {
     return kFailure;
   }
 
-  H->isolate()->loop()->ClosePort(cport);
+  I->isolate()->loop()->ClosePort(cport);
 
   A->Drop(num_args);
   return kSuccess;
@@ -3030,7 +3031,7 @@ DEFINE_PRIMITIVE(spawn) {
     uint8_t* data = reinterpret_cast<uint8_t*>(malloc(length));
     memcpy(data, message->element_addr(0), length);
 
-    H->isolate()->Spawn(new IsolateMessage(ILLEGAL_PORT, data, length));
+    I->isolate()->Spawn(new IsolateMessage(ILLEGAL_PORT, data, length));
 
     A->Drop(num_args);
     return kSuccess;
@@ -3078,7 +3079,7 @@ DEFINE_PRIMITIVE(finish) {
   } else {
     return kFailure;
   }
-  H->isolate()->loop()->AdjustWakeup(cwakeup);
+  I->isolate()->loop()->AdjustWakeup(cwakeup);
   I->Exit();
   UNREACHABLE();
   return kFailure;

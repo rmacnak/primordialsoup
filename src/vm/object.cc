@@ -5,6 +5,7 @@
 #include "vm/object.h"
 
 #include "vm/heap.h"
+#include "vm/isolate.h"
 
 namespace psoup {
 
@@ -22,34 +23,34 @@ intptr_t Object::HeapSizeFromClass() {
   case kSmiCid:
     UNREACHABLE();
   case kMintCid:
-    return Heap::AllocationSize(sizeof(MediumInteger));
+    return AllocationSize(sizeof(MediumInteger));
   case kFloat64Cid:
-    return Heap::AllocationSize(sizeof(Float64));
+    return AllocationSize(sizeof(Float64));
   case kBigintCid:
-    return Heap::AllocationSize(sizeof(LargeInteger) +
+    return AllocationSize(sizeof(LargeInteger) +
         sizeof(digit_t) * LargeInteger::Cast(this)->capacity());
   case kByteArrayCid:
-    return Heap::AllocationSize(sizeof(ByteArray) +
-        sizeof(uint8_t) * ByteArray::Cast(this)->Size());
+    return AllocationSize(sizeof(ByteArray) +
+                          sizeof(uint8_t) * ByteArray::Cast(this)->Size());
   case kByteStringCid:
-    return Heap::AllocationSize(sizeof(ByteString) +
-        sizeof(uint8_t) * ByteString::Cast(this)->Size());
+    return AllocationSize(sizeof(ByteString) +
+                          sizeof(uint8_t) * ByteString::Cast(this)->Size());
   case kWideStringCid:
-    return Heap::AllocationSize(sizeof(WideString) +
-        sizeof(uint32_t) * WideString::Cast(this)->Size());
+    return AllocationSize(sizeof(WideString) +
+                          sizeof(uint32_t) * WideString::Cast(this)->Size());
   case kArrayCid:
-    return Heap::AllocationSize(sizeof(Array) +
-        sizeof(Object*) * Array::Cast(this)->Size());
+    return AllocationSize(sizeof(Array) +
+                          sizeof(Object*) * Array::Cast(this)->Size());
   case kWeakArrayCid:
-    return Heap::AllocationSize(sizeof(WeakArray) +
-        sizeof(Object*) * WeakArray::Cast(this)->Size());
+    return AllocationSize(sizeof(WeakArray) +
+                          sizeof(Object*) * WeakArray::Cast(this)->Size());
   case kEphemeronCid:
-    return Heap::AllocationSize(sizeof(Ephemeron));
+    return AllocationSize(sizeof(Ephemeron));
   case kActivationCid:
-    return Heap::AllocationSize(sizeof(Activation));
+    return AllocationSize(sizeof(Activation));
   case kClosureCid:
-    return Heap::AllocationSize(sizeof(Closure) +
-        sizeof(Object*) * Closure::Cast(this)->num_copied());
+    return AllocationSize(sizeof(Closure) +
+                          sizeof(Object*) * Closure::Cast(this)->num_copied());
   default:
     UNREACHABLE();
     // Need to get num slots from class.
@@ -65,7 +66,6 @@ void Object::Pointers(Object*** from, Object*** to) {
   case kIllegalCid:
     UNREACHABLE();
   case kForwardingCorpseCid:
-    // become-only
     *from = reinterpret_cast<Object**>(1);
     *to = reinterpret_cast<Object**>(0);
     return;
@@ -90,8 +90,6 @@ void Object::Pointers(Object*** from, Object*** to) {
     *to = WeakArray::Cast(this)->to();
     return;
   case kEphemeronCid:
-    // UNREACHABLE();
-    // become-only
     *from = RegularObject::Cast(this)->from();
     *to = RegularObject::Cast(this)->to();
     return;
@@ -216,7 +214,7 @@ static uintptr_t kFNVPrime = 1099511628211;
 #endif
 
 
-SmallInteger* ByteString::EnsureHash(Heap* heap) {
+SmallInteger* ByteString::EnsureHash(Isolate* isolate) {
   if (hash() == 0) {
     // FNV-1a hash
     intptr_t length = Size();
@@ -225,8 +223,8 @@ SmallInteger* ByteString::EnsureHash(Heap* heap) {
       h = h ^ element(i);
       h = h * kFNVPrime;
     }
-    h = h ^ heap->string_hash_salt();
-    h = h & kSmiMax;
+    h = h ^ isolate->salt();
+    h = h & SmallInteger::kMax;
     if (h == 0) {
       h = 1;
     }
@@ -236,7 +234,7 @@ SmallInteger* ByteString::EnsureHash(Heap* heap) {
 }
 
 
-SmallInteger* WideString::EnsureHash(Heap* heap) {
+SmallInteger* WideString::EnsureHash(Isolate* isolate) {
   if (hash() == 0) {
     // FNV-1a hash
     intptr_t length = Size();
@@ -245,8 +243,8 @@ SmallInteger* WideString::EnsureHash(Heap* heap) {
       h = h ^ element(i);
       h = h * kFNVPrime;
     }
-    h = h ^ heap->string_hash_salt();
-    h = h & kSmiMax;
+    h = h ^ isolate->salt();
+    h = h & SmallInteger::kMax;
     if (h == 0) {
       h = 1;
     }

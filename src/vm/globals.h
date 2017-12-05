@@ -109,10 +109,10 @@ const int kDoubleSize = sizeof(double);  // NOLINT
 const int kFloatSize = sizeof(float);  // NOLINT
 const int kInt32Size = sizeof(int32_t);  // NOLINT
 const int kInt16Size = sizeof(int16_t);  // NOLINT
-#ifndef ARCH_IS_64_BIT
+#if defined(ARCH_IS_32_BIT)
 const int kWordSizeLog2 = 2;
 const uword kUwordMax = kMaxUint32;
-#else
+#elif defined(ARCH_IS_64_BIT)
 const int kWordSizeLog2 = 3;
 const uword kUwordMax = kMaxUint64;
 #endif
@@ -120,10 +120,6 @@ const uword kUwordMax = kMaxUint64;
 // Bit sizes.
 const int kBitsPerByte = 8;
 const int kBitsPerWord = kWordSize * kBitsPerByte;
-const intptr_t kSmiBits = kBitsPerWord - 2;
-const intptr_t kSmiMax = (static_cast<intptr_t>(1) << kSmiBits) - 1;
-const intptr_t kSmiMin =  -(static_cast<intptr_t>(1) << kSmiBits);
-
 
 // System-wide named constants.
 const intptr_t KB = 1024;
@@ -236,6 +232,8 @@ inline D bit_cast(const S& source) {
 
 #if defined(__GNUC__) || defined(__clang__)
 #define NORETURN_ATTRIBUTE __attribute__((noreturn))
+#elif defined(_MSC_VER)
+#define NORETURN_ATTRIBUTE __declspec(noreturn)
 #else
 #define NORETURN_ATTRIBUTE
 #endif

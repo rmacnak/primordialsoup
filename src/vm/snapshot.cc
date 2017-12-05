@@ -515,15 +515,15 @@ void Deserializer::Deserialize() {
                  "with %" Pd " objects "
                  "in %" Pd " us\n",
                  snapshot_length_ / KB,
-                 heap_->used() / KB,
+                 heap_->Size() / KB,
                  next_ref_ - 1,
                  time / kNanosecondsPerMicrosecond);
   }
 
 #if defined(DEBUG)
-  intptr_t before = heap_->used();
-  heap_->Scavenge();
-  intptr_t after = heap_->used();
+  size_t before = heap_->Size();
+  heap_->Scavenge("snapshot");
+  size_t after = heap_->Size();
   ASSERT(before == after);  // Snapshots should not contain garbage.
 #endif
 }

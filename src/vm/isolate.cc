@@ -90,14 +90,16 @@ void Isolate::PrintStack() {
 }
 
 
-Isolate::Isolate(void* snapshot, size_t snapshot_length) :
+Isolate::Isolate(void* snapshot, size_t snapshot_length, uint64_t seed) :
     heap_(NULL),
     interpreter_(NULL),
     loop_(NULL),
     snapshot_(snapshot),
     snapshot_length_(snapshot_length),
+    salt_(static_cast<uintptr_t>(seed)),
+    random_(seed),
     next_(NULL) {
-  heap_ = new Heap(this, OS::CurrentMonotonicNanos());
+  heap_ = new Heap();
   interpreter_ = new Interpreter(heap_, this);
   loop_ = new PlatformMessageLoop(this);
   {
@@ -135,9 +137,9 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
       HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
       for (intptr_t i = 0; i < argc; i++) {
         const char* cstr = isolate_message->argv()[i];
-        intptr_t len = strlen(cstr);
-        ByteString* string = heap_->AllocateByteString(len);  // SAFEPOINT
-        memcpy(string->element_addr(0), cstr, len);
+        intptr_t length = strlen(cstr);
+        ByteString* string = heap_->AllocateByteString(length);  // SAFEPOINT
+        memcpy(string->element_addr(0), cstr, length);
         strings->set_element(i, string);
       }
     }
@@ -218,7 +220,8 @@ class SpawnIsolateTask : public ThreadPool::Task {
   }
 
   virtual void Run() {
-    Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_);
+    uint64_t seed = OS::CurrentMonotonicNanos();
+    Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_, seed);
     child_isolate->loop()->PostMessage(initial_message_);
     initial_message_ = NULL;
     child_isolate->loop()->Run();

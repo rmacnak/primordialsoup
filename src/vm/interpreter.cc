@@ -19,10 +19,13 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
   recycle_depth_(0),
 #endif
   heap_(heap),
+  isolate_(isolate),
   interrupt_(0),
   environment_(NULL),
   lookup_cache_() {
+#if LOOKUP_CACHE
   heap->InitializeLookupCache(&lookup_cache_);
+#endif
 }
 
 
@@ -683,7 +686,7 @@ void Interpreter::Activate(Method* method,
   }
 
   if (interrupt_ != 0) {
-    H->isolate()->PrintStack();
+    isolate_->PrintStack();
     Exit();
   }
 

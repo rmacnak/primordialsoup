@@ -1205,8 +1205,6 @@ ByteString* LargeInteger::PrintString(LargeInteger* large, Heap* H) {
 #elif defined(ARCH_IS_64_BIT)
   const ddigit_t kDivisor = 1000000000;
   const intptr_t kDivisorLog10 = 9;
-#else
-#error Unexpected architecture word size
 #endif
   ASSERT(kDivisor < kDigitBase);
   // log10(2) = 0.30102999566398114

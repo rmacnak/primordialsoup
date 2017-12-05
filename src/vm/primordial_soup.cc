@@ -36,7 +36,8 @@ PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(void* snapshot,
                                               size_t snapshot_length,
                                               int argc,
                                               const char** argv) {
-  psoup::Isolate* isolate = new psoup::Isolate(snapshot, snapshot_length);
+  uint64_t seed = psoup::OS::CurrentMonotonicNanos();
+  psoup::Isolate* isolate = new psoup::Isolate(snapshot, snapshot_length, seed);
   isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,
                                                          argc, argv));
   isolate->loop()->Run();

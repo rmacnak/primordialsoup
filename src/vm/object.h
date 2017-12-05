@@ -15,6 +15,14 @@
 
 namespace psoup {
 
+enum PointerBits {
+  kSmiTag = 0,
+  kHeapObjectTag = 1,
+  kSmiTagSize = 1,
+  kSmiTagMask = 1,
+  kSmiTagShift = 1,
+};
+
 enum ObjectAlignment {
   // Alignment offsets are used to determine object age.
   kNewObjectAlignmentOffset = kWordSize,
@@ -23,14 +31,6 @@ enum ObjectAlignment {
   kObjectAlignment = 2 * kWordSize,
   kObjectAlignmentLog2 = kWordSizeLog2 + 1,
   kObjectAlignmentMask = kObjectAlignment - 1,
-};
-
-enum {
-  kSmiTag = 0,
-  kHeapObjectTag = 1,
-  kSmiTagSize = 1,
-  kSmiTagMask = 1,
-  kSmiTagShift = 1,
 };
 
 enum HeaderBits {
@@ -43,19 +43,6 @@ enum HeaderBits {
   // For symbols.
   kCanonicalBit = 2,
 
-  // (as-yet-unused)
-  kInClassTableBit = 3,
-
-  // Is this object the key of an ephemeron? (as-yet-unused)
-  kWatchedBit = 4,
-
-  // Should we trap on stores? (as-yet-unused)
-  kShallowImmutabilityBit = 5,
-
-  // All slots immutabilty, and transitively contains likewise objects?
-  // -> can pass by reference between actors (as-yet-unused)
-  kDeepImmutabilityBit = 6,
-
 #if defined(ARCH_IS_32_BIT)
   kSizeFieldOffset = 8,
   kSizeFieldSize = 8,
@@ -66,8 +53,6 @@ enum HeaderBits {
   kSizeFieldSize = 16,
   kClassIdFieldOffset = 32,
   kClassIdFieldSize = 32,
-#else
-#error Unexpected architecture word size
 #endif
 };
 
@@ -103,6 +88,7 @@ class ByteString;
 class Closure;
 class Ephemeron;
 class Heap;
+class Isolate;
 class Method;
 class Object;
 class ObjectStore;
@@ -340,8 +326,9 @@ class ForwardingCorpse {
 
 class SmallInteger : public Object {
  public:
-  static const int64_t kMinValue = kSmiMin;
-  static const int64_t kMaxValue = kSmiMax;
+  static const intptr_t kBits = kBitsPerWord - 2;
+  static const intptr_t kMax = (static_cast<intptr_t>(1) << kBits) - 1;
+  static const intptr_t kMin =  -(static_cast<intptr_t>(1) << kBits);
 
   static SmallInteger* New(intptr_t value) {
     return reinterpret_cast<SmallInteger*>(value << kSmiTagShift);
@@ -352,15 +339,16 @@ class SmallInteger : public Object {
     return reinterpret_cast<intptr_t>(this) >> kSmiTagShift;
   }
 
-  static bool IsSmiValue(int64_t v) {
-    return (v >= kMinValue) && (v <= kMaxValue);
+  static bool IsSmiValue(int64_t value) {
+    return (value >= static_cast<int64_t>(kMin)) &&
+           (value <= static_cast<int64_t>(kMax));
   }
 
 #if defined(ARCH_IS_32_BIT)
-  static bool IsSmiValue(intptr_t v) {
+  static bool IsSmiValue(intptr_t value) {
     // Check if the top two bits are equal.
     ASSERT(kSmiTagShift == 1);
-    return (v ^ (v << 1)) >= 0;
+    return (value ^ (value << 1)) >= 0;
   }
 #endif
 };
@@ -393,8 +381,6 @@ typedef int32_t sddigit_t;
 typedef uint32_t digit_t;
 typedef uint64_t ddigit_t;
 typedef int64_t sddigit_t;
-#else
-#error Unexpected architecture word size
 #endif
 const ddigit_t kDigitBits = sizeof(digit_t) * kBitsPerByte;
 const ddigit_t kDigitShift = sizeof(digit_t) * kBitsPerByte;
@@ -636,7 +622,7 @@ class ByteString : public Object {
   void set_hash(SmallInteger* hash) {
     ptr()->hash_ = hash;
   }
-  SmallInteger* EnsureHash(Heap* heap);
+  SmallInteger* EnsureHash(Isolate* isolate);
 
   uint8_t element(intptr_t index) const {
     ASSERT(index >= 0 && index < Size());
@@ -676,7 +662,7 @@ class WideString : public Object {
   void set_hash(SmallInteger* hash) {
     ptr()->hash_ = hash;
   }
-  SmallInteger* EnsureHash(Heap* heap);
+  SmallInteger* EnsureHash(Isolate* isolate);
 
   uint32_t element(intptr_t index) const {
     ASSERT(index >= 0 && index < Size());

@@ -8,32 +8,30 @@
 
 namespace psoup {
 
-Heap::Heap(Isolate* isolate, uint64_t seed) :
+Heap::Heap() :
     top_(0),
     end_(0),
     to_(),
     from_(),
-    ephemeron_list_(NULL),
-    weak_list_(NULL),
+    next_semispace_capacity_(kInitialSemispaceCapacity),
     class_table_(NULL),
+    class_table_size_(0),
     class_table_capacity_(0),
-    class_table_top_(0),
     class_table_free_(0),
     object_store_(NULL),
     current_activation_(NULL),
+    handles_(),
+    handles_size_(0),
 #if RECYCLE_ACTIVATIONS
     recycle_list_(NULL),
 #endif
 #if LOOKUP_CACHE
     lookup_cache_(NULL),
 #endif
-    handles_(),
-    handles_top_(0),
-    string_hash_salt_(static_cast<uintptr_t>(seed)),
-    identity_hash_random_(seed),
-    isolate_(isolate) {
-  to_.Allocate(kInitialSemispaceSize);
-  from_.Allocate(kInitialSemispaceSize);
+    ephemeron_list_(NULL),
+    weak_list_(NULL) {
+  to_.Allocate(kInitialSemispaceCapacity);
+  from_.Allocate(kInitialSemispaceCapacity);
   top_ = to_.object_start();
   end_ = to_.limit();
 
@@ -48,7 +46,7 @@ Heap::Heap(Isolate* isolate, uint64_t seed) :
     class_table_[i] = reinterpret_cast<Object*>(kUnallocatedWord);
   }
 #endif
-  class_table_top_ = kFirstRegularObjectCid;
+  class_table_size_ = kFirstRegularObjectCid;
 }
 
 
@@ -61,49 +59,42 @@ Heap::~Heap() {
 
 uword Heap::Allocate(intptr_t size) {
   ASSERT((size & kObjectAlignmentMask) == 0);
-  uword raw = TryAllocate(size);
-  if (raw == 0) {
-    Scavenge();
-    raw = TryAllocate(size);
-    if (raw == 0) {
-      Grow(size, "out of capacity");
-      raw = TryAllocate(size);
-      if (raw == 0) {
+  uword addr = TryAllocate(size);
+  if (addr == 0) {
+    Scavenge("allocate");
+    addr = TryAllocate(size);
+    if (addr == 0) {
+      Grow(size);
+      addr = TryAllocate(size);
+      if (addr == 0) {
         FATAL1("Failed to allocate %" Pd " bytes\n", size);
       }
     }
   }
 #if defined(DEBUG)
-  memset(reinterpret_cast<void*>(raw), kUninitializedByte, size);
+  memset(reinterpret_cast<void*>(addr), kUninitializedByte, size);
 #endif
-  return raw;
+  return addr;
 }
 
 
-void Heap::Grow(intptr_t size_requested, const char* reason) {
-  intptr_t current_size = to_.size();
-  intptr_t new_size = current_size * 2;
-  while ((new_size - current_size) < size_requested) {
-    new_size *= 2;
+void Heap::Grow(size_t free_needed) {
+  while ((next_semispace_capacity_ - Size()) < free_needed) {
+    next_semispace_capacity_ *= 2;
   }
-  if (TRACE_GROWTH) {
-    OS::PrintErr("Growing heap to %" Pd "MB (%s)\n",
-                 new_size / MB, reason);
+  if (next_semispace_capacity_ > kMaxSemispaceCapacity) {
+    next_semispace_capacity_ = kMaxSemispaceCapacity;
   }
-  if (new_size > kMaxSemispaceSize) {
-    FATAL("Growing really big. Runaway recursion?");
-  }
-  from_.Free();
-  from_.Allocate(new_size);
-  Scavenge();
+  Scavenge("grow");
 }
 
 
-void Heap::Scavenge() {
+void Heap::Scavenge(const char* reason) {
 #if REPORT_GC
   int64_t start = OS::CurrentMonotonicNanos();
-  intptr_t size_before = used();
-  OS::PrintErr("Begin scavenge (%" Pd "kB used)\n", size_before / KB);
+  size_t size_before = Size();
+  OS::PrintErr("Begin scavenge (%" Pd "kB used, %s)\n",
+               size_before / KB, reason);
 #endif
 
   FlipSpaces();
@@ -113,11 +104,11 @@ void Heap::Scavenge() {
 #endif
 
   // Strong references.
-  ProcessRoots();
+  ScavengeRoots();
   uword scan = to_.object_start();
   while (scan < top_) {
-    scan = ProcessToSpace(scan);
-    ProcessEphemeronList();
+    scan = ScavengeToSpace(scan);
+    ScavengeEphemeronList();
   }
 
   // Weak references.
@@ -133,7 +124,7 @@ void Heap::Scavenge() {
 #endif
 
 #if REPORT_GC
-  intptr_t size_after = used();
+  size_t size_after = Size();
   int64_t stop = OS::CurrentMonotonicNanos();
   int64_t time = stop - start;
   OS::PrintErr("End scavenge (%" Pd "kB used, %" Pd "kB freed, %" Pd64 " us)\n",
@@ -141,10 +132,11 @@ void Heap::Scavenge() {
                time / kNanosecondsPerMicrosecond);
 #endif
 
-  if (used() > (7 * to_.size() / 8)) {
-    // Grow before actually filling up the current capacity to avoid
-    // many GCs that don't free much memory as the capacity is approached.
-    Grow(to_.size(), "early growth heuristic");
+  if (Size() > (7 * Capacity() / 8)) {
+    next_semispace_capacity_ = Capacity() * 2;
+    if (next_semispace_capacity_ > kMaxSemispaceCapacity) {
+      next_semispace_capacity_ = kMaxSemispaceCapacity;
+    }
   }
 }
 
@@ -154,11 +146,17 @@ void Heap::FlipSpaces() {
   to_ = from_;
   from_ = temp;
 
-  if (to_.size() < from_.size()) {
-    // This is the scavenge after a grow. Resize the other space.
+  ASSERT(next_semispace_capacity_ <= kMaxSemispaceCapacity);
+  if (to_.size() < next_semispace_capacity_) {
+    if (TRACE_GROWTH && (from_.size() < next_semispace_capacity_)) {
+      OS::PrintErr("Growing heap to %" Pd "MB\n",
+                   next_semispace_capacity_ / MB);
+    }
     to_.Free();
-    to_.Allocate(from_.size());
+    to_.Allocate(next_semispace_capacity_);
   }
+
+  ASSERT(to_.size() >= from_.size());
 
   top_ = to_.object_start();
   end_ = to_.limit();
@@ -194,11 +192,11 @@ static void ForwardPointer(Object** ptr) {
 }
 
 
-void Heap::ProcessRoots() {
+void Heap::ScavengeRoots() {
   ScavengePointer(reinterpret_cast<Object**>(&object_store_));
   ScavengePointer(reinterpret_cast<Object**>(&current_activation_));
 
-  for (intptr_t i = 0; i < handles_top_; i++) {
+  for (intptr_t i = 0; i < handles_size_; i++) {
     ScavengePointer(handles_[i]);
   }
 }
@@ -208,13 +206,13 @@ void Heap::ForwardRoots() {
   ForwardPointer(reinterpret_cast<Object**>(&object_store_));
   ForwardPointer(reinterpret_cast<Object**>(&current_activation_));
 
-  for (intptr_t i = 0; i < handles_top_; i++) {
+  for (intptr_t i = 0; i < handles_size_; i++) {
     ForwardPointer(handles_[i]);
   }
 }
 
 
-uword Heap::ProcessToSpace(uword scan) {
+uword Heap::ScavengeToSpace(uword scan) {
   while (scan < top_) {
     Object* obj = Object::FromAddr(scan);
     intptr_t cid = obj->cid();
@@ -261,11 +259,11 @@ intptr_t Heap::AllocateClassId() {
     cid = class_table_free_;
     class_table_free_ =
         static_cast<SmallInteger*>(class_table_[cid])->value();
-  } else if (class_table_top_ == class_table_capacity_) {
+  } else if (class_table_size_ == class_table_capacity_) {
     if (TRACE_GROWTH) {
       OS::PrintErr("Scavenging to free class table entries\n");
     }
-    Scavenge();
+    Scavenge("allocate-cid");
     if (class_table_free_ != 0) {
       cid = class_table_free_;
       class_table_free_ =
@@ -275,8 +273,8 @@ intptr_t Heap::AllocateClassId() {
       cid = -1;
     }
   } else {
-    cid = class_table_top_;
-    class_table_top_++;
+    cid = class_table_size_;
+    class_table_size_++;
   }
 #if defined(DEBUG)
   class_table_[cid] = reinterpret_cast<Object*>(kUninitializedWord);
@@ -288,7 +286,7 @@ intptr_t Heap::AllocateClassId() {
 void Heap::ForwardClassTable() {
   Object* nil = object_store()->nil_obj();
 
-  for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
+  for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
     Behavior* old_class = static_cast<Behavior*>(class_table_[i]);
     if (!old_class->IsForwardingCorpse()) {
       continue;
@@ -338,7 +336,7 @@ static void SetForwarded(uword old_addr, uword new_addr) {
 
 
 void Heap::MournClassTable() {
-  for (intptr_t i = kFirstLegalCid; i < class_table_top_; i++) {
+  for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
     Object** ptr = &class_table_[i];
 
     Object* old_target = *ptr;
@@ -403,7 +401,7 @@ void Heap::AddToEphemeronList(Ephemeron* survivor) {
 }
 
 
-void Heap::ProcessEphemeronList() {
+void Heap::ScavengeEphemeronList() {
   Ephemeron* survivor = ephemeron_list_;
   ephemeron_list_ = NULL;
 
@@ -497,7 +495,7 @@ void Heap::MournWeakPointer(Object** ptr) {
 
 
 void Heap::ScavengeClass(intptr_t cid) {
-  ASSERT(cid < class_table_top_);
+  ASSERT(cid < class_table_size_);
   // This is very similar to ScavengePointer.
 
   Object* old_target = class_table_[cid];
@@ -570,12 +568,12 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
     return false;
   }
 
-  intptr_t len = old->Size();
+  intptr_t length = old->Size();
   if (TRACE_BECOME) {
-    OS::PrintErr("become(%" Pd ")\n", len);
+    OS::PrintErr("become(%" Pd ")\n", length);
   }
 
-  for (intptr_t i = 0; i < len; i++) {
+  for (intptr_t i = 0; i < length; i++) {
     Object* forwarder = old->element(i);
     Object* forwardee = neu->element(i);
     if (forwarder->IsImmediateObject() ||
@@ -584,7 +582,7 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
     }
   }
 
-  for (intptr_t i = 0; i < len; i++) {
+  for (intptr_t i = 0; i < length; i++) {
     Object* forwarder = old->element(i);
     Object* forwardee = neu->element(i);
 
@@ -593,17 +591,17 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
 
     forwardee->set_identity_hash(forwarder->identity_hash());
 
-    intptr_t size = forwarder->HeapSize();
+    intptr_t heap_size = forwarder->HeapSize();
 
     Object::InitializeObject(forwarder->Addr(),
                              kForwardingCorpseCid,
-                             size);
+                             heap_size);
     ASSERT(forwarder->IsForwardingCorpse());
     ForwardingCorpse* corpse = reinterpret_cast<ForwardingCorpse*>(forwarder);
     if (forwarder->heap_size() == 0) {
-      corpse->set_overflow_size(size);
+      corpse->set_overflow_size(heap_size);
     }
-    ASSERT(forwarder->HeapSize() == size);
+    ASSERT(forwarder->HeapSize() == heap_size);
 
     corpse->set_target(forwardee);
   }

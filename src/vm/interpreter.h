@@ -21,7 +21,9 @@ class Isolate;
 
 class Interpreter {
  public:
-  explicit Interpreter(Heap* heap, Isolate* isolate);
+  Interpreter(Heap* heap, Isolate* isolate);
+
+  Isolate* isolate() const { return isolate_; }
 
   void Enter();
   void Exit();
@@ -117,6 +119,7 @@ class Interpreter {
   intptr_t recycle_depth_;
 #endif
   Heap* const heap_;
+  Isolate* const isolate_;
   volatile uword interrupt_;
   jmp_buf* environment_;
   LookupCache lookup_cache_;

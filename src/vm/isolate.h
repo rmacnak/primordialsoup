@@ -8,6 +8,7 @@
 #include "vm/allocation.h"
 #include "vm/globals.h"
 #include "vm/port.h"
+#include "vm/random.h"
 
 namespace psoup {
 
@@ -20,10 +21,12 @@ class ThreadPool;
 
 class Isolate {
  public:
-  Isolate(void* snapshot, size_t snapshot_length);
+  Isolate(void* snapshot, size_t snapshot_length, uint64_t seed);
   ~Isolate();
 
   MessageLoop* loop() const { return loop_; }
+  uintptr_t salt() const { return salt_; }
+  Random& random() { return random_; }
 
   void ActivateMessage(IsolateMessage* message);
   void ActivateWakeup();
@@ -47,6 +50,8 @@ class Isolate {
   MessageLoop* loop_;
   void* snapshot_;
   size_t snapshot_length_;
+  uintptr_t salt_;
+  Random random_;
   Isolate* next_;
 
   void AddIsolateToList(Isolate* isolate);

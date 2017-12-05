@@ -19,7 +19,7 @@ class Assert {
  public:
   Assert(const char* file, int line) : file_(file), line_(line) {}
 
-  void Fail(const char* format, ...) PRINTF_ATTRIBUTE(2, 3) NORETURN_ATTRIBUTE;
+  NORETURN_ATTRIBUTE void Fail(const char* format, ...) PRINTF_ATTRIBUTE(2, 3);
 
  private:
   const char* file_;
