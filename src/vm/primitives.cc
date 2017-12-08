@@ -1851,7 +1851,7 @@ DEFINE_PRIMITIVE(Object_identityHash) {
     }
   } else if (receiver->IsMediumInteger()) {
     hash = static_cast<MediumInteger*>(receiver)->value();
-    hash &= SmallInteger::kMax;
+    hash &= SmallInteger::kMaxValue;
     if (hash == 0) {
       hash = 1;
     }
@@ -1859,7 +1859,7 @@ DEFINE_PRIMITIVE(Object_identityHash) {
     // TODO(rmacnak): Use the string's hash? ASSERT(!receiver->IsByteString());
     hash = receiver->identity_hash();
     if (hash == 0) {
-      hash = I->isolate()->random().NextUInt64() & SmallInteger::kMax;
+      hash = I->isolate()->random().NextUInt64() & SmallInteger::kMaxValue;
       if (hash == 0) {
         hash = 1;
       }
@@ -2176,9 +2176,9 @@ DEFINE_PRIMITIVE(print) {
         reinterpret_cast<const wchar_t*>(string->element_addr(0));
     OS::PrintErr("[%.*ls]\n", static_cast<int>(string->Size()), cstr);
   } else {
-    const char* cstr = message->ToCString(H);
+    char* cstr = message->ToCString(H);
     OS::Print("[print] %s\n", cstr);
-    free((void*)cstr);  // NOLINT
+    free(cstr);
   }
   A->Drop(num_args);
   return kSuccess;

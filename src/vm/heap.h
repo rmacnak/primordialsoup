@@ -9,8 +9,6 @@
 #include "vm/globals.h"
 #include "vm/utils.h"
 #include "vm/object.h"
-#include "vm/os.h"
-#include "vm/random.h"
 #include "vm/flags.h"
 #include "vm/virtual_memory.h"
 
@@ -18,7 +16,6 @@ namespace psoup {
 
 class Heap;
 class LookupCache;
-class Isolate;
 
 // Note these values are never valid Object*.
 #if defined(ARCH_IS_32_BIT)

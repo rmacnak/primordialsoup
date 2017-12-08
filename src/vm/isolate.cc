@@ -8,6 +8,7 @@
 #include "vm/interpreter.h"
 #include "vm/lockers.h"
 #include "vm/message_loop.h"
+#include "vm/os.h"
 #include "vm/snapshot.h"
 #include "vm/thread.h"
 #include "vm/thread_pool.h"

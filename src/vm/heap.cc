@@ -5,6 +5,7 @@
 #include "vm/heap.h"
 
 #include "vm/lookup_cache.h"
+#include "vm/os.h"
 
 namespace psoup {
 

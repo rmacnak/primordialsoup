@@ -881,7 +881,7 @@ LargeInteger* LargeInteger::ShiftRight(LargeInteger* left,
 }
 
 
-PSOUP_UNUSED static intptr_t CountLeadingZeros(uint16_t x)  {
+ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint16_t x) {
   if (x == 0) return 16;
   intptr_t n = 0;
   if (x <= 0x00FF) { n = n + 8; x = x << 8; }
@@ -892,7 +892,7 @@ PSOUP_UNUSED static intptr_t CountLeadingZeros(uint16_t x)  {
 }
 
 
-PSOUP_UNUSED static intptr_t CountLeadingZeros(uint32_t x) {
+ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint32_t x) {
   if (x == 0) return 32;
   intptr_t n = 0;
   if (x <= 0x0000FFFF) { n = n + 16; x = x << 16; }

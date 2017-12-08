@@ -52,12 +52,12 @@
 #endif
 
 
-// PSOUP_UNUSED inidicates to the compiler that a variable/typedef is expected
-// to be unused and disables the related warning.
+// ATTRIBUTE_UNUSED indicates to the compiler that a variable/typedef is
+// expected to be unused and disables the related warning.
 #ifdef __GNUC__
-#define PSOUP_UNUSED __attribute__((unused))
+#define ATTRIBUTE_UNUSED __attribute__((unused))
 #else
-#define PSOUP_UNUSED
+#define ATTRIBUTE_UNUSED
 #endif
 
 
@@ -206,7 +206,7 @@ template <class D, class S>
 inline D bit_cast(const S& source) {
   // Compile time assertion: sizeof(D) == sizeof(S). A compile error
   // here means your D and S have different sizes.
-  PSOUP_UNUSED
+  ATTRIBUTE_UNUSED
   typedef char VerifySizesAreEqual[sizeof(D) == sizeof(S) ? 1 : -1];
 
   D destination;

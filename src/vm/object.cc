@@ -6,6 +6,7 @@
 
 #include "vm/heap.h"
 #include "vm/isolate.h"
+#include "vm/os.h"
 
 namespace psoup {
 
@@ -14,7 +15,7 @@ Behavior* Object::Klass(Heap* heap) const {
 }
 
 
-intptr_t Object::HeapSizeFromClass() {
+intptr_t Object::HeapSizeFromClass() const {
   ASSERT(IsHeapObject());
 
   switch (cid()) {
@@ -109,7 +110,7 @@ void Object::Pointers(Object*** from, Object*** to) {
 }
 
 
-const char* Object::ToCString(Heap* heap) {
+char* Object::ToCString(Heap* heap) const {
   char* result = NULL;
   intptr_t length;
   Object* cls;
@@ -122,13 +123,13 @@ const char* Object::ToCString(Heap* heap) {
     UNREACHABLE();
   case kSmiCid:
     return OS::PrintStr("a Smi(%" Pd ")",
-                        static_cast<SmallInteger*>(this)->value());
+                        static_cast<const SmallInteger*>(this)->value());
   case kMintCid:
     return OS::PrintStr("a Mint(%" Pd64 ")",
-                        static_cast<MediumInteger*>(this)->value());
+                        MediumInteger::Cast(this)->value());
   case kBigintCid:
     return OS::PrintStr("a LargeInteger(%" Pd "digits)",
-                        static_cast<LargeInteger*>(this)->size());
+                        LargeInteger::Cast(this)->size());
   case kFloat64Cid:
     return OS::PrintStr("a Float(%lf)", Float64::Cast(this)->value());
   case kByteArrayCid:
@@ -200,10 +201,10 @@ const char* Object::ToCString(Heap* heap) {
 }
 
 
-void Object::Print(Heap* heap) {
-  const char* cstr = ToCString(heap);
+void Object::Print(Heap* heap) const {
+  char* cstr = ToCString(heap);
   OS::Print("%s\n", cstr);
-  free((void*)cstr);  // NOLINT
+  free(cstr);
 }
 
 
@@ -224,7 +225,7 @@ SmallInteger* ByteString::EnsureHash(Isolate* isolate) {
       h = h * kFNVPrime;
     }
     h = h ^ isolate->salt();
-    h = h & SmallInteger::kMax;
+    h = h & SmallInteger::kMaxValue;
     if (h == 0) {
       h = 1;
     }
@@ -244,7 +245,7 @@ SmallInteger* WideString::EnsureHash(Isolate* isolate) {
       h = h * kFNVPrime;
     }
     h = h ^ isolate->salt();
-    h = h & SmallInteger::kMax;
+    h = h & SmallInteger::kMaxValue;
     if (h == 0) {
       h = 1;
     }

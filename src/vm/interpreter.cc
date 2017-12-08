@@ -5,8 +5,9 @@
 #include "vm/interpreter.h"
 
 #include "vm/heap.h"
-#include "vm/primitives.h"
 #include "vm/isolate.h"
+#include "vm/os.h"
+#include "vm/primitives.h"
 
 #define H heap_
 #define A heap_->activation()
@@ -491,14 +492,13 @@ void Interpreter::SendDNU(ByteString* selector,
                           Behavior* lookup_class,
                           bool present_receiver) {
   if (TRACE_DNU) {
-    const char *c1, *c2, *c3;
-    c1 = receiver->ToCString(H);
-    c2 = selector->ToCString(H);
-    c3 = A->method()->selector()->ToCString(H);
+    char* c1 = receiver->ToCString(H);
+    char* c2 = selector->ToCString(H);
+    char* c3 = A->method()->selector()->ToCString(H);
     OS::PrintErr("DNU %s %s from %s\n", c1, c2, c3);
-    free((void*)c1);  // NOLINT
-    free((void*)c2);  // NOLINT
-    free((void*)c3);  // NOLINT
+    free(c1);
+    free(c2);
+    free(c3);
   }
 
   Behavior* cls = lookup_class;

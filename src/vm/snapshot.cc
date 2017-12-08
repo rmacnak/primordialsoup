@@ -6,6 +6,7 @@
 
 #include "vm/heap.h"
 #include "vm/object.h"
+#include "vm/os.h"
 
 namespace psoup {
 

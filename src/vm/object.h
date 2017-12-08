@@ -5,9 +5,6 @@
 #ifndef VM_OBJECT_H_
 #define VM_OBJECT_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-
 #include "vm/assert.h"
 #include "vm/globals.h"
 #include "vm/bitfield.h"
@@ -91,21 +88,27 @@ class Heap;
 class Isolate;
 class Method;
 class Object;
-class ObjectStore;
 class SmallInteger;
 class WeakArray;
 class WideString;
 
 #define HEAP_OBJECT_IMPLEMENTATION(klass)                                      \
  private:                                                                      \
-  klass* ptr() const {                                                         \
+  const klass* ptr() const {                                                   \
+    ASSERT(IsHeapObject());                                                    \
+    return reinterpret_cast<const klass*>(                                     \
+        reinterpret_cast<uword>(this) - kHeapObjectTag);                       \
+  }                                                                            \
+  klass* ptr() {                                                               \
     ASSERT(IsHeapObject());                                                    \
     return reinterpret_cast<klass*>(                                           \
         reinterpret_cast<uword>(this) - kHeapObjectTag);                       \
   }                                                                            \
-  friend class Heap;                                                           \
   friend class Object;                                                         \
  public:                                                                       \
+  static const klass* Cast(const Object* object) {                             \
+    return static_cast<const klass*>(object);                                  \
+  }                                                                            \
   static klass* Cast(Object* object) {                                         \
     return static_cast<klass*>(object);                                        \
   }                                                                            \
@@ -209,7 +212,7 @@ class Object {
   intptr_t cid() const {
     return ClassIdField::decode(ptr()->header_);
   }
-  void set_cid(intptr_t value) const {
+  void set_cid(intptr_t value) {
     ptr()->header_ = ClassIdField::update(value, ptr()->header_);
   }
   intptr_t identity_hash() const {
@@ -222,11 +225,13 @@ class Object {
   uword Addr() const {
     return reinterpret_cast<uword>(this) - kHeapObjectTag;
   }
-  static Object* FromAddr(uword raw) {
-    return reinterpret_cast<Object*>(raw + kHeapObjectTag);
+  static Object* FromAddr(uword addr) {
+    return reinterpret_cast<Object*>(addr + kHeapObjectTag);
   }
 
-  static Object* InitializeObject(uword raw, intptr_t cid, intptr_t heap_size) {
+  static Object* InitializeObject(uword addr,
+                                  intptr_t cid,
+                                  intptr_t heap_size) {
     ASSERT(cid != kIllegalCid);
     ASSERT((heap_size & kObjectAlignmentMask) == 0);
     ASSERT(heap_size > 0);
@@ -238,17 +243,12 @@ class Object {
     uword header = 0;
     header = SizeField::update(size_tag, header);
     header = ClassIdField::update(cid, header);
-    Object* obj = FromAddr(raw);
+    Object* obj = FromAddr(addr);
     obj->ptr()->header_ = header;
     obj->ptr()->identity_hash_ = 0;
     ASSERT(obj->cid() == cid);
     ASSERT(!obj->is_marked());
     return obj;
-  }
-
-  template<typename type>
-  void StorePointer(type const* addr, type value) {
-    *const_cast<type*>(addr) = value;
   }
 
   intptr_t ClassId() const {
@@ -261,7 +261,7 @@ class Object {
 
   Behavior* Klass(Heap* heap) const;
 
-  intptr_t HeapSize() {
+  intptr_t HeapSize() const {
     ASSERT(IsHeapObject());
     intptr_t heap_size_from_tag = heap_size();
     if (heap_size_from_tag != 0) {
@@ -269,14 +269,25 @@ class Object {
     }
     return HeapSizeFromClass();
   }
-  intptr_t HeapSizeFromClass();
+  intptr_t HeapSizeFromClass() const;
   void Pointers(Object*** from, Object*** to);
 
-  const char* ToCString(Heap* heap);
-  void Print(Heap* heap);
+  char* ToCString(Heap* heap) const;
+  void Print(Heap* heap) const;
+
+ protected:
+  template<typename type>
+  void StorePointer(type* addr, type value) {
+    *addr = value;
+  }
 
  private:
-  Object* ptr() const {
+  const Object* ptr() const {
+    ASSERT(IsHeapObject());
+    return reinterpret_cast<Object*>(
+        reinterpret_cast<uword>(this) - kHeapObjectTag);
+  }
+  Object* ptr() {
     ASSERT(IsHeapObject());
     return reinterpret_cast<Object*>(
         reinterpret_cast<uword>(this) - kHeapObjectTag);
@@ -327,8 +338,8 @@ class ForwardingCorpse {
 class SmallInteger : public Object {
  public:
   static const intptr_t kBits = kBitsPerWord - 2;
-  static const intptr_t kMax = (static_cast<intptr_t>(1) << kBits) - 1;
-  static const intptr_t kMin =  -(static_cast<intptr_t>(1) << kBits);
+  static const intptr_t kMaxValue = (static_cast<intptr_t>(1) << kBits) - 1;
+  static const intptr_t kMinValue = -(static_cast<intptr_t>(1) << kBits);
 
   static SmallInteger* New(intptr_t value) {
     return reinterpret_cast<SmallInteger*>(value << kSmiTagShift);
@@ -340,8 +351,8 @@ class SmallInteger : public Object {
   }
 
   static bool IsSmiValue(int64_t value) {
-    return (value >= static_cast<int64_t>(kMin)) &&
-           (value <= static_cast<int64_t>(kMax));
+    return (value >= static_cast<int64_t>(kMinValue)) &&
+           (value <= static_cast<int64_t>(kMaxValue));
   }
 
 #if defined(ARCH_IS_32_BIT)
@@ -480,11 +491,11 @@ class RegularObject : public Object {
   }
 
  private:
-  Object** from() const {
+  Object** from() {
     return &ptr()->slots_[0];
   }
   Object* slots_[];
-  Object** to() const {
+  Object** to() {
     intptr_t num_slots = (heap_size() - sizeof(Object)) >> kWordSizeLog2;
     return &ptr()->slots_[num_slots - 1];
   }
@@ -513,12 +524,12 @@ class Array : public Object {
   }
 
  private:
-  Object** from() const {
+  Object** from() {
     return &ptr()->elements_[0];
   }
   SmallInteger* size_;
   Object* elements_[];
-  Object** to() const {
+  Object** to() {
     return &ptr()->elements_[Size() - 1];
   }
 };
@@ -552,13 +563,13 @@ class WeakArray : public Object {
   }
 
  private:
-  Object** from() const {
+  Object** from() {
     return &ptr()->elements_[0];
   }
   SmallInteger* size_;  // Not visited.
   WeakArray* next_;  // Not visited.
   Object* elements_[];
-  Object** to() const {
+  Object** to() {
     return &ptr()->elements_[Size() - 1];
   }
 };
@@ -569,19 +580,19 @@ class Ephemeron : public Object {
 
  public:
   Object* key() const { return ptr()->key_; }
-  Object** key_ptr() const { return &ptr()->key_; }
+  Object** key_ptr() { return &ptr()->key_; }
   void set_key(Object* key) {
     StorePointer(&ptr()->key_, key);
   }
 
   Object* value() const { return ptr()->value_; }
-  Object** value_ptr() const { return &ptr()->value_; }
+  Object** value_ptr() { return &ptr()->value_; }
   void set_value(Object* value) {
     StorePointer(&ptr()->value_, value);
   }
 
   Object* finalizer() const { return ptr()->finalizer_; }
-  Object** finalizer_ptr() const { return &ptr()->finalizer_; }
+  Object** finalizer_ptr() { return &ptr()->finalizer_; }
   void set_finalizer(Object* finalizer) {
     StorePointer(&ptr()->finalizer_, finalizer);
   }
@@ -590,14 +601,14 @@ class Ephemeron : public Object {
   void set_next(Ephemeron* value) { ptr()->next_ = value; }
 
  private:
-  Object** from() const {
+  Object** from() {
     return &ptr()->key_;
   }
   Object* key_;
   Object* value_;
   Object* finalizer_;
   Ephemeron* next_;  // Not visited.
-  Object** to() const {
+  Object** to() {
     return &ptr()->finalizer_;
   }
 };
@@ -633,6 +644,9 @@ class ByteString : public Object {
     ptr()->elements_[index] = value;
   }
   uint8_t* element_addr(intptr_t index) {
+    return &ptr()->elements_[index];
+  }
+  const uint8_t* element_addr(intptr_t index) const {
     return &ptr()->elements_[index];
   }
 
@@ -675,6 +689,9 @@ class WideString : public Object {
   uint32_t* element_addr(intptr_t index) {
     return &ptr()->elements_[index];
   }
+  const uint32_t* element_addr(intptr_t index) const {
+    return &ptr()->elements_[index];
+  }
 
  private:
   SmallInteger* size_;
@@ -703,6 +720,9 @@ class ByteArray : public Object {
     ptr()->elements_[index] = value;
   }
   uint8_t* element_addr(intptr_t index) {
+    return &ptr()->elements_[index];
+  }
+  const uint8_t* element_addr(intptr_t index) const {
     return &ptr()->elements_[index];
   }
 
@@ -799,7 +819,7 @@ class Activation : public Object {
   }
 
  private:
-  Object** from() const {
+  Object** from() {
     return reinterpret_cast<Object**>(&ptr()->sender_);
   }
   Activation* sender_;
@@ -809,7 +829,7 @@ class Activation : public Object {
   Object* receiver_;
   SmallInteger* stack_depth_;
   Object* temps_[kMaxTemps];
-  Object** to() const {
+  Object** to() {
     return reinterpret_cast<Object**>(&ptr()->temps_[stack_depth() - 1]);
   }
 };
@@ -867,7 +887,7 @@ class Closure : public Object {
   }
 
  private:
-  Object** from() const {
+  Object** from() {
     return reinterpret_cast<Object**>(&ptr()->num_copied_);
   }
   SmallInteger* num_copied_;
@@ -875,7 +895,7 @@ class Closure : public Object {
   SmallInteger* initial_bci_;
   SmallInteger* num_args_;
   Object* copied_[];
-  Object** to() const {
+  Object** to() {
     return reinterpret_cast<Object**>(&ptr()->copied_[num_copied() - 1]);
   }
 };
@@ -911,6 +931,7 @@ class Class : public Behavior {
 
  public:
   ByteString* name() const { return ptr()->name_; }
+  WeakArray* subclasses() const { return ptr()->subclasses_; }
 
  private:
   ByteString* name_;
@@ -948,18 +969,11 @@ class Method : public Object {
   HEAP_OBJECT_IMPLEMENTATION(Method);
 
  public:
-  ByteString* selector() const {
-    return ptr()->selector_;
-  }
-  Array* literals() const {
-    return ptr()->literals_;
-  }
-  ByteArray* bytecode() const {
-    return ptr()->bytecode_;
-  }
-  AbstractMixin* mixin() const {
-    return ptr()->mixin_;
-  }
+  Array* literals() const { return ptr()->literals_; }
+  ByteArray* bytecode() const { return ptr()->bytecode_; }
+  AbstractMixin* mixin() const { return ptr()->mixin_; }
+  ByteString* selector() const { return ptr()->selector_; }
+  Object* source() const { return ptr()->source_; }
 
   bool IsPublic() const {
     uword header = ptr()->header_->value();
@@ -1027,10 +1041,12 @@ class ObjectStore : public Object {
   HEAP_OBJECT_IMPLEMENTATION(ObjectStore);
 
  public:
+  class SmallInteger* size() const { return ptr()->array_size_; }
   Object* nil_obj() const { return ptr()->nil_; }
   Object* false_obj() const { return ptr()->false_; }
   Object* true_obj() const { return ptr()->true_; }
   Scheduler* scheduler() const { return ptr()->scheduler_; }
+  class Array* quick_selectors() const { return ptr()->quick_selectors_; }
   class ByteString* does_not_understand() const {
     return ptr()->does_not_understand_;
   }
@@ -1052,20 +1068,20 @@ class ObjectStore : public Object {
   class ByteString* dispatch_handle() const {
     return ptr()->dispatch_handle_;
   }
-  class Array* quick_selectors() const { return ptr()->quick_selectors_; }
-  Behavior* Message() const { return ptr()->Message_; }
-  Behavior* SmallInteger() const { return ptr()->SmallInteger_; }
-  Behavior* MediumInteger() const { return ptr()->MediumInteger_; }
-  Behavior* LargeInteger() const { return ptr()->LargeInteger_; }
-  Behavior* Float64() const { return ptr()->Float64_; }
+  Behavior* Array() const { return ptr()->Array_; }
   Behavior* ByteArray() const { return ptr()->ByteArray_; }
   Behavior* ByteString() const { return ptr()->ByteString_; }
   Behavior* WideString() const { return ptr()->WideString_; }
-  Behavior* Array() const { return ptr()->Array_; }
-  Behavior* WeakArray() const { return ptr()->WeakArray_; }
-  Behavior* Ephemeron() const { return ptr()->Ephemeron_; }
-  Behavior* Activation() const { return ptr()->Activation_; }
   Behavior* Closure() const { return ptr()->Closure_; }
+  Behavior* Ephemeron() const { return ptr()->Ephemeron_; }
+  Behavior* Float64() const { return ptr()->Float64_; }
+  Behavior* LargeInteger() const { return ptr()->LargeInteger_; }
+  Behavior* MediumInteger() const { return ptr()->MediumInteger_; }
+  Behavior* Message() const { return ptr()->Message_; }
+  Behavior* SmallInteger() const { return ptr()->SmallInteger_; }
+  Behavior* WeakArray() const { return ptr()->WeakArray_; }
+  Behavior* Activation() const { return ptr()->Activation_; }
+  Behavior* Method() const { return ptr()->Method_; }
 
  private:
   class SmallInteger* array_size_;
