@@ -67,7 +67,7 @@ stack = List new: 32.
 backRefs = IdentityMap new: 4096.
 nextBackRef
 |) (
-class ActivationCluster for: cls = (|
+class ActivationCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 |) (
@@ -81,6 +81,9 @@ public analyze: object = (
 	enqueue: object receiver.
 	enqueue: object stackPtr.
 	1 to: object stackPtr do: [:i | enqueue: (object tempAt: i)].
+)
+public name = (
+	^'Activation'
 )
 newBCI: ctxt = (
 	ctxt pc isNil ifTrue: [^nil].
@@ -100,20 +103,22 @@ public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kActivationCid negated.
 	stream uint16: objects size.
-	{'Nodes activation'. stream position} out.
 	objects do: [:object | 
 		registerBackRef: object.
 		(* stream uint16: object stackPtr *)].
 )
 ) : (
 )
-class ArrayCluster for: cls = (|
+class ArrayCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
 	1 to: object size do: [:i | enqueue: (object at: i)].
+)
+public name = (
+	^'Array'
 )
 public replace: a with: b = (
 	1 to: objects size do: [:index |
@@ -129,19 +134,21 @@ public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kArrayCid negated.
 	stream uint16: objects size.
-	{'Nodes array'. stream position} out.
 	objects do: [:object | 
 		registerBackRef: object.
 		stream uint16: (prim indexedSlotsOf: object)].
 )
 ) : (
 )
-class ByteArrayCluster for: cls = (|
+class ByteArrayCluster for: cls = Cluster (|
 	klass = cls.
 	objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
+)
+public name = (
+	^'ByteArray'
 )
 public writeEdges = (
 )
@@ -152,7 +159,6 @@ public writeNodes = (
 	|
 	writeFormat: kByteArrayCid negated.
 	stream uint16: objects size.
-	{'Nodes btyearry'. stream position} out.
 	objects do: [:object |
 		registerBackRef: object.
 		stream uint32: object size.
@@ -160,12 +166,15 @@ public writeNodes = (
 )
 ) : (
 )
-class ByteStringCluster for: cls = (|
+class ByteStringCluster for: cls = Cluster (|
 	klass = cls.
 	objects = List new.
 |halt) (
 public analyze: object = (
 	objects add: object.
+)
+public name = (
+	^'ByteString'
 )
 public writeEdges = (
 )
@@ -176,7 +185,6 @@ public writeNodes = (
 	|
 	writeFormat: kByteStringCid negated.
 	stream uint16: objects size. (* non-canonical *)
-	{'Nodes bytestring'. stream position} out.
 	objects do: [:object |
 		registerBackRef: object.
 		stream uint32: object size.
@@ -185,7 +193,7 @@ public writeNodes = (
 )
 ) : (
 )
-class ByteSymbolCluster for: cls = (|
+class ByteSymbolCluster for: cls = Cluster (|
 	klass = cls.
 	public symbols = List new.
 	strings = List new.
@@ -194,6 +202,9 @@ public analyze: object = (
 	object isSymbol
 		ifTrue: [symbols add: object]
 		ifFalse: [strings add: object].
+)
+public name = (
+	^'ByteSymbol'
 )
 public writeEdges = (
 )
@@ -217,7 +228,7 @@ public writeNodes = (
 )
 ) : (
 )
-class ClassCluster for: cls = (|
+class ClassCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 rewrites = List new.
@@ -237,6 +248,9 @@ public analyze: object = (
 	}.
 	rewrites add: rewrite.
 	rewrite do: [:each | enqueue: each].
+)
+public name = (
+	^'Class'
 )
 newFormatFor: cls = (
 	(* special objects in psoup *)
@@ -269,23 +283,18 @@ newFormatFor: cls = (
 )
 public writeEdges = (
 	rewrites size = objects size ifFalse: [halt].
-	
-	{'edges class'. stream position} out.
 	writeBackRef: klass.
 	rewrites do: [:rewrite |
-		rewrite do: [:ref | writeBackRef: ref].
-		].
+		rewrite do: [:ref | writeBackRef: ref]].
 )
 public writeNodes = (
-
 	writeFormat: 8.
 	stream uint16: objects size.
-	{'Nodes class'. stream position} out.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
 )
-class ClassMixinCluster for: cls = (|
+class ClassMixinCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 |) (
@@ -297,25 +306,26 @@ public analyze: object = (
 	enqueue: object enclosingMixin.
 	(* dropping organization, binding *)
 )
+public name = (
+	^'ClassMixin'
+)
 public writeEdges = (
-	{'edges classmixin'. stream position} out.
 	writeBackRef: klass.
 	objects do: [:object |
 		writeBackRef: object instanceMixin.
 		writeBackRef: object methodDictionary.
-		writeBackRef: object enclosingMixin]
+		writeBackRef: object enclosingMixin].
 )
 public writeNodes = (
 	assert: [klass instSize = 3] message: ''.
 
 	writeFormat: klass instSize.
 	stream uint16: objects size.
-	{'Nodes classmixin'. stream position} out.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
 )
-class ClosureCluster for: cls = (|
+class ClosureCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 |) (
@@ -328,6 +338,9 @@ public analyze: object = (
 	enqueue: object numArgs.
 	1 to: object numCopiedValues do: [:i | enqueue: (object at: i)].
 )
+public name = (
+	^'Closure'
+)
 newInitialBCI: block = (
 	^block startpc - block method initialPC + 1.
 )
@@ -336,20 +349,42 @@ public writeEdges = (
 		writeBackRef: object outerContext.
 		writeBackRef: (newInitialBCI: object).
 		writeBackRef: object numArgs.
-		1 to: object numCopiedValues do: [:i | writeBackRef: (object at: i)]]
+		1 to: object numCopiedValues do: [:i | writeBackRef: (object at: i)]].
 )
 public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kClosureCid negated.
 	stream uint16: objects size.
-	{'Nodes closure'. stream position} out.
 	objects do: [:object | 
 		registerBackRef: object.
 		stream uint16: object numCopiedValues].
 )
 ) : (
 )
-class InstanceMixinCluster for: cls = (|
+class Cluster = (
+|
+	public nodesSize
+	public edgesSize
+|
+) (
+public recordWriteEdges = (
+	| start |
+	start: stream position.
+	writeEdges.
+	edgesSize:: stream position - start.
+)
+public recordWriteNodes = (
+	| start |
+	start: stream position.
+	writeNodes.
+	nodesSize:: stream position - start.
+)
+public size = (
+	^nodesSize + edgesSize
+)
+) : (
+)
+class InstanceMixinCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 |) (
@@ -368,6 +403,9 @@ public analyze: object = (
 	keepSource ifTrue: [enqueue: object cachedHeaderSource].
 	(* dropping category, organization, binding *)
 )
+public name = (
+	^'InstanceMixin'
+)
 public writeEdges = (
 	writeBackRef: klass.
 	objects do: [:object |
@@ -380,19 +418,18 @@ public writeEdges = (
 		writeBackRef: object classMixin.
 		writeBackRef: object accessModifier.
 		writeBackRef: object cachedConstructorName.
-		writeBackRef: (keepSource ifTrue: [object cachedHeaderSource]).]
+		writeBackRef: (keepSource ifTrue: [object cachedHeaderSource]).].
 )
 public writeNodes = (
 	assert: [klass instSize = 10] message: ''.
 
 	writeFormat: klass instSize.
 	stream uint16: objects size.
-	{'Nodes instancemixin'. stream position} out.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
 )
-class MetaclassCluster for: cls = (|
+class MetaclassCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 rewrites = List new.
@@ -412,6 +449,9 @@ public analyze: object = (
 	rewrites add: rewrite.
 	rewrite do: [:each | enqueue: each].
 )
+public name = (
+	^'Metaclass'
+)
 newFormatFor: cls = (
 	assert: [cls instSize = 7 (* size in squeak *)] message: ''.
 	^7 + 1 (* Adding the class id slot *)
@@ -419,23 +459,20 @@ newFormatFor: cls = (
 public writeEdges = (
 	rewrites size = objects size ifFalse: [halt].
 	
-	{'edges metaclass'. stream position} out.
 	writeBackRef: klass.
 	rewrites do: [:rewrite |
-		rewrite do: [:ref | writeBackRef: ref].
-		].
+		rewrite do: [:ref | writeBackRef: ref]].
 )
 public writeNodes = (
 	assert: [klass instSize = 7] message: ''.
 
 	writeFormat: klass instSize.
 	stream uint16: objects size.
-	{'Nodes metaclass'. stream position} out.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
 )
-class MethodCluster for: cls = (|
+class MethodCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 rewrites = List new.
@@ -460,6 +497,9 @@ list: a equals: b = (
 	a size = b size ifFalse: [^false].
 	1 to: a size do: [:index | (a at: index) = (b at: index) ifFalse: [^false]].
 	^true
+)
+public name = (
+	^'Method'
 )
 newBytecodeFor: cm = (
 	| a = cm initialPC. b = cm endPC. bytes |
@@ -535,24 +575,22 @@ newLiteralsFor: cm = (
 )
 public writeEdges = (
 	rewrites size = objects size ifFalse: [halt].
-	{'edges method'. stream position} out.
+
 	{'method'. canons size. dups size} out.
 	writeBackRef: klass.
 	rewrites do: [:rewrite |
-		rewrite do: [:ref | writeBackRef: ref].
-		].
+		rewrite do: [:ref | writeBackRef: ref]].
 )
 public writeNodes = (
 	assert: [klass instSize = 6] message: ''.
 
 	writeFormat: klass instSize.
 	stream uint16: objects size.
-	{'Nodes method'. stream position} out.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
 )
-class PlainCluster for: cls = (|
+class PlainCluster for: cls = Cluster (|
 klass = cls.
 namedSlots = cls format bitAnd: 16rFFFF.
 objects = List new.
@@ -565,13 +603,15 @@ public analyze: object = (
 	objects add: object.
 	1 to: namedSlots do: [:i | enqueue: (prim ifFail: stop namedSlotOf: object at: i)].
 )
+public name = (
+	^klass name
+)
 public writeEdges = (
 	|
 	prim = vmmirror.
 	stop = [halt].
 	n = namedSlots.
 	|
-	{'edges regular'. stream position} out.
 	writeBackRef: klass.
 	objects do: [:object |
 		1 to: n do: [:i | writeBackRef: (prim ifFail: stop namedSlotOf: object at: i)]].
@@ -579,12 +619,11 @@ public writeEdges = (
 public writeNodes = (
 	writeFormat: klass instSize.
 	stream uint16: objects size.
-	{'Nodes regular'. stream position} out.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
 )
-class SmallIntegerCluster for: cls = (|
+class SmallIntegerCluster for: cls = Cluster (|
 	klass = cls.
 	small = List new.
 	large = List new.
@@ -595,12 +634,14 @@ public analyze: object = (
 		ifTrue: [small add: object]
 		ifFalse: [large add: object].	
 )
+public name = (
+	^'Integer'
+)
 public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kSmiCid negated.
 	stream uint16: small size.	
-	{'Nodes smi'. stream position} out.
 	small do: [:object |
 		registerBackRef: object.
 		on: stream int64: object].
@@ -614,13 +655,16 @@ public writeNodes = (
 )
 ) : (
 )
-class WeakArrayCluster for: cls = (|
+class WeakArrayCluster for: cls = Cluster (|
 klass = cls.
 objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
 	(* 1 to: object size do: [:i | enqueue: (object at: i)]. *)
+)
+public name = (
+	^'WeakArray'
 )
 public writeEdges = (
 	objects do: [:object |
@@ -630,19 +674,21 @@ public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kWeakArrayCid negated.
 	stream uint16: objects size.
-	{'Nodes weakarray'. stream position} out.
 	objects do: [:object | 
 		registerBackRef: object.
 		stream uint16: (prim indexedSlotsOf: object)].
 )
 ) : (
 )
-class WideStringCluster for: cls = (|
+class WideStringCluster for: cls = Cluster (|
 	klass = cls.
 	objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
+)
+public name = (
+	^'WideString'
 )
 public writeEdges = (
 )
@@ -653,7 +699,6 @@ public writeNodes = (
 	|
 	writeFormat: kWideStringCid negated.
 	stream uint16: objects size. (* non-canonical *)
-	{'Nodes bytestring'. stream position} out.
 	objects do: [:object |
 		registerBackRef: object.
 		stream uint32: object size.
@@ -830,14 +875,17 @@ serialize: root = (
 	stream uint16: orderedClusters size.
 	rewind:: stream position.
 	stream uint32: 0.
-	orderedClusters do: [:c | c writeNodes].
-	orderedClusters do: [:c | c writeEdges].
+	orderedClusters do: [:c | c recordWriteNodes].
+	orderedClusters do: [:c | c recordWriteEdges].
 	writeBackRef: root.
 
 	fastforward:: stream position.
 	stream position: rewind.
 	stream uint32: nextBackRef - 1.
 	stream position: fastforward.
+	
+	orderedClusters sort: [:a :b | a size > b size].
+	orderedClusters do: [:c | (c name, ' ', c size printString) out].
 )
 public serialize: app to: filename = (
 	| root |

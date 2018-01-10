@@ -239,15 +239,7 @@ private methodDictionaryFor: mixin <AbstractMixin> from: imixin <IntermediateMix
 	cmethods:: imixin assembleMethods collect:
 		[:imethod <IntermediateMethod> | 
 		imethod methodMixin: mixin.
-		imethod compiledMethod].
-	
-	1 to: cmethods size do: [:i |
-		i + 1 to: cmethods size do: [:j |
-			(cmethods at: i) selector = (cmethods at: j) selector ifTrue: 
-				['---conflicting methods' out.
-				cmethods do: [:cmethod | cmethod selector out].
-				conflictingMethods]]].
-	
+		imethod compiledMethod].	
 	^cmethods asArray
 )
 private noteUpdateOf: existingMixin <InstanceMixin | nil> to: newMixin <InstanceMixin> = (

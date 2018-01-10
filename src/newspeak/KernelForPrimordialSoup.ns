@@ -916,8 +916,6 @@ public _primaryFactorySelector <Symbol>
 public _headerSource <String>
 |) (
 public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Object> = (
-	(* This message is sent by nested class accessors. *)
-
 	| newMetaclass <Metaclass> newClass <Class> |
 	newMetaclass:: Metaclass new.
 	superclassOf: newMetaclass put: Class.
@@ -940,6 +938,10 @@ public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Ob
 	subclassesOf: superclass put: (toWeakSet: (subclassesOf: superclass) add: newClass).
 		
 	^newClass
+)
+public applyTo: superclass <Class> withEnclosingObject: eo <Object> = (
+	(* Sent by the compiler in nested class accessors. *)
+	^apply: superclass withName: (_name , '`', eo hash printString) enclosingObject: eo
 )
 public at: nestedMixinName = (
 	(* bogus: polymorphic with nested mixins map in Squeak. *)
@@ -983,14 +985,6 @@ private methodsWithAccessorsAtOffset: offset <Integer> ^<MethodDictionary> = (
 		skip ifFalse: 
 			[newMethods at: methodIndex put: method.
 			methodIndex:: methodIndex + 1]].
-	
-	methodIndex = (newMethods size + 1) ifFalse: 
-		[methodIndex out. newMethods size out. 
-		'--methods' out.
-		_methods do: [:m | m selector out].
-		'--newmethods' out.
-		newMethods do: [:m | m selector out].
-		halt].
 
 	^newMethods
 )
@@ -1441,15 +1435,15 @@ public class Stopwatch = (|
 private cumulativeNanos ::= 0.
 private startNanos
 |) (
-public elapsedNanoseconds ^<Integer> = (
-	nil = startNanos ifTrue: [^cumulativeNanos].
-	^cumulativeNanos + (currentMonotonicNanos - startNanos)
-)
 public elapsedMicroseconds ^<Integer> = (
 	^elapsedNanoseconds quo: 1000
 )
 public elapsedMilliseconds ^<Integer> = (
 	^elapsedNanoseconds quo: 1000000
+)
+public elapsedNanoseconds ^<Integer> = (
+	nil = startNanos ifTrue: [^cumulativeNanos].
+	^cumulativeNanos + (currentMonotonicNanos - startNanos)
 )
 public start = (
 	nil = startNanos ifFalse: [^self (* Already running. *)].
@@ -2052,12 +2046,6 @@ private thisClassOf: metaclass = (
 )
 private thisClassOf: metaclass put: value = (
 	^self slotOf: metaclass at: 7 put: value
-)
-private threadExit = (
-	(* :literalmessage: primitive: 109 *)
-)
-private threadReceive = (
-	(* :literalmessage: primitive: 110 *)
 )
 ) : (
 )

@@ -36,9 +36,6 @@ Licensed under the Apache License, Version 2.0 (the ''License''); you may not us
 class ClassEntry forDeclaration: cd atDepth: d = SymbolTableEntry forAST: cd atDepth: d (|
 public enclosingClass <ClassEntry>
 |) (
-public isClassBinding ^<Boolean> = (
-	^true
-)
 public name = (
 	^ast selector
 )
@@ -59,27 +56,21 @@ class Rewriter = ASTTool ((* This class is intended to become a common rewriter 
 
 The common rewriter should be sufficient for Dart and JavaScript. Squeak will require a second rewrite phase for closure analysis, which should be simpler than the current implementation because determining which locals need to be indirected or copied down will be easier when the tree already has distinguished sends that are reads/writes to locals.
 *)|
-	scopeStack <List[Scope]> = List new.
+	currentScope <Scope> ::= nil.
 	valueExpected <Boolean> ::= true.
-	inClosure <Boolean> ::= false.
+	closureDepth <Integer> ::= 0.
 |) (
 public class BlockLocalReturnAST expression: e = ReturnAST expression: e () (
-public apply: visitor = (
-	^visitor blockLocalReturnNode: self
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool blockLocalReturnNode: self
 )
 ) : (
 )
 public class BooleanAST withValue: b = AST (|
 	public value = b.
 |) (
-public apply: aTool <ASTTool > ^ <Self> = (
-	^aTool boolNode: self
-)
-public isBoolNode = (
-	^true
-)
-name = (
-	^value printString asSymbol
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool boolNode: self
 )
 public printOn: stream = (
 	stream nextPutAll: 'BooleanAST: '.
@@ -91,33 +82,23 @@ public class ConditionalAST if: cond is: ifTrue_ then: t else: e = AST (|
 	public condition <ExpressionAST> = cond.
 	public ifTrue = ifTrue_.
 	public then <CodeBodyAST> = t.
-	public else <CodeBodyAST> = e.
-	public forValue <Boolean>
-|assert: [then isCodeBodyNode] message: ''.
-	assert: [else isCodeBodyNode] message: ''.
-	assert: [then parameters size = 0] message: ''.
-	assert: [else parameters size = 0] message: '') (
-public apply: tool <ASTTool> = (
+	public else <CodeBodyAST | nil> = e.
+|) (
+public apply: tool <ASTTool[T]> ^<T> = (
 	^tool conditionalNode: self
 )
-public isExpressionNode ^<Boolean> = (
-	^forValue
-)
 ) : (
-public if: cond <ExpressionAST> is: val <Boolean> then: t <BlockAST> ^<Instance> = (
-	^self if: cond is: val then: t else: emptyBody
+public if: cond <ExpressionAST> is: val <Boolean> then: t <BlockAST> forValue: forValue ^<Instance> = (
+	^self if: cond is: val then: t else: (forValue ifTrue: [emptyBody])
 )
 )
 class EnclosingObjectAST = AST ((* See mailing list for debate over 'outer Foo' as an expression. *)| 
 	public depth <Integer>
 |) (
-public apply: tool <ASTTool> = (
+public apply: tool <ASTTool[T]> ^<T> = (
 	^tool enclosingObjectNode: self
 )
 public isExplicitRcvrNode = (
-	^true
-)
-public isExpressionNode ^<Boolean> = (
 	^true
 )
 ) : (
@@ -126,7 +107,7 @@ public class ImplicitReceiverSendAST = SendAST (|
 public depth <Integer> (* Used on targets that don't have implicit receiver lookup at runtime. *)
 public binding <ClassEntry | SlotEntry | MethodEntry>
 |) (
-public apply: tool <ASTTool> = (
+public apply: tool <ASTTool[T]> ^<T> = (
 	^tool implicitReceiverSendNode: self
 )
 public isImplicitReceiverSendNode ^<Boolean> = (
@@ -137,11 +118,8 @@ public isImplicitReceiverSendNode ^<Boolean> = (
 public class LocalReadAST of: var = AST (|
 	public variable = var.
 |) (
-public apply: visitor = (
-	^visitor localReadNode: self
-)
-public isExpressionNode ^<Boolean> = (
-	^true
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool localReadNode: self
 )
 public name = (
 	^variable ast name
@@ -152,11 +130,8 @@ public class LocalWriteAST to: var assign: val = AST (|
 	public variable = var.
 	public value = val.
 |) (
-public apply: visitor = (
-	^visitor localWriteNode: self
-)
-public isExpressionNode ^<Boolean> = (
-	^true
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool localWriteNode: self
 )
 public name = (
 	^variable ast name
@@ -168,33 +143,30 @@ public class LoopAST = AST ((* This node represents a while loop. The general fo
 prologue; while (cond = whileTrue) { body}
 
 *)|
-	public prologue <CodeBodyAST> ::= emptyBody.
+	public prologue <CodeBodyAST>
 	public condition <CodeBodyAST>
 	public isWhileTrue <Boolean>
 	public body <CodeBodyAST>
-	public forValue <Boolean>
 |) (
-public apply: aTool <ASTTool> = (
-	^aTool loopNode: self
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool loopNode: self
 )
 public do: n <Integer> timesRepeat: b <BlockAST> = (
 	|
 	skope <Scope>
 	loopVarName <Symbol>
 	var <ParameterAST>
+	varEntry <LocalEntry>
 	|
 	skope:: scopeMap at: b.
 
 	(* introduce counter variable *)
 	loopVarName:: '.i' asSymbol.
-	var:: (ParameterAST name: loopVarName type: nil)
-		start: b start; end: b end.	
-	skope
-		at: loopVarName
-		put: (LocalEntry forDeclaration: var atDepth: 0)
-		ifThere: [ halt ].
+	var:: (ParameterAST name: loopVarName type: nil) copyPositionFrom: b.
+	varEntry:: LocalEntry forDeclaration: var atDepth: nil.
+	skope at: loopVarName put: varEntry.
 	assert: [b parameters isEmpty].
-	b parameters add: var.
+	b parameters add: varEntry.
 
 	(* translate n timesRepeat: [blockBody]
 	into 1 to: n do: [ :.i | blockBody] *)
@@ -203,7 +175,6 @@ public do: n <Integer> timesRepeat: b <BlockAST> = (
 public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 	|
 	blockScope		<Scope>	
-	counterVar		<TemporaryAST>
 	counterEntry	
 	counter		<TemporaryVariableAST>
 	limitNeeded		<Boolean>
@@ -216,6 +187,7 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 	condExpr		<ExpressionAST>
 	condBody		<CodeBodyAST>
 	condStats		<MutableList[StatementAST]>
+	rewrittenBlock
 	incArg			<MutableList[ExpressionAST]>
 	incExpr			<ExpressionAST>
 	incStat			<StatementAST>
@@ -226,11 +198,12 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 	blockScope:: scopeMap at: block body.
 
 	(* loop counter (= block parameter) *)
-	counterVar:: TemporaryAST name: block parameters removeFirst name type: nil.
-	counterEntry:: LocalEntry forDeclaration: counterVar atDepth: nil.
+	counterEntry:: blockScope at: block parameters removeFirst name.
+	counterEntry induction: true.
 	counter:: (LocalReadAST of: counterEntry) start: block start; end: block end.
 	
 	(* introduce counter limit variable if needed *)
+	prologue:: emptyBody.
 	(limitNeeded:: last isLiteralNode not)
 		ifFalse:
 			[(* no limit variable needed - use last directly since there's no computation involved *)
@@ -240,9 +213,18 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 			 limitVar:: TemporaryAST name: limitName type: nil.
 			 limitVar start: block start; end: block end.
 			 limitEntry:: LocalEntry forDeclaration: limitVar atDepth: nil.
-			 prologue temporaries add: limitVar.
-			 blockScope at: limitName put: limitEntry ifThere: [ assert: [false] message: '.limit in scope twice' ].
+			 prologue temporaries add: limitEntry.
+			 blockScope at: limitName put: limitEntry.
 			 limit:: (LocalReadAST of: limitEntry) start: block start; end: block end].
+		
+	(* setup prologue *)
+	prologue temporaries add: counterEntry.
+	prologue statements add: (LocalWriteAST to: counterEntry assign: first).
+	(* counter := first *)
+	limitNeeded ifTrue: [
+		(* initialize limit variable - note that this must be done *after* setting up the counter because of possible side effects *)
+		prologue statements add: (LocalWriteAST to: limitEntry assign: last). (* .limit := last *)
+	].
 	
 	(* setup loop condition => introduce condition block for whileTrue: loop *)
 	condSel:: step value < 0 ifTrue: [ #<= ] ifFalse: [ #>= ].
@@ -258,6 +240,9 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 			start: block start; end: block end.
 	scopeMap at: condBody put: nil.
 
+	(* inlined closure body *)
+	rewrittenBlock:: rewriteInlinedBlockNode: block forValue: false.
+
 	(* add counter increment to loop body *)
 	incArg:: List new add: counter ; yourself.
 	incExpr:: OrdinarySendAST to: step send: (MessageAST new send: #+ with: incArg).
@@ -266,40 +251,26 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 	incStat:: LocalWriteAST to: counterEntry assign: incExpr. 
 	incStat start: block start; end: block end.
 	(* counter := step + counter *)
-	block body statements add: incStat.
-
-	(* setup prologue *)
-	prologue temporaries add: counterVar.
-	prologue statements add: (LocalWriteAST to: counterEntry assign: first).
-	(* counter := first *)
-	limitNeeded ifTrue: [
-		(* initialize limit variable - note that this must be done *after* setting up the counter because of possible side effects *)
-		prologue statements add: (LocalWriteAST to: limitEntry assign: last). (* .limit := last *)
-	].
+	rewrittenBlock body statements add: incStat.	
 	
 	(* initialize loop instance variables *)
 	condition:: condBody.
 	isWhileTrue:: true.
-	body:: block body
+	body:: rewrittenBlock body
 )
 public from: first <AST> to: last <AST> do: block <BlockAST> = (
 	from: first to: last by: (NumberAST new value: 1) do: block
-)
-public isExpressionNode ^<Boolean> = (
-	^forValue
 )
 public repeat: b = (
     assert: [b isCodeBodyNode].
     condition:: b.
     condition statements add: ((BooleanAST withValue: true) start: condition end; end: condition end).
     isWhileTrue:: true.
-    body:: emptyBody.
 )
 public while: v <Boolean> do: b <BlockAST> = (
     assert: [b isCodeBodyNode].
     condition:: b.
     isWhileTrue:: v.
-    body:: emptyBody
 )
 public while: b1  is: v <Boolean> do: b2 = (
     assert: [b1 isCodeBodyNode].
@@ -311,26 +282,20 @@ public while: b1  is: v <Boolean> do: b2 = (
 ) : (
 )
 public class MethodLocalReturnAST expression: e = ReturnAST expression: e () (
-public apply: visitor = (
-	^visitor methodLocalReturnNode: self
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool methodLocalReturnNode: self
 )
 ) : (
 )
 public class NilAST = AST () (
-public apply: tool <ASTTool > = (
+public apply: tool <ASTTool[T]> ^<T> = (
 	^tool nilNode: self
-)
-public isNilNode = (
-	^true
-)
-public name = (
-	^#nil
 )
 ) : (
 )
 public class NonlocalReturnAST expression: e = ReturnAST expression: e () (
-public apply: visitor = (
-	^visitor nonLocalReturnNode: self
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool nonLocalReturnNode: self
 )
 ) : (
 )
@@ -338,8 +303,8 @@ public class OrdinarySendAST to: rcvr send: msg = SendAST (|
 	public receiver = rcvr.
 	public message = msg.
 |) (
-public apply: aTool <ASTTool> = (
-	^aTool ordinarySendNode: self
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool ordinarySendNode: self
 )
 public isOrdinarySendNode = (
 	^true
@@ -350,11 +315,8 @@ public class OuterSendAST = SendAST (|
 public depth <Integer>
 public binding <ClassEntry | SlotEntry | MethodEntry>
 |) (
-public apply: tool <ASTTool> = (
+public apply: tool <ASTTool[T]> ^<T> = (
 	^tool outerSendNode: self
-)
-public isOuterSendNode ^<Boolean> = (
-	^true
 )
 ) : (
 )
@@ -362,11 +324,8 @@ public class ParameterAST name: n type: t = AST (|
 	public name = n.
 	public type = t.
 |) (
-public apply: visitor = (
-	^visitor parameterDeclNode: self
-)
-public isVarDeclNode ^<Boolean> = (
-	^true
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool parameterDeclNode: self
 )
 public printOn: stream = (
 	stream nextPutAll: 'ParameterAST('; nextPutAll: name; nextPutAll: ')'.
@@ -374,11 +333,8 @@ public printOn: stream = (
 ) : (
 )
 class ReceiverAST = AST () (
-public apply: tool = (
+public apply: tool <ASTTool[T]> ^<T> = (
 	^tool receiverNode: self
-)
-public isExpressionNode = (
-	^true
 )
 public isReceiverNode ^<Boolean> = (
 	^true
@@ -388,9 +344,6 @@ public isReceiverNode ^<Boolean> = (
 class ReturnAST expression: e = AST (|
 	public expression <AST> = e.
 |) (
-public isExpressionNode = (
-	^false
-)
 public isReturnStatNode = (
 	^true
 )
@@ -399,7 +352,7 @@ public isReturnStatNode = (
 public class SelfSendAST = SendAST (|
 public binding <ClassEntry | SlotEntry | MethodEntry>
 |) (
-public apply: tool <ASTTool> = (
+public apply: tool <ASTTool[T]> ^<T> = (
 	^tool selfSendNode: self
 )
 public isSelfSendNode ^<Boolean> = (
@@ -413,14 +366,11 @@ public receiver = (
 class SendAST = AST (|
 	public message <MessageAST>
 |) (
-public isExpressionNode = (
-	^true
-)
 public isSendNode = (^true)
 ) : (
 )
 public class SuperSendAST = SendAST () (
-public apply: tool <ASTTool> = (
+public apply: tool <ASTTool[T]> ^<T> = (
 	^tool superSendNode: self
 )
 public isSuperSendNode = (
@@ -432,15 +382,8 @@ public class TemporaryAST name: n type: t = AST (|
 	public name = n.
 	public type = t.
 |) (
-public apply: visitor = (
-	^visitor temporaryDeclNode: self
-)
-public isTemporaryAST = (
-	#BOGUS.
-	^true
-)
-public isVarDeclNode ^<Boolean> = (
-	^true
+public apply: tool <ASTTool[T]> ^<T> = (
+	^tool temporaryDeclNode: self
 )
 public printOn: stream = (
 	stream nextPutAll: 'TemporaryAST('; nextPutAll: name; nextPutAll: ')'.
@@ -465,14 +408,15 @@ applyForValueTo: node <Node> = (
 )
 public blockNode: node <BlockAST> = (
 	| rewrittenBlock <BlockAST> last <AST> |
-	inClosureDuring:
-		[rewrittenBlock:: rewriteBlockNode: node forValue: true.
-		last:: rewrittenBlock body statements last.
-		(last isReturnStatNode or: [last isBlockLocalReturnAST]) ifFalse:
-			[(* The last expression in a block is returned by it. *)
-			rewrittenBlock body statements removeLast.
-			rewrittenBlock body statements add:
-				((BlockLocalReturnAST expression: last) copyPositionFrom: last)]].
+	closureDepth:: closureDepth + 1.
+	rewrittenBlock:: rewriteBlockNode: node forValue: true.
+	last:: rewrittenBlock body statements last.
+	(last isReturnStatNode or: [last isBlockLocalReturnAST]) ifFalse:
+		[(* The last expression in a block is returned by it. *)
+		rewrittenBlock body statements removeLast.
+		rewrittenBlock body statements add:
+			((BlockLocalReturnAST expression: last) copyPositionFrom: last)].
+	closureDepth:: closureDepth - 1.
 	^rewrittenBlock
 )
 canInlineSeqexps ^<Boolean> = (
@@ -490,22 +434,26 @@ public characterNode: node <CharacterAST> = (
 public codeBodyNode: node <CodeBodyAST> = (
 	(* Move slot initializers to statements. Simultaneous slots. *)
 	
-	| bodyScope temporaries setterEntry statements result |
+	| bodyScope parameters temporaries setterEntry statements result |
 	bodyScope:: pushScopeForNode: node.
+	
+	parameters:: node parameters collect:
+		[:varDecl <VarDeclAST> | | p |
+		 p:: currentScope at: varDecl name.
+		 p closureDepth: closureDepth.
+		 p].
 	
 	temporaries:: List new.
 	node temporaries do: 
 		[:varDecl <VarDeclAST> | | t |
-		checkForReservedWord: varDecl name.
-		t:: TemporaryAST name: varDecl name type: varDecl type.
-		t copyPositionFrom: varDecl.
-		(bodyScope at: t name) ast: t.
-		temporaries add: t].
+		 t:: currentScope at: varDecl name.
+		 t closureDepth: closureDepth.
+		 temporaries add: t].
 
 	setterEntry:: LocalEntry forDeclaration: (TemporaryAST name: namer setterTemp type: nil) atDepth: nil.
 	bodyScope at: namer setterTemp put: setterEntry.
 	bodyScope at: (namer setterTemp, ':') asSymbol put: setterEntry.
-	temporaries add: setterEntry ast.
+	temporaries add: setterEntry.
 	
 	statements:: List new.
 	node temporaries do: 
@@ -529,20 +477,17 @@ public codeBodyNode: node <CodeBodyAST> = (
 	
 	setterEntry used ifFalse: 
 		[bodyScope at: namer setterTemp put: nil.
-		bodyScope at: (namer setterTemp, ':') asSymbol put: nil.
-		temporaries remove: setterEntry ast].
+		 bodyScope at: (namer setterTemp, ':') asSymbol put: nil.
+		 temporaries remove: setterEntry].
 
 	popScope.
 	result:: CodeBodyAST new
-		parameters: node parameters
+		parameters: parameters
 		temporaries: temporaries
 		statements: statements.
 	result literalMessages: node literalMessages.
 	scopeMap at: result put: bodyScope.
 	^result
-)
-currentScope ^<Scope> = (
-	^scopeStack last
 )
 depthOfEnclosingClass: name <Symbol> ^<Integer> = (
 	| entry <ClassEntry> |
@@ -572,8 +517,7 @@ futureFor: expression <ExpressionAST> ^<ExpressionAST> = (
 	futureExp <ExpressionAST>
 	|
 	
-	scope:: Scope new.
-	scope superScope: currentScope.
+	scope:: Scope parent: currentScope.
 	
 	futureExp:: UnresolvedSendAST new
 		receiver: (UnresolvedSendAST new
@@ -591,13 +535,7 @@ futureFor: expression <ExpressionAST> ^<ExpressionAST> = (
 	^futureExp
 )
 implicitReceiverNode ^<VariableAST> = (
-	^VariableAST new name: #'@here'; start: 0; end: 0.
-)
-inClosureDuring: block = (
-	| original |
-	original:: inClosure.
-	inClosure:: true.
-	^block ensure: [inClosure:: original]
+	^VariableAST new name: #'@here'
 )
 isImplicitReceiverNode: node <AST> ^<Boolean> = (
 	node isVariableNode ifFalse: [^false].
@@ -623,7 +561,7 @@ isInlineableLoop: node <NormalSendAST> ^<Boolean> = (
 			(isRemovableBlock: each withArgs: 0) ifFalse: [^false]].
 		^isRemovableBlock: node receiver withArgs: 0].
 	
-	(selector = #timesRepeat:) ifTrue:[^isRemovableBlock: args last withArgs: 0].
+	(selector = #timesRepeat:) ifTrue: [^isRemovableBlock: args last withArgs: 0].
 	({#to:do:. #to:by:do:} includes: selector) ifFalse: [^false].
 	(isRemovableBlock: args last withArgs: 1) ifFalse: [^false].
 	(selector = #to:do:) ifTrue: [^true].
@@ -655,38 +593,22 @@ public messageNode: node <MessageAST> ^<MessageAST> = (
 		start: node start;
 		end: node end
 )
-public messagePatternNode: node <MessagePatternAST> ^<MessagePatternAST> = (
-	| params <List[ParameterAST]> patternScope <Scope> |
-	checkForReservedWord: node selector.
-	params:: node parameters collect:
-		[:p <VarDeclAST> | 
-		checkForReservedWord: p name.
-		(ParameterAST name: p name type: p type)
-			start: p start;
-			end: p end].
-	patternScope:: scopeMap at: node.
-	params do: [:p | (patternScope at: p name) ast: p].
-	^MessagePatternAST new
-		selector: node selector parameters: params;
-		start: node start;
-		end: node end.
-)
 public methodNode: node <MethodAST> = (
 	(* Need setter temp? Implicit ^self? *)
-	| pattern body accessModifier result |
-	pattern:: node pattern apply: self.
+	| body accessModifier result |
+	closureDepth:: 0.
+	checkForReservedWord: node selector.
+	node body parameters: node pattern parameters. (* Should the parser do this? *)
 	(* We add the implicit ^self before rewritting the body to ensure the last non-return statment is rewritten for effect. *)
 	(node body statements isEmpty or: [node body statements last isReturnStatNode not])
-		ifTrue:	[node body statements add:
+		ifTrue: [node body statements add:
 					(ReturnStatAST new expression: (VariableAST new name: #self))].
-	body:: node body apply: self.
-	body parameters: pattern parameters.
-	assert: [inClosure not] message: ''.
+	body:: self applyForEffectTo: node body.
 	result:: MethodAST new
-		pattern: pattern
+		pattern: node pattern
 		body: body
 		accessModifier: node accessModifier.
-	scopeMap at: result put: (scopeMap at: node).
+	scopeMap at: result put: (scopeMap at: body).
 	^result
 )
 public numberNode: node <NumberAST> = (
@@ -711,7 +633,7 @@ offsetOfImplicitReceiverTarget: binding <SymbolTableEntry> ^<Integer> = (
 	^depth
 )
 public popScope ^<Scope> = (
-	^scopeStack removeLast
+	currentScope:: currentScope parent.
 )
 processEventualSend: node <NormalSendAST> = (
 	subclassResponsibility
@@ -723,28 +645,27 @@ processImplicitReceiverSend: node <UnresolvedSendAST> = (
 	binding <SymbolTableEntry>
 	|
 	
-	selector = #self 
-		ifTrue: [^ReceiverAST new copyPositionFrom: message].
-	selector = #nil 
-		ifTrue: [^NilAST new copyPositionFrom: message].
-	selector = #false
-		ifTrue: [^(BooleanAST withValue: false) copyPositionFrom: message].
-	selector = #true
-		ifTrue: [^(BooleanAST withValue: true) copyPositionFrom: message].
+	selector = #self ifTrue:
+		[^ReceiverAST new copyPositionFrom: message].
+	selector = #nil ifTrue:
+		[^NilAST new copyPositionFrom: message].
+	selector = #false ifTrue:
+		[^(BooleanAST withValue: false) copyPositionFrom: message].
+	selector = #true ifTrue:
+		[^(BooleanAST withValue: true) copyPositionFrom: message].
 	
 	binding:: currentScope at: selector ifAbsent: [nil].
 	
-	binding isNil (* Nothing is lexically visible. *) 
-		ifTrue: [^processImplicitReceiverSend: message binding: nil].
+	(* Nothing is lexically visible. *) 
+	binding isNil ifTrue:
+		[^processImplicitReceiverSend: message binding: nil].
 	
-	binding isLocalBinding
-		ifTrue: [^processLocalAccess: message of: binding].
+	binding isLocalBinding ifTrue: 
+		[^processLocalAccess: message of: binding].
 
-	binding isDebugMappedLocalEntry
-		ifTrue: [^processMappedVariable: message decl: binding].
-	
-	assert: [binding isMethodBinding | binding isSlotBinding | binding isClassBinding]
-	message: 'Unknown binding type'.
+	binding isDebugMappedLocalEntry ifTrue: 
+		[^processMappedVariable: message decl: binding].
+
 	^processImplicitReceiverSend: message binding: binding
 )
 processImplicitReceiverSend: msg <MessageAST> binding: binding <ClassEntry | SlotEntry | MethodEntry> = (
@@ -766,9 +687,9 @@ processInlineableConditional: node <NormalSendAST> = (
 		[(rewriteInlinedBlockNode: (node message arguments at: 2) forValue: valueExpected) body].
 	|
 	selector = #ifTrue:
-		ifTrue: [^ConditionalAST if: receiver is: true then: arg1].
+		ifTrue: [^ConditionalAST if: receiver is: true then: arg1 forValue: valueExpected].
 	selector = #ifFalse:
-		ifTrue: [^ConditionalAST if: receiver is: false then: arg1].
+		ifTrue: [^ConditionalAST if: receiver is: false then: arg1 forValue: valueExpected].
 	selector = #ifTrue:ifFalse:
 		ifTrue: [^ConditionalAST if: receiver is: true then: arg1 else: arg2].
 	selector = #ifFalse:ifTrue: 
@@ -806,18 +727,18 @@ processInlineableLoop: node <NormalSendAST> ^<LoopAST> = (
 	
 	sel = #timesRepeat: ifTrue: [^LoopAST new
 		do: (rcvr apply: self)
-		timesRepeat: (rewriteInlinedBlockNode: arg1 forValue: false)].
+		timesRepeat: arg1].
 	
 	sel = #to:do: ifTrue: [^LoopAST new
 		from: (rcvr apply: self)
 		to: (arg1 apply: self)
-		do: (rewriteInlinedBlockNode: arg2 forValue: false)].
+		do: arg2].
 	
 	sel = #to:by:do: ifTrue: [^LoopAST new
 		from: (rcvr apply: self)
 		to: (arg1 apply: self)
 		by: (arg2 apply: self)
-		do: (rewriteInlinedBlockNode: arg3 forValue: false)].
+		do: arg3].
 	
 	assert: [false] message: 'Unknown loop selector'
 )
@@ -839,13 +760,24 @@ processLocalWrite: message <MessageAST> to: declaration <LocalEntry> = (
 		to: declaration assign: (applyForValueTo: message arguments first))
 		copyPositionFrom: message
 )
-processOuterExpression: node <NormalSendAST> = (
+public processOrdinarySend: node <UnresolvedSendAST> ^<AST> = (
+	(isInlineableConditional: node)
+		ifTrue: [^processInlineableConditional: node].
+	(isInlineableLoop: node)
+		ifTrue: [^processInlineableLoop: node].
+
+	(* And lo, we really have a normal send. *)
+	^(OrdinarySendAST
+		to: (node receiver apply: self) send: (node message apply: self))
+		copyPositionFrom: node
+)
+processOuterExpression: node <UnresolvedSendAST> = (
 	^EnclosingObjectAST new
 		depth: (offsetOfEnclosingObjectForClass: node message selector);
 		start: node receiver start;
 		end: node message end
 )
-processOuterSend: node <NormalSendAST> = (
+processOuterSend: node <UnresolvedSendAST> = (
 	(* +1 because we're looking for members of the enclosing class, not the siblings of the enclosing class. *)
 	| binding = currentScope
 		at: node message selector
@@ -857,7 +789,7 @@ processOuterSend: node <NormalSendAST> = (
 		start: node receiver receiver start;
 		end: node message end
 )
-processSelfSend: node <NormalSendAST> = (
+processSelfSend: node <UnresolvedSendAST> = (
 	| binding = currentScope at: node message selector depth: outer Compiler currentDepth. |
 	^SelfSendAST new
 		message: (node message apply: self);
@@ -903,19 +835,19 @@ processSetterSend: node <SetterSendAST> binding: binding ^<AST> = (
 	scopeMap at: body put: currentScope.
 	^body
 )
-processSuperSend: node <NormalSendAST> = (
+processSuperSend: node <UnresolvedSendAST> = (
 	^SuperSendAST new
 		message: (node message apply: self);
 		copyPositionFrom: node
 )
 public pushScope: scope <Scope> = (
-	^scopeStack addLast: scope
+	^currentScope:: scope
 )
 pushScopeForNode: node <AST> = (
 	^pushScope: (scopeMap at: node)
 )
 public returnStatNode: node <ReturnStatAST> = (
-	^((inClosure ifTrue: [NonlocalReturnAST] ifFalse: [MethodLocalReturnAST])
+	^((closureDepth > 0 ifTrue: [NonlocalReturnAST] ifFalse: [MethodLocalReturnAST])
 		expression: (applyForValueTo: node expression))
 		copyPositionFrom: node
 )
@@ -923,24 +855,15 @@ rewriteBlockNode: node <BlockAST> forValue: forValue <Boolean> ^ <BlockAST> = (
 (* An empty block evaluates to nil when called. This method performs the necessary transformation if the block is empty; otherwise it recursively rewrites the block body. This rewrite is done on all blocks, regardless of whether they are inlined. *)
 	| 
 	rewrittenNode <BlockAST> 
-      params <Collection[ParameterAST]>  
-      bodyScope <Scope> 
 	| 
 	(* this shouldn't be handled here, but I'm not sure where the block / codebody 
 	comes from. *)
 	node body start isNumber
 		ifFalse: [node body start: node start. node body end: node end].
 	
-	params:: node parameters collect:
-		[:p <VarDeclAST> |
-		checkForReservedWord: p name.
-		(ParameterAST name: p name type: p type) start: p start; end: p end].
-	bodyScope:: scopeMap at: node body.
-	params do: [:each | (bodyScope at: each name) ast: each].
 	rewrittenNode:: BlockAST new body: 
 		(forValue ifTrue: [applyForValueTo: node body] ifFalse: [applyForEffectTo: node body]).
 	rewrittenNode start: node start; end: node end.
-	rewrittenNode body parameters: params.
 	node body statements isEmpty ifTrue:
 		[rewrittenNode body statements add: (NilAST new start: node body start; end: node body end)].
 	scopeMap at: rewrittenNode put: (scopeMap at: node).
@@ -959,14 +882,15 @@ public setterSendNode: node <SetterSendAST> ^<AST> = (
 	
 	binding:: currentScope at: selector ifAbsent: [nil].
 	
-	binding isNil (* Nothing is lexically visible. *) 
-		ifTrue: [^processSetterSend: node binding: nil].
+	(* Nothing is lexically visible. *) 
+	binding isNil ifTrue:
+		[^processSetterSend: node binding: nil].
 	
-	binding isLocalBinding
-		ifTrue: [^processLocalAccess: message of: binding].
+	binding isLocalBinding ifTrue:
+		[^processLocalAccess: message of: binding].
 
-	binding isDebugMappedLocalEntry
-		ifTrue: [^processMappedVariable: message decl: binding].
+	binding isDebugMappedLocalEntry ifTrue:
+		[^processMappedVariable: message decl: binding].
 	
 	^processSetterSend: node binding: binding
 )
@@ -977,47 +901,36 @@ public symbolNode: node <SymbolAST> = (
 	^node
 )
 public tupleNode: node <TupleAST> = (
-	^TupleAST new elements: (node elements collect: [:e | applyForValueTo: e])
+	^TupleAST new elements: (node elements collect: [:element | applyForValueTo: element])
 )
 public unresolvedSendNode: node <UnresolvedSendAST> ^<AST> = (
-	(node message isEventual)
-		ifTrue: [^processEventualSend: node].
-	(isImplicitReceiverNode: node receiver)
-		ifTrue: [^processImplicitReceiverSend: node].
-	(isSelfNode: node receiver)
-		ifTrue: [^processSelfSend: node].	
-	(isSuperNode: node receiver)
-		ifTrue: [^processSuperSend: node].	
-	(isOuterNode: node receiver)
-		ifTrue: [^processOuterExpression: node].
-	(node receiver isSendNode and: [isOuterNode: node receiver receiver])
-		ifTrue: [^processOuterSend: node].
-	(isInlineableConditional: node)
-		ifTrue: [^processInlineableConditional: node].
-	(isInlineableLoop: node)
-		ifTrue: [^processInlineableLoop: node].
-	
-	(* And lo, we really have a normal send. *)
-	^(OrdinarySendAST
-		to: (node receiver apply: self) send: (node message apply: self))
-		start: node start; end: node end
+	(node message isEventual) ifTrue: 
+		[^processEventualSend: node].
+	(isImplicitReceiverNode: node receiver) ifTrue: 
+		[^processImplicitReceiverSend: node].
+	(isSelfNode: node receiver) ifTrue: 
+		[^processSelfSend: node].	
+	(isSuperNode: node receiver) ifTrue: 
+		[^processSuperSend: node].	
+	(isOuterNode: node receiver) ifTrue: 
+		[^processOuterExpression: node].
+	(node receiver isSendNode and: [isOuterNode: node receiver receiver]) ifTrue: 
+		[^processOuterSend: node].
+	^processOrdinarySend: node
 )
-public variableNode: aNode <VariableAST> = (
-	#BOGUS. (* Duplication with processLocalRead: *)
-	assert: [aNode start isNumber] message: ''.
-	aNode name = #self ifTrue:
-		[^ReceiverAST new copyPositionFrom: aNode].
-	aNode name = #nil ifTrue:
-		[^NilAST new copyPositionFrom: aNode].
-	aNode name = #true ifTrue:
-		[^(BooleanAST withValue: true) copyPositionFrom: aNode].
-	aNode name = #false ifTrue:
-		[^(BooleanAST withValue: false) copyPositionFrom: aNode].		
-	(* recognize inst vars for accessor methods? handle temps etc. *)
-	assert: [(aNode name = #super) not] message: '"super" is not a valid expression'.
-	assert: [(aNode name = #outer) not] message: '"outer" is not a valid expression'.
+public variableNode: node <VariableAST> = (
+	node name = #self ifTrue:
+		[^ReceiverAST new copyPositionFrom: node].
+	node name = #nil ifTrue:
+		[^NilAST new copyPositionFrom: node].
+	node name = #true ifTrue:
+		[^(BooleanAST withValue: true) copyPositionFrom: node].
+	node name = #false ifTrue:
+		[^(BooleanAST withValue: false) copyPositionFrom: node].
+	assert: [(node name = #super) not] message: '"super" is not a valid expression'.
+	assert: [(node name = #outer) not] message: '"outer" is not a valid expression'.
 	halt.
-	^aNode
+	^node
 )
 ) : (
 )
@@ -1031,38 +944,21 @@ Then we traverse the tree, creating and populating new scopes as needed. We main
 
 A possible optimization is to avoid a traversal of an entire side of a class.
 One can process only a side without its subtrees (i.e., methods and nested classes). These can be visited later, as long as we ensure that the processing of the subtree begins with a proper super scope on top of the scope stack. *)| 
-scopeStack <List[Scope]> = List new.
+currentScope ::= initialScope.
 currentDepth <Integer> ::= initialDepth. (* The lexical nesting level of the class declaration currently being visited; top-level classes are level 0. *)
-|pushScope: initialScope) (
-public blockNode: aNode <BlockAST> = (
-	| parameterScope <Scope> |
-	parameterScope:: Scope new.
-	(* establish parameter scope *)
-	aNode parameters do:
-		[:parameter <VarDeclAST> | 
-			parameterScope
-			at: parameter name
-			put: (LocalEntry
-				forDeclaration: parameter
-				atDepth: currentDepth)].
-	nestScope: parameterScope.
-	
+|
+) (
+public blockNode: node <BlockAST> = (	
 	(* visit body *)
-	aNode body apply: self.
-	scopeMap at: aNode put: (scopeMap at: aNode body).
-	
-	popScope (* pop the parameter scope, ps *)
+	scopeMap at: node put: (node body apply: self).
 )
 public buildScopeFor: mm <MixinMirror> ^<Scope> = (
 	assert: [mm isKindOfMixinMirror] message: ''.
 	^incrementalScopeFor: mm.
 )
-public cascadedSendNode: aNode <CascadedSendAST> = (
-
-	(* generic traversal code *)
-	(* visit receiver and messages *)
-	aNode previousSend apply: self.
-	aNode message apply: self.
+public cascadedSendNode: node <CascadedSendAST> = (
+	node previousSend apply: self.
+	node message apply: self.
 )
 public characterNode: aNode <CharacterAST> = (
 	(* leaf, do nothing *)
@@ -1074,56 +970,66 @@ public classHeaderNode: aNode = (
 	aNode initExprs do: [:e | e apply: self].
 )
 public classNode: aNode <ClassDeclarationAST> = (
-	| thisClass <ClassEntry> vs <Scope> |
+	| thisClass <ClassEntry> instanceSideScope <Scope> classSideScope <Scope> |
 	
-	thisClass:: ClassEntry
-		forDeclaration: (MessagePatternAST new selector: aNode name; accessModifier: aNode accessModifier)
-		atDepth: currentDepth.
+	thisClass:: ClassEntry forDeclaration: aNode atDepth: currentDepth.
 	thisClass enclosingClass: (currentScope at: #'@currentClass' ifAbsent: [nil]).
 	
 	currentScope at: aNode name put: thisClass.
 		
-	vs:: Scope new. (* establish instance side scope *)
 	currentDepth:: currentDepth + 1.
+	
+	instanceSideScope:: Scope parent: currentScope. (* establish instance side scope *)
+	pushScope: instanceSideScope.
 	aNode header slots do: [:v <SlotDeclAST> | 
-		| se = SlotEntry
-			forDeclaration: (MessagePatternAST new selector: v name; accessModifier: v accessModifier)
-			atDepth: currentDepth. |
-		vs at: v name put: se. (* getter *)
-		vs at: (namer initializerSelectorForSlot: v) put: se.
-		v isMutable ifTrue: [vs at: (namer setterSelectorFor: v) put: se]. (* setter *)].
-		
-	self nestScope: vs.
-		currentScope at: #'@currentClass' put: thisClass.
-  		aNode instanceSide apply: self.
+		| se = SlotEntry forDeclaration: v atDepth: currentDepth. |
+		instanceSideScope at: v name put: se. (* getter *)
+		instanceSideScope at: (namer initializerSelectorForSlot: v) put: se.
+		v isMutable ifTrue: [instanceSideScope at: (namer setterSelectorFor: v) put: se]. (* setter *)].
+	instanceSideScope at: #'@currentClass' put: thisClass.
+	aNode instanceSide apply: self.
 	popScope.
-	self nestScope: Scope new. (* establish class side scope *)
-		currentScope at: #'@currentClass' put: thisClass.
-  		aNode classSide apply: self.
+
+	classSideScope:: (Scope parent: currentScope). (* establish class side scope *)
+	pushScope: classSideScope.
+	classSideScope at: #'@currentClass' put: thisClass.
+	aNode classSide apply: self.
 	popScope.
+
 	currentDepth:: currentDepth - 1.
 )
-public codeBodyNode: aNode <CodeBodyAST> = (
-	| ts <Scope> |
-	(* establish local slot scope *)
+public codeBodyNode: node <CodeBodyAST> = (
+	| bodyScope <Scope> |
 
-	ts:: Scope new.
-	aNode temporaries do:[:t <SlotDefAST> | 
-		|svd|
-		svd:: LocalEntry forDeclaration: t slotDecl atDepth: currentDepth.
-		ts at: t name put: svd. (* getter *)
-		ts at: (namer initializerSelectorForSlot: t) put: svd. (* setter *)
-		t isMutable ifTrue: [ts at: (setterSelectorFor: t) put: svd. (* setter *)]].
+	bodyScope:: Scope parent: currentScope.
+	node parameters do:
+		[:parameter <VarDeclAST> | 
+		 checkForReservedWord: parameter name.
+		 (bodyScope includesKeyLocal: parameter name) ifTrue: 
+			[Error signal: 'Conflicting slots named ', parameter name].
+		 bodyScope
+			at: parameter name
+			put: (LocalEntry
+				forDeclaration: parameter
+				atDepth: currentDepth)].
+	node temporaries do: 
+		[:temporary <SlotDefAST> | | local |
+		 checkForReservedWord: temporary name.
+		 (bodyScope includesKeyLocal: temporary name) ifTrue: 
+			[Error signal: 'Conflicting slots named ', temporary name].
+		 local:: LocalEntry forDeclaration: temporary slotDecl atDepth: currentDepth.
+		 bodyScope at: temporary name put: local. (* getter *)
+		 bodyScope at: (namer initializerSelectorForSlot: temporary) put: local. (* setter *)
+		 temporary isMutable ifTrue: 
+			[bodyScope at: (setterSelectorFor: temporary) put: local. (* setter *)]].
 
-	nestScope: ts.
-	scopeMap at: aNode put: ts.
+	pushScope: bodyScope.
+	scopeMap at: node put: bodyScope.
 	(* visit statements *)
-	aNode temporaries do: [:t | t initializer isNil ifFalse: [t initializer apply: self]].
-	aNode statements do: [:statement | statement apply: self].
+	node temporaries do: [:temporary | nil = temporary initializer ifFalse: [temporary initializer apply: self]].
+	node statements do: [:statement | statement apply: self].
 	popScope.
-)
-currentScope ^ <Scope> = (
-	^scopeStack last
+	^bodyScope
 )
 incrementalScopeFor: mm <MixinMirror> ^<Scope> = (
 	|
@@ -1137,7 +1043,7 @@ incrementalScopeFor: mm <MixinMirror> ^<Scope> = (
 	nil = enclosingMixin 
 		ifTrue: [enclosingScope:: Scope new]
 		ifFalse: [enclosingScope:: incrementalScopeFor: enclosingMixin instanceSide].
-	scope:: Scope new superScope: enclosingScope.
+	scope:: Scope parent: enclosingScope.
 	depth:: scope depth.
 	currentClass:: ClassEntry 
 		forDeclaration: (MessagePatternAST new selector: mm declaration name)
@@ -1165,100 +1071,51 @@ incrementalScopeFor: mm <MixinMirror> ^<Scope> = (
 		scope at: c name put: ce].
 	^scope
 )
-isPseudoVariableNode: aNode <VariableAST> ^<Boolean> = (
-	^aNode name = #self
-		or: [aNode name = #super
-		or: [aNode name = #outer]]
+public messageNode: node <MessageAST> = (
+	node arguments do: [:argument | argument apply: self]
 )
-public keywordPatternNode: n = (
-	(* leaf, do nothing *)
-)
-public literalPatternNode: n = (
-	(* leaf, do nothing *)
-)
-public messageNode: aNode <MessageAST> = (
-	(* generic traversal code *)
-	(* visit arguments *)
-	aNode arguments do: [:arg <ExpressionAST> | arg apply: self]
-)
-public messagePatternNode: aNode <MessagePatternAST> = (
-
-	| parameterScope <Scope> |
-	parameterScope:: Scope new.
-	(* establish parameter scope *)
-	aNode parameters do:
-		[:parameter <VarDeclAST> | 
-		parameterScope
-		at: parameter name
-		put: (LocalEntry
-			forDeclaration: parameter
-			atDepth: currentDepth)].
-	
-	nestScope: parameterScope.
-	scopeMap at: aNode put: parameterScope.
-	(* the pattern scope, ps, must be popped by the caller *)
-	(* establish type parameter scope - skip for now *)
-)
-public methodNode: aNode <MethodAST> = (
+public methodNode: node <MethodAST> = (
 
 	(* register method in current scope *)
+	checkForReservedWord: node selector.
 	currentScope
-		at: aNode pattern selector
-		put: (MethodEntry
-			forDeclaration: (MessagePatternAST new selector: aNode selector; accessModifier: aNode accessModifier)
-			atDepth: currentDepth).
+		at: node selector
+		put: (MethodEntry forDeclaration: node atDepth: currentDepth).
 
-	(* visit pattern *)
-	aNode pattern apply: self.
-	
-	(* visit body *)
-	aNode body apply: self.
-	scopeMap at: aNode put: (scopeMap at: aNode body).
-
-	popScope (* Pop pattern scope *)
+	node body parameters: node pattern parameters. (* Should the parser do this? *)
+	scopeMap at: node put: (node body apply: self).
 )
 public mixinApplication: node <MixinApplicationAST> = (
-
 	node mixinExpr apply: self.
 	node superclassExpr apply: self
 )
-public mixinApplicationClass: aNode <MixinApplicationClassAST> = (
-	| thisClass <ClassEntry> vs <Scope> |
+public mixinApplicationClass: node <MixinApplicationClassAST> = (
+	| thisClass <ClassEntry> |
 	#BOGUS yourself. (* WIP *)
-	thisClass:: ClassEntry
-		forDeclaration: (MessagePatternAST new selector: aNode name)
-		atDepth: currentDepth.
+	thisClass:: ClassEntry forDeclaration: node atDepth: node.
 	thisClass enclosingClass: (currentScope at: #'@currentClass' ifAbsent: [nil]).
 	
-	currentScope at: aNode name put: thisClass.
-	scopeMap at: aNode put: currentScope.
+	currentScope at: node name put: thisClass.
+	scopeMap at: node put: currentScope.
 )
 public mixinClassNode: aNode = (
 	(* leaf, do nothing *)
-)
-nestScope: s <Scope> = (
-	(* Hook up a new lexically nested scope, and push onto the scope stack *)
-	s superScope: currentScope.
-	pushScope: s
 )
 public numberNode: aNode <NumberAST> = (
 	(* leaf, do nothing *)
 )
 popScope ^<Scope> = (
-	^scopeStack removeLast
+	^currentScope:: currentScope parent
 )
-pushScope: s <Scope> = (
-	scopeStack addLast: s
+pushScope: scope <Scope> = (
+	^currentScope:: scope
 )
-public returnStatNode: aNode <ReturnStatAST> = (
-	(* generic traversal code *)
-	(* visit expression *)
-	aNode expression apply: self
+public returnStatNode: node <ReturnStatAST> = (
+	node expression apply: self
 )
-public setterSendNode: aNode <SetterSendAST> = (
-	(* visit recvr and msg *)
-	aNode receiver apply: self.
-	aNode message apply: self.
+public setterSendNode: node <SetterSendAST> = (
+	node receiver apply: self.
+	node message apply: self.
 )
 public sideNode: aNode <SideAST> = (
 
@@ -1278,25 +1135,17 @@ public stringNode: aNode <StringAST> = (
 public symbolNode: aNode <SymbolAST> = (
 	(* leaf, do nothing *)
 )
-public tupleNode: aNode <TupleAST> = (
-	(* visit elements *)
-	aNode elements do: [:e <ExpressionAST> | e apply: self]
+public tupleNode: node <TupleAST> = (
+	node elements do: [:element | element apply: self]
 )
-public unresolvedSendNode: aNode <UnresolvedSendAST> = (
-	(* generic traversal code *)
-	(* visit recvr and msg *)
-	aNode receiver apply: self.
-	aNode message apply: self.
+public unresolvedSendNode: node <UnresolvedSendAST> = (
+	node receiver apply: self.
+	node message apply: self.
 )
 public varDeclNode: aNode <VarDeclAST> = (
 	(* Do nothing. It could arguably add aNode's data to current scope - but in practice, the context knows better how to do this. *)
 )
 public variableNode: aNode <VariableAST> = (
-	assert: [aNode name = #'@here' or: [isPseudoVariableNode: aNode]]
-	message: 'Unexpected variable name'.
-)
-public wildcardPatternNode: node = (
-	(* leaf, do nothing *)
 )
 ) : (
 public new ^<Instance> = (
@@ -1329,17 +1178,26 @@ setterSelectorFor: slot <SlotDefAST | InstanceVariableMirror> ^<Symbol> = (
 ) : (
 )
 class LocalEntry forDeclaration: decl <VarDeclAST> atDepth: d <Integer> = SymbolTableEntry forAST: decl atDepth: d ((* Semantic info for a parameter or temporary. *)|
-public offset <Integer>
+(* public offset <Integer>
 public remote <Boolean> ::= false.
-public remoteVector <LocalEntry>
+public remoteVector <LocalEntry> *)
 
+public closureDepth
 public used ::= false.
+public induction ::= false.
+public captured ::= false.
+public remote
+public remoteVector2
+public remoteOffset
 |) (
 public isLocalBinding ^<Boolean> = (
 	^true
 )
 public name = (
 	^ast name
+)
+public printOn: stream = (
+	stream nextPutAll: 'LocalEntry('; nextPutAll: name; nextPutAll: '#'; print: hash; nextPutAll: ')'.
 )
 ) : (
 )
@@ -1395,9 +1253,9 @@ public syntheticNameSeparator = (
 )
 ) : (
 )
-public class Scope = ((* A generic scope facility. *)|
-public superScope <Scope>
-bindings <Map[Symbol, SymbolTableEntry]> = Map new.
+public class Scope parent: p = (|
+	public parent <Scope> = p.
+	protected bindings <Map[Symbol, SymbolTableEntry]> = Map new.
 |) (
 public at: key <Symbol> ^<SymbolTableEntry> = (
 	(* Answers the value associated with aKey in this or one the super scopes or fails if aKey is absent. *)
@@ -1405,9 +1263,9 @@ public at: key <Symbol> ^<SymbolTableEntry> = (
 )
 public at: key depth: d = (
 	depth = d ifFalse: [
-		nil = superScope
+		nil = parent
 			ifTrue: [^nil]
-			ifFalse: [^superScope at: key depth: d]].
+			ifFalse: [^parent at: key depth: d]].
 	^bindings at: key ifAbsent: [nil]
 )
 public at: key <Symbol> ifAbsent: blk <[X def]> ^<SymbolTableEntry | X> = (
@@ -1417,27 +1275,20 @@ public at: key <Symbol> ifAbsent: blk <[X def]> ^<SymbolTableEntry | X> = (
 	| val <T> |
 	val:: self bindings at: key ifAbsent: [nil].
 	nil = val ifFalse: [^val].
-	nil = self superScope ifTrue: [^blk value].
-	val:: self superScope at: key ifAbsent: [nil].
+	nil = self parent ifTrue: [^blk value].
+	val:: self parent at: key ifAbsent: [nil].
 	nil = val ifFalse: [^val].
 	^blk value
 )
 public at: key <Symbol> put: value <SymbolTableEntry> = (
 	^self bindings at: key put: value
 )
-public at: key <Symbol> put: value <SymbolTableEntry> ifThere: aBlock <[X def]> ^<SymbolTableEntry | X> = (
-
-	(* Associates aValue with aKey and answers aValue if aKey
-    was absent. Otherwise answers the value of aBlock. *)
-	| wasAbsent ::= false. |
-	bindings at: key ifAbsent: [bindings at: key put: value. wasAbsent:: true].
-	^wasAbsent
-		ifTrue: [value]
-		ifFalse: [aBlock value]
-)
 public depth ^<Integer> = (
-	superScope isNil ifTrue: [^0].
-	^superScope depth + 1.
+	parent isNil ifTrue: [^0].
+	^parent depth + 1.
+)
+public includesKeyLocal: key = (
+	^bindings includesKey: key
 )
 public printOn: stm = (
 	stm nextPutAll: 'Scope('.
@@ -1445,31 +1296,23 @@ public printOn: stm = (
 		do: [:key | stm nextPutAll: key]
 		separatedBy: [ stm nextPutAll: ', '].
 	stm nextPutAll: ') in '.
-	superScope printOn: stm.
-)
-public setSuperScope: sc = (
-	superScope isNil
-		ifTrue: [superScope: sc]
-		ifFalse: [superScope setSuperScope: sc]
+	parent printOn: stm.
 )
 ) : (
+public new = (
+	^self parent: nil
+)
 )
 class SlotEntry forDeclaration: decl <VarDeclAST> atDepth: d <Integer> = SymbolTableEntry forAST: decl atDepth: d () (
-public isSlotBinding ^<Boolean> = (
-	^true
-)
 public name = (
 	^ast name
 )
 ) : (
 )
 class SymbolTableEntry forAST: tree atDepth: d = ((* An entry in a scope. *)|
-public ast <AST> ::= tree. (* Should investigate mutators of this slot and make immutable if possible. *)
+public ast <AST> = tree.
 public depth <Integer> = d.
 |) (
-public isClassBinding ^<Boolean> = (
-	^false
-)
 public isDebugMappedLocalEntry = (
 	^false
 )
@@ -1477,9 +1320,6 @@ public isLocalBinding ^<Boolean> = (
 	^false
 )
 public isMethodBinding ^<Boolean> = (
-	^false
-)
-public isSlotBinding ^<Boolean> = (
 	^false
 )
 ) : (
