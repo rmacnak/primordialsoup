@@ -37,6 +37,7 @@ class FuchsiaMessageLoop : public MessageLoop, private fsl::MessageLoopHandler {
 
   fsl::MessageLoop* loop_;
   zx_handle_t timer_;
+  int64_t wakeup_;
 
   DISALLOW_COPY_AND_ASSIGN(FuchsiaMessageLoop);
 };

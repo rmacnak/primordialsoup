@@ -2,7 +2,11 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-executable("primordialsoup") {
+import("//build/package.gni")
+
+executable("vm") {
+  output_name = "primordialsoup"
+
   include_dirs = [ "src" ]
 
   if (is_fuchsia) {
@@ -119,9 +123,14 @@ executable("primordialsoup") {
   }
 }
 
+hello_snapshot = "$root_out_dir/HelloApp.vfuel"
+tests_snapshot = "$root_out_dir/TestRunner.vfuel"
+benchmarks_snapshot = "$root_out_dir/BenchmarkRunner.vfuel"
+compiler_snapshot = "$root_out_dir/CompilerApp.vfuel"
+
 action("snapshots") {
   deps = [
-    ":primordialsoup($host_toolchain)",
+    ":vm($host_toolchain)",
   ]
 
   newspeak_sources = [
@@ -190,11 +199,6 @@ action("snapshots") {
 
   inputs = newspeak_sources + [ bootstrap_compiler_snapshot ]
 
-  hello_snapshot = "$root_out_dir/HelloApp.vfuel"
-  tests_snapshot = "$root_out_dir/TestRunner.vfuel"
-  benchmarks_snapshot = "$root_out_dir/BenchmarkRunner.vfuel"
-  compiler_snapshot = "$root_out_dir/CompilerApp.vfuel"
-
   outputs = [
     hello_snapshot,
     tests_snapshot,
@@ -202,11 +206,10 @@ action("snapshots") {
     compiler_snapshot,
   ]
 
-  host_primordialsoup_dir =
-      get_label_info(":primordialsoup($host_toolchain)", "root_out_dir")
-  host_primordialsoup = rebase_path("$host_primordialsoup_dir/primordialsoup")
+  host_vm_dir = get_label_info(":vm($host_toolchain)", "root_out_dir")
+  host_vm = rebase_path("$host_vm_dir/primordialsoup")
 
-  script = host_primordialsoup
+  script = host_vm
   args = [ bootstrap_compiler_snapshot ]
   args += rebased_newspeak_sources
   args += [
@@ -227,3 +230,31 @@ action("snapshots") {
     rebase_path(compiler_snapshot),
   ]
 }
+
+package("primordialsoup") {
+  deps = [ ":vm" ]
+  binary = "primordialsoup"
+}
+
+template("psoup_package") {
+  package(target_name) {
+    deps = [ ":snapshots" ]
+    resources = [
+      {
+        path = rebase_path(invoker.snapshot)
+        dest = "program.vfuel"
+      }
+    ]
+    meta = [
+      {
+        path = rebase_path("runtime")
+        dest = "runtime"
+      }
+    ]
+  }
+}
+
+psoup_package("HelloApp") { snapshot = hello_snapshot }
+psoup_package("TestRunner") { snapshot = tests_snapshot }
+psoup_package("BenchmarkRunner") { snapshot = benchmarks_snapshot }
+psoup_package("CompilerApp") { snapshot = compiler_snapshot }

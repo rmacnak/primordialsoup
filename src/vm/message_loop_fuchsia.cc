@@ -17,9 +17,10 @@ namespace psoup {
 FuchsiaMessageLoop::FuchsiaMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
       loop_(fsl::MessageLoop::GetCurrent()),
-      timer_(ZX_HANDLE_INVALID) {
-  zx_status_t result = zx_timer_create(ZX_TIMER_SLACK_LATE, ZX_CLOCK_MONOTONIC,
-                                       &timer_);
+      timer_(ZX_HANDLE_INVALID),
+      wakeup_(0) {
+  zx_status_t result =
+      zx_timer_create(ZX_TIMER_SLACK_LATE, ZX_CLOCK_MONOTONIC, &timer_);
   ASSERT(result == ZX_OK);
   loop_->AddHandler(this, timer_, ZX_TIMER_SIGNALED);
 }
@@ -60,13 +61,14 @@ void FuchsiaMessageLoop::CancelSignalWait(intptr_t wait_id) {
   loop_->RemoveHandler(wait_id);
 }
 
-void FuchsiaMessageLoop::AdjustWakeup(int64_t new_wakeup_nanos) {
-  if (new_wakeup_nanos == 0) {
+void FuchsiaMessageLoop::AdjustWakeup(int64_t new_wakeup) {
+  wakeup_ = new_wakeup;
+  if (new_wakeup == 0) {
     zx_status_t result = zx_timer_cancel(timer_);
     ASSERT(result == ZX_OK);
   } else {
     zx_duration_t slack = ZX_MSEC(1);
-    zx_status_t result = zx_timer_set(timer_, new_wakeup_nanos, slack);
+    zx_status_t result = zx_timer_set(timer_, new_wakeup, slack);
     ASSERT(result == ZX_OK);
   }
 }
@@ -76,7 +78,15 @@ void FuchsiaMessageLoop::PostMessage(IsolateMessage* message) {
 }
 
 void FuchsiaMessageLoop::Run() {
+  loop_->task_runner()->PostTask([this] {
+    loop_->SetAfterTaskCallback([this] {
+      if ((open_ports_ == 0) && (wakeup_ == 0)) {
+        loop_->QuitNow();
+      }
+    });
+  });
   loop_->Run();
+  loop_->SetAfterTaskCallback(nullptr);
 
   if (open_ports_ > 0) {
     PortMap::CloseAllPorts(this);

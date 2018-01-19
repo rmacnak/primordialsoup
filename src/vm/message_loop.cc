@@ -40,7 +40,11 @@ void MessageLoop::DispatchSignal(intptr_t handle,
                                  intptr_t status,
                                  intptr_t signals,
                                  intptr_t count) {
+#if defined(OS_FUCHSIA)
+  // Ignore signals from other users of the message loop.
+#else
   UNIMPLEMENTED();
+#endif
 }
 
 }  // namespace psoup
