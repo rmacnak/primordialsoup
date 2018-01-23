@@ -1,6 +1,8 @@
 Newspeak3
 'NS2PrimordialSoup'
-class PrimordialSoupTracer packageUsing: manifest = (|
+class PrimordialSoupTracer packageUsing: manifest = (
+(* Bootstraps Primordial Soup snapshots from Squeak. *)
+|
 runtime = manifest RuntimeForPrimordialSoup packageRuntimeUsing: manifest.
 runtimeWithBuilders = manifest RuntimeWithBuildersForPrimordialSoup packageRuntimeUsing: manifest.
 helloApp = manifest HelloApp packageUsing: manifest.
@@ -59,6 +61,7 @@ platform = runtime Platform internalKernel: psoup.
 
 replacements = IdentityMap new.
 symbolsPlaceholder = Array new.
+empty = Array new.
 
 public stream = ByteArray new writeStream.
 clusters = IdentityMap new.
@@ -243,7 +246,7 @@ public analyze: object = (
 		object mixinSlot.
 		nil. (* class id slot *)
 		newFormatFor: object.
-		object name.
+		object mixinSlot name.
 		object subclasses isEmpty ifTrue: [nil] ifFalse: [object subclasses].
 	}.
 	rewrites add: rewrite.
@@ -394,8 +397,8 @@ public analyze: object = (
 	enqueue: object name.
 	enqueue: object methodDictionary.
 	enqueue: object enclosingMixin.
-	enqueue: object slots.
-	enqueue: object nestedMixins.
+	enqueue: (canonicalizeEmpty: object slots).
+	enqueue: (canonicalizeEmpty: object nestedMixins).
 	enqueue: (object applications size = 0 ifFalse: [object applications]).
 	enqueue: object classMixin.
 	enqueue: object accessModifier.
@@ -412,8 +415,8 @@ public writeEdges = (
 		writeBackRef: object simpleName.
 		writeBackRef: object methodDictionary.
 		writeBackRef: object enclosingMixin.
-		writeBackRef: object slots.
-		writeBackRef: object nestedMixins.
+		writeBackRef: (canonicalizeEmpty: object slots).
+		writeBackRef: (canonicalizeEmpty: object nestedMixins).
 		writeBackRef: (object applications size = 0 ifFalse: [object applications]).
 		writeBackRef: object classMixin.
 		writeBackRef: object accessModifier.
@@ -734,6 +737,10 @@ buildReplacements = (
 	replaceClass: Fraction with: psoup Fraction.
 	
 	replacements at: processorAssociation put: nil.
+)
+canonicalizeEmpty: array = (
+	0 = array size ifTrue: [^empty].
+	^array
 )
 classOf: object = (
 	^vmmirror classOf: object
