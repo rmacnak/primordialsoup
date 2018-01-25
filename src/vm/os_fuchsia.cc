@@ -21,7 +21,7 @@ void OS::Shutdown() {}
 
 
 int64_t OS::CurrentMonotonicNanos() {
-  return zx_time_get(ZX_CLOCK_MONOTONIC);
+  return zx_clock_get(ZX_CLOCK_MONOTONIC);
 }
 
 
