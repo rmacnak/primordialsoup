@@ -13,14 +13,14 @@ public blockFor: promise ifFulfilled: onFulfilled ifBroken: onBroken ifTimeout: 
 	state ::= #unresolved.
 	resolution
 	|
-	Promise 
+	Promise
 		when: promise
 		fulfilled: [:value | resolution:: value. state:: #fulfilled]
 		broken: [:error | resolution:: error. state:: #broken].
 
 	(* This will not process any inter-isolate messages. *)
 	[scheduler drainEventLoop > 0] whileTrue.
-	
+
 	state = #unresolved ifTrue: [^onTimeout value].
 	state = #fulfilled ifTrue: [^onFulfilled value: resolution].
 	state = #broken ifTrue: [^onBroken value: resolution].
@@ -33,10 +33,10 @@ public testModulesUsingPlatform: platform minitest: minitest = (
 	actors = platform actors.
 	blocker = DrainEventLoopBlockingStrategy usingActors: platform actors.
 	|
-	^{ActorsTesting 
-		usingPlatform: platform 
-		actors: actors 
-		testActor: TestActor 
+	^{ActorsTesting
+		usingPlatform: platform
+		actors: actors
+		testActor: TestActor
 		minitest: minitest
 		blocker: blocker}
 )

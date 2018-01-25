@@ -28,17 +28,17 @@ public addAll: collection = (
 public addFirst: element <E> ^<E> = (
 	| oldData newData |
 	oldData:: data.
-	size_ >= oldData size 
+	size_ >= oldData size
 		ifTrue: [data:: newData:: Array new: (data size * 2 + 1)]
 		ifFalse: [newData:: oldData].
-	size_ to: 1 by: -1 do: [:oldIndex | 
+	size_ to: 1 by: -1 do: [:oldIndex |
 		newData at: 1 + oldIndex put: (oldData at: oldIndex)].
 	newData at: 1 put: element.
 	size_:: size_ + 1.
 	^element
 )
 public addLast: element <E> ^<E> = (
-	size_ >= data size ifTrue: 
+	size_ >= data size ifTrue:
 		[data:: data copyWithSize: (data size * 2 + 1)].
 	size_:: size_ + 1.
 	data at: size_ put: element.
@@ -62,7 +62,7 @@ public first ^<E> = (
 	^self at: 1
 )
 public include: element <E> ^<E> = (
-	1 to: size_ do: 
+	1 to: size_ do:
 		[:index | (data at: index) = element ifTrue: [^element]].
 	^self addLast: element
 )
@@ -82,17 +82,17 @@ public keysAndValuesDo: action <[:Integer :E]> = (
 public last ^<E> = (
 	^self at: size
 )
-protected newForCollectUsingAdd: capacity  = (
+protected newForCollectUsingAdd: capacity = (
 	^List new: capacity
 )
 public remove: element <E> ^<E> = (
 	^self remove: element ifAbsent: [missingElement]
 )
 public remove: element <E> ifAbsent: onAbsent <X def> ^<E | X> = (
-	1 to: size_ do: 
+	1 to: size_ do:
 		[:index |
-		(data at: index) = element ifTrue: 
-			[index to: size_ - 1 do: 
+		(data at: index) = element ifTrue:
+			[index to: size_ - 1 do:
 				[:j |
 				data at: j put: (data at: j + 1)].
 			data at: size_ put: nil.
@@ -102,15 +102,15 @@ public remove: element <E> ifAbsent: onAbsent <X def> ^<E | X> = (
 )
 public removeAllSuchThat: predicate <[:E | Boolean]> = (
 	| writeBackIndex ::= 1. |
-	1 to: size_ do: 
-		[:index | 
+	1 to: size_ do:
+		[:index |
 		| element = data at: index. |
-		(predicate value: element) ifFalse: 
+		(predicate value: element) ifFalse:
 			[data at: writeBackIndex put: element.
 			 writeBackIndex:: 1 + writeBackIndex]].
-	writeBackIndex to: size_ do: 
+	writeBackIndex to: size_ do:
 		[:index | data at: index put: nil].
-	size_:: writeBackIndex - 1.	
+	size_:: writeBackIndex - 1.
 )
 public removeFirst ^<E> = (
 	| oldFirst |
@@ -132,11 +132,11 @@ public size ^<Integer> = (
 )
 public sort: comparison <[:E :E | Boolean]> = (
 	(* :todo: Merge or quick sort. *)
-	1 to: size do: 
+	1 to: size do:
 		[:i | | min ::= i. temp |
-		i + 1 to: size do: 
-			[:j | 
-			(comparison value: (self at: j) value: (self at: min)) 
+		i + 1 to: size do:
+			[:j |
+			(comparison value: (self at: j) value: (self at: min))
 				ifTrue: [min:: j]].
 		temp:: self at: i.
 		self at: i put: (self at: min).
@@ -167,7 +167,7 @@ public at: key <K> ifAbsentPut: valueGenerator <[V]> ^<V> = (
 	| index entry |
 	index:: scanFor: key.
 	entry:: table at: index.
-	nil = entry ifTrue: 
+	nil = entry ifTrue:
 		[entry:: HashAssociation new.
 		 entry key: key.
 		 entry value: valueGenerator value.
@@ -206,9 +206,9 @@ fixCollisionsAfter: start <Integer> = (
 	| index ::= start. entry |
 	[index:: index \\ table size + 1.
 	 entry:: table at: index.
-	 nil = entry] whileFalse: 
+	 nil = entry] whileFalse:
 		[ | newIndex = self scanFor: entry key. |
-		 newIndex = index ifFalse: 
+		 newIndex = index ifFalse:
 			[table at: newIndex put: entry.
 			 table at: index put: nil]].
 )
@@ -217,7 +217,7 @@ grow = (
 	table:: Array new: oldTable size << 1.
 	1 to: oldTable size do: [:index |
 		| entry = oldTable at: index. |
-		nil = entry ifFalse: 
+		nil = entry ifFalse:
 			[table at: (scanForEmptySlotFor: entry key) put: entry]]
 )
 public includesKey: key <K> ^<Boolean> = (
@@ -236,17 +236,17 @@ public keys ^<Set[K]> = (
 	^result
 )
 public keysAndValuesDo: action <[:K :V]> = (
-	table do: 
-		[:entry | nil = entry ifFalse: 
+	table do:
+		[:entry | nil = entry ifFalse:
 			[action value: entry key value: entry value]].
 )
 public reject: predicate <[:V | Boolean]> ^<List[V]> = (
 	| result = List new: size_. |
 	1 to: table size do: [:index |
 		| entry = table at: index. |
-		nil = entry ifFalse: 
+		nil = entry ifFalse:
 			[ | element = entry value. |
-			(predicate value: element) ifFalse: 
+			(predicate value: element) ifFalse:
 				[result add: element]]].
 	^result
 )
@@ -266,7 +266,7 @@ public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^<V | X> = (
 scanFor: key <K> ^<Integer> = (
 	| index start |
 	index:: start:: key hash \\ table size + 1.
-	[ 
+	[
 		| element |
 		(nil = (element:: table at: index) or: [key = element key])
 			ifTrue: [ ^index ].
@@ -276,7 +276,7 @@ scanFor: key <K> ^<Integer> = (
 scanForEmptySlotFor: key = (
 	| index start |
 	index:: start:: key hash \\ table size + 1.
-	[ 
+	[
 		nil = (table at: index) ifTrue: [ ^index ].
 		(index:: index \\ table size + 1) = start] whileFalse.
 	self errorNoFreeSpace
@@ -285,9 +285,9 @@ public select: predicate <[:V | Boolean]> ^<List[V]> = (
 	| result = List new: size_. |
 	1 to: table size do: [:index |
 		| entry = table at: index. |
-		nil = entry ifFalse: 
+		nil = entry ifFalse:
 			[ | element = entry value. |
-			(predicate value: element) ifTrue: 
+			(predicate value: element) ifTrue:
 				[result add: element]]].
 	^result
 )
@@ -332,9 +332,9 @@ fixCollisionsAfter: start <Integer> = (
 	| index ::= start. element |
 	[index:: index \\ table size + 1.
 	 element:: table at: index.
-	 table = element] whileFalse: 
+	 table = element] whileFalse:
 		[ | newIndex = self scanFor: element. |
-		 newIndex = index ifFalse: 
+		 newIndex = index ifFalse:
 			[table at: newIndex put: element.
 			 table at: index put: table]].
 )
@@ -344,7 +344,7 @@ grow = (
 	1 to: table size do: [:index | table at: index put: table].
 	1 to: oldTable size do: [:index |
 		| entry = oldTable at: index. |
-		oldTable = entry ifFalse: 
+		oldTable = entry ifFalse:
 			[table at: (scanForEmptySlotFor: entry) put: entry]]
 )
 public include: element <E> ^<E> = (
@@ -387,17 +387,17 @@ public removeAll: collection <Collection[E]> = (
 public removeAllSuchThat: predicate <[:E | Boolean]> = (
 	|
 	originalTable = table.
-	copyTable = table copy. 
+	copyTable = table copy.
 	|
-	copyTable do: [:entry | 
-		originalTable = entry ifFalse: 
-			[(predicate value: entry) ifTrue: 
+	copyTable do: [:entry |
+		originalTable = entry ifFalse:
+			[(predicate value: entry) ifTrue:
 				[self remove: entry]]].
 )
 scanFor: element <K> ^<Integer> = (
 	| index start |
 	index:: start:: element hash \\ table size + 1.
-	[ 
+	[
 		| entry |
 		(table = (entry:: table at: index) or: [ element = entry ])
 			ifTrue: [ ^index ].
@@ -407,7 +407,7 @@ scanFor: element <K> ^<Integer> = (
 scanForEmptySlotFor: key = (
 	| index start |
 	index:: start:: key hash \\ table size + 1.
-	[ 
+	[
 		table = (table at: index) ifTrue: [ ^index ].
 		(index:: index \\ table size + 1) = start] whileFalse.
 	self errorNoFreeSpace

@@ -27,7 +27,7 @@ private compilerX
 |) (
 public class ActivationMirror reflecting: activation thread: thr = (
 (* :bogus: This constructor should not be public. *)
-	| 
+	|
 	private reflectee <Activation> = activation.
 	private thread <Thread> = thr.
 	|
@@ -97,14 +97,14 @@ public locals ^<List[LocalSlotMirror]> = (
 )
 public message ^<MessageMirror> = (
 	(* If this activation is from an MNU, should this answer the original message or #doesNotUnderstand: ? *)
-	| 
-	numArgs = reflectee method numArgs. 
+	|
+	numArgs = reflectee method numArgs.
 	arguments = Array new: numArgs.
 	|
 	1 to: numArgs do: [:i | arguments at: i put: (ObjectMirror reflecting: (reflectee tempAt: i))].
 	^MessageMirror
 		selector: reflectee method selector
-		arguments: arguments	
+		arguments: arguments
 )
 public method ^<MethorMirror> = (
 	^MethodMirror reflecting: reflectee method
@@ -128,7 +128,7 @@ public sourceRange ^<Interval> = (
 	(* The bci of an activation points to the bytecode that will be executed next. For the top activation, we want the source range to be this next action. For other activations, we want the source interval to be the pending message send. *)
 	| effectiveBCI <Integer> |
 	effectiveBCI:: reflectee bci.
-	reflectee = thread suspendedActivation ifFalse: 
+	reflectee = thread suspendedActivation ifFalse:
 		[effectiveBCI:: Simulator bciBefore: effectiveBCI in: reflectee method].
 	^computeDebugInfo bciSourceMapping at: effectiveBCI ifAbsent: [nil]
 )
@@ -174,8 +174,8 @@ private depthFor: klassArg <Class> ^<Integer> = (
 	| klass depth |
 	depth: 0.
 	klass: klassArg.
-	[nil = klass] whileFalse: 
-		[klass:: superclassOf: klass. 
+	[nil = klass] whileFalse:
+		[klass:: superclassOf: klass.
 		depth: depth + 1].
 	^depth
 )
@@ -184,15 +184,14 @@ in: collection lastIndexOf: element = (
 	^0
 )
 public install: classDecls <List[IntermediateClassDeclaration]> = (
-	
 	| results |
 	setup.
 	results:: classDecls collect: [:classDecl | processClassDeclaration: classDecl].
 	processExistingClasses.
 	installAll.
 	newExistingMixins keysAndValuesDo:
-		[:classDecl :mixin | classDecl existingMixin: mixin]. 
-	
+		[:classDecl :mixin | classDecl existingMixin: mixin].
+
 	cleanup.
 
 	^results (* <List[InstanceMixin]> *)
@@ -203,14 +202,14 @@ private installAll = (
 	oldObjects:: Array new: updateCount.
 	newObjects:: Array new: updateCount.
 	index: 1.
-	updateInstances keysAndValuesDo: 
-		[:old :new | 
+	updateInstances keysAndValuesDo:
+		[:old :new |
 		oldObjects at: index put: old.
 		newObjects at: index put: new.
 		index: index + 1].
 	(* Put updated mixins and classes last, so A -> C follows B -> C (see class comment). *)
-	updateMixinsAndClasses keysAndValuesDo: 
-		[:old :new | 
+	updateMixinsAndClasses keysAndValuesDo:
+		[:old :new |
 		oldObjects at: index put: old.
 		newObjects at: index put: (updateInstances at: old ifAbsent: [new]). (* Follow B to avoid B -> C, A -> B. *)
 		index: index + 1].
@@ -228,7 +227,7 @@ private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<
 			[oldSlots:: oldMixin _slots.
 			 newSlots:: newMixin _slots.
 			 oldSlots size = newSlots size ifFalse: [^true].
-			 1 to: oldSlots size do: 
+			 1 to: oldSlots size do:
 				[:index | ((oldSlots at: index) at: 1) = ((newSlots at: index) at: 1) ifFalse: [^true]]].
 		 oldCls:: superclassOf: oldCls.
 		 newCls:: superclassOf: newCls].
@@ -237,24 +236,23 @@ private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<
 private methodDictionaryFor: mixin <AbstractMixin> from: imixin <IntermediateMixin> ^<MethodDictionary> = (
 	| cmethods |
 	cmethods:: imixin assembleMethods collect:
-		[:imethod <IntermediateMethod> | 
+		[:imethod <IntermediateMethod> |
 		imethod methodMixin: mixin.
-		imethod compiledMethod].	
+		imethod compiledMethod].
 	^cmethods asArray
 )
 private noteUpdateOf: existingMixin <InstanceMixin | nil> to: newMixin <InstanceMixin> = (
 	| applications <WeakArray> |
 	nil = existingMixin ifTrue: [^self].
-	
+
 	updateMixinsAndClasses at: existingMixin put: newMixin.
 	updateMixinsAndClasses at: existingMixin _classMixin put: newMixin _classMixin.
-	
+
 	applications:: existingMixin _applications.
-	nil = applications ifFalse: 
+	nil = applications ifFalse:
 		[applications do: [:application <Class> | sortClass: application]].
 )
 private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<InstanceMixin> = (
-	
 	|
 	mixin <Mixin>
 	classMixin <ClassMixin>
@@ -264,7 +262,7 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 
 	mixin:: InstanceMixin new.
 	classMixin:: ClassMixin new.
-	
+
 	mixin _headerSource: classDecl headerSource.
 	mixin _accessModifier: classDecl accessModifier.
 	mixin _primaryFactorySelector: classDecl factoryName.
@@ -274,21 +272,21 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	mixin _methods: (methodDictionaryFor: mixin from: classDecl instanceSide).
 	mixin _slots: (classDecl instanceSide assembleSlots collect:
 		[:s <IntermediateSlotDeclaration> | {s simpleName. s isMutable. s accessModifier}]) asArray.
-	
+
 	classMixin _instanceMixin: mixin.
 	classMixin _methods: (methodDictionaryFor: classMixin from: classDecl classSide).
-	
+
 	existingMixin:: classDecl existingMixin.
 	noteUpdateOf: existingMixin to: mixin.
-	
-	nil = existingMixin 
+
+	nil = existingMixin
 		ifTrue:
 		[newExistingMixins at: classDecl put: mixin]
 		ifFalse:
 		[(* If this is the top-most thing changed in this installation and not a top level class, the enclosingMixin won't otherwise be set and would incorrectly end up nil. *)
 		mixin _enclosingMixin: existingMixin _enclosingMixin.
 		mixin _classMixin _enclosingMixin: existingMixin _enclosingMixin].
-	
+
 	nested:: classDecl instanceSide nestedClasses collect:
 		[:nestedClassDecl <IntermediateClassDeclaration> |
 		| nestedMixin <InstanceMixin> |
@@ -300,51 +298,50 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	^mixin
 )
 private processExistingClass: oldClass <Class> = (
-	
 	| oldSuperclass newSuperclass oldMixin newMixin oldEnclosingObject newClass |
 	oldSuperclass:: superclassOf: oldClass.
 	newSuperclass:: updateMixinsAndClasses at: oldSuperclass ifAbsent: [oldSuperclass].
 
 	oldMixin:: mixinOf: oldClass.
 	newMixin:: updateMixinsAndClasses at: oldMixin ifAbsent: [oldMixin].
-	
+
 	oldEnclosingObject:: enclosingObjectOf: oldClass.
 
-	newClass:: newMixin 
-		apply: newSuperclass 
+	newClass:: newMixin
+		apply: newSuperclass
 		withName: newMixin _name
 		enclosingObject: oldEnclosingObject.
-	
+
 	updateMixinsAndClasses at: oldClass put: newClass.
 	updateMixinsAndClasses at: (classOf: oldClass) put: (classOf: newClass).
 )
 private processExistingClasses = (
 	| maxDepth ::= 0. |
 	(* Process superclasses before subclasses. Create all new classes before remapping any instances. Remap instances in any order. *)
-	existingClasses keysAndValuesDo: 
-		[:inheritanceDepth :classes | 
-		inheritanceDepth > maxDepth ifTrue: 
+	existingClasses keysAndValuesDo:
+		[:inheritanceDepth :classes |
+		inheritanceDepth > maxDepth ifTrue:
 			[maxDepth:: inheritanceDepth]].
 
-	0 to: maxDepth do: 
+	0 to: maxDepth do:
 		[:inheritanceDepth |
 		(existingClasses at: inheritanceDepth ifAbsent: [{}]) do:
 			[:oldClass <Class> | processExistingClass: oldClass]].
 
 	existingClasses keysAndValuesDo:
-		[:inheritanceDepth :classes | 
+		[:inheritanceDepth :classes |
 		classes do:
 			[:oldClass <Class> | processInstancesOf: oldClass]].
 )
 private processInstancesOf: oldClass <Class> = (
-	| 
+	|
 	newClass <Class> = updateMixinsAndClasses at: oldClass.
 	oldSlotNames <Array[Symbol]>
 	newSlotCount <Integer>
 	remapIndices <Array[Integer]>
 	|
 	(layoutHasChangedBetween: oldClass and: newClass) ifFalse: [^self].
-	
+
 	(* Heuristic: choose the latter slot if a slot name is duplicated to favor overriding slots. *)
 	oldSlotNames:: allInstVarNamesOf: oldClass.
 	remapIndices:: (allInstVarNamesOf: newClass) collect:
@@ -355,10 +352,10 @@ private processInstancesOf: oldClass <Class> = (
 	(((allInstVarNamesOf: oldClass) inject: '' into: [:a :b | a, ' ', b])
 	, ' -> ',
 	((allInstVarNamesOf: newClass) inject: '' into: [:a :b | a, ' ', b])) out.
-	1 to: remapIndices size do: [:newIndex | 
+	1 to: remapIndices size do: [:newIndex |
 		(newIndex printString, '<-', (remapIndices at: newIndex) printString) out]. *)
 
-	(allInstancesOf: oldClass) do: 
+	(allInstancesOf: oldClass) do:
 		[:oldInstance |
 		(* Avoid A -> D (see class comment). *)
 		(updateMixinsAndClasses includesKey: oldInstance) ifFalse:
@@ -369,7 +366,7 @@ private processInstancesOf: oldClass <Class> = (
 				oldIndex:: remapIndices at: newIndex.
 				0 = oldIndex ifFalse: [
 					value:: slotOf: oldInstance at: oldIndex.
-					slotOf: newInstance at: newIndex put: value]]. 
+					slotOf: newInstance at: newIndex put: value]].
 
 			updateInstances at: oldInstance put: newInstance]].
 )
@@ -382,13 +379,13 @@ private setup = (
 private sortClass: app <Class> = (
 	| classes depth subclasses |
 	nil = app ifTrue: [^self]. (* InstanceMixin>>applications and Class>>subclasses are weak. *)
-	
+
 	depth:: depthFor: app.
 	classes:: existingClasses at: depth ifAbsentPut: [List new].
 	classes add: app.
-	
+
 	subclasses:: subclassesOf: app.
-	nil = subclasses ifFalse: 
+	nil = subclasses ifFalse:
 		[subclasses do: [:subclass | sortClass: subclass]].
 )
 ) : (
@@ -401,13 +398,12 @@ public accessModifier ^<Symbol> = (
 	^intermediate accessModifier
 )
 private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> = (
-	
 	newIntermediate instanceSide slots do:
-		[:slot <IntermediateSlotDeclaration> | 
+		[:slot <IntermediateSlotDeclaration> |
 		intermediate instanceSide
 			checkNameConflictsForSlot: slot name
 			mutable: slot isMutable].
-		
+
 	intermediate classSide checkNameConflictsForFactory: newIntermediate factoryName.
 )
 public classSide ^<MixinBuilder> = (
@@ -422,25 +418,25 @@ public classSide ^<MixinBuilder> = (
 public enclosingClass ^<ClassDeclarationBuilder> = (
 	| enclosingIR enclosingNested enclosingBuilder |
 	enclosingIR:: intermediate enclosingClass.
-	nil = enclosingIR ifFalse: 
+	nil = enclosingIR ifFalse:
 		[^enclosingIR declaration builder].
-	nil = intermediate existingMixin ifTrue: 
+	nil = intermediate existingMixin ifTrue:
 		[intermediate isTopLevel ifFalse: [halt]. ^nil].
-	nil = intermediate existingMixin _enclosingMixin ifTrue: 
+	nil = intermediate existingMixin _enclosingMixin ifTrue:
 		[intermediate isTopLevel ifFalse: [halt]. ^nil].
-	
+
 	enclosingIR:: buildIntermediateFor: intermediate existingMixin _enclosingMixin within: nil.
-	
+
 	(* Patch up link *)
 	intermediate enclosingClass: enclosingIR instanceSide.
-	
+
 	(* Patch down link and accessor. *)
 	enclosingNested:: enclosingIR instanceSide nestedClasses.
 	1 to: enclosingNested size do: [:i |
 		(enclosingNested at: i) simpleName = intermediate simpleName ifTrue:
 			[intermediate accessor: (enclosingNested at: i) accessor.
 			 enclosingNested at: i put: intermediate]].
-	
+
 	enclosingBuilder:: ClassDeclarationBuilder fromIntermediate: enclosingIR.
 	enclosingIR builder: enclosingBuilder.
 	^enclosingBuilder
@@ -473,8 +469,8 @@ public install ^<ClassDeclarationMirror> = (
 	| installer outermost |
 	installer:: AtomicInstaller new.
 	outermost:: intermediate.
-	[nil = outermost enclosingClass] whileFalse: 
-		[outermost:: outermost enclosingClass declaration]. 
+	[nil = outermost enclosingClass] whileFalse:
+		[outermost:: outermost enclosingClass declaration].
 	installer install: {outermost}.
 	nil = intermediate existingMixin ifTrue: [halt].
 	^ClassDeclarationMirror reflecting: intermediate existingMixin
@@ -601,7 +597,7 @@ public name: newName <String> = (
 	(* check for name conflict with sibling members *)
 	intermediate isTopLevel ifFalse:
 		[ | existing |
-		existing:: intermediate enclosingClass nestedClasses 
+		existing:: intermediate enclosingClass nestedClasses
 			detect: [:nested | nested simpleName = newName]
 			ifNone: [nil].
 		(nil = existing or: [existing = intermediate builder])
@@ -622,7 +618,7 @@ public name: newName <String> = (
 	newIR:: compiler
 		compileClassHeader: newClassSource
 		within: intermediate enclosingClass.
-		
+
 	intermediate simpleName: newIR simpleName.
 	intermediate headerSource: newIR headerSource.
 	intermediate factoryName: newIR factoryName.
@@ -671,8 +667,8 @@ public methods ^<Collection[MethodMirror]> = (
 	cls:: reflectee.
 	results:: List new.
 	[nil = cls] whileFalse:
-		[(methodsOf: cls) do: 
-			[:method <Method> | 
+		[(methodsOf: cls) do:
+			[:method <Method> |
 			method isSynthetic ifFalse:
 				[results add: (MethodMirror reflecting: method)]].
 		cls:: superclassOf: cls].
@@ -686,8 +682,8 @@ public nestedClasses = (
 	cls:: reflectee.
 	results:: List new.
 	[nil = cls] whileFalse:
-		[(mixinOf: cls) _nestedMixins do: 
-			[:nestedMixin <InstanceMixin> | 
+		[(mixinOf: cls) _nestedMixins do:
+			[:nestedMixin <InstanceMixin> |
 			results add: (ClassDeclarationMirror reflecting: nestedMixin)].
 		cls:: superclassOf: cls].
 	^MirrorGroup wrapping: results
@@ -697,13 +693,13 @@ public slots ^<Collection[SlotDeclarationMirror]> = (
 	cls:: reflectee.
 	classes:: List new.
 	result:: List new.
-	[nil = cls] whileFalse: 
+	[nil = cls] whileFalse:
 		[classes add: cls.
 		cls:: superclassOf: cls].
-	classes size to: 1 by: -1 do: 
+	classes size to: 1 by: -1 do:
 		[:index |
 		cls:: classes at: index.
-		(mixinOf: cls) _slots do: 
+		(mixinOf: cls) _slots do:
 			[:slotDescriptor |
 			| name isMutable accessModifier |
 			name:: slotDescriptor at: 1.
@@ -711,9 +707,9 @@ public slots ^<Collection[SlotDeclarationMirror]> = (
 			accessModifier:: slotDescriptor at: 3.
 			(name indexOf: '`') = 0 ifTrue:
 				[(* Not synthetic. *)
-				result add: (SlotDeclarationMirror 
-					name: name 
-					isMutable: isMutable 
+				result add: (SlotDeclarationMirror
+					name: name
+					isMutable: isMutable
 					accessModifier: accessModifier
 					mixin: self mixin)]]].
 	^MirrorGroup wrapping: result
@@ -748,7 +744,7 @@ public source ^<String> = (
 )
 ) : (
 )
-private class MethodMirror reflecting: m = (| 
+private class MethodMirror reflecting: m = (|
 	method <Method> = m.
 |reflectees at: self put: m) (
 public = other ^<Boolean> = (
@@ -831,7 +827,7 @@ public = other ^<Boolean> = (
 	^other isKindOfMixinMirror
 )
 public declaration ^<ClassDeclarationMirror> = (
-	^ClassDeclarationMirror reflecting: 
+	^ClassDeclarationMirror reflecting:
 		(mixin isMeta ifTrue: [mixin _instanceMixin] ifFalse: [mixin])
 )
 public enclosingMixin ^<ClassDeclarationMirror> = (
@@ -850,8 +846,8 @@ public isMeta ^<Boolean> = (
 )
 public methods ^<Collection[MethodMirror]> = (
 	| results = List new. |
-	mixin _methods do: 
-		[:method | 
+	mixin _methods do:
+		[:method |
 		method isSynthetic ifFalse:
 			[results add: (MethodMirror reflecting: method)]].
 	^MirrorGroup wrapping: results.
@@ -864,22 +860,22 @@ public nestedClasses ^<Collection[ClassDeclarationMirror]> = (
 	mixin isMeta ifTrue: [^MirrorGroup wrapping: {}].
 	results:: List new.
 	mixin _nestedMixins do:
-		[:nestedMixin <InstanceMixin> | 
+		[:nestedMixin <InstanceMixin> |
 		results add: (ClassDeclarationMirror reflecting: nestedMixin)].
 	^MirrorGroup wrapping: results
 )
 public slots ^<Collection[SlotDeclarationMirror]> = (
 	| results = List new. |
 	mixin isMeta ifTrue: [^MirrorGroup wrapping: {}].
-	mixin _slots do: [:slotDescriptor | 
+	mixin _slots do: [:slotDescriptor |
 		| slotName isMutable accessModifier |
 		slotName:: slotDescriptor at: 1.
 		isMutable:: slotDescriptor at: 2.
 		accessModifier:: slotDescriptor at: 3.
 		0 = (slotName indexOf: '`') ifTrue: (* not synthetic *)
-			[results add: (SlotDeclarationMirror 
-				name: slotName 
-				isMutable: isMutable 
+			[results add: (SlotDeclarationMirror
+				name: slotName
+				isMutable: isMutable
 				accessModifier: accessModifier
 				mixin: self)]].
 	^MirrorGroup wrapping: results.
@@ -890,27 +886,27 @@ private class MutableMethodGroup fromIntermediate: ir = (|
 private intermediate <IntermediateMixin> = ir.
 |) (
 public addFromSource: source <String> = (
-	| 
+	|
 	imethod <IntermediateMethod>
 	|
 	imethod:: compiler
-		compileMethodSource: source 
+		compileMethodSource: source
 		within: intermediate builder.
 
 	imethod category: #'as yet unclassified'.
 
 	intermediate checkNameConflictsForMethod: imethod selector.
-	
-	intermediate methods removeAllSuchThat: 
+
+	intermediate methods removeAllSuchThat:
 		[:ea | ea selector = imethod selector].
 	intermediate methods add: imethod.
-	
+
 	^MethodBuilder reflecting: imethod in: intermediate builder
 )
 public do: action = (
-	intermediate methods do: 
+	intermediate methods do:
 		[:intermediateMethod |
-		action value: (MethodBuilder 
+		action value: (MethodBuilder
 			reflecting: intermediateMethod
 			in: intermediate builder)].
 )
@@ -925,30 +921,30 @@ private intermediate <IntermediateMixin> = ir.
 |) (
 public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
 	| idecl <IntermediateClassDeclaration> builder |
-	
-	idecl:: compiler 
+
+	idecl:: compiler
 		compileClassSource: source
 		within: intermediate.
-		
+
 	intermediate checkNameConflictsForNestedClass: idecl simpleName.
-	
-	intermediate nestedClasses removeAllSuchThat: 
+
+	intermediate nestedClasses removeAllSuchThat:
 		[:nestedIR | nestedIR simpleName = idecl simpleName].
 	intermediate nestedClasses add: idecl.
-	
+
 	builder:: ClassDeclarationBuilder fromIntermediate: idecl.
 	idecl builder: builder.
 	^builder
 )
 public do: action = (
-	intermediate nestedClasses do: 
+	intermediate nestedClasses do:
 		[:intermediateClassDeclaration |
 		| builder |
 		builder:: intermediateClassDeclaration builder.
 		nil = builder ifTrue:
 			[builder:: ClassDeclarationBuilder fromIntermediate: intermediateClassDeclaration.
 			intermediateClassDeclaration builder: builder.
-			
+
 			(* :bogus: also find existingMixin *)
 			].
 		action value: builder].
@@ -964,12 +960,12 @@ private class MutableSlotGroup fromIntermediate: ir = (|
 private intermediate <IntermediateMixin> = ir.
 |) (
 public do: action = (
-	intermediate slots do: 
+	intermediate slots do:
 		[:intermediateSlot |
-		action value: (SlotDeclarationMirror 
+		action value: (SlotDeclarationMirror
 			name: intermediateSlot name
 			isMutable: intermediateSlot isMutable
-			accessModifier: intermediateSlot accessModifier 
+			accessModifier: intermediateSlot accessModifier
 			mixin: intermediate builder)].
 )
 ) : (
@@ -1021,7 +1017,7 @@ public getSlot: name = (
 	| index raw |
 	index:: indexOfSlotNamed: name in: (classOf: reflectee).
 	raw:: slotOf: reflectee at: index.
-	^ObjectMirror reflecting: raw	
+	^ObjectMirror reflecting: raw
 )
 public hash ^<Integer> = (
 	^(identityHashOf: reflectee) bitXor: class hash
@@ -1030,13 +1026,13 @@ private indexOfSlotNamed: name in: startCls = (
 	| cls index |
 	cls:: startCls.
 	index:: 1.
-	[nil = cls] whileFalse: 
-		[(mixinOf: cls) _slots do: 
+	[nil = cls] whileFalse:
+		[(mixinOf: cls) _slots do:
 			[:slotDescriptor |
 			(slotDescriptor at: 1) = name ifTrue: [^index].
 			index:: 1 + index].
 		cls:: (superclassOf: cls)].
-	^ -1
+	^-1
 )
 public isKindOfObjectMirror ^<Boolean> = (
 	^true
@@ -1059,50 +1055,50 @@ aboutToReturn: result through: firstUnwindActivation = (
 public activate: newMethod receiver: newReceiver arguments: arguments = (
 	| primitive = newMethod primitive. result newActivation |
 
-	0 = primitive ifFalse: 
+	0 = primitive ifFalse:
 		[(* Simulation guard *)
 		112 = primitive ifTrue: ['simulation guard' out. halt. ].
-	
+
 		(* Current activation *)
 		133 = primitive ifTrue: [activation push: activation. ^self].
 
 		(* Closure activation *)
-		90 =  primitive ifTrue: 
-			[newReceiver numArgs = 0 ifTrue: 
+		90 = primitive ifTrue:
+			[newReceiver numArgs = 0 ifTrue:
 				[^activateClosure: newReceiver arguments: arguments]].
-		91 =  primitive ifTrue: 
-			[newReceiver numArgs = 1 ifTrue: 
+		91 = primitive ifTrue:
+			[newReceiver numArgs = 1 ifTrue:
 				[^activateClosure: newReceiver arguments: arguments]].
-		92 =  primitive ifTrue: 
-			[newReceiver numArgs = 2 ifTrue: 
+		92 = primitive ifTrue:
+			[newReceiver numArgs = 2 ifTrue:
 				[^activateClosure: newReceiver arguments: arguments]].
-		93 =  primitive ifTrue: 
-			[newReceiver numArgs = 3 ifTrue: 
+		93 = primitive ifTrue:
+			[newReceiver numArgs = 3 ifTrue:
 				[^activateClosure: newReceiver arguments: arguments]].
-		94 =  primitive ifTrue: [
+		94 = primitive ifTrue: [
 			| closureArgs = arguments at: 1. |
-			(Array = (classOf: closureArgs)) ifTrue: 
-				[closureArgs size = newReceiver numArgs ifTrue: 
+			(Array = (classOf: closureArgs)) ifTrue:
+				[closureArgs size = newReceiver numArgs ifTrue:
 					[^activateClosure: newReceiver arguments: closureArgs]]].
-	
+
 		(* Jump *)
 		95 = primitive ifTrue: [
 			activation:: arguments at: 1.
 			^self].
-	
+
 		(* Perform *)
-		89 =  primitive ifTrue: [
+		89 = primitive ifTrue: [
 			| object selector performArguments |
 			object:: arguments at: 1.
 			selector:: arguments at: 2.
 			performArguments:: arguments at: 3.
 			(* :todo: Where should we fail on arity mismatch? *)
-			(ByteString = (classOf: selector)) ifTrue: 
-				[(Array = (classOf: performArguments)) ifTrue: 
+			(ByteString = (classOf: selector)) ifTrue:
+				[(Array = (classOf: performArguments)) ifTrue:
 					[activation push: object.
 					performArguments do: [:arg | activation push: arg].
 					^ordinarySend: selector numArgs: performArguments size]]].
-	
+
 		result:: doPrimitive: primitive receiver: newReceiver arguments: arguments.
 		arguments = result ifFalse: [activation push: result. ^self].
 		('simulated primitive failed: ', newMethod selector) out].
@@ -1113,11 +1109,11 @@ public activate: newMethod receiver: newReceiver arguments: arguments = (
 	newActivation method: newMethod.
 	newActivation closure: nil.
 	newActivation receiver: newReceiver.
-	
+
 	newActivation tempSize: arguments size + newMethod numTemps.
-	1 to: arguments size do: 
+	1 to: arguments size do:
 		[:index | newActivation tempAt: index put: (arguments at: index)].
-	
+
 	(* ('sim: ', newActivation printString) out. *)
 
 	activation:: newActivation.
@@ -1131,11 +1127,11 @@ public activateClosure: closure arguments: arguments = (
 	newActivation closure: closure.
 	newActivation receiver: (definingActivationOf: closure) receiver.
 	arguments size = closure numArgs ifFalse: [halt].
-	arguments do: 
+	arguments do:
 		[:argument | newActivation push: argument].
-	1 to: (numCopiedOf: closure) do: 
+	1 to: (numCopiedOf: closure) do:
 		[:index | newActivation push: (copiedOf: closure at: index)].
-	
+
 	(* ('sim: ', newActivation printString) out. *)
 	activation:: newActivation.
 )
@@ -1204,7 +1200,7 @@ dup = (
 )
 findApplicationOf: mixin startingAt: startingBehavior = (
 	| behavior ::= startingBehavior. |
-	[nil = behavior] whileFalse: 
+	[nil = behavior] whileFalse:
 		[mixin = (mixinOf: behavior) ifTrue: [^behavior].
 		 behavior:: (superclassOf: behavior)].
 	halt.
@@ -1217,7 +1213,7 @@ implicitReceiverSend: selectorOffset numArgs: numArgs = (
 	candidateReceiver:: activation receiver.
 	candidateMixin:: activation method mixin.
 	[candidateMixinApplication::
-		findApplicationOf: candidateMixin 
+		findApplicationOf: candidateMixin
 		startingAt: (classOf: candidateReceiver).
 	(behavior: candidateMixinApplication hasSelector: selector) ifTrue:
 		[^sendLexical: selector to: candidateReceiver arguments: arguments wrt: candidateMixin].
@@ -1239,11 +1235,11 @@ interpretNext1Byte: byte extA: extA extB: extB = (
 	byte <= 79 ifTrue: [^self pushInteger: 1].
 	byte <= 95 ifTrue: [^self commonArithmeticSend: (byte bitAnd: 15)].
 	byte <= 111 ifTrue: [^self commonSend: (byte bitAnd: 15)].
-	byte <= 127 ifTrue: 
+	byte <= 127 ifTrue:
 		[^self ordinarySend: (activation method literals at: (byte bitAnd: 15) + 1) numArgs: 0].
-	byte <= 143 ifTrue: 
+	byte <= 143 ifTrue:
 		[^self ordinarySend: (activation method literals at: (byte bitAnd: 15) + 1) numArgs: 1].
-	byte <= 159 ifTrue: 
+	byte <= 159 ifTrue:
 		[^self ordinarySend: (activation method literals at: (byte bitAnd: 15) + 1) numArgs: 2].
 	byte <= 175 ifTrue: [^self implicitReceiverSend: (byte bitAnd: 15) numArgs: 0].
 	byte <= 183 ifTrue: [^self unusedBytecode (* squeak: popIntoReceiverVariable *)].
@@ -1262,21 +1258,21 @@ interpretNext1Byte: byte extA: extA extB: extB = (
 	(* 223 *) ^self unusedBytecode
 )
 interpretNext2Byte: byte1 byte: byte2 extA: extA extB: extB = (
-	byte1 <= 224 ifTrue: 
+	byte1 <= 224 ifTrue:
 		[^self interpretNextInstructionExtA: (extA << 8) + byte2 extB: extB].
-	byte1 <= 225 ifTrue: 
-		[^self interpretNextInstructionExtA: extA extB: 
-			((extB = 0 and: [byte2 > 127]) 
-				ifTrue: [byte2 - 256] 
+	byte1 <= 225 ifTrue:
+		[^self interpretNextInstructionExtA: extA extB:
+			((extB = 0 and: [byte2 > 127])
+				ifTrue: [byte2 - 256]
 				ifFalse: [(extB << 8) + byte2])].
-	
+
 	byte1 <= 226 ifTrue: [^self unusedBytecode (* squeak: pushReceiverVariable *)].
 	byte1 <= 227 ifTrue: [^self pushLiteralVariable: (extA << 8) + byte2].
 	byte1 <= 228 ifTrue: [^self pushLiteral: (extA << 8) + byte2].
 	byte1 <= 229 ifTrue: [^self pushInteger: (extB << 8) + byte2].
 	byte1 <= 230 ifTrue: [^self pushTemporary: byte2].
-	byte1 <= 231 ifTrue: 
-		[byte2 < 128 
+	byte1 <= 231 ifTrue:
+		[byte2 < 128
 			ifTrue: [^self pushNewArray: byte2]
 			ifFalse: [^self pushNewArrayWithElements: byte2 - 128]].
 	byte1 <= 232 ifTrue: [^self unusedBytecode (* squeak: storeIntoReceiverVariable *)].
@@ -1285,21 +1281,21 @@ interpretNext2Byte: byte1 byte: byte2 extA: extA extB: extB = (
 	byte1 <= 235 ifTrue: [^self unusedBytecode (* squeak: popIntoReceiverVariable *)].
 	byte1 <= 236 ifTrue: [^self unusedBytecode (* squeak: popIntoLiteralVariable *)].
 	byte1 <= 237 ifTrue: [^self popIntoTemporary: byte2].
-	byte1 <= 238 ifTrue: 
+	byte1 <= 238 ifTrue:
 		[^self ordinarySend: (activation method literals at: (extA << 5) + (byte2 >> 3) + 1)
 		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
 	byte1 <= 239 ifTrue: [^self unusedBytecode (* squeak: staticSuperSend *)].
-	byte1 <= 240 ifTrue: 
-		[^self implicitReceiverSend: (extA << 5) + (byte2 >> 3) 
+	byte1 <= 240 ifTrue:
+		[^self implicitReceiverSend: (extA << 5) + (byte2 >> 3)
 		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
-	byte1 <= 241 ifTrue: 
-		[^self superSend: (extA << 5) + (byte2 >> 3) 
+	byte1 <= 241 ifTrue:
+		[^self superSend: (extA << 5) + (byte2 >> 3)
 		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
 	byte1 <= 242 ifTrue: [^self jump: (extB << 8) + byte2].
 	byte1 <= 243 ifTrue: [^self popJumpTrue: (extB << 8) + byte2].
 	byte1 <= 244 ifTrue: [^self popJumpFalse: (extB << 8) + byte2].
-	byte1 <= 245 ifTrue: 
-		[^self selfSend: (extA << 5) + (byte2 >> 3) 
+	byte1 <= 245 ifTrue:
+		[^self selfSend: (extA << 5) + (byte2 >> 3)
 		numArgs: (extB << 3) + (byte2 bitAnd: 7)].
 
 	(* 246, 247, 248 *) ^self unusedBytecode
@@ -1309,34 +1305,34 @@ interpretNext3Byte: byte1 byte: byte2 byte: byte3 extA: extA extB: extB ^<Activa
 	byte1 <= 250 ifTrue: [^self pushRemoteTemp: byte2 inVector: byte3].
 	byte1 <= 251 ifTrue: [^self storeIntoRemoteTemp: byte2 inVector: byte3].
 	byte1 <= 252 ifTrue: [^self popIntoRemoteTemp: byte2 inVector: byte3].
-	byte1 <= 253 ifTrue: 
-		[^self 
+	byte1 <= 253 ifTrue:
+		[^self
 			pushClosureNumCopied: ((byte2 >> 3) bitAnd: 7) + ((extA // 16) << 3)
 			numArgs: (byte2 bitAnd: 7) + ((extA \\ 16) << 3)
 			blockSize: (extB << 8) + byte3].
-	byte1 <= 254 ifTrue: 
-		[^self 
-			outerSend: (extA << 5) + (byte2 >> 3) 
+	byte1 <= 254 ifTrue:
+		[^self
+			outerSend: (extA << 5) + (byte2 >> 3)
 			numArgs: (extB << 3) + (byte2 bitAnd: 7)
 			depth: byte3].
-	
+
 	(* 255 *)
 	^unusedBytecode
 )
 public interpretNextInstruction = (
-	self interpretNextInstructionExtA: 0 extB: 0 
+	self interpretNextInstructionExtA: 0 extB: 0
 )
 interpretNextInstructionExtA: extA extB: extB = (
 	| bci bytecode byte byte2 byte3 |
 	bci:: activation bci.
 	bytecode:: activation method bytecode.
 	byte:: bytecode at: bci.
-	byte <= 223 ifTrue: 
-		[activation bci: bci + 1. 
+	byte <= 223 ifTrue:
+		[activation bci: bci + 1.
 		 ^interpretNext1Byte: byte extA: extA extB: extB].
 
 	byte2:: bytecode at: bci + 1.
-	byte <= 248 ifTrue: 
+	byte <= 248 ifTrue:
 		[activation bci: bci + 2.
 		^interpretNext2Byte: byte byte: byte2 extA: extA extB: extB].
 
@@ -1374,31 +1370,31 @@ nonLocalReturn: result = (
 	closure:: activation closure.
 	home:: definingActivationOf: closure.
 	closure:: home closure.
-	[nil = closure] whileFalse: 
+	[nil = closure] whileFalse:
 		[home:: definingActivationOf: closure.
 		 closure:: home closure].
-	
+
 	unwind:: activation sender.
-	[unwind = home] whileFalse: 
-		[nil = unwind ifTrue: 
+	[unwind = home] whileFalse:
+		[nil = unwind ifTrue:
 			[^cannotReturn: result].
 		unwind method primitive = 113 ifTrue:
 			[^aboutToReturn: result through: unwind].
 		unwind method primitive = 142 ifTrue:
 			[^cannotReturn: result].
 		unwind:: unwind sender].
-	
+
 	sender:: home sender.
 	(nil = sender or: [sender isDead]) ifTrue:
 		[^cannotReturn: result].
-	
+
 	(* Mark activations on the dynamic chain up to the return target as dead. Note this follows the behavior of Squeak instead of the blue book, which only zaps A. *)
 	zap:: activation.
 	[next:: zap sender.
 	 zap terminate.
 	 zap:: next.
 	 zap = sender] whileFalse.
-	
+
 	sender push: result.
 	activation: sender.
 	(* ('sim: ', activation printString) out. *)
@@ -1451,7 +1447,7 @@ popJumpFalse: delta = (
 )
 popJumpTrue: delta = (
 	| top = activation pop. |
-	true = top ifTrue: 
+	true = top ifTrue:
 		[activation bci: activation bci + delta.
 		^self].
 	false = top ifTrue: [^self].
@@ -1459,13 +1455,13 @@ popJumpTrue: delta = (
 )
 pushClosureNumCopied: numCopied numArgs: numArgs blockSize: blockSize ^<Activation> = (
 	| newClosure |
-	newClosure:: 
+	newClosure::
 		newClosureIn: activation
 		initialBCI: activation bci
-		numArgs: numArgs 
+		numArgs: numArgs
 		numCopied: numCopied.
-		
-	numCopied to: 1 by: -1 do: 
+
+	numCopied to: 1 by: -1 do:
 		[:index | copiedOf: newClosure at: index put: activation pop].
 
 	activation push: newClosure.
@@ -1513,11 +1509,11 @@ pushRemoteTemp: offset inVector: vectorOffset = (
 )
 pushSpecial: extB = (
 	extB < 0 ifTrue: [^pushEnclosingObject: 0 - extB].
-	
+
 	0 = extB ifTrue: [activation push: false. ^self].
 	1 = extB ifTrue: [activation push: true. ^self].
 	2 = extB ifTrue: [activation push: nil. ^self].
-	
+
 	^unusedBytecode
 )
 pushTemporary: offset = (
@@ -1536,7 +1532,7 @@ sendDnu: selector to: messageReceiver arguments: arguments = (
 	message:: Message selector: selector arguments: arguments.
 	[nil = lookupClass] whileFalse:
 		[dnuMethod:: behavior: lookupClass methodAt: #doesNotUnderstand:.
-		 nil = dnuMethod ifFalse: 
+		 nil = dnuMethod ifFalse:
 			[^activate: dnuMethod receiver: messageReceiver arguments: {message} ].
 		 lookupClass:: superclassOf: lookupClass].
 	error: 'Recursive doesNotUnderstand:'
@@ -1578,14 +1574,14 @@ superSend: selectorOffset numArgs: numArgs = (
 public trace = (
 	| a ::= activation. |
 	'sim trace: ' out.
-	[nil = a] whileFalse: 
+	[nil = a] whileFalse:
 		[a out.
 		a:: a sender].
 )
 public traceLong = (
 	| a ::= activation. |
 	'sim trace long: ' out.
-	[nil = a] whileFalse: 
+	[nil = a] whileFalse:
 		['' out.
 		a out.
 		a bci out.
@@ -1598,7 +1594,7 @@ public bciBefore: afterBci in: method = (
 	(* :todo: Also unwind any extension bytecodes.  *)
 	| beforeBci bci bytecode = method bytecode. |
 	beforeBci:: bci:: 1.
-	[bci < afterBci] whileTrue: 
+	[bci < afterBci] whileTrue:
 		[beforeBci:: bci.
 		 bci:: bci + (sizeOf: (bytecode at: bci))].
 	^beforeBci
@@ -1754,7 +1750,7 @@ private allocate: cls = (
 buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec = (
 	| initializers = List new. |
 
-	mixin _methods do: 
+	mixin _methods do:
 		[:method |
 		|
 		selector = method selector.
@@ -1771,7 +1767,7 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 			[initializers add: imethod].
 		imethod isSynthetic ifFalse:
 			[i methods add: imethod]].
-	
+
 	mixin isMeta ifTrue:
 		[ | factoryName factoryM factoryIR |
 		factoryName:: mixin _instanceMixin _primaryFactorySelector.
@@ -1787,26 +1783,26 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 		^self].
 
 	i declaration initializers: initializers.
-	
+
 	mixin _slots do:
 		[:tuple |
 		| slot = intermediates IntermediateSlotDeclaration new. |
 		slot name: (tuple at: 1).
 		slot isMutable: (tuple at: 2).
 		slot accessModifier: (tuple at: 3).
-		(isSyntheticSlotSelector: slot name) ifFalse: 
+		(isSyntheticSlotSelector: slot name) ifFalse:
 			[i slots add: slot]].
-	
+
 	mixin _nestedMixins do:
 		[:nestedMixin <InstanceMixin> |
-		| 
-		nestedIR <IntermediateClassDeclaration> 
-		accessorM <Method> 
+		|
+		nestedIR <IntermediateClassDeclaration>
+		accessorM <Method>
 		accessorIR <IntermediateMethod>
 		|
 		nestedIR:: buildIntermediateFor: nestedMixin within: ec.
 		i nestedClasses add: nestedIR.
-		
+
 		accessorM:: mixin _methods detect: [:ea | ea selector = nestedIR simpleName].
 		accessorIR:: intermediates IntermediateMethod new.
 		accessorIR method: accessorM.
@@ -1840,16 +1836,16 @@ private compiler = (
 )
 private constructCompiler = (
 	| asts compilation |
-	asts:: namespace NewspeakASTs 
+	asts:: namespace NewspeakASTs
 		usingLib: cachedPlatform.
-	parsingX:: namespace NewspeakPredictiveParsing 
+	parsingX:: namespace NewspeakPredictiveParsing
 		usingPlatform: cachedPlatform
 		asts: asts.
-	intermediatesX:: namespace Intermediates 
+	intermediatesX:: namespace Intermediates
 		usingPlatform: cachedPlatform
 		internalKernel: internalKernel.
-	compilation:: namespace Newspeak2SqueakCompilation 
-		usingPlatform: cachedPlatform 
+	compilation:: namespace Newspeak2SqueakCompilation
+		usingPlatform: cachedPlatform
 		asts: asts
 		newspeakParser: parsingX
 		intermediates: intermediatesX.
@@ -1950,7 +1946,7 @@ private simulatorRoot = (
 )
 private simulatorRootMethod = (
 	| methods = methodsOf: self class. |
-	1 to: methods size do: 
+	1 to: methods size do:
 		[:index | | method = methods at: index. |
 		method selector = #simulatorRoot ifTrue: [^method]].
 	halt.

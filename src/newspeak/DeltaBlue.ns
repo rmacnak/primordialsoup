@@ -1,7 +1,8 @@
 Newspeak3
 'Benchmarks'
 class DeltaBlue usingPlatform: p = (
-(* One-way constraint solver, originally written in Smalltalk by John Maloney and Mario Wolczko. *)|
+(* One-way constraint solver, originally written in Smalltalk by John Maloney and Mario Wolczko. *)
+|
 private List = p collections List.
 
 private required = Strength name: 'required' value: 0.
@@ -25,7 +26,8 @@ name <String> = n.
 ) : (
 )
 class Plan = (
-(* A Plan is an ordered list of constraints to be executed in sequence to resatisfy all currently satisfiable constraints in the face of one or more changing inputs. *)|
+(* A Plan is an ordered list of constraints to be executed in sequence to resatisfy all currently satisfiable constraints in the face of one or more changing inputs. *)
+|
 private constraints = List new.
 |) (
 public addConstraint: c <Constraint> = (
@@ -38,11 +40,13 @@ public execute = (
 ) : (
 )
 class Planner = (
-(* I embody the DeltaBlue algorithm described in: ''The DeltaBlue Algorithm: An Incremental Constraint Hierarchy Solver'' by Bjorn N. Freeman-Benson and John Maloney. See January 1990 Communications of the ACM or University of Washington TR 89-08-06 for further details. *)|
+(* I embody the DeltaBlue algorithm described in: ''The DeltaBlue Algorithm: An Incremental Constraint Hierarchy Solver'' by Bjorn N. Freeman-Benson and John Maloney. See January 1990 Communications of the ACM or University of Washington TR 89-08-06 for further details. *)
+|
 currentMark <Integer> ::= 0.
 |) (
 class BinaryConstraint var: v1 var: v2 strength: s = Constraint strength: s (
-(* I am an abstract superclass for constraints having two possible output variables. *)|
+(* I am an abstract superclass for constraints having two possible output variables. *)
+|
 v1 <Variable> = v1.
 v2 <Variable> = v2.
 direction <Direction>
@@ -56,19 +60,19 @@ public addToGraph = (
 protected chooseMethod: mark <Integer> = (
 	(* Decide if I can be satisfied and which way I should flow based on the relative strength of the variables I relate, and record that decision. *)
 	v1 mark = mark ifTrue:
-		[((v2 mark = mark) not and: [strength strongerThan: v2 walkStrength]) 
-			ifTrue: [direction:: forward] 
+		[((v2 mark = mark) not and: [strength strongerThan: v2 walkStrength])
+			ifTrue: [direction:: forward]
 			ifFalse: [direction:: nil].
 		^self].
 	v2 mark = mark ifTrue:
-		[((v1 mark = mark) not and: [strength strongerThan: v1 walkStrength]) 
+		[((v1 mark = mark) not and: [strength strongerThan: v1 walkStrength])
 			ifTrue: [direction:: backward]
 			ifFalse: [direction:: nil].
 		^self].
 
 	(* If we get here, neither variable is marked, so we have a choice. *)
-    	(v1 walkStrength weakerThan: v2 walkStrength)
-		ifTrue: 
+		(v1 walkStrength weakerThan: v2 walkStrength)
+		ifTrue:
 			[direction:: (strength strongerThan: v1 walkStrength)
 				ifTrue: [backward]
 				ifFalse: [nil]]
@@ -117,7 +121,8 @@ public removeFromGraph = (
 ) : (
 )
 class Constraint strength: s = (
-(* I am an abstract class representing a system-maintainable relationship (or "constraint") between a set of variables. I supply a strength instance variable; concrete subclasses provide a means of storing the constrained variables and other information required to represent a constraint. *)|
+(* I am an abstract class representing a system-maintainable relationship (or "constraint") between a set of variables. I supply a strength instance variable; concrete subclasses provide a means of storing the constrained variables and other information required to represent a constraint. *)
+|
 public strength <Strength> = s.
 |) (
 public addConstraint = (
@@ -215,7 +220,8 @@ public execute = (
 ) : (
 )
 class ScaleConstraint source: src scale: scale offset: offset destination: dest strength: s = BinaryConstraint var: src var: dest strength: s (
-(* I relate two variables by the linear scaling relationship: "v2 = (v1 * scale) + offset". Either v1 or v2 may be changed to maintain this relationship but the scale factor and offset are considered read-only. *)|
+(* I relate two variables by the linear scaling relationship: "v2 = (v1 * scale) + offset". Either v1 or v2 may be changed to maintain this relationship but the scale factor and offset are considered read-only. *)
+|
 	scale <Variable> = scale. (* scale factor input variable *)
 	offset <Variable> = offset. (* offset input variable *)
 |addConstraint) (
@@ -260,7 +266,8 @@ public execute = (
 ) : (
 )
 class UnaryConstraint var: v strength: s = Constraint strength: s (
-(* I am an abstract superclass for constraints having a single possible output variable. *)|
+(* I am an abstract superclass for constraints having a single possible output variable. *)
+|
 public output <Variable> = v.
 protected satisfied <Boolean> ::= false.
 |) (
@@ -301,7 +308,8 @@ public removeFromGraph = (
 ) : (
 )
 class Variable name: n initialValue: v = (
-(* I represent a constrained variable. In addition to my value, I maintain the structure of the constraint graph, the current dataflow graph, and various parameters of interest to the DeltaBlue incremental constraint solver. *)|
+(* I represent a constrained variable. In addition to my value, I maintain the structure of the constraint graph, the current dataflow graph, and various parameters of interest to the DeltaBlue incremental constraint solver. *)
+|
 public value <Integer> ::= v.
 public constraints <List[Constraint]> = List new: 2.
 public determinedBy <Constraint>
@@ -342,9 +350,9 @@ public chainTest: n = (
 	(* This is the standard DeltaBlue benchmark. A long chain of equality constraints is constructed with a stay constraint on one end. An edit constraint is then added to the opposite end and the time is measured for adding and removing this constraint, and extracting and executing a constraint satisfaction plan. There are two cases. In case 1, the added constraint is stronger than the stay constraint and values must propagate down the entire length of the chain. In case 2, the added constraint is weaker than the stay constraint so it cannot be accommodated. The cost in this case is, of course, very low. Typical situations lie somewhere between these two extremes. *)
 	| prev <Variable> first <Variable> last <Variable>
 	 editC <Constraint> editV <List[Constraint]> plan <Plan> |
-	1 to: n do: [:i | 
+	1 to: n do: [:i |
 		| name v |
-		name:: 'v', i printString.	
+		name:: 'v', i printString.
 		v:: Variable name: name initialValue: 0.
 		prev isNil ifFalse: [EqualityConstraint var: prev var: v strength: required].
 		i = 1 ifTrue: [first:: v].
@@ -378,7 +386,7 @@ public incrementalAdd: c <Constraint> = (
 	|
 	[overridden isNil] whileFalse: [overridden:: overridden satisfy: mark].
 )
-public incrementalRemove: c <Constraint>  = (
+public incrementalRemove: c <Constraint> = (
 	(* Entry point for retracting a constraint. Remove the given constraint and incrementally update the dataflow graph. *)
 	(* Details: Retracting the given constraint may allow some currently unsatisfiable downstream constraint to be satisfied. We therefore collect a list of unsatisfied downstream constraints and attempt to satisfy each one in turn. This list is traversed by constraint strength, strongest first, as a heuristic for avoiding unnecessarily adding and then overriding weak constraints. Assume: c is satisfied. *)
 	| out <Variable> unsatisfied <List[Constraint]> |
@@ -386,8 +394,8 @@ public incrementalRemove: c <Constraint>  = (
 	c markUnsatisfied.
 	c removeFromGraph.
 	unsatisfied:: removePropagateFrom: out.
-	descendingStrengths do: [:strength | 
-		unsatisfied do: [:u | 
+	descendingStrengths do: [:strength |
+		unsatisfied do: [:u |
 			u strength = strength
 				ifTrue: [incrementalAdd: u]]].
 )
@@ -429,18 +437,18 @@ public projectionTest: n <Integer> = (
 		StayConstraint var: src strength: normal.
 		ScaleConstraint source: src scale: scale offset: offset destination: dst strength: required.
 	].
-	
+
 	setValueOf: src to: 17.
 	dst value = 1170 ifFalse: [Error signal: 'Projection test 1 failed!'].
-	
+
 	setValueOf: dst to: 1050.
 	src value = 5 ifFalse: [Error signal: 'Projection test 2 failed!'].
-	
+
 	setValueOf: scale to: 5.
 	0 to: n - 2 do:
 		[:i | (dests at: i + 1) value = (i * 5 + 1000)
 			ifFalse: [Error signal: 'Projection test 3 failed!'] ].
-	
+
 	setValueOf: offset to: 2000.
 	0 to: n - 2 do:
 		[:i | (dests at: i + 1) value = (i * 5 + 2000)
@@ -470,7 +478,7 @@ public removePropagateFrom: out <Variable> ^<List[Constraint]> = (
 		v:: todo removeLast.
 		v constraints do: [:c | c isSatisfied ifFalse: [unsatisfied addLast: c]].
 		determining:: v determinedBy.
-		v constraints do: [:nextC | 
+		v constraints do: [:nextC |
 			((nextC = determining) not and: [nextC isSatisfied])
 				ifTrue: [nextC recalculate. todo addLast: nextC output]].
 	].
@@ -488,7 +496,8 @@ public setValueOf: var <Variable> to: newValue = (
 ) : (
 )
 class Strength name: n value: v = (
-(* Strengths are used to measure the relative importance of constraints. New strengths may be inserted in the strength hierarchy without disrupting current constraints. Strengths cannot be created outside this class, so pointer comparison can be used for value comparison. *)|
+(* Strengths are used to measure the relative importance of constraints. New strengths may be inserted in the strength hierarchy without disrupting current constraints. Strengths cannot be created outside this class, so pointer comparison can be used for value comparison. *)
+|
 public name <String> = n.
 public value <Integer> = v.
 |) (

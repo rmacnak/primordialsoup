@@ -24,7 +24,7 @@ public testArrays = (
 	after:: roundTrip: before.
 	assert: after isArray.
 	assert: after size equals: 0.
-	
+
 	before:: {true. false. nil}.
 	after:: roundTrip: before.
 	assert: after isArray.
@@ -32,7 +32,7 @@ public testArrays = (
 	assert: (after at: 1) equals: true.
 	assert: (after at: 2) equals: false.
 	assert: (after at: 3) equals: nil.
-	
+
 	before:: Array new: 1.
 	before at: 1 put: before.
 	after:: roundTrip: before.
@@ -65,7 +65,7 @@ public testLargeIntegers = (
 
 	assert: (roundTrip: 16rABABABABABABABAB) equals: 16rABABABABABABABAB.
 	assert: (roundTrip: 16r7373737373737373) equals: 16r7373737373737373.
-	
+
 	assert: (roundTrip: 0 - 16rABABABABABABABAB) equals: 0 - 16rABABABABABABABAB.
 	assert: (roundTrip: 0 - 16r7373737373737373) equals: 0 -16r7373737373737373.
 )
@@ -73,11 +73,11 @@ public testMediumIntegers = (
 	assert: (roundTrip: -1 << 31) equals: -1 << 31. (* minInt32 *)
 	assert: (roundTrip: -1 << 62) equals: -1 << 62. (* minInt63 *)
 	assert: (roundTrip: -1 << 63) equals: -1 << 63. (* minInt63 *)
-	
+
 	assert: (roundTrip: 1 << 31 - 1) equals: 1 << 31 - 1. (* maxInt32 *)
 	assert: (roundTrip: 1 << 62 - 1) equals: 1 << 62 - 1. (* maxInt63 *)
 	assert: (roundTrip: 1 << 63 - 1) equals: 1 << 63 - 1. (* maxInt64 *)
-	
+
 	assert: (roundTrip: 16r6996699669966996) equals: 16r6996699669966996.
 )
 public testOddballs = (
@@ -90,7 +90,7 @@ public testSmallIntegers = (
 
 	assert: (roundTrip: 16r7FFF) equals: 16r7FFF.
 	assert: (roundTrip: -32768) equals: -32768. (* -16r8000 *)
-	
+
 	assert: (roundTrip: 16r3FFFFFFF) equals: 16r3FFFFFFF.
 	assert: (roundTrip: -1073741824) equals: -1073741824. (* -16r40000000 *)
 )
@@ -100,12 +100,12 @@ public testStrings = (
 	after:: roundTrip: before.
 	assert: after equals: before.
 	assert: after hash equals: before hash.
-	
+
 	before:: ('foo' , 'baz') asSymbol.
 	after:: roundTrip: before.
 	assert: after equals: before.
 	assert: after hash equals: before hash.
-	
+
 	before:: 'Îñţérñåţîöñåļ' , 'îžåţîờñ'.
 	after:: roundTrip: before.
 	assert: after equals: before.

@@ -1,7 +1,7 @@
 Newspeak3
 'NS2PrimordialSoup'
-class CompilerApp packageUsing: manifest = (|
-|) (
+class CompilerApp packageUsing: manifest = (
+) (
 class CommandLineCompiler usingPlatform: platform = (
 |
 	private List = platform collections List.
@@ -78,11 +78,11 @@ parentMain: args = (
 	port = Port new.
 	numJobs = 4.
 	workLists
-	stopwatch 
+	stopwatch
 	index ::= 1.
 	outstanding ::= 0.
 	|
-	
+
 	stopwatch:: Stopwatch new start.
 
 	workLists:: Array new: numJobs.
@@ -91,38 +91,38 @@ parentMain: args = (
 		[(workLists at: index \\ numJobs + 1) add: (args at: index).
 		 index:: index + 1].
 
-	workLists do: 
-		[:workList | 
+	workLists do:
+		[:workList |
 		 workList addFirst: port id.
 		 workList addFirst: 'child'.
 		 port spawn: workList asArray.
 		 outstanding:: outstanding + 1].
 
-	port handler: 
+	port handler:
 		[:klasses |
 		klasses do: [:klass | namespace at: klass name put: klass].
 		outstanding:: outstanding - 1.
-		outstanding = 0 ifTrue: 
+		outstanding = 0 ifTrue:
 			[port close.
 			 ('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out.
 
-			 [(index + 2) <= args size] whileTrue: 
-				[ | runtimeName appName snapshotName runtime app fuel bytes |	
+			 [(index + 2) <= args size] whileTrue:
+				[ | runtimeName appName snapshotName runtime app fuel bytes |
 				runtimeName:: args at: index.
 				appName:: args at: index + 1.
 				snapshotName:: args at: index + 2.
 				index:: index + 3.
 				('Runtime configuration: ', runtimeName) out.
 				('Application configuration: ', appName) out.
-	
-				runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.	
+
+				runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.
 				app:: (namespace at: appName) packageUsing: manifest.
-	
+
 				stopwatch:: Stopwatch new start.
 				bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
 				writeBytes: bytes toFileNamed: snapshotName.
-	
-				('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out]]].	
+
+				('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out]]].
 )
 readFileAsBytes: filename = (
 	(* :literalmessage: primitive: 130 *)

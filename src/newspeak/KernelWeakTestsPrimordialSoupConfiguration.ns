@@ -5,7 +5,7 @@ private KernelWeakTests = manifest KernelWeakTests.
 |) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	| kernel = platform kernel. |
-	^{KernelWeakTests 
+	^{KernelWeakTests
 		usingPlatform: platform
 		minitest: minitest
 		gcAction: [kernel garbageCollect]}

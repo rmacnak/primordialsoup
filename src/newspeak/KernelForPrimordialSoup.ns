@@ -10,7 +10,6 @@ public class Activation _cannotInstantiate = (
 (* A reified activation record.
 
 Note this class only contains accessors and the logic needed for unwind-protect and exceptions. The debugger's simulator that is normally implemented in this class in Smalltalks is instead in the mirrors module.
-
 |
 sender <Activation | nil>
 bci <SmallInteger | nil>
@@ -20,7 +19,8 @@ receiver <Object>
 numTemps <SmallInteger>
 <temps>
 |
-*)) (
+*)
+) (
 private aboutToReturn: result through: firstUnwindActivation = (
 	(* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
 	| home ::= self. |
@@ -51,7 +51,7 @@ public findNextUnwindContextUpTo: activation = (
 	(* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
 	| ctx |
 	ctx:: self.
-	[nil = (ctx:: ctx sender) or: [ctx = activation]] 	
+	[nil = (ctx:: ctx sender) or: [ctx = activation]]
 		whileFalse:
 			[ctx isUnwindContext ifTrue: [^ctx]].
 	^nil
@@ -63,7 +63,7 @@ public hasSender: context = (
 	self = context ifTrue: [^false].
 	s:: sender.
 	[nil = s]
-		whileFalse: 
+		whileFalse:
 			[s = context ifTrue: [^true].
 			s:: s sender].
 	^false
@@ -87,8 +87,8 @@ private nonBooleanReceiver: nonBoolean = (
 	^(NonBooleanReceiver receiver: nonBoolean) signal
 )
 public pop = (
-	| 
-	depth = self tempSize. 
+	|
+	depth = self tempSize.
 	result = self tempAt: depth.
 	|
 	self tempSize: depth - 1.
@@ -121,8 +121,8 @@ public resume: value = (
 	self isDead ifTrue: [self cannotReturn: value to: self].
 	unwindActivation:: currentActivation.
 	[unwindActivation:: unwindActivation findNextUnwindContextUpTo: self.
-	nil = unwindActivation] 
-		whileFalse: 
+	nil = unwindActivation]
+		whileFalse:
 			[nil = (unwindActivation tempAt: 2) ifTrue: [
 				unwindActivation tempAt: 2 put: true.
 				unwindBlock:: unwindActivation tempAt: 1.
@@ -226,11 +226,11 @@ public at: index <Integer> put: value <Integer> ^<Integer> = (
 	^(ArgumentError value: index) signal
 )
 public copyWithSize: newSize <Integer> ^<ByteArray> = (
-	| 
-	newArray = ByteArray new: newSize. 
+	|
+	newArray = ByteArray new: newSize.
 	overlap = size < newSize ifTrue: [size] ifFalse: [newSize].
 	|
-	1 to: overlap do: 
+	1 to: overlap do:
 		[:index | newArray at: index put: (self at: index)].
 	^newArray
 )
@@ -368,7 +368,8 @@ public printString = (
 public class ClassMixin = (
 (* A class-side mixin is the difference between a metaclass and Class. (In Newspeak metaclasses are direct subclasses of Class, unlike Smalltalk where they are subclasses of the class's superclass's metaclass.) Note that class-side mixins can only introduce additional methods, unlike instance-side mixins which can introduce slots, methods and nested classes. Because of this, module definitions (top-level classes) are always stateless.
 
-Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)|
+Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)
+|
 public _instanceMixin
 public _methods (* Must be slot 2, known to the VM. *)
 public _enclosingMixin (* Must be slot 3, known to the VM. *)
@@ -404,7 +405,7 @@ public ensure: onUnwind <[]> = (
 	(* :literalmessage: primitive: 113 *)
 	| complete result |
 	result:: self value.
-	nil = complete ifTrue: 
+	nil = complete ifTrue:
 		[complete:: true.
 		onUnwind value].
 	^result
@@ -420,7 +421,7 @@ private numArgsError: argsProvided = (
 	^ArgumentError new signal
 )
 public on: exceptionClass <E class> do: catch <[:E]> = (
-	(* :literalmessage: primitive: 116 *) 
+	(* :literalmessage: primitive: 116 *)
 	| handlerActive ::= true. |
 	^self value
 )
@@ -429,7 +430,7 @@ public printString ^<String> = (
 )
 public repeat = (
 	halt.
-	
+
 	self value.
 	primRestart.
 )
@@ -499,7 +500,7 @@ public do: action <[:E]> = (
 )
 public do: action <[:E]> separatedBy: betweenAction <[]> = (
 	| first <Boolean> ::= true. |
-	self do: 
+	self do:
 		[:element <E> |
 		first
 			ifTrue: [first:: false]
@@ -527,9 +528,9 @@ public noneSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
 	^true
 )
 public reduce: mergeFunction <[:(E | X) :E | X def]> ^<X> = (
-	^self reduce: mergeFunction ifEmpty: [Error signal: 'Cannot reduce an empty collection' ] 
+	^self reduce: mergeFunction ifEmpty: [Error signal: 'Cannot reduce an empty collection' ]
 )
-public reduce: mergeFunction <[:(E | X) :E | X def]> ifEmpty: onEmpty <[Y def]>  ^<E | X | Y> = (
+public reduce: mergeFunction <[:(E | X) :E | X def]> ifEmpty: onEmpty <[Y def]> ^<E | X | Y> = (
 	| first <Boolean> ::= true. runningValue <E | X> |
 	self do:
 		[:element <E> |
@@ -574,18 +575,18 @@ public messageText (* squeak compatibility for Minitest *)
 |) (
 private invokeNextHandler = (
 	| activation <Activation> |
-	
+
 	activation:: handlerActivation sender.
 	[nil = activation] whileFalse:
 		[activation method primitive = 142 ifTrue:
 			[returnToSimulationRoot: activation.
 			 UNREACHABLE].
 		 activation method primitive = 116 ifTrue:
-			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue: 
-				[(activation tempAt: 3) ifTrue: 
+			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
+				[(activation tempAt: 3) ifTrue:
 					[^invokeOnDoHandler: activation]]].
 		 activation:: activation sender].
-	
+
 	theScheduler unhandledException: self from: signalActivation sender.
 	UNREACHABLE.
 )
@@ -602,7 +603,7 @@ private invokeOnDoHandler: handler <Activation> = (
 )
 private is: handlerExceptionClass <Any> interestedIn: signaledExceptionClass <Behavior> = (
 	| cls ::= signaledExceptionClass. |
-	[nil = cls] whileFalse: 
+	[nil = cls] whileFalse:
 		[(mixinOf: cls) = (mixinOf: handlerExceptionClass) ifTrue: [^true].
 		cls:: (superclassOf: cls)].
 	^false
@@ -652,7 +653,7 @@ public signal: message = (
 )
 ) : (
 public signal: message = (
-	^(self new messageText: message) signal	
+	^(self new messageText: message) signal
 )
 )
 public class False _cannotInstantiate = Boolean () (
@@ -778,25 +779,25 @@ public denominator <Integer> = denom.
 |) (
 public * other <Number> ^<Number> = (
 	other isFraction ifFalse: [^other multiplyFromFraction: self].
-	^Fraction 
+	^Fraction
 		numerator: numerator * other numerator
 		denominator: denominator * other denominator
 )
 public + other <Number> ^<Number> = (
 	other isFraction ifFalse: [^other addFromFraction: self].
-	^Fraction 
-		numerator: (numerator * other denominator) + (other numerator * denominator) 
+	^Fraction
+		numerator: (numerator * other denominator) + (other numerator * denominator)
 		denominator: denominator * other denominator
 )
 public - other <Number> ^<Number> = (
 	other isFraction ifFalse: [^other subtractFromFraction: self].
-	^Fraction 
-		numerator: (numerator * other denominator) - (other numerator * denominator) 
+	^Fraction
+		numerator: (numerator * other denominator) - (other numerator * denominator)
 		denominator: denominator * other denominator
 )
 public / other <Number> ^<Number> = (
 	other isFraction ifFalse: [^other divideFromFraction: self].
-	^Fraction 
+	^Fraction
 		numerator: numerator * other denominator
 		denominator: denominator * other numerator
 )
@@ -854,7 +855,7 @@ public asString = (
 	^'(', numerator asString, '/', denominator asString, ')'
 )
 public ceiling ^<Integer> = (
-	^0 <= numerator 
+	^0 <= numerator
 		ifTrue: [1 + self truncated]
 		ifFalse: [self truncated].
 )
@@ -875,7 +876,7 @@ public multiplyFromNumber: left = (
 	^(left * numerator) / denominator
 )
 public rounded ^<Integer> = (
-	^0 <= numerator 
+	^0 <= numerator
 		ifTrue: [(2 * numerator + denominator) quo: (2 * denominator)]
 		ifFalse: [(2 * numerator - denominator) quo: (2 * denominator)].
 )
@@ -903,7 +904,8 @@ public numerator: numerator <Integer> denominator: denominator <Integer> ^<Fract
 public class InstanceMixin = (
 (* An instance-side mixin is the difference between a (non-meta) class and its superclass: a set of additional methods, slots and nested class declarations. Instance-side mixins always have a paired class-side mixin.
 
-Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)|
+Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)
+|
 public _name <Symbol>
 public _methods <Array[Method]> (* Must be slot 2, known to the VM. *)
 public _enclosingMixin <InstanceMixin | nil> (* Must be slot 3, known to the VM. *)
@@ -923,7 +925,7 @@ public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Ob
 	enclosingObjectOf: newMetaclass put: eo.
 	mixinOf: newMetaclass put: _classMixin.
 	formatOf: newMetaclass put: (formatOf: Class).
-	
+
 	newClass:: instantiate: newMetaclass.
 	superclassOf: newClass put: superclass.
 	methodsOf: newClass put: (methodsWithAccessorsAtOffset: (formatOf: superclass)).
@@ -931,12 +933,12 @@ public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Ob
 	mixinOf: newClass put: self.
 	formatOf: newClass put: (formatOf: superclass) + _slots size.
 	nameOf: newClass put: name.
-	
+
 	thisClassOf: newMetaclass put: newClass.
 
 	_applications:: toWeakSet: _applications add: newClass.
 	subclassesOf: superclass put: (toWeakSet: (subclassesOf: superclass) add: newClass).
-		
+
 	^newClass
 )
 public applyTo: superclass <Class> withEnclosingObject: eo <Object> = (
@@ -955,7 +957,7 @@ public isMeta ^<Boolean> = (
 private methodsWithAccessorsAtOffset: offset <Integer> ^<MethodDictionary> = (
 	| newMethods <MethodDictionary> methodIndex |
 	newMethods:: Array new: _methods size.
-	
+
 	methodIndex:: 1.
 	1 to: _slots size do: [:i |
 		| slotDescriptor name isMutable accessModifier |
@@ -963,26 +965,26 @@ private methodsWithAccessorsAtOffset: offset <Integer> ^<MethodDictionary> = (
 		name:: slotDescriptor at: 1.
 		isMutable:: slotDescriptor at: 2.
 		accessModifier:: slotDescriptor at: 3.
-		
-		newMethods at: methodIndex put: 
+
+		newMethods at: methodIndex put:
 			(Method newGetterForSlot: name at: i + offset accessModifier: accessModifier).
 		methodIndex:: methodIndex + 1.
-		newMethods at: methodIndex put: 
-			(Method newInitializerForSlot: name at: i + offset).			
+		newMethods at: methodIndex put:
+			(Method newInitializerForSlot: name at: i + offset).
 		methodIndex:: methodIndex + 1.
 		isMutable ifTrue:
-			[newMethods at: methodIndex put: 
-				(Method newSetterForSlot: name at: i + offset accessModifier: accessModifier).			
+			[newMethods at: methodIndex put:
+				(Method newSetterForSlot: name at: i + offset accessModifier: accessModifier).
 			methodIndex:: methodIndex + 1]].
-	
-	_methods do: 
+
+	_methods do:
 		[:method |
 		| skip ::= false. |
-		1 to: methodIndex - 1 do: 
+		1 to: methodIndex - 1 do:
 			[:i |
-			(newMethods at: i) selector = method selector ifTrue: 
+			(newMethods at: i) selector = method selector ifTrue:
 				[skip:: true]].
-		skip ifFalse: 
+		skip ifFalse:
 			[newMethods at: methodIndex put: method.
 			methodIndex:: methodIndex + 1]].
 
@@ -997,14 +999,14 @@ public printString ^<String> = (
 )
 private toWeakSet: set add: element = (
 	| newSet |
-	nil = set ifTrue: 
+	nil = set ifTrue:
 		[newSet:: WeakArray new: 2.
 		newSet at: 1 put: element.
 		^newSet].
 	1 to: set size do:
 		[:index |
-		nil = (set at: index) ifTrue: 
-			[set at: index put: element. 
+		nil = (set at: index) ifTrue:
+			[set at: index put: element.
 			 ^set]].
 	^set copyWith: element
 )
@@ -1035,7 +1037,7 @@ public addFromFraction: left = (
 public asInteger ^<Integer> = (
 	^self
 )
-public bitAnd: other <Integer> ^<Integer>  = (
+public bitAnd: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 16 *)
 	^(ArgumentError value: other) signal
 )
@@ -1064,9 +1066,9 @@ public gcd: other <Integer> ^<Integer> = (
 	n:: self.
 	m:: other.
 	[n = 0]
-		whileFalse: 
+		whileFalse:
 			[n:: m \\ (m:: n)].
-	^ m abs
+	^m abs
 )
 public hash ^<Integer> = (
 	^self
@@ -1211,14 +1213,14 @@ public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
 	#public = am ifTrue: [ami:: 0].
 	#protected = am ifTrue: [ami:: 1].
 	#private = am ifTrue: [ami:: 2].
-	^(ami << 28) | (prim << 16) | (numArgs)	
+	^(ami << 28) | (prim << 16) | (numArgs)
 )
 public headerForAccessModifier: am primitive: prim numTemps: numTemps numArgs: numArgs = (
 	| ami |
 	#public = am ifTrue: [ami:: 0].
 	#protected = am ifTrue: [ami:: 1].
 	#private = am ifTrue: [ami:: 2].
-	^(ami << 28) | (prim << 16) | (numTemps << 8) | (numArgs)	
+	^(ami << 28) | (prim << 16) | (numTemps << 8) | (numArgs)
 )
 public newGetterForSlot: name at: index accessModifier: am = (
 	| accessor = Method new. |
@@ -1407,7 +1409,8 @@ public parse: string <String> ^<Number> = (
 )
 )
 public class Proxy = (
-(* Proxy overrides all the public members of Object with protected ones. One can implement a total proxy by subclassing and implementing only #doesNotUnderstand:. *)) (
+(* Proxy overrides all the public members of Object with protected ones. One can implement a total proxy by subclassing and implementing only #doesNotUnderstand:. *)
+) (
 protected = other = (
 	^super = other
 )
@@ -1534,10 +1537,10 @@ public at: index <Integer> put: value <E> ^<E> = (
 	^(ArgumentError value: index) signal
 )
 public copyWith: newElement <E> ^<WeakArray[E]> = (
-	| 
-	newArray = WeakArray new: 1 + self size. 
 	|
-	1 to: self size do: 
+	newArray = WeakArray new: 1 + self size.
+	|
+	1 to: self size do:
 		[:index | newArray at: index put: (self at: index)].
 	newArray at: newArray size put: newElement.
 	^newArray
@@ -1569,7 +1572,7 @@ public at: key <K> ^<V> = (
 	index:: 1 + ((identityHashOf: key) bitAnd: mask).
 	entry:: table at: index.
 	[nil = entry] whileFalse:
-		[(is: entry key identicalTo: key) ifTrue: 
+		[(is: entry key identicalTo: key) ifTrue:
 			[^entry value].
 		index:: 1 + (index bitAnd: mask).
 		entry:: table at: index].
@@ -1578,17 +1581,17 @@ public at: key <K> ^<V> = (
 public at: key <K> put: value <V> ^<V> = (
 	| mask index entry |
 	nil = key ifTrue: [^invalidKey].
-	
+
 	mask:: table size - 1.
 	index:: 1 + ((identityHashOf: key) bitAnd: mask).
 	entry:: table at: index.
 
 	[nil = entry] whileFalse:
-		[(is: entry key identicalTo: key) ifTrue: 
+		[(is: entry key identicalTo: key) ifTrue:
 			[(* Update existing entry. *)
-			entry value: value. 
+			entry value: value.
 			^value].
-		nil = entry key ifTrue: 
+		nil = entry key ifTrue:
 			[(* Reuse collected entry. *)
 			entry key: key.
 			entry value: value.
@@ -1615,21 +1618,21 @@ private maybeGrow = (
 	| oldTable dead ::= 0. newCapacity newTable mask newUsed ::= 0. |
 	oldTable:: table.
 	(* Count the number of GC'd entries. If less than half of the table entries are still used, we'll rehash without growing. *)
-	1 to: oldTable size do: 
+	1 to: oldTable size do:
 		[:index |
 		| entry = oldTable at: index. |
-		nil = entry ifFalse: 
+		nil = entry ifFalse:
 			[nil = entry key ifTrue: [dead:: 1 + dead]]].
-	
+
 	newCapacity:: oldTable size.
-	(used - dead) > (newCapacity >> 1) ifTrue: 
+	(used - dead) > (newCapacity >> 1) ifTrue:
 		[newCapacity:: newCapacity << 1].
-	
+
 	('Rehashing weak map to ', newCapacity printString) out.
-	
+
 	newTable:: Array new: newCapacity.
 	mask:: newCapacity - 1.
-	
+
 	(* Count live entries as we rehash instead of using (used - dead) because more entries may become dead due to a GC in the middle of rehashing. *)
 	1 to: oldTable size do:
 		[:oldIndex |
@@ -1637,7 +1640,7 @@ private maybeGrow = (
 		nil = entry ifFalse:
 			[nil = entry key ifFalse: [
 				| newIndex ::= 1 + ((identityHashOf: entry key) bitAnd: mask). |
-				[nil = (newTable at: newIndex)] whileFalse: 
+				[nil = (newTable at: newIndex)] whileFalse:
 					[newIndex:: 1 + (newIndex bitAnd: mask)].
 				newTable at: newIndex put: entry.
 				newUsed:: 1 + newUsed]]].
@@ -1652,19 +1655,19 @@ public class WideString _cannotInstantiate = ByteString () (
 )
 public class _Array _cannotInstantiate = Collection () (
 public , collection = (
-	| 
+	|
 	newarray = Array new: self size + collection size.
 	offset = self size.
 	|
-	1 to: self size do: 
+	1 to: self size do:
 		[:index | newarray at: index put: (self at: index)].
-	1 to: collection size do: 
+	1 to: collection size do:
 		[:index | newarray at: index + offset put: (collection at: index)].
 	^newarray
 )
 public allButFirst = (
 	| newArray = Array new: self size - 1. |
-	2 to: self size do: 
+	2 to: self size do:
 		[:index | newArray at: index - 1 put: (self at: index)].
 	^newArray
 )
@@ -1681,32 +1684,32 @@ public at: index <Integer> put: value <E> ^<E> = (
 )
 public collect: transform <[:E | F]> ^<Array[F]> = (
 	| results = Array new: size. |
-	1 to: size do: 
+	1 to: size do:
 		[:index |
 		results at: index put: (transform value: (self at: index))].
 	^results
 )
 public copy ^<Array[E]> = (
 	| theCopy = Array new: self size. |
-	1 to: self size do: 
+	1 to: self size do:
 		[:index | theCopy at: index put: (self at: index)].
 	^theCopy
 )
 public copyWith: newElement <E> ^<Array[E]> = (
-	| 
-	newArray = Array new: 1 + self size. 
 	|
-	1 to: self size do: 
+	newArray = Array new: 1 + self size.
+	|
+	1 to: self size do:
 		[:index | newArray at: index put: (self at: index)].
 	newArray at: newArray size put: newElement.
 	^newArray
 )
 public copyWithSize: newSize <Integer> ^<Array[E]> = (
-	| 
-	newArray = Array new: newSize. 
+	|
+	newArray = Array new: newSize.
 	overlap = size < newSize ifTrue: [size] ifFalse: [newSize].
 	|
-	1 to: overlap do: 
+	1 to: overlap do:
 		[:index | newArray at: index put: (self at: index)].
 	^newArray
 )
@@ -1738,11 +1741,11 @@ public size ^<Integer> = (
 )
 public sort: comparison <[:E :E | Boolean]> = (
 	(* :todo: Merge or quick sort. *)
-	1 to: size do: 
+	1 to: size do:
 		[:i | | min ::= i. temp |
-		i + 1 to: size do: 
-			[:j | 
-			(comparison value: (self at: j) value: (self at: min)) 
+		i + 1 to: size do:
+			[:j |
+			(comparison value: (self at: j) value: (self at: min))
 				ifTrue: [min:: j]].
 		temp:: self at: i.
 		self at: i put: (self at: min).
@@ -1761,9 +1764,10 @@ Unlike other systems inspired by Smalltalk, the number of methods in this class 
 
 The security model of the Newspeak programming language is based on capabilities and it is essential that capabilities cannot leak through behavior provided by this class. For example, this class provides no mechanism for accessing instance variables of its instances. Instead such capabilities are provided to the debugger and other tools through mirror based reflection modules.
 
-Object has no instance variables, nor should any be added. Several subclasses of Object have special implementations and the VM on relies on their layout. Adding slots to Object would be fatal. 
+Object has no instance variables, nor should any be added. Several subclasses of Object have special implementations and the VM on relies on their layout. Adding slots to Object would be fatal.
 
-This class is currently named _Object to break a cycle in the class hierarchy that occurs during the bootstrap from the Squeak implementation. Its superclass is later fixed to nil by magic. *)) (
+This class is currently named _Object to break a cycle in the class hierarchy that occurs during the bootstrap from the Squeak implementation. Its superclass is later fixed to nil by magic. *)
+) (
 public = other <Object> ^<Boolean> = (
 	(* Answers whether the receiver is considered equal to 'other'.
 	May be overridden by subclasses, and should be overridden if the method 'hash' is overridden.
@@ -1773,7 +1777,7 @@ public = other <Object> ^<Boolean> = (
 	* if x = y evaluates to true and y = z evaluates to true then x = z must evaluate to true.
 	Furthermore, this method must be consistent with the implementation of hash, that is:
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
-	
+
 	(* :literalmessage: primitive: 86 *)
 	halt.
 )
@@ -1818,10 +1822,10 @@ protected assert: blockOrBoolean message: message = (
 		ifFalse: [blockOrBoolean ifFalse: [Exception new signal: message]].
 )
 protected class ^<Behavior> = (
-	(* Answers the class of the receiver. 
-	
+	(* Answers the class of the receiver.
+
 	This method is not public to make it easier to separate the authority of an instance from the authority of its class. This is similar to how the flatness of the metaclass heirarchy separates the interface of an object from the interface of its class. *)
-	
+
 	(* :literalmessage: primitive: 85 *)
 	halt.
 )
@@ -1838,7 +1842,7 @@ public hash ^<Integer> = (
 	May be overridden by subclasses, and should be overridden if the method '=' is overridden.
 	The hash code must obey the requirements set forth in the method '=', that is, the following must hold:
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
-	
+
 	(* :literalmessage: primitive: 87 *)
 	halt.
 )
@@ -1936,23 +1940,23 @@ private intern: string = (
 		[(* Snapshot starts with a compact array. A hash table would need to be rehashed anyway because every process has a random hash function. *)
 		 symbolTableUsed:: symbolTable size.
 		 rehashSymbolTable].
-	
+
 	table:: symbolTable.
 	capacity:: table size.
 	index:: (string hash \\ capacity) + 1.
 	[symbol:: table at: index.
-	 table = symbol] whileFalse: 
+	 table = symbol] whileFalse:
 		[string = symbol ifTrue: [^symbol].
 		 nil = symbol ifTrue: [reuseIndex:: index].
 		 index:: (index \\ capacity) + 1].
-	
+
 	setCanonical: string.
 	nil = reuseIndex ifFalse: [^table at: reuseIndex put: string].
-	
+
 	table at: index put: string.
 	symbolTableUsed:: symbolTableUsed + 1.
-	(symbolTableUsed * 4) > (capacity * 3) ifTrue: 
-		[rehashSymbolTable].	
+	(symbolTableUsed * 4) > (capacity * 3) ifTrue:
+		[rehashSymbolTable].
 	^string
 )
 private is: a identicalTo: b = (
@@ -2003,17 +2007,17 @@ private rehashSymbolTable = (
 	1 to: newTable size do: [:index | newTable at: index put: newTable].
 
 	(* Count live entries as we rehash instead of using (used - dead) because more entries may become dead due to a GC in the middle of rehashing. *)
-	1 to: oldTable size do: 
+	1 to: oldTable size do:
 		[:oldIndex | | symbol newIndex |
 		symbol:: oldTable at: oldIndex.
 		nil = symbol ifFalse:
 			[oldTable = symbol ifFalse:
 				[newUsed:: 1 + newUsed.
 				 newIndex:: (symbol hash \\ newCapacity) + 1.
-				 [newTable = (newTable at: newIndex)] whileFalse: 
+				 [newTable = (newTable at: newIndex)] whileFalse:
 					[newIndex:: (newIndex \\ newCapacity) + 1].
 				 newTable at: newIndex put: symbol]]].
-	
+
 	symbolTable:: newTable.
 	symbolTableUsed:: newUsed.
 )

@@ -91,7 +91,7 @@ public uint8: value = (
 )
 public unsigned: value = (
 	| v ::= value. |
-	[v > 127] whileTrue: 
+	[v > 127] whileTrue:
 		[uint8: (v bitAnd: 127).
 		 v:: v >> 7].
 	uint8: v + 128.
@@ -111,7 +111,7 @@ backRefStop <Integer>
 public adoptInstances = (
 )
 public readEdges = (
-	backRefStart to: backRefStop do: 
+	backRefStart to: backRefStop do:
 		[:refIndex |
 		| object = backRefs at: refIndex. |
 		fillActivation].
@@ -131,10 +131,10 @@ backRefStop <Integer>
 public adoptInstances = (
 )
 public readEdges = (
-	backRefStart to: backRefStop do: 
+	backRefStart to: backRefStop do:
 		[:refIndex |
 		| object = backRefs at: refIndex. |
-		1 to: object size do: 
+		1 to: object size do:
 			[:index | object at: index put: readBackRef]].
 )
 public readNodes = (
@@ -188,7 +188,7 @@ backRefStop
 public adoptInstances = (
 )
 public readEdges = (
-	backRefStart to: backRefStop do: 
+	backRefStart to: backRefStop do:
 		[:refIndex |
 		| object = backRefs at: refIndex. |
 		fillClosure].
@@ -209,7 +209,7 @@ public adoptInstances = (
 )
 public readEdges = (
 	readBackRef. (* :todo: *)
-	backRefStart to: backRefStop do: 
+	backRefStart to: backRefStop do:
 		[:refIndex |
 		| object = backRefs at: refIndex. |
 		object key: readBackRef.
@@ -242,7 +242,7 @@ public readNodes = (
 		negative:: stream uint8 = 1.
 		digitLength:: stream uint16.
 		integer:: 0.
-		0 to: digitLength - 1 << 3 by: 8 do: 
+		0 to: digitLength - 1 << 3 by: 8 do:
 			[:shift | integer:: integer bitOr: (stream uint8 << shift)].
 		negative ifTrue: [integer:: 0 - integer].
 		registerBackRef: integer].
@@ -257,7 +257,7 @@ backRefStop <Integer>
 allocClass
 |) (
 public adoptInstances = (
-	backRefStart to: backRefStop do: 
+	backRefStart to: backRefStop do:
 		[:refIndex |
 		| object = backRefs at: refIndex. |
 		class: klass adoptInstance: object].
@@ -265,10 +265,10 @@ public adoptInstances = (
 )
 public readEdges = (
 	klass:: readBackRef.
-	backRefStart to: backRefStop do: 
+	backRefStart to: backRefStop do:
 		[:refIndex |
 		| object = backRefs at: refIndex. |
-		1 to: numSlots do: 
+		1 to: numSlots do:
 			[:index | slotOf: object at: index put: readBackRef]].
 )
 public readNodes = (
@@ -287,10 +287,10 @@ backRefStop <Integer>
 public adoptInstances = (
 )
 public readEdges = (
-	backRefStart to: backRefStop do: 
+	backRefStart to: backRefStop do:
 		[:refIndex |
 		| object = backRefs at: refIndex. |
-		1 to: object size do: 
+		1 to: object size do:
 			[:index | object at: index put: readBackRef]].
 )
 public readNodes = (
@@ -337,11 +337,11 @@ public deserialize: bytes = (
 	1 to: numClusters do: [:i | clusters at: i put: readCluster readNodes].
 	1 to: numClusters do: [:i | (clusters at: i) readEdges].
 	1 to: numClusters do: [:i | (clusters at: i) adoptInstances].
-	
+
 	result:: readBackRef.
-	
-	('Read ', backRefs size printString, ' objects in ', 
-	 numClusters printString, ' clusters as ', 
+
+	('Read ', backRefs size printString, ' objects in ',
+	 numClusters printString, ' clusters as ',
 	 stream position printString, ' bytes in ',
 	 s elapsedMilliseconds printString, ' ms') out.
 	^result
@@ -351,11 +351,11 @@ readBackRef = (
 )
 readCluster = (
 	| format ::= readFormat. |
-	
+
 	format >= 0 ifTrue: [^RegularObjectCluster for: format].
 
 	format:: 0 - format.
-	
+
 	format = kSmiCid ifTrue: [^IntegerCluster new].
 	format = kFloat64Cid ifTrue: [^FloatCluster new].
 	format = kByteArrayCid ifTrue: [^ByteArrayCluster new].
@@ -366,7 +366,7 @@ readCluster = (
 	format = kEphemeronCid ifTrue: [^EphemeronCluster new].
 	format = kActivationCid ifTrue: [^ActivationCluster new].
 	format = kClosureCid ifTrue: [^ClosureCluster new].
-	
+
 	unknownFormat.
 )
 readFormat = (
@@ -380,7 +380,7 @@ registerSymbolicObjects = (
 	registerBackRef: nil.
 	registerBackRef: false.
 	registerBackRef: true.
-	
+
 	registerBackRef: SmallInteger.
 	registerBackRef: MediumInteger.
 	registerBackRef: LargeInteger.
@@ -400,7 +400,7 @@ registerSymbolicObjects = (
 	registerBackRef: Class.
 	registerBackRef: InstanceMixin.
 	registerBackRef: ClassMixin.
-	
+
 	registerBackRef: Object.
 	registerBackRef: (classOf: Object).
 )
@@ -419,9 +419,9 @@ public at: key = (
 	index:: ((identityHashOf: key) bitAnd: mask) + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
-	 table = entry] whileFalse: 
+	 table = entry] whileFalse:
 		[index:: ((index + 2) bitAnd: mask) + 1].
-	
+
 	noSuchKey
 )
 public at: key ifAbsent: onAbsent = (
@@ -430,7 +430,7 @@ public at: key ifAbsent: onAbsent = (
 	index:: ((identityHashOf: key) bitAnd: mask) + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
-	 table = entry] whileFalse: 
+	 table = entry] whileFalse:
 		[index:: ((index + 2) bitAnd: mask) + 1].
 
 	^onAbsent value
@@ -441,7 +441,7 @@ public at: key ifAbsentPut: valueGen = (
 	index:: ((identityHashOf: key) bitAnd: mask) + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
-	 table = entry] whileFalse: 
+	 table = entry] whileFalse:
 		[index:: ((index + 2) bitAnd: mask) + 1].
 
 	value:: valueGen value.
@@ -457,7 +457,7 @@ public at: key ifAbsentPutVal: value = (
 	index:: ((identityHashOf: key) bitAnd: mask) + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^false].
-	 table = entry] whileFalse: 
+	 table = entry] whileFalse:
 		[index:: ((index + 2) bitAnd: mask) + 1].
 
 	table at: index put: key.
@@ -476,7 +476,7 @@ public at: key putReplace: value = (
 	index:: ((identityHashOf: key) bitAnd: mask) + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1 put: value].
-	 table = entry] whileFalse: 
+	 table = entry] whileFalse:
 		[index:: ((index + 2) bitAnd: mask) + 1].
 
 	missingKey
@@ -487,13 +487,13 @@ public atOrItself: key = (
 	index:: ((identityHashOf: key) bitAnd: mask) + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
-	 table = entry] whileFalse: 
+	 table = entry] whileFalse:
 		[index:: ((index + 2) bitAnd: mask) + 1].
-	
+
 	^key
 )
 public do: action <[:V]> = (
-	1 to: table size by: 2 do: 
+	1 to: table size by: 2 do:
 		[:index | | key |
 		key:: table at: index.
 		table = key ifFalse: [ action value: (table at: index + 1) ]]
@@ -506,15 +506,15 @@ grow = (
 	mask:: newSize - 2.
 	newTable:: Array new: newSize.
 	1 to: newSize do: [:index | newTable at: index put: newTable].
-	
-	1 to: oldTable size by: 2 do: [:oldIndex | 
+
+	1 to: oldTable size by: 2 do: [:oldIndex |
 		| key |
 		key:: oldTable at: oldIndex.
-		oldTable = key ifFalse: 
+		oldTable = key ifFalse:
 			[ | value newIndex |
 			 value:: oldTable at: oldIndex + 1.
 			 newIndex:: ((identityHashOf: key) bitAnd: mask) + 1.
-			 [newTable = (newTable at: newIndex)] whileFalse: 
+			 [newTable = (newTable at: newIndex)] whileFalse:
 				[newIndex:: (newIndex + 2 bitAnd: mask) + 1].
 			 newTable at: newIndex put: key.
 			 newTable at: newIndex + 1 put: value]].
@@ -526,7 +526,7 @@ public includesKey: key = (
 	index:: ((identityHashOf: key) bitAnd: mask) + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^true].
-	 table = entry] whileFalse: 
+	 table = entry] whileFalse:
 		[index:: ((index + 1) bitAnd: mask) + 1].
 	^false
 )
@@ -585,15 +585,15 @@ public unsigned = (
 	b:: uint8.
 	b > 127 ifTrue: [^b - 128].
 	acc:: b.
-	
+
 	b:: uint8.
 	b > 127 ifTrue: [^(b - 128) << 7 | acc].
 	acc:: acc | (b << 7).
-	
+
 	b:: uint8.
 	b > 127 ifTrue: [^(b - 128) << 14 | acc].
 	acc:: acc | (b << 14).
-	
+
 	b:: uint8.
 	b > 127 ifTrue: [^(b - 128) << 21 | acc].
 	acc:: acc | (b << 21).
@@ -619,7 +619,7 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	(* Activation accessors are known to be side-effect free. *)
 	enqueue:: object sender.
 	enqueue:: object bci.
@@ -644,9 +644,9 @@ public writeEdges = (
 public writeNodes = (
 	writeFormat: kActivationCid negated.
 	stream uint16: objects size.
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
-		(* :todo: Have small and large contexts? 
+		(* :todo: Have small and large contexts?
 		stream uint8: isLarge *)].
 )
 ) : (
@@ -656,13 +656,13 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	(* Array accessors are known to be side-effect free. *)
 	1 to: object size do: [:index | enqueue: (object at: index)].
 )
 public replace: old with: neu = (
 	(* Array equality is known to be identity. *)
-	1 to: objects size do: 
+	1 to: objects size do:
 		[:index | old = (objects at: index) ifTrue: [objects at: index put: neu]].
 )
 public writeEdges = (
@@ -674,7 +674,7 @@ public writeNodes = (
 	writeFormat: kArrayCid negated.
 	stream uint16: objects size.
 	(* Array accessors are known to be side-effect free. *)
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
 		stream uint16: object size].
 )
@@ -722,7 +722,7 @@ public writeNodes = (
 		registerBackRef: object.
 		stream uint32: object size.
 		1 to: object size do: [:index | stream uint8: (object runeAt: index)]].
-	
+
 	stream uint16: canonical size.
 	canonical do: [:object |
 		registerBackRef: object.
@@ -736,11 +736,11 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	enqueue:: definingActivationOf: object.
 	enqueue:: initialBCIOf: object.
 	enqueue:: object numArgs.
-	
+
 	1 to: (numCopiedOf: object) do: [:index | enqueue: (copiedOf: object at: index)].
 )
 public writeEdges = (
@@ -753,7 +753,7 @@ public writeEdges = (
 public writeNodes = (
 	writeFormat: kClosureCid negated.
 	stream uint16: objects size.
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
 		stream uint16: (numCopiedOf: object)].
 )
@@ -764,7 +764,7 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	(* Ephemeron accessors are known to be side-effect free. *)
 	(* :todo: Maintain the ephemeron property. *)
 	enqueue: object key.
@@ -773,7 +773,7 @@ public analyze: object = (
 )
 public writeEdges = (
 	writeBackRef: Ephemeron. (* :todo: *)
-	objects do: [:object | 
+	objects do: [:object |
 		writeBackRef: object key.
 		writeBackRef: object value.
 		writeBackRef: object finalizer].
@@ -796,7 +796,7 @@ public writeEdges = (
 public writeNodes = (
 	writeFormat: kWeakArrayCid negated.
 	stream uint16: objects size.
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
 		stream uint64: UNIMPLEMENTED].
 )
@@ -816,17 +816,17 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kSmiCid negated.
-	stream uint16: objects size.	
+	stream uint16: objects size.
 	objects do: [:object |
 		registerBackRef: object.
 		stream int64: object].
-	
+
 	(* :todo: Add use direct diget accessors. *)
 	stream uint16: large size.
 	large do: [:object | | abs tmp digitLength |
 		registerBackRef: object.
-		object < 0 
-			ifTrue: 
+		object < 0
+			ifTrue:
 				[stream uint8: 1.
 				abs:: 0 - object]
 			ifFalse:
@@ -834,7 +834,7 @@ public writeNodes = (
 				abs:: object].
 		tmp:: abs.
 		digitLength:: 0.
-		[0 = tmp] whileFalse: 
+		[0 = tmp] whileFalse:
 			[digitLength:: digitLength + 1.
 			 tmp:: tmp >> 8].
 		stream uint16: digitLength.
@@ -857,14 +857,14 @@ public analyze: object = (
 )
 public writeBehaviorEdges = (
 	writeBackRef: klass.
-	objects do: 
-		[:object | 
+	objects do:
+		[:object |
 		1 to: 4 do: [:index | writeBackRef: (slotOf: object at: index)].
 		writeBackRef: nil. (* Erase the cid *)
 		6 to: numSlots do: [:index | writeBackRef: (slotOf: object at: index)]].
 )
 public writeEdges = (
-	instancesAreBehaviors 
+	instancesAreBehaviors
 		ifTrue: [writeBehaviorEdges]
 		ifFalse: [writeNonBehaviorEdges]
 )
@@ -875,8 +875,8 @@ public writeNodes = (
 )
 public writeNonBehaviorEdges = (
 	writeBackRef: klass.
-	objects do: 
-		[:object | 1 to: numSlots do: 
+	objects do:
+		[:object | 1 to: numSlots do:
 			[:index | writeBackRef: (slotOf: object at: index)]].
 )
 ) : (
@@ -886,7 +886,7 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	(* Not traced. *)
 )
 public writeEdges = (
@@ -898,7 +898,7 @@ public writeNodes = (
 	writeFormat: kWeakArrayCid negated.
 	stream uint16: objects size.
 	(* WeakArray accessors are known to be side-effect free. *)
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
 		stream uint16: object size].
 )
@@ -924,7 +924,7 @@ public writeNodes = (
 		registerBackRef: object.
 		stream uint32: object size.
 		1 to: object size do: [:index | stream uint32: (object runeAt: index)]].
-	
+
 	stream uint16: canonical size.
 	canonical do: [:object |
 		registerBackRef: object.
@@ -946,7 +946,7 @@ createSpecialClassClusters = (
 	clusters at: MediumInteger put: intCluster.
 	clusters at: LargeInteger put: intCluster.
 	orderedClusters add: intCluster.
-	
+
 	(* clusters at: Float put: FloatCluster new. *)
 	orderedClusters add: (clusters at: ByteArray put: ByteArrayCluster new).
 	orderedClusters add: (clusters at: WideString put: WideStringCluster new).
@@ -956,7 +956,7 @@ createSpecialClassClusters = (
 	orderedClusters add: (clusters at: Ephemeron put: EphemeronCluster new).
 	orderedClusters add: (clusters at: Activation put: ActivationCluster new).
 	orderedClusters add: (clusters at: Closure put: ClosureCluster new).
-	
+
 	RegularObjectCluster. (* Eagerly create the class. *)
 )
 enqueue: object = (
@@ -986,7 +986,7 @@ registerSymbolicObjects = (
 	registerPreBackRef: nil.
 	registerPreBackRef: false.
 	registerPreBackRef: true.
-	
+
 	registerPreBackRef: SmallInteger.
 	registerPreBackRef: MediumInteger.
 	registerPreBackRef: LargeInteger.
@@ -1006,7 +1006,7 @@ registerSymbolicObjects = (
 	registerPreBackRef: Class.
 	registerPreBackRef: InstanceMixin.
 	registerPreBackRef: ClassMixin.
-	
+
 	registerPreBackRef: Object.
 	registerPreBackRef: (classOf: Object).
 )
@@ -1020,7 +1020,7 @@ public serialize: root = (
 
 	enqueue: root.
 	[stack isEmpty] whileFalse: [analyze: stack removeLast].
-	
+
 	stream uint16: 16r1984.
 	stream uint16: Version.
 	stream uint16: orderedClusters size.
@@ -1028,9 +1028,9 @@ public serialize: root = (
 	orderedClusters do: [:c | c writeNodes].
 	orderedClusters do: [:c | c writeEdges].
 	writeBackRef: root.
-	
-	('Wrote ', backRefs size printString, ' objects in ', 
-	 orderedClusters size printString, ' clusters as ', 
+
+	('Wrote ', backRefs size printString, ' objects in ',
+	 orderedClusters size printString, ' clusters as ',
 	 stream position printString, ' bytes in ',
 	 stopwatch elapsedMilliseconds printString, ' ms') out.
 	^stream stealBytes
@@ -1041,7 +1041,7 @@ writeBackRef: object = (
 writeFormat: format = (
 	stream int32: format.
 )
-writeWeakBackRef: object = (	
+writeWeakBackRef: object = (
 	stream unsigned: (backRefs at: object ifAbsent: [backRefs at: nil])
 )
 ) : (
@@ -1112,14 +1112,14 @@ replaceMixin: mixin = (
 replaceSymbolTable = (
 	| newSymbolTable |
 	newSymbolTable:: (clusters at: ByteString) symbols.
-	
+
 	(* Replace the written node. *)
 	(clusters at: Array) replace: symbolTablePlaceholder with: newSymbolTable.
 	(* Replace the written edges. *)
 	replacements at: symbolTablePlaceholder put: newSymbolTable.
 
 	(* registerBackRef: expects we've already traced the object. *)
-	backRefs at: newSymbolTable put: 0. 
+	backRefs at: newSymbolTable put: 0.
 )
 public serialize: root = (
 	| interpreter stopwatch |
@@ -1138,9 +1138,9 @@ public serialize: root = (
 
 	enqueue: root.
 	[stack isEmpty] whileFalse: [analyze: stack removeLast].
-	
+
 	replaceSymbolTable.
-	
+
 	interpreter:: '#!fuchsia primordialsoup'.
 	1 to: interpreter size do: [:index | stream uint8: (interpreter runeAt: index)].
 	stream uint8: 10. (* \n *)
@@ -1151,9 +1151,9 @@ public serialize: root = (
 	orderedClusters do: [:c | c writeNodes].
 	orderedClusters do: [:c | c writeEdges].
 	writeBackRef: root.
-	
-	(backRefs size printString, ' objects in ', 
-	 orderedClusters size printString, ' clusters as ', 
+
+	(backRefs size printString, ' objects in ',
+	 orderedClusters size printString, ' clusters as ',
 	 stream position printString, ' bytes in ',
 	 stopwatch elapsedMilliseconds printString, ' ms') out.
 	^stream stealBytes
@@ -1163,11 +1163,11 @@ public snapshotApp: app withRuntime: runtime = (
 	keepSource:: (classOf: app) name = 'TestRunner'.
 	newKernel:: runtime InternalKernel new.
 	newPlatform:: runtime Platform internalKernel: newKernel.
-	objectStore:: newKernel 
-		buildObjectStoreWithApplication: app 
-		platform: newPlatform 
+	objectStore:: newKernel
+		buildObjectStoreWithApplication: app
+		platform: newPlatform
 		symbols: symbolTablePlaceholder.
-	
+
 	slotOf: newKernel _Object at: 1 put: nil. (* superclass *)
 	methods:: slotOf: newKernel _Object at: 2.
 	1 to: methods size do: [:index |
@@ -1175,7 +1175,7 @@ public snapshotApp: app withRuntime: runtime = (
 		method selector = #'initializer`new' ifTrue: [
 			method header: 200 << 16. (* public + return self *)
 			method bytecode: nil]].
-	
+
 	replaceClass: Activation with: newKernel Activation.
 	replaceClass: Array with: newKernel _Array.
 	replaceClass: ByteArray with: newKernel ByteArray.
@@ -1187,7 +1187,7 @@ public snapshotApp: app withRuntime: runtime = (
 	replaceClass: LargeInteger with: newKernel LargeInteger.
 	replaceClass: WeakArray with: newKernel WeakArray.
 	replaceClass: WideString with: newKernel WideString.
-	
+
 	replaceClass: True with: newKernel True.
 	replaceClass: False with: newKernel False.
 	replaceClass: UndefinedObject with: newKernel UndefinedObject.

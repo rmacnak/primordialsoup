@@ -76,7 +76,7 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	enqueue: object sender.
 	enqueue: (newBCI: object).
 	enqueue: object method.
@@ -106,7 +106,7 @@ public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kActivationCid negated.
 	stream uint16: objects size.
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
 		(* stream uint16: object stackPtr *)].
 )
@@ -137,7 +137,7 @@ public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kArrayCid negated.
 	stream uint16: objects size.
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
 		stream uint16: (prim indexedSlotsOf: object)].
 )
@@ -222,7 +222,7 @@ public writeNodes = (
 		registerBackRef: object.
 		stream uint32: object size.
 		1 to: object size do: [:i | stream nextPut: (prim ifFail: stop indexedSlotOf: object at: i)]].
-	
+
 	stream uint16: symbols size. (* canonical *)
 	symbols do: [:object |
 		registerBackRef: object.
@@ -269,7 +269,7 @@ newFormatFor: cls = (
 	psoup Closure == cls ifTrue: [^nil].
 
 	psoup Method == cls ifTrue: [^cls instSize]. (* A regular object is psoup *)
-	
+
 	psoup Metaclass == cls ifTrue: [^7].
 	psoup UndefinedObject == cls ifTrue: [^cls instSize].
 	psoup True == cls ifTrue: [^cls instSize].
@@ -303,7 +303,7 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	enqueue: object instanceMixin.
 	enqueue: object methodDictionary.
 	enqueue: object enclosingMixin.
@@ -334,7 +334,7 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	(* enqueue: object numCopiedValues. *)(* not written as ref *)
 	enqueue: object outerContext.
 	enqueue: (newInitialBCI: object).
@@ -358,7 +358,7 @@ public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kClosureCid negated.
 	stream uint16: objects size.
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
 		stream uint16: object numCopiedValues].
 )
@@ -393,7 +393,7 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-	
+
 	enqueue: object name.
 	enqueue: object methodDictionary.
 	enqueue: object enclosingMixin.
@@ -461,7 +461,7 @@ newFormatFor: cls = (
 )
 public writeEdges = (
 	rewrites size = objects size ifFalse: [halt].
-	
+
 	writeBackRef: klass.
 	rewrites do: [:rewrite |
 		rewrite do: [:ref | writeBackRef: ref]].
@@ -506,18 +506,18 @@ public name = (
 )
 newBytecodeFor: cm = (
 	| a = cm initialPC. b = cm endPC. bytes |
-	
+
 	(cm at: a) = 226 ifTrue: [^nil].
 	cm endPC > (cm initialPC) ifTrue: [
 		((cm at: a + 1) between: 176 and: 183) ifTrue: [^nil].
 		(cm at: a + 1) = 235 ifTrue: [^nil]].
-	
+
 	bytes:: ByteArray new: b - a + 1.
 	1 to: bytes size do: [:i | bytes at: i put: (cm at: a + i - 1)].
-	
+
 	canons do: [:canon | (list: canon equals: bytes) ifTrue: [dups add: bytes. ^canon]].
 	canons add: bytes.
-	
+
 	^bytes
 )
 newHeaderFor: cm = (
@@ -527,22 +527,22 @@ newHeaderFor: cm = (
 	accessModifier == #protected ifTrue: [accessModifier:: 1].
 	accessModifier == #private ifTrue: [accessModifier:: 2].
 	assert: [accessModifier between: 0 and: 3] message: ''.
-	
+
 	numArgs:: cm numArgs.
 	assert: [numArgs between: 0 and: 255] message: ''.
-	
+
 	numTemps:: cm numTemps.
 	assert: [numTemps between: 0 and: 255] message: ''.
-	
+
 	primitive:: cm pragmaAt: #primitive:.
 	primitive == nil
 		ifTrue: [primitive:: cm primitive]
 		ifFalse: [primitive:: primitive arguments first].
-		
+
 	(* quick return self *)
 	primitive = 256 ifTrue: [primitive:: 200].
 	assert: [primitive < 256] message: ''.
-		
+
 	start:: cm initialPC.
 	(cm at: start) = 226
 		ifTrue: [
@@ -550,7 +550,7 @@ newHeaderFor: cm = (
 			assert: [slot between: 0 and: 255] message: ''.
 			assert: [cm readsField: slot + 1] message: ''.
 			assert: [cm initialPC + 2 = cm endPC] message: ''.
-			primitive:: 256 + slot. 
+			primitive:: 256 + slot.
 			assert: [numArgs = 0] message: ''].
 	cm endPC > cm initialPC ifTrue: [
 		((cm at: start + 1) between: 176 and: 183) ifTrue: [
@@ -561,17 +561,17 @@ newHeaderFor: cm = (
 			| slot = cm at: start + 2. |
 			assert: [slot between: 0 and: 255] message: ''.
 			primitive:: 512 + slot]].
-		
+
 	assert: [primitive between: 0 and: 1024] message: ''.
-	
+
 	(* 0:7 numArgs
 		8:15 numTemps
-		16:27 prim 
+		16:27 prim
 		28:29 access *)
 	^(accessModifier << 28) | (primitive << 16) | (numTemps << 8) | (numArgs << 0)
 )
 newLiteralsFor: cm = (
-	| lits = cm literals allButLast: 2. |	
+	| lits = cm literals allButLast: 2. |
 	canons do: [:canon | (list: canon equals: lits) ifTrue: [dups add: lits. ^canon]].
 	canons add: lits.
 	^lits
@@ -632,10 +632,9 @@ class SmallIntegerCluster for: cls = Cluster (|
 	large = List new.
 |) (
 public analyze: object = (
-
-	(object between:  -9223372036854775808 and:  9223372036854775807)
+	(object between: -9223372036854775808 and: 9223372036854775807)
 		ifTrue: [small add: object]
-		ifFalse: [large add: object].	
+		ifFalse: [large add: object].
 )
 public name = (
 	^'Integer'
@@ -644,7 +643,7 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kSmiCid negated.
-	stream uint16: small size.	
+	stream uint16: small size.
 	small do: [:object |
 		registerBackRef: object.
 		on: stream int64: object].
@@ -677,7 +676,7 @@ public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kWeakArrayCid negated.
 	stream uint16: objects size.
-	objects do: [:object | 
+	objects do: [:object |
 		registerBackRef: object.
 		stream uint16: (prim indexedSlotsOf: object)].
 )
@@ -735,7 +734,7 @@ buildReplacements = (
 	replaceClass: ClassMixin with: psoup ClassMixin.
 	replaceClass: Object with: psoup _Object.
 	replaceClass: Fraction with: psoup Fraction.
-	
+
 	replacements at: processorAssociation put: nil.
 )
 canonicalizeEmpty: array = (
@@ -753,29 +752,29 @@ clusterForClass: klass = (
 )
 enqueue: preobject = (
 	| object |
-	object:: replace: preobject. 
+	object:: replace: preobject.
 	backRefs at: object ifAbsentPut: [stack add: object. 0].
 )
 newClusterForClass: klass = (
 	LargePositiveInteger == klass ifTrue: [^SmallIntegerCluster for: klass].
 	LargeNegativeInteger == klass ifTrue: [^SmallIntegerCluster for: klass].
-	
+
 	enqueue: klass.
-	
+
 	(* Schema change in psoup *)
 	klass isMeta ifTrue: [^ClassCluster for: klass].
 	psoup Metaclass == klass ifTrue: [^MetaclassCluster for: klass].
 	psoup InstanceMixin == klass ifTrue: [^InstanceMixinCluster for: klass].
 	psoup ClassMixin == klass ifTrue: [^ClassMixinCluster for: klass].
 	psoup Method == klass ifTrue: [^MethodCluster for: klass].
-	
+
 	(* special objects in psoup *)
 	psoup _Array == klass ifTrue: [^ArrayCluster for: klass].
 	psoup ByteArray == klass ifTrue: [^ByteArrayCluster for: klass].
 	psoup ByteString == klass ifTrue: [^ByteSymbolCluster for: klass].
 	psoup WideString == klass ifTrue: [^WideStringCluster for: klass].
 	psoup SmallInteger == klass ifTrue: [^SmallIntegerCluster for: klass].
-	psoup WeakArray  == klass ifTrue: [^WeakArrayCluster for: klass].
+	psoup WeakArray == klass ifTrue: [^WeakArrayCluster for: klass].
 	psoup Activation == klass ifTrue: [^ActivationCluster for: klass].
 	psoup Closure == klass ifTrue: [^ClosureCluster for: klass].
 
@@ -788,19 +787,19 @@ newClusterForClass: klass = (
 )
 newReplace: preobject = (
 	| preclass = vmmirror classOf: preobject. |
-	
+
 	(* MethodDictionary -> Array *)
 	MethodDictionary == preclass ifTrue: [^preobject values].
 
 	(* WeakSet (Class>>subclasses and InstanceMixin>>applications) -> WeakArray *)
 	WeakSet == preclass ifTrue: [^WeakArray withAll: (preobject asArray reject: [:e | e isNil]) ].
-	
+
 	(* Dictionary (InstanceMixin>>nestedMixins -> Array *)
 	Dictionary == preclass ifTrue: [^newReplaceDictionary: preobject].
 
 	(* Character -> String *)
 	Character == preclass ifTrue: [^preobject asString asSymbol].
-	
+
 	^preobject
 )
 newReplaceDictionary: preobject = (
@@ -828,12 +827,12 @@ on: stm int64: anInteger = (
 )
 patchImplementationBase = (
 	psoup _Object superclass: nil.
-	psoup _Object methodDictionary at: #'initializer`new' put: 
+	psoup _Object methodDictionary at: #'initializer`new' put:
 		(CompiledMethod toReturnSelf selector: #'initializer`new'; yourself).
 )
 putUnsigned: value = (
 	| v ::= value. |
-	[v > 127] whileTrue: 
+	[v > 127] whileTrue:
 		[stream nextPut: (v bitAnd: 127).
 		 v:: v >> 7].
 	stream nextPut: v + 128.
@@ -860,12 +859,12 @@ serialize: root = (
 	backRefs at: false put: 0.
 	analyze: false.
 	backRefs at: true put: 0.
-	analyze: true.	
-	
+	analyze: true.
+
 	(* Side-effect these clusters first. *)
 	clusterFor: SmallInteger.
 	clusterFor: ByteString.
-	
+
 	enqueue: root.
 	[stack isEmpty] whileFalse: [analyze: stack removeLast].
 
@@ -873,7 +872,7 @@ serialize: root = (
 	finalSymbols:: (clusters at: psoup ByteString) symbols asArray.
 	(clusters at: psoup _Array) replace: symbolsPlaceholder with: finalSymbols. (* swap node *)
 	replacements at: symbolsPlaceholder put: finalSymbols. (* swap incoming edges *)
-	
+
 	interpreter:: '#!fuchsia primordialsoup'.
 	1 to: interpreter size do: [:index | stream nextPut: (interpreter runeAt: index)].
 	stream nextPut: 10. (* \n *)
@@ -890,7 +889,7 @@ serialize: root = (
 	stream position: rewind.
 	stream uint32: nextBackRef - 1.
 	stream position: fastforward.
-	
+
 	orderedClusters sort: [:a :b | a size > b size].
 	orderedClusters do: [:c | (c name, ' ', c size printString) out].
 )
@@ -900,11 +899,11 @@ public serialize: app to: filename = (
 	buildReplacements.
 	root:: psoup buildObjectStoreWithApplication: app platform: platform symbols: symbolsPlaceholder.
 	serialize: root.
-	
+
 	FileStream forceNewFileNamed: filename do: [:stm |
 		stm binary.
 		stm nextPutAll: stream contents.
-		stm close]. 
+		stm close].
 )
 writeBackRef: object = (
 	| r = backRefs at: (replacements at: object). |
@@ -921,15 +920,15 @@ writeWeakBackRef: object = (
 ) : (
 )
 public main: p args: a = (
-	(Tracer usingPlatform: p with: runtime source: false) 
+	(Tracer usingPlatform: p with: runtime source: false)
 		serialize: helloApp to: 'primordialsoup/snapshots/hello.vfuel'.
 
 	(Tracer usingPlatform: p with: runtimeWithBuilders source: true)
 		serialize: testApp to: 'primordialsoup/snapshots/tests.vfuel'.
 
-	(Tracer usingPlatform: p with: runtime source: false) 
+	(Tracer usingPlatform: p with: runtime source: false)
 		serialize: benchmarkApp to: 'primordialsoup/snapshots/benchmarks.vfuel'.
-		
+
 	(Tracer usingPlatform: p with: runtimeWithBuilders source: false)
 		serialize: compilerApp to: 'primordialsoup/snapshots/compiler.vfuel'.
 )

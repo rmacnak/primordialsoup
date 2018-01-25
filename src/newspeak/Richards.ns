@@ -1,9 +1,10 @@
 Newspeak3
 'Benchmarks'
 class Richards usingPlatform: ignore = (
-(* An OS kernel simulation benchmark, originally written in BCPL by Martin Richards. 
+(* An OS kernel simulation benchmark, originally written in BCPL by Martin Richards.
 
-This version derived from the Dart Ton80 version. *)|
+This version derived from the Dart Ton80 version. *)
+|
 	DATA_SIZE = 4.
 	COUNT = 1000.
 
@@ -17,23 +18,24 @@ This version derived from the Dart Ton80 version. *)|
 
 	KIND_DEVICE = 0.
 	KIND_WORK = 1.
-	
+
 	(* The task is running and is currently scheduled. *)
 	STATE_RUNNING = 0.
-	
+
 	(* The task has packets left to process. *)
 	STATE_RUNNABLE = 1.
-	
+
 	(* The task is not currently running. The task is not blocked as such and may be started by the scheduler. *)
 	STATE_SUSPENDED = 2.
-	
+
 	(* The task is blocked and cannot be run until it is explicitly released. *)
 	STATE_HELD = 4.
 	STATE_SUSPENDED_RUNNABLE = STATE_SUSPENDED bitOr: STATE_RUNNABLE.
 	STATE_NOT_HELD = STATE_HELD bitInvert.
 |) (
 class DeviceTask on: s = Task on: s (
-(* A task that suspends itself after each time it has been run to simulate waiting for data from an external device. *)|
+(* A task that suspends itself after each time it has been run to simulate waiting for data from an external device. *)
+|
 protected pending <Packet>
 |) (
 public run: packet <Packet> ^<TaskControlBlock> = (
@@ -49,7 +51,8 @@ public run: packet <Packet> ^<TaskControlBlock> = (
 ) : (
 )
 class HandlerTask on: s = Task on: s (
-(* A task that manipulates work packets and then suspends itself. *)|
+(* A task that manipulates work packets and then suspends itself. *)
+|
 	workIn <Packet>
 	deviceIn <Packet>
 |) (
@@ -77,7 +80,8 @@ public run: packet <Packet> ^<TaskControlBlock> = (
 ) : (
 )
 class IdleTask on: s with: ctrl with: cnt = Task on: s (
-(* An idle task doesn't do any work itself but cycles control between the two device tasks. *)|
+(* An idle task doesn't do any work itself but cycles control between the two device tasks. *)
+|
 protected control <Integer> ::= ctrl. (* A seed value that controls how the device tasks are scheduled. *)
 protected count <Integer> ::= cnt. (* The number of times this task should be scheduled. *)
 |) (
@@ -93,9 +97,10 @@ public run: packet <Packet> ^<TaskControlBlock> = (
 ) : (
 )
 class Packet link: l identity: i kind: k = (
-(* A simple package of data that is manipulated by the tasks.  The exact layout of the payload data carried by a packet is not importaint, and neither is the nature of the work performed on packets by the tasks. Besides carrying data, packets form linked lists and are hence used both as data and worklists. *)|
+(* A simple package of data that is manipulated by the tasks.  The exact layout of the payload data carried by a packet is not importaint, and neither is the nature of the work performed on packets by the tasks. Besides carrying data, packets form linked lists and are hence used both as data and worklists. *)
+|
 public link <Packet> ::= l. (* The tail of the linked list of packets. *)
-public identity <Integer> ::= i.  (* An ID for this packet. *)
+public identity <Integer> ::= i. (* An ID for this packet. *)
 public kind <Integer> ::= k. (* The type of this packet. *)
 public datum <Integer> ::= 0.
 public data <Array[Integer]> = Array new: DATA_SIZE.
@@ -114,7 +119,8 @@ public appendTo: queueHead <Packet> ^<Packet> = (
 ) : (
 )
 class Scheduler = (
-(* A scheduler can be used to schedule a set of tasks based on their relative priorities.  Scheduling is done by maintaining a list of task control blocks which holds tasks and the data queue they are processing. *)|
+(* A scheduler can be used to schedule a set of tasks based on their relative priorities.  Scheduling is done by maintaining a list of task control blocks which holds tasks and the data queue they are processing. *)
+|
 	public queueCount <Integer> ::= 0.
 	public holdCount <Integer> ::= 0.
 	currentTcb <TaskControlBlock>
@@ -187,7 +193,8 @@ public suspendCurrent ^<TaskControlBlock> = (
 ) : (
 )
 class Task on: s = (
-(* Abstract task that manipulates work packets. *)|
+(* Abstract task that manipulates work packets. *)
+|
 protected scheduler <Scheduler> = s. (* The scheduler that manages this task. *)
 |) (
 public run: packet <Packet> = (
@@ -196,7 +203,8 @@ public run: packet <Packet> = (
 ) : (
 )
 class TaskControlBlock link: l id: i priority: p queue: q task: t = (
-(* A task control block manages a task and the queue of work packages associated with it. *)|
+(* A task control block manages a task and the queue of work packages associated with it. *)
+|
 	public link <TaskControlBlock> = l.
 	public identity <Integer> = i.
 	public priority <Integer> = p.
@@ -237,7 +245,7 @@ public run ^<TaskControlBlock> = (
 	state = STATE_SUSPENDED_RUNNABLE ifTrue: [
 		packet:: queue.
 		queue:: packet link.
-		state:: queue isNil ifTrue: [STATE_RUNNING] ifFalse: [STATE_RUNNABLE].	
+		state:: queue isNil ifTrue: [STATE_RUNNING] ifFalse: [STATE_RUNNABLE].
 	].
 	^task run: packet
 )
@@ -247,7 +255,8 @@ public setRunning = (
 ) : (
 )
 class WorkerTask on: s with: v1 with: v2 = Task on: s (
-(* A task that manipulates work packets. *)|
+(* A task that manipulates work packets. *)
+|
 protected destination <Integer> ::= v1.
 protected count <Integer> ::= v2.
 |) (
@@ -269,12 +278,12 @@ public run: packet <Packet> ^<TaskControlBlock> = (
 )
 public bench = (
 	| scheduler queue |
-	
+
 	scheduler:: Scheduler new.
 	scheduler addIdleTask: ID_IDLE priority: 0 work: nil state: COUNT.
 	queue:: Packet link: nil identity: ID_WORKER kind: KIND_WORK.
 	queue:: Packet link: queue identity: ID_WORKER kind: KIND_WORK.
-    	scheduler addWorkerTask: ID_WORKER priority: 1000 work: queue.
+		scheduler addWorkerTask: ID_WORKER priority: 1000 work: queue.
 
 	queue:: Packet link: nil identity: ID_DEVICE_A kind: KIND_DEVICE.
 	queue:: Packet link: queue identity: ID_DEVICE_A kind: KIND_DEVICE.

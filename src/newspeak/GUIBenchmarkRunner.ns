@@ -6,7 +6,8 @@ class GUIBenchmarkRunner packageUsing: manifest = (
 Copyright 2012 Google Inc.
 Copyright 2013 Ryan Macnak
 
-Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License.  You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0*)|
+Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License.  You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0*)
+|
 	benchmarks = {
 		manifest ClosureDefFibonacci.
 		manifest ClosureFibonacci.
@@ -15,7 +16,7 @@ Licensed under the Apache License, Version 2.0 (the ''License''); you may not us
 		manifest NLRImmediate.
 		manifest NLRLoop.
 		manifest ParserCombinators.
-		manifest Richards.		
+		manifest Richards.
 		manifest SlotRead.
 		manifest SlotWrite.
 		manifest Splay.
@@ -32,9 +33,9 @@ private Smalltalk = [p squeak Smalltalk] on: Error do: [:e | nil].
 |) (
 class BenchmarkPresenter onSubject: s = Presenter onSubject: s () (
 definition = (
-	^column: (benchmarks collect: [:benchmark | 
+	^column: (benchmarks collect: [:benchmark |
 		initially: (label: benchmark name, ': ...') deferred: [
-			| b score |	
+			| b score |
 			b:: benchmark usingPlatform: cachedPlatform.
 			measure: [b bench] forAtLeast: 300.
 			[Smalltalk garbageCollect] on: Error do: [:e | e].
@@ -58,12 +59,12 @@ measure: block forAtLeast: milliseconds = (
 	| runs stopwatch elapsed score |
 	runs:: 0.
 	stopwatch:: Stopwatch new start.
-	
+
 	[block value.
 	runs:: runs + 1.
 	elapsed:: stopwatch elapsedMilliseconds.
 	elapsed < milliseconds] whileTrue.
-	
+
 	score:: (round: runs * 1000 asFloat / elapsed to: 0.1 asFloat) asFloat.
 	^score printString
 )

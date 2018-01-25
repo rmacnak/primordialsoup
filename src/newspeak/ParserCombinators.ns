@@ -8,7 +8,7 @@ non-local returns in a language that has them. The natural translation of
 NLRs to a language without them also uses exceptions in this way.
 
 These parser combinators use explicitly initialized forward reference parsers
-to handle cycles in the productions, rather than using reflection or 
+to handle cycles in the productions, rather than using reflection or
 #doesNotUnderstand:, to make the benchmark portable to languages lacking
 these features and to avoid measuring their performance. They also do not use
 any platform-defined streams to avoid API differences.  Arithmetic operations
@@ -23,7 +23,8 @@ Copyright 2013 Ryan Macnak and Google Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use this file except in compliance with the License. You may obtain a copy of
-the License at http://www.apache.org/licenses/LICENSE-2.0 *)|
+the License at http://www.apache.org/licenses/LICENSE-2.0 *)
+|
 private List = p collections List.
 
 seed <Integer> ::= 16rCAFE.
@@ -167,15 +168,15 @@ digit = ForwardReferenceParser new.
 lparen = ForwardReferenceParser new.
 rparen = ForwardReferenceParser new.
 |start bind: (exp, eoi wrapper: [:v :dollar | v]).
-exp bind: (e1, (plus, e1) star wrapper: [:lhs :rhss | 
+exp bind: (e1, (plus, e1) star wrapper: [:lhs :rhss |
 		| z ::= lhs. | rhss do: [:rhs | z:: z + (rhs at: 2) rem: 16rFFFF]. z]).
-e1 bind: (e2, (times, e2) star wrapper: [:lhs :rhss | 
+e1 bind: (e2, (times, e2) star wrapper: [:lhs :rhss |
 		| z ::= lhs. | rhss do: [:rhs | z:: z * (rhs at: 2) rem: 16rFFFF]. z]).
 e2 bind: (number | parenExp).
-	
+
 parenExp bind: (lparen, exp, rparen wrapper: [:lhs :e :rhs | e]).
 number bind: (digit wrapper: [:d | d - 48]).
-	
+
 plus bind: (char: "+").
 times bind: (char: "*").
 digit bind: (charBetween: "0" and: "9").

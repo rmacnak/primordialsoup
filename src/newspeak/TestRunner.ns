@@ -21,25 +21,25 @@ public main: platform args: args = (
 	stopwatch:: platform kernel Stopwatch new start.
 	minitest:: Minitest usingPlatform: platform.
 	testModules:: platform collections List new.
-	testConfigs do: 
+	testConfigs do:
 		[:testConfig |
-		testModules addAll: 
+		testModules addAll:
 			(testConfig testModulesUsingPlatform: platform minitest: minitest)].
 	tester:: minitest Tester testModules: testModules asArray.
 	tester prepare.
-	[tester atEnd] whileFalse: 
+	[tester atEnd] whileFalse:
 		[ | result |
 		tester peekSelector out.
 		result:: tester step.
 		result isError ifTrue: ['error' out. result exception out.].
 		result isFailure ifTrue: ['failure' out. result description out.]].
-	
+
 	(tester successes size printString, ' successes, ',
 	tester failures size printString, ' failures, ',
 	tester errors size printString, ' errors, ',
 	stopwatch elapsedMilliseconds asString, ' ms') out.
 	'' out.
-	
+
 	tester haveAllTestsSucceeded ifFalse: [Error new signal].
 )
 ) : (
