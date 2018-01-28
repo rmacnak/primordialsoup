@@ -5,6 +5,7 @@ class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namesp
 private IdentityMap = platform collections IdentityMap.
 
 private List = platform collections List.
+private Map = platform collections Map.
 private WeakMap = platform kernel WeakMap.
 private StringBuilder = platform kernel StringBuilder.
 private InstanceMixin = ik InstanceMixin.
@@ -42,15 +43,15 @@ public closure ^<ObjectMirror> = (
 	nil = rawClosure ifTrue: [^nil].
 	^ObjectMirror reflecting: rawClosure
 )
-private compileExpression: expression <String> ^<Method> = (
+private compileExpression: expression <String> with: rawScope <Map[Symbol, Object]> ^<Method> = (
 	| mixinMirror imethod |
 	(* Super, outer and implicit receiver sends should behave like the expression is in the method class, not the receiver class. *)
 	mixinMirror:: method definingMixin.
 	imethod:: compiler
 		compileExpressionSource: expression
 		debugMapper: computeDebugMapper
-		inMixin: mixinMirror
-		allowBlackMarket: false.
+		withScope: rawScope
+		inMixin: mixinMirror.
 
 	imethod category: #DoIts.
 	imethod methodMixin: reflectee method mixin.
@@ -68,12 +69,20 @@ private computeDebugMapper = (
 public evaluate: expression <String> ^<ThreadMirror> = (
 	^(evaluateSuspended: expression) resume
 )
+public evaluate: expression <String> with: scope <Map[Symbol, ObjectMirror]> ^<ThreadMirror> = (
+	^(evaluateSuspended: expression with: scope) resume
+)
 public evaluateSuspended: expression <String> ^<ThreadMirror> = (
-	| expressionMethod thread simulator |
-	expressionMethod:: compileExpression: expression.
+	^evaluateSuspended: expression with: Map new
+)
+public evaluateSuspended: expression <String> with: scope <Map[Symbol, ObjectMirror]> ^<ThreadMirror> = (
+	| rawScope expressionMethod thread simulator |
+	rawScope:: Map new.
+	scope keysAndValuesDo: [:key :value | rawScope at: key put: (reflectees at: value)].
+	expressionMethod:: compileExpression: expression with: rawScope.
 
 	simulator:: Simulator new.
-	simulator activate: expressionMethod receiver: reflectee receiver arguments: {reflectee}.
+	simulator activate: expressionMethod receiver: reflectee receiver arguments: {reflectee. rawScope}.
 
 	thread:: Thread new.
 	thread state: #suspended.
@@ -977,15 +986,15 @@ public = other ^<Boolean> = (
 	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfObjectMirror
 )
-private compileExpression: expression <String> ^<Method> = (
+private compileExpression: expression <String> with: rawScope <Map[Symbol, Object]> ^<Method> = (
 	| receiverClass mixinMirror imethod result |
 	receiverClass:: classOf: reflectee.
 	mixinMirror:: (ClassMirror reflecting: receiverClass) mixin.
 	imethod:: compiler
 		compileExpressionSource: expression
 		debugMapper: nil
-		inMixin: mixinMirror
-		allowBlackMarket: false.
+		withScope: rawScope
+		inMixin: mixinMirror.
 
 	imethod category: #DoIts.
 	imethod methodMixin: (mixinOf: receiverClass).
@@ -997,12 +1006,20 @@ private compileExpression: expression <String> ^<Method> = (
 public evaluate: expression <String> ^<ThreadMirror> = (
 	^(evaluateSuspended: expression) resume
 )
+public evaluate: expression <String> with: scope <Map[Symbol, ObjectMirror]> ^<ThreadMirror> = (
+	^(evaluateSuspended: expression with: scope) resume
+)
 public evaluateSuspended: expression <String> ^<ThreadMirror> = (
-	| expressionMethod thread simulator |
-	expressionMethod:: compileExpression: expression.
+	^evaluateSuspended: expression with: Map new
+)
+public evaluateSuspended: expression <String> with: scope <Map[Symbol, ObjectMirror]> ^<ThreadMirror> = (
+	| rawScope expressionMethod thread simulator |
+	rawScope:: Map new.
+	scope keysAndValuesDo: [:key :value | rawScope at: key put: (reflectees at: value)].
+	expressionMethod:: compileExpression: expression with: rawScope.
 
 	simulator:: Simulator new.
-	simulator activate: expressionMethod receiver: reflectee arguments: {}.
+	simulator activate: expressionMethod receiver: reflectee arguments: {nil. rawScope}.
 
 	thread:: Thread new.
 	thread state: #suspended.
