@@ -55,9 +55,10 @@ class MessageLoop {
                                intptr_t signals,
                                int64_t deadline) = 0;
   virtual void CancelSignalWait(intptr_t wait_id) = 0;
-  virtual void AdjustWakeup(int64_t new_wakeup) = 0;
+  virtual void MessageEpilogue(int64_t new_wakeup) = 0;
+  virtual void Exit(intptr_t exit_code) = 0;
 
-  virtual void Run() = 0;
+  virtual intptr_t Run() = 0;
   virtual void Interrupt() = 0;
 
   Port OpenPort();
@@ -73,6 +74,7 @@ class MessageLoop {
 
   Isolate* isolate_;
   intptr_t open_ports_;
+  intptr_t exit_code_;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(MessageLoop);

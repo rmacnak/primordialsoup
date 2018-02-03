@@ -26,18 +26,13 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
   PrimordialSoupApplicationController(
       fidl::InterfaceRequest<app::ApplicationController> controller)
       : binding_(this), wait_callbacks_(), namespace_(nullptr) {
-    if (controller.is_pending()) {
+    if (controller.is_valid()) {
       binding_.Bind(std::move(controller));
-      binding_.set_connection_error_handler([this] { Kill(); });
+      binding_.set_error_handler([this] { Kill(); });
     }
   }
 
   ~PrimordialSoupApplicationController() override {
-    for (const auto& iter : wait_callbacks_) {
-      iter(0);
-    }
-    wait_callbacks_.clear();
-
     if (namespace_ != nullptr) {
       fdio_ns_destroy(namespace_);
     }
@@ -62,12 +57,18 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
       }
     }
 
-    PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot), snapshot_size,
-                              argc, argv);
+    intptr_t exit_code =
+        PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot),
+                                  snapshot_size, argc, argv);
 
     delete argv;
 
     zx::vmar::root_self().unmap(snapshot, snapshot_size);
+
+    for (const auto& iter : wait_callbacks_) {
+      iter(exit_code);
+    }
+    wait_callbacks_.clear();
   }
 
  private:
@@ -127,7 +128,7 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
   }
 
   void Detach() override {
-    binding_.set_connection_error_handler(fxl::Closure());
+    binding_.set_error_handler(fxl::Closure());
   }
 
   void Wait(const WaitCallback& callback) override {

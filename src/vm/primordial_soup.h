@@ -8,6 +8,7 @@
 #define VM_PRIMORDIAL_SOUP_H_
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 #define PSOUP_EXTERN_C extern "C"
@@ -17,9 +18,9 @@
 
 PSOUP_EXTERN_C void PrimordialSoup_Startup();
 PSOUP_EXTERN_C void PrimordialSoup_Shutdown();
-PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(void* snapshot,
-                                              size_t snapshot_length,
-                                              int argc, const char** argv);
+PSOUP_EXTERN_C intptr_t PrimordialSoup_RunIsolate(void* snapshot,
+                                                  size_t snapshot_length,
+                                                  int argc, const char** argv);
 PSOUP_EXTERN_C void PrimordialSoup_InterruptAll();
 
 #endif /* VM_PRIMORDIAL_SOUP_H_ */

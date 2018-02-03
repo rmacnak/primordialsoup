@@ -25,9 +25,10 @@ class DefaultMessageLoop : public MessageLoop {
   void PostMessage(IsolateMessage* message);
   intptr_t AwaitSignal(intptr_t handle, intptr_t signals, int64_t deadline);
   void CancelSignalWait(intptr_t wait_id);
-  void AdjustWakeup(int64_t new_wakeup);
+  void MessageEpilogue(int64_t new_wakeup);
+  void Exit(intptr_t exit_code);
 
-  void Run();
+  intptr_t Run();
   void Interrupt();
 
  private:
@@ -37,7 +38,6 @@ class DefaultMessageLoop : public MessageLoop {
   IsolateMessage* head_;
   IsolateMessage* tail_;
   int64_t wakeup_;
-  bool running_;
 
   DISALLOW_COPY_AND_ASSIGN(DefaultMessageLoop);
 };

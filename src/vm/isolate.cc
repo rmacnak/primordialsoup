@@ -225,8 +225,11 @@ class SpawnIsolateTask : public ThreadPool::Task {
     Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_, seed);
     child_isolate->loop()->PostMessage(initial_message_);
     initial_message_ = NULL;
-    child_isolate->loop()->Run();
+    intptr_t exit_code = child_isolate->loop()->Run();
     delete child_isolate;
+    if (exit_code != 0) {
+      OS::Exit(exit_code);
+    }
   }
 
  private:

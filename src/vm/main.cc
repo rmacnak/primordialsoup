@@ -24,8 +24,9 @@ int main(int argc, const char** argv) {
   PrimordialSoup_Startup();
   void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
 
-  PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot.base()),
-                            snapshot.size(), argc - 2, &argv[2]);
+  intptr_t exit_code =
+      PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot.base()),
+                                snapshot.size(), argc - 2, &argv[2]);
 
   signal(SIGINT, defaultSIGINT);
   PrimordialSoup_Shutdown();
@@ -35,4 +36,6 @@ int main(int argc, const char** argv) {
 #if !defined(OS_WINDOWS)
   snapshot.Free();
 #endif
+
+  return exit_code;
 }

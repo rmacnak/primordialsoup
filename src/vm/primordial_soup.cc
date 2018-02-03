@@ -32,16 +32,17 @@ PSOUP_EXTERN_C void PrimordialSoup_Shutdown() {
 }
 
 
-PSOUP_EXTERN_C void PrimordialSoup_RunIsolate(void* snapshot,
-                                              size_t snapshot_length,
-                                              int argc,
-                                              const char** argv) {
+PSOUP_EXTERN_C intptr_t PrimordialSoup_RunIsolate(void* snapshot,
+                                                  size_t snapshot_length,
+                                                  int argc,
+                                                  const char** argv) {
   uint64_t seed = psoup::OS::CurrentMonotonicNanos();
   psoup::Isolate* isolate = new psoup::Isolate(snapshot, snapshot_length, seed);
   isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,
                                                          argc, argv));
-  isolate->loop()->Run();
+  intptr_t exit_code = isolate->loop()->Run();
   delete isolate;
+  return exit_code;
 }
 
 

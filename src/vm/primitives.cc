@@ -124,7 +124,7 @@ const bool kFailure = false;
   V(103, halt)                                                                 \
   V(104, flushCache)                                                           \
   V(105, collectGarbage)                                                       \
-  V(107, processExit)                                                          \
+  V(107, isolateExit)                                                          \
   V(111, Number_printString)                                                   \
   V(112, simulationGuard)                                                      \
   V(113, unwindProtect)                                                        \
@@ -2208,14 +2208,14 @@ DEFINE_PRIMITIVE(collectGarbage) {
 }
 
 
-DEFINE_PRIMITIVE(processExit) {
+DEFINE_PRIMITIVE(isolateExit) {
   ASSERT(num_args == 1);
-  SmallInteger* code = static_cast<SmallInteger*>(A->Stack(0));
-  if (!code->IsSmallInteger()) {
-    code->Print(H);
-    FATAL("Non-integer exit code.");
+  SmallInteger* exit_code = static_cast<SmallInteger*>(A->Stack(0));
+  if (!exit_code->IsSmallInteger()) {
+    return kFailure;
   }
-  OS::Exit(code->value());
+  I->isolate()->loop()->Exit(exit_code->value());
+  I->Exit();
   UNREACHABLE();
   return kFailure;
 }
@@ -3079,7 +3079,7 @@ DEFINE_PRIMITIVE(finish) {
   } else {
     return kFailure;
   }
-  I->isolate()->loop()->AdjustWakeup(cwakeup);
+  I->isolate()->loop()->MessageEpilogue(cwakeup);
   I->Exit();
   UNREACHABLE();
   return kFailure;

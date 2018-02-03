@@ -61,7 +61,7 @@ void FuchsiaMessageLoop::CancelSignalWait(intptr_t wait_id) {
   loop_->RemoveHandler(wait_id);
 }
 
-void FuchsiaMessageLoop::AdjustWakeup(int64_t new_wakeup) {
+void FuchsiaMessageLoop::MessageEpilogue(int64_t new_wakeup) {
   wakeup_ = new_wakeup;
   if (new_wakeup == 0) {
     zx_status_t result = zx_timer_cancel(timer_);
@@ -71,30 +71,35 @@ void FuchsiaMessageLoop::AdjustWakeup(int64_t new_wakeup) {
     zx_status_t result = zx_timer_set(timer_, new_wakeup, slack);
     ASSERT(result == ZX_OK);
   }
+
+  if ((open_ports_ == 0) && (wakeup_ == 0)) {
+    Exit(0);
+  }
+}
+
+void FuchsiaMessageLoop::Exit(intptr_t exit_code) {
+  exit_code_ = exit_code;
+  isolate_ = NULL;
+  loop_->QuitNow();
 }
 
 void FuchsiaMessageLoop::PostMessage(IsolateMessage* message) {
   loop_->task_runner()->PostTask([this, message] { DispatchMessage(message); });
 }
 
-void FuchsiaMessageLoop::Run() {
-  loop_->task_runner()->PostTask([this] {
-    loop_->SetAfterTaskCallback([this] {
-      if ((open_ports_ == 0) && (wakeup_ == 0)) {
-        loop_->QuitNow();
-      }
-    });
-  });
+intptr_t FuchsiaMessageLoop::Run() {
   loop_->Run();
-  loop_->SetAfterTaskCallback(nullptr);
 
   if (open_ports_ > 0) {
     PortMap::CloseAllPorts(this);
   }
+
+  return exit_code_;
 }
 
 void FuchsiaMessageLoop::Interrupt() {
-  loop_->QuitNow();
+  const intptr_t SIGINT = 2;
+  Exit(SIGINT);
 }
 
 }  // namespace psoup

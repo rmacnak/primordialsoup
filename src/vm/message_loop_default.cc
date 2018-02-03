@@ -7,6 +7,8 @@
 
 #include "vm/message_loop.h"
 
+#include <signal.h>
+
 #include "vm/lockers.h"
 #include "vm/os.h"
 
@@ -17,8 +19,7 @@ DefaultMessageLoop::DefaultMessageLoop(Isolate* isolate)
       monitor_(),
       head_(NULL),
       tail_(NULL),
-      wakeup_(0),
-      running_(true) {}
+      wakeup_(0) {}
 
 DefaultMessageLoop::~DefaultMessageLoop() {}
 
@@ -33,8 +34,17 @@ void DefaultMessageLoop::CancelSignalWait(intptr_t wait_id) {
   UNIMPLEMENTED();
 }
 
-void DefaultMessageLoop::AdjustWakeup(int64_t new_wakeup) {
+void DefaultMessageLoop::MessageEpilogue(int64_t new_wakeup) {
   wakeup_ = new_wakeup;
+
+  if ((open_ports_ == 0) && (wakeup_ == 0)) {
+    Exit(0);
+  }
+}
+
+void DefaultMessageLoop::Exit(intptr_t exit_code) {
+  exit_code_ = exit_code;
+  isolate_ = NULL;
 }
 
 void DefaultMessageLoop::PostMessage(IsolateMessage* message) {
@@ -73,23 +83,13 @@ IsolateMessage* DefaultMessageLoop::WaitMessage() {
   return message;
 }
 
-void DefaultMessageLoop::Run() {
-  while (running_) {
+intptr_t DefaultMessageLoop::Run() {
+  while (isolate_ != NULL) {
     IsolateMessage* message = WaitMessage();
-    if (!running_) {
-      if (message != NULL) {
-        delete message;
-      }
-      break;  // May have been interrupted.
-    }
     if (message == NULL) {
       DispatchWakeup();
     } else {
       DispatchMessage(message);
-    }
-
-    if ((open_ports_ == 0) && (wakeup_ == 0)) {
-      running_ = false;
     }
   }
 
@@ -102,11 +102,13 @@ void DefaultMessageLoop::Run() {
     head_ = message->next_;
     delete message;
   }
+
+  return exit_code_;
 }
 
 void DefaultMessageLoop::Interrupt() {
   MonitorLocker locker(&monitor_);
-  running_ = false;
+  Exit(SIGINT);
   locker.Notify();
 }
 
