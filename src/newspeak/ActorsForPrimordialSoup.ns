@@ -15,7 +15,8 @@ private pendingActors ::= List new.
 private timerHeap = TimerHeap new.
 private portMap = Map new.
 
-private cachedPlatform = p.
+private Serializer = p victoryFuel Serializer.
+private Deserializer = p victoryFuel Deserializer.
 |) (
 public class Actor named: debugName <String> = (|
 private (* N.B. Do not leak to subinstances. *) internalActor = InternalActor named: debugName.
@@ -580,7 +581,7 @@ private close: portId = (
 )
 public deliver: bytes = (
 	| deserializer message |
-	deserializer:: cachedPlatform victoryFuel Deserializer new.
+	deserializer:: Deserializer new.
 	message:: deserializer deserialize: bytes.
 	handler value: message
 )
@@ -590,13 +591,13 @@ private rawSpawn: bytes = (
 )
 public send: message = (
 	| serializer bytes |
-	serializer:: cachedPlatform victoryFuel Serializer new.
+	serializer:: Serializer new.
 	bytes:: serializer serialize: message.
 	to: id send: bytes.
 )
 public spawn: message = (
 	| serializer bytes |
-	serializer:: cachedPlatform victoryFuel Serializer new.
+	serializer:: Serializer new.
 	bytes:: serializer serialize: message.
 	rawSpawn: bytes.
 )
@@ -751,7 +752,7 @@ private enqueueStartupMessage: argvOrBytes = (
 	argvOrBytes isByteArray
 		ifTrue:
 			[ | deserializer |
-			deserializer:: cachedPlatform victoryFuel Deserializer new.
+			deserializer:: Deserializer new.
 			args:: deserializer deserialize: argvOrBytes]
 		ifFalse:
 			[args:: argvOrBytes].
@@ -946,12 +947,12 @@ private classOf: object = (
 private createFarReferenceTo: target in: targetActor for: sourceActor = (
 	^(InternalFarReference target: target targetsActor: targetActor) externalRef.
 )
+private currentMonotonicMillis = (
+	^currentMonotonicNanos quo: 1000000
+)
 private currentMonotonicNanos = (
 	(* :literalmessage: primitive: 100 *)
 	halt.
-)
-private currentMonotonicMillis = (
-	^currentMonotonicNanos quo: 1000000
 )
 private isRef: object <Object> ^<Boolean> = (
 	^Ref = (classOf: object)

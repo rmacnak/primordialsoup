@@ -134,15 +134,13 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
       strings->set_element(i, SmallInteger::New(0));
     }
 
-    {
-      HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
-      for (intptr_t i = 0; i < argc; i++) {
-        const char* cstr = isolate_message->argv()[i];
-        intptr_t length = strlen(cstr);
-        ByteString* string = heap_->AllocateByteString(length);  // SAFEPOINT
-        memcpy(string->element_addr(0), cstr, length);
-        strings->set_element(i, string);
-      }
+    HandleScope h1(heap_, reinterpret_cast<Object**>(&strings));
+    for (intptr_t i = 0; i < argc; i++) {
+      const char* cstr = isolate_message->argv()[i];
+      intptr_t length = strlen(cstr);
+      ByteString* string = heap_->AllocateByteString(length);  // SAFEPOINT
+      memcpy(string->element_addr(0), cstr, length);
+      strings->set_element(i, string);
     }
     message = strings;
   }

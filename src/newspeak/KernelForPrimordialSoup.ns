@@ -2,7 +2,6 @@ Newspeak3
 'NS2PrimordialSoup'
 class KernelForPrimordialSoup = (|
 private theScheduler <Scheduler>
-private objectStore <Array>
 private symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
 |) (
@@ -1864,7 +1863,7 @@ public yourself = (
 public buildObjectStoreWithApplication: app platform: platform symbols: symbols = (
 	symbolTable:: symbols.
 	theScheduler:: platform actors buildSchedulerForApplication: app platform: platform.
-	objectStore:: {
+	^{
 		nil.
 		false.
 		true.
@@ -1891,8 +1890,7 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 		WeakArray.
 		Activation.
 		Method.
-	}.
-	^objectStore
+	}
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)

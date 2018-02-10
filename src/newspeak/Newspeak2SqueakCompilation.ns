@@ -2496,9 +2496,6 @@ createSetterMethodTreeForTransientSlot: tree = (
 currentScope ^ <Scope> = (
 	^scopeStack last
 )
-doitBlackMarketArgumentName = (
-	^'`'
-)
 doitContextArgumentName = (
 	(* Use #'@context', but this can't be mentioned in the debugger,
 	and doesn't need to be since the debugger provides Inspect Context.
