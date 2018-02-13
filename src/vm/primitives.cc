@@ -7,6 +7,10 @@
 #include <math.h>
 #include <sys/stat.h>
 
+#if defined(OS_FUCHSIA)
+#include <zircon/syscalls.h>
+#endif
+
 #include "vm/assert.h"
 #include "vm/double_conversion.h"
 #include "vm/heap.h"
@@ -118,6 +122,7 @@ const bool kFailure = false;
   V(96, Behavior_allInstances)                                                 \
   V(97, Behavior_adoptInstance)                                                \
   V(98, Array_elementsForwardIdentity)                                         \
+  V(99, Platform_operatingSystem)                                              \
   V(100, Time_monotonicNanos)                                                  \
   V(101, Time_utcEpochNanos)                                                   \
   V(102, print)                                                                \
@@ -152,10 +157,21 @@ const bool kFailure = false;
   V(136, closePort)                                                            \
   V(137, spawn)                                                                \
   V(138, send)                                                                 \
-  V(139, finish)                                                               \
+  V(139, MessageLoop_finish)                                                   \
   V(140, Activation_tempSizePut)                                               \
   V(141, doPrimitiveWithArgs)                                                  \
   V(142, simulationRoot)                                                       \
+  V(143, MessageLoop_awaitSignal)                                              \
+  V(144, MessageLoop_cancelSignalWait)                                         \
+  V(145, ZXHandle_close)                                                       \
+  V(146, ZXChannel_create)                                                     \
+  V(147, ZXChannel_read)                                                       \
+  V(148, ZXChannel_write)                                                      \
+  V(149, ZXVmo_create)                                                         \
+  V(150, ZXVmo_getSize)                                                        \
+  V(151, ZXVmo_setSize)                                                        \
+  V(152, ZXVmo_read)                                                           \
+  V(153, ZXVmo_write)                                                          \
   V(200, quickReturnSelf)                                                      \
 
 
@@ -2043,6 +2059,15 @@ DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
 }
 
 
+DEFINE_PRIMITIVE(Platform_operatingSystem) {
+  const char* name = OS::Name();
+  intptr_t length = strlen(name);
+  ByteString* result = H->AllocateByteString(length);  // SAFEPOINT
+  memcpy(result->element_addr(0), name, length);
+  RETURN(result);
+}
+
+
 DEFINE_PRIMITIVE(Time_monotonicNanos) {
   ASSERT(num_args == 0);
   int64_t now = OS::CurrentMonotonicNanos();
@@ -2902,7 +2927,7 @@ DEFINE_PRIMITIVE(send) {
 }
 
 
-DEFINE_PRIMITIVE(finish) {
+DEFINE_PRIMITIVE(MessageLoop_finish) {
   ASSERT(num_args == 1);
   MINT_ARGUMENT(new_wakeup, 0);
   I->isolate()->loop()->MessageEpilogue(new_wakeup);
@@ -3000,6 +3025,272 @@ DEFINE_PRIMITIVE(simulationRoot) {
   return kFailure;
 }
 
+
+DEFINE_PRIMITIVE(MessageLoop_awaitSignal) {
+  ASSERT(num_args == 3);
+  SMI_ARGUMENT(handle, 2);
+  SMI_ARGUMENT(signals, 1);
+  MINT_ARGUMENT(deadline, 0);
+  RETURN_SMI(I->isolate()->loop()->AwaitSignal(handle, signals, deadline));
+}
+
+DEFINE_PRIMITIVE(MessageLoop_cancelSignalWait) {
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(wait_id, 0);
+  I->isolate()->loop()->CancelSignalWait(wait_id);
+  RETURN_SELF();
+}
+
+#if defined(OS_FUCHSIA)
+static zx_handle_t AsHandle(SmallInteger* handle) {
+  return static_cast<zx_handle_t>(handle->value());
+}
+#endif
+
+DEFINE_PRIMITIVE(ZXHandle_close) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 1);
+  SmallInteger* handle = static_cast<SmallInteger*>(A->Stack(0));
+  if (!handle->IsSmallInteger()) {
+    return kFailure;
+  }
+  zx_status_t status = zx_handle_close(AsHandle(handle));
+  RETURN_SMI(status);
+#endif
+}
+
+DEFINE_PRIMITIVE(ZXChannel_create) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 2);
+  SmallInteger* options = static_cast<SmallInteger*>(A->Stack(1));
+  if (!options->IsSmallInteger() || options->value() < 0) {
+    return kFailure;
+  }
+  Array* multiple_return = static_cast<Array*>(A->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
+    return kFailure;
+  }
+  zx_handle_t out0 = ZX_HANDLE_INVALID;
+  zx_handle_t out1 = ZX_HANDLE_INVALID;
+  zx_status_t status = zx_channel_create(options->value(), &out0, &out1);
+  multiple_return->set_element(0, SmallInteger::New(out0));
+  multiple_return->set_element(1, SmallInteger::New(out1));
+  RETURN_SMI(status);
+#endif
+}
+
+DEFINE_PRIMITIVE(ZXChannel_read) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 2);
+  SmallInteger* channel = static_cast<SmallInteger*>(A->Stack(1));
+  if (!channel->IsSmallInteger()) {
+    return kFailure;
+  }
+  Array* multiple_return = static_cast<Array*>(A->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 2)) {
+    return kFailure;
+  }
+
+  uint32_t actual_bytes = 0;
+  uint32_t actual_handles = 0;
+  zx_status_t status = zx_channel_read(AsHandle(channel), 0, nullptr, nullptr,
+                                       0, 0, &actual_bytes, &actual_handles);
+  if ((status != ZX_OK) && (status != ZX_ERR_BUFFER_TOO_SMALL)) {
+    RETURN_SMI(status);
+  }
+
+  HandleScope h1(H, reinterpret_cast<Object**>(&multiple_return));
+  ByteArray* bytes = H->AllocateByteArray(actual_bytes);
+  HandleScope h2(H, reinterpret_cast<Object**>(&bytes));
+  Array* handles = H->AllocateArray(actual_handles);
+
+  zx_handle_t raw_handles[ZX_CHANNEL_MAX_MSG_HANDLES];
+
+  if (status == ZX_ERR_BUFFER_TOO_SMALL) {
+    status = zx_channel_read(AsHandle(channel), 0,
+                             bytes->element_addr(0), raw_handles,
+                             actual_bytes, actual_handles,
+                             &actual_bytes, &actual_handles);
+  }
+  if (status == ZX_OK) {
+    for (intptr_t i = 0; i < actual_handles; i++) {
+      handles->set_element(i, SmallInteger::New(raw_handles[i]));
+    }
+    multiple_return->set_element(0, bytes);
+    multiple_return->set_element(1, handles);
+  }
+  RETURN_SMI(status);
+#endif
+}
+
+DEFINE_PRIMITIVE(ZXChannel_write) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 4);
+  SmallInteger* channel = static_cast<SmallInteger*>(A->Stack(3));
+  if (!channel->IsSmallInteger()) {
+    return kFailure;
+  }
+  ByteArray* bytes = static_cast<ByteArray*>(A->Stack(2));
+  if (!bytes->IsByteArray()) {
+    return kFailure;
+  }
+  Array* handles = static_cast<Array*>(A->Stack(1));
+  if (!handles->IsArray()) {
+    return kFailure;
+  }
+  Array* multiple_return = static_cast<Array*>(A->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 2)) {
+    return kFailure;
+  }
+  if (handles->Size() > ZX_CHANNEL_MAX_MSG_HANDLES) {
+    RETURN_SMI(ZX_ERR_OUT_OF_RANGE);
+  }
+  zx_handle_t raw_handles[ZX_CHANNEL_MAX_MSG_HANDLES];
+  for (intptr_t i = 0; i < handles->Size(); i++) {
+    if (!handles->element(i)->IsSmallInteger()) {
+      return kFailure;
+    }
+    raw_handles[i] = static_cast<SmallInteger*>(handles->element(i))->value();
+  }
+  zx_status_t status = zx_channel_write(AsHandle(channel), 0,
+                                        bytes->element_addr(0), bytes->Size(),
+                                        raw_handles, handles->Size());
+  RETURN_SMI(status);
+#endif
+}
+
+DEFINE_PRIMITIVE(ZXVmo_create) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 3);
+  SmallInteger* size = static_cast<SmallInteger*>(A->Stack(2));
+  if (!size->IsSmallInteger() || size->value() < 0) {
+    return kFailure;
+  }
+  SmallInteger* options = static_cast<SmallInteger*>(A->Stack(1));
+  if (!options->IsSmallInteger()) {
+    return kFailure;
+  }
+  Array* multiple_return = static_cast<Array*>(A->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
+    return kFailure;
+  }
+  zx_handle_t vmo = ZX_HANDLE_INVALID;
+  zx_status_t status = zx_vmo_create(size->value(), options->value(), &vmo);
+  multiple_return->set_element(0, SmallInteger::New(vmo));
+  RETURN_SMI(status);
+#endif
+}
+
+DEFINE_PRIMITIVE(ZXVmo_getSize) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 2);
+  SmallInteger* vmo = static_cast<SmallInteger*>(A->Stack(1));
+  if (!vmo->IsSmallInteger()) {
+    return kFailure;
+  }
+  Array* multiple_return = static_cast<Array*>(A->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
+    return kFailure;
+  }
+  uint64_t size = 0;
+  zx_status_t status = zx_vmo_get_size(AsHandle(vmo), &size);
+  multiple_return->set_element(0, SmallInteger::New(size));
+  RETURN_SMI(status);
+#endif
+}
+
+DEFINE_PRIMITIVE(ZXVmo_setSize) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 3);
+  SmallInteger* vmo = static_cast<SmallInteger*>(A->Stack(2));
+  if (!vmo->IsSmallInteger()) {
+    return kFailure;
+  }
+  SmallInteger* size = static_cast<SmallInteger*>(A->Stack(1));
+  if (!size->IsSmallInteger() || size->value() < 0) {
+    return kFailure;
+  }
+  Array* multiple_return = static_cast<Array*>(A->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 2)) {
+    return kFailure;
+  }
+  zx_status_t status = zx_vmo_set_size(AsHandle(vmo), size->value());
+  RETURN_SMI(status);
+#endif
+}
+
+DEFINE_PRIMITIVE(ZXVmo_read) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 4);
+  SmallInteger* vmo = static_cast<SmallInteger*>(A->Stack(3));
+  if (!vmo->IsSmallInteger()) {
+    return kFailure;
+  }
+  SmallInteger* size = static_cast<SmallInteger*>(A->Stack(2));
+  if (!size->IsSmallInteger() || size->value() < 0) {
+    return kFailure;
+  }
+  SmallInteger* offset = static_cast<SmallInteger*>(A->Stack(1));
+  if (!offset->IsSmallInteger() || offset->value() < 0) {
+    return kFailure;
+  }
+  Array* multiple_return = static_cast<Array*>(A->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
+    return kFailure;
+  }
+  HandleScope h1(H, reinterpret_cast<Object**>(&multiple_return));
+  ByteArray* buffer = H->AllocateByteArray(size->value());  // SAFEPOINT
+  size_t actual;
+  zx_status_t status = zx_vmo_read(AsHandle(vmo), buffer->element_addr(0),
+                                   offset->value(), size->value(), &actual);
+  multiple_return->set_element(0, buffer);
+  RETURN_SMI(status);
+#endif
+}
+
+DEFINE_PRIMITIVE(ZXVmo_write) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 4);
+  SmallInteger* vmo = static_cast<SmallInteger*>(A->Stack(3));
+  if (!vmo->IsSmallInteger()) {
+    return kFailure;
+  }
+  ByteArray* buffer = static_cast<ByteArray*>(A->Stack(2));
+  if (!buffer->IsByteArray()) {
+    return kFailure;
+  }
+  SmallInteger* offset = static_cast<SmallInteger*>(A->Stack(1));
+  if (!offset->IsSmallInteger() || offset->value() < 0) {
+    return kFailure;
+  }
+  Array* multiple_return = static_cast<Array*>(A->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
+    return kFailure;
+  }
+  size_t actual;
+  zx_status_t status = zx_vmo_write(AsHandle(vmo), buffer->element_addr(0),
+                                    offset->value(), buffer->Size(), &actual);
+  RETURN_SMI(status);
+#endif
+}
 
 DEFINE_PRIMITIVE(quickReturnSelf) {
   ASSERT(num_args == 0);

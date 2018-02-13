@@ -14,6 +14,7 @@ private currentActor ::= InternalActor named: 'Initial actor'.
 private pendingActors ::= List new.
 private timerHeap = TimerHeap new.
 private portMap = Map new.
+public handleMap = Map new.
 
 private Serializer = p victoryFuel Serializer.
 private Deserializer = p victoryFuel Deserializer.
@@ -721,7 +722,19 @@ class Scheduler application: a platform: p = (|
 	platform ::= p.
 |) (
 private dispatchHandle: handle status: status signals: signals count: count = (
-	halt.
+	| handler |
+	handler:: handleMap at: handle ifAbsent: [nil].
+	nil = handler
+		ifTrue:
+			['Signal for ', handle printString, ' with no handler' out]
+		ifFalse:
+			[currentActor enqueueMessage:
+				(PendingDelivery
+					receiver: handler
+					selector: #value:value:
+					arguments: {status. signals}
+					resolver: nil)].
+	finish: drainEventLoop.
 )
 private dispatchMessage: message port: port = (
 	nil = message ifFalse:

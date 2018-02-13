@@ -203,6 +203,44 @@ void Isolate::Activate(Object* message, Object* port) {
 }
 
 
+void Isolate::ActivateSignal(intptr_t handle,
+                             intptr_t status,
+                             intptr_t signals,
+                             intptr_t count) {
+  Scheduler* scheduler = heap_->object_store()->scheduler();
+
+  Behavior* cls = scheduler->Klass(heap_);
+  ByteString* selector = heap_->object_store()->dispatch_signal();
+  Method* method = interpreter_->MethodAt(cls, selector);
+
+  HandleScope h1(heap_, reinterpret_cast<Object**>(&scheduler));
+  HandleScope h2(heap_, reinterpret_cast<Object**>(&method));
+
+  Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
+
+  Object* nil = heap_->object_store()->nil_obj();
+  new_activation->set_sender(static_cast<Activation*>(nil));
+  new_activation->set_bci(SmallInteger::New(1));
+  new_activation->set_method(method);
+  new_activation->set_closure(static_cast<Closure*>(nil));
+  new_activation->set_receiver(scheduler);
+  new_activation->set_stack_depth(0);
+
+  ASSERT(method->NumArgs() == 4);
+  new_activation->Push(SmallInteger::New(handle));
+  new_activation->Push(SmallInteger::New(status));
+  new_activation->Push(SmallInteger::New(signals));
+  new_activation->Push(SmallInteger::New(count));
+
+  intptr_t num_temps = method->NumTemps();
+  for (intptr_t i = 0; i < num_temps; i++) {
+    new_activation->Push(nil);
+  }
+
+  heap_->set_activation(new_activation);
+}
+
+
 void Isolate::Interpret() {
   interpreter_->Enter();
 }

@@ -28,7 +28,7 @@ FuchsiaMessageLoop::FuchsiaMessageLoop(Isolate* isolate)
 FuchsiaMessageLoop::~FuchsiaMessageLoop() {
   zx_status_t result = zx_timer_cancel(timer_);
   ASSERT(result == ZX_OK);
-  zx_handle_close(timer_);
+  result = zx_handle_close(timer_);
   ASSERT(result == ZX_OK);
 }
 
@@ -38,6 +38,7 @@ intptr_t FuchsiaMessageLoop::AwaitSignal(intptr_t handle,
   // It seems odd that fsl should take a timeout here instead of deadline,
   // since the underlying zx_port_wait operates in terms of a deadline.
   // This is probably a straggler from the conversion.
+  open_waits_++;
   int64_t timeout = deadline - OS::CurrentMonotonicNanos();
   return loop_->AddHandler(this, handle, signals,
                            fxl::TimeDelta::FromNanoseconds(timeout));
@@ -59,6 +60,7 @@ void FuchsiaMessageLoop::OnHandleError(zx_handle_t handle, zx_status_t error) {
 
 void FuchsiaMessageLoop::CancelSignalWait(intptr_t wait_id) {
   loop_->RemoveHandler(wait_id);
+  open_waits_--;
 }
 
 void FuchsiaMessageLoop::MessageEpilogue(int64_t new_wakeup) {
@@ -72,7 +74,7 @@ void FuchsiaMessageLoop::MessageEpilogue(int64_t new_wakeup) {
     ASSERT(result == ZX_OK);
   }
 
-  if ((open_ports_ == 0) && (wakeup_ == 0)) {
+  if ((open_ports_ == 0) && (open_waits_ == 0) && (wakeup_ == 0)) {
     Exit(0);
   }
 }

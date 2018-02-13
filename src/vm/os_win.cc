@@ -55,6 +55,9 @@ int64_t OS::CurrentMonotonicNanos() {
 }
 
 
+const char* OS::Name() { return "windows"; }
+
+
 int OS::NumberOfAvailableProcessors() {
   SYSTEM_INFO info;
   GetSystemInfo(&info);

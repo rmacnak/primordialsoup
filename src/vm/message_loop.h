@@ -74,6 +74,7 @@ class MessageLoop {
 
   Isolate* isolate_;
   intptr_t open_ports_;
+  intptr_t open_waits_;
   intptr_t exit_code_;
 
  private:

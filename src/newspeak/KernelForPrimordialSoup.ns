@@ -184,7 +184,7 @@ public new = (
 	halt.
 )
 )
-class ArgumentError value: v = Exception (|
+public class ArgumentError value: v = Exception (|
 	argument = v.
 |) (
 public printString = (
@@ -1016,6 +1016,10 @@ public value = (
 ) : (
 )
 class Integer = Number () (
+public & other <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 16 *)
+	^(ArgumentError value: other) signal
+)
 public / other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 4 *)
 	other isInteger ifFalse: [^other divideFromNumber: self].

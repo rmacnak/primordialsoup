@@ -3,6 +3,9 @@ Newspeak3
 class Kernel wrapping: k = (|
 private internalKernel = k.
 |) (
+public ArgumentError = (
+	^internalKernel ArgumentError
+)
 public Ephemeron = (
 	^internalKernel Ephemeron
 )

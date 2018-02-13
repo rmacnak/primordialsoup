@@ -25,6 +25,9 @@ int64_t OS::CurrentMonotonicNanos() {
 }
 
 
+const char* OS::Name() { return "fuchsia"; }
+
+
 int OS::NumberOfAvailableProcessors() {
   return zx_system_get_num_cpus();
 }

@@ -1065,8 +1065,8 @@ class ObjectStore : public Object {
   class ByteString* dispatch_message() const {
     return ptr()->dispatch_message_;
   }
-  class ByteString* dispatch_handle() const {
-    return ptr()->dispatch_handle_;
+  class ByteString* dispatch_signal() const {
+    return ptr()->dispatch_signal_;
   }
   Behavior* Array() const { return ptr()->Array_; }
   Behavior* ByteArray() const { return ptr()->ByteArray_; }
@@ -1096,7 +1096,7 @@ class ObjectStore : public Object {
   class ByteString* about_to_return_through_;
   class ByteString* unused_bytecode_;
   class ByteString* dispatch_message_;
-  class ByteString* dispatch_handle_;
+  class ByteString* dispatch_signal_;
   Behavior* Array_;
   Behavior* ByteArray_;
   Behavior* ByteString_;

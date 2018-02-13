@@ -189,6 +189,9 @@ action("snapshots") {
     "src/newspeak/Splay.ns",
     "src/newspeak/TestActor.ns",
     "src/newspeak/TestRunner.ns",
+    "src/newspeak/Zircon.ns",
+    "src/newspeak/ZirconTesting.ns",
+    "src/newspeak/ZirconTestingConfiguration.ns",
   ]
   rebased_newspeak_sources = []
   foreach(newspeak_source, newspeak_sources) {

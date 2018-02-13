@@ -37,6 +37,9 @@ int64_t OS::CurrentMonotonicNanos() {
 }
 
 
+const char* OS::Name() { return "linux"; }
+
+
 int OS::NumberOfAvailableProcessors() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }

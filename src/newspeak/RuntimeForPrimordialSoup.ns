@@ -7,6 +7,7 @@ private Collections = manifest CollectionsForPrimordialSoup.
 private Mirrors = manifest MirrorsForPrimordialSoup.
 private Actors = manifest ActorsForPrimordialSoup.
 private PrimordialFuel = manifest PrimordialFuel.
+private Zircon = manifest Zircon.
 |) (
 public class Platform internalKernel: ik = (|
 public kernel = Kernel wrapping: ik.
@@ -14,7 +15,12 @@ public collections = Collections usingInternalKernel: ik.
 public mirrors = Mirrors usingPlatform: self internalKernel: ik namespace: outer RuntimeForPrimordialSoup.
 public victoryFuel = PrimordialFuel usingPlatform: self internalKernel: ik.
 public actors = Actors usingPlatform: self.
+public zircon = Zircon usingPlatform: self.
 |) (
+public operatingSystem ^<String> = (
+	(* :literalmessage: primitive: 99 *)
+	halt.
+)
 ) : (
 )
 ) : (

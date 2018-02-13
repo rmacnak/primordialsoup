@@ -30,6 +30,10 @@ class Isolate {
 
   void ActivateMessage(IsolateMessage* message);
   void ActivateWakeup();
+  void ActivateSignal(intptr_t handle,
+                      intptr_t status,
+                      intptr_t signals,
+                      intptr_t count);
 
   void Interpret();
 

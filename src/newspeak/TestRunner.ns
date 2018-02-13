@@ -13,6 +13,7 @@ testConfigs = {
 	manifest MirrorTestingConfiguration packageTestsUsing: manifest.
 	manifest MirrorBuilderTestingConfiguration packageTestsUsing: manifest.
 	manifest ActivationMirrorTestingConfiguration packageTestsUsing: manifest.
+	manifest ZirconTestingConfiguration packageTestsUsing: manifest.
 	(* manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest. *)
 }.
 |) (

@@ -10,7 +10,7 @@
 namespace psoup {
 
 MessageLoop::MessageLoop(Isolate* isolate)
-    : isolate_(isolate), open_ports_(0), exit_code_(0) {}
+    : isolate_(isolate), open_ports_(0), open_waits_(0), exit_code_(0) {}
 
 MessageLoop::~MessageLoop() {}
 
@@ -34,6 +34,18 @@ void MessageLoop::DispatchWakeup() {
   isolate_->Interpret();
 }
 
+void MessageLoop::DispatchSignal(intptr_t handle,
+                                 intptr_t status,
+                                 intptr_t signals,
+                                 intptr_t count) {
+  if (isolate_ == NULL) {
+    return;
+  }
+
+  isolate_->ActivateSignal(handle, status, signals, count);
+  isolate_->Interpret();
+}
+
 Port MessageLoop::OpenPort() {
   open_ports_++;
   return PortMap::CreatePort(this);
@@ -43,17 +55,6 @@ void MessageLoop::ClosePort(Port port) {
   if (PortMap::ClosePort(port)) {
     open_ports_--;
   }
-}
-
-void MessageLoop::DispatchSignal(intptr_t handle,
-                                 intptr_t status,
-                                 intptr_t signals,
-                                 intptr_t count) {
-#if defined(OS_FUCHSIA)
-  // Ignore signals from other users of the message loop.
-#else
-  UNIMPLEMENTED();
-#endif
 }
 
 }  // namespace psoup
