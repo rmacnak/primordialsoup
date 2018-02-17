@@ -27,8 +27,8 @@ class Interpreter {
 
   void Enter();
   void Exit();
-  void SendOrdinary(ByteString* selector, intptr_t num_args);
-  Method* MethodAt(Behavior*, ByteString* selector);
+  void SendOrdinary(String* selector, intptr_t num_args);
+  Method* MethodAt(Behavior*, String* selector);
 
   void Interrupt() { interrupt_ = 1; }
 
@@ -81,22 +81,22 @@ class Interpreter {
   uint8_t FetchNextByte();
 
   Behavior* FindApplicationOf(AbstractMixin* mixin, Behavior* klass);
-  bool HasMethod(Behavior*, ByteString* selector);
-  ByteString* SelectorAt(intptr_t index);
+  bool HasMethod(Behavior*, String* selector);
+  String* SelectorAt(intptr_t index);
   Object* LiteralAt(intptr_t index);
 
-  void SendLexical(ByteString* selector,
+  void SendLexical(String* selector,
                    intptr_t num_args,
                    Object* receiver,
                    AbstractMixin* mixin,
                    intptr_t rule);
-  void SendProtected(ByteString* selector,
+  void SendProtected(String* selector,
                      intptr_t num_args,
                      Object* receiver,
                      Behavior* starting_at,
                      intptr_t rule);
 
-  void SendDNU(ByteString* selector,
+  void SendDNU(String* selector,
                intptr_t num_args,
                Object* receiver,
                Behavior* lookup_class,

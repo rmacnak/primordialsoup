@@ -100,40 +100,27 @@ class Heap {
     return result;
   }
 
-  ByteArray* AllocateByteArray(intptr_t num_chars) {
+  ByteArray* AllocateByteArray(intptr_t num_bytes) {
     const intptr_t heap_size =
-        AllocationSize(num_chars * sizeof(uint8_t) + sizeof(ByteArray));
+        AllocationSize(num_bytes * sizeof(uint8_t) + sizeof(ByteArray));
     uword addr = Allocate(heap_size);
     Object* obj = Object::InitializeObject(addr, kByteArrayCid, heap_size);
     ByteArray* result = static_cast<ByteArray*>(obj);
-    result->set_size(SmallInteger::New(num_chars));
+    result->set_size(SmallInteger::New(num_bytes));
     ASSERT(result->IsByteArray());
     ASSERT(result->HeapSize() == heap_size);
     return result;
   }
 
-  ByteString* AllocateByteString(intptr_t num_chars) {
+  String* AllocateString(intptr_t num_bytes) {
     const intptr_t heap_size =
-        AllocationSize(num_chars * sizeof(uint8_t) + sizeof(ByteString));
+        AllocationSize(num_bytes * sizeof(uint8_t) + sizeof(String));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kByteStringCid, heap_size);
-    ByteString* result = static_cast<ByteString*>(obj);
-    result->set_size(SmallInteger::New(num_chars));
+    Object* obj = Object::InitializeObject(addr, kStringCid, heap_size);
+    String* result = static_cast<String*>(obj);
+    result->set_size(SmallInteger::New(num_bytes));
     result->set_hash(SmallInteger::New(0));
-    ASSERT(result->IsByteString());
-    ASSERT(result->HeapSize() == heap_size);
-    return result;
-  }
-
-  WideString* AllocateWideString(intptr_t num_chars) {
-    const intptr_t heap_size =
-        AllocationSize(num_chars * sizeof(uint32_t) + sizeof(WideString));
-    uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kWideStringCid, heap_size);
-    WideString* result = static_cast<WideString*>(obj);
-    result->set_size(SmallInteger::New(num_chars));
-    result->set_hash(SmallInteger::New(0));
-    ASSERT(result->IsWideString());
+    ASSERT(result->IsString());
     ASSERT(result->HeapSize() == heap_size);
     return result;
   }

@@ -15,7 +15,7 @@ private Metaclass = ik Metaclass.
 private Activation = ik Activation.
 private Closure = ik Closure.
 private Message = ik Message.
-private ByteString = ik ByteString.
+private String = ik String.
 
 private reflectees = WeakMap new.
 
@@ -1110,7 +1110,7 @@ public activate: newMethod receiver: newReceiver arguments: arguments = (
 			selector:: arguments at: 2.
 			performArguments:: arguments at: 3.
 			(* :todo: Where should we fail on arity mismatch? *)
-			(ByteString = (classOf: selector)) ifTrue:
+			(String = (classOf: selector)) ifTrue:
 				[(Array = (classOf: performArguments)) ifTrue:
 					[activation push: object.
 					performArguments do: [:arg | activation push: arg].

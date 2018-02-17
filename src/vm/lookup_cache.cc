@@ -7,7 +7,7 @@
 namespace psoup {
 
 void LookupCache::InsertOrdinary(intptr_t cid,
-                                 ByteString* selector,
+                                 String* selector,
                                  Method* target,
                                  PrimitiveFunction* primitive) {
   intptr_t hash =
@@ -33,7 +33,7 @@ void LookupCache::InsertOrdinary(intptr_t cid,
 
 
 bool LookupCache::InsertNS(intptr_t cid,
-                           ByteString* selector,
+                           String* selector,
                            Method* caller,
                            intptr_t rule,
                            Object* absent_receiver,

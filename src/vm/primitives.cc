@@ -82,9 +82,10 @@ const bool kFailure = false;
   V(47, ByteArray_at)                                                          \
   V(48, ByteArray_atPut)                                                       \
   V(49, ByteArray_size)                                                        \
+  V(50, ByteArray_copyFromTo)                                                  \
   V(51, String_at)                                                             \
   V(53, String_size)                                                           \
-  V(54, ByteString_hash)                                                       \
+  V(54, String_hash)                                                           \
   V(55, Activation_sender)                                                     \
   V(56, Activation_senderPut)                                                  \
   V(57, Activation_bci)                                                        \
@@ -140,11 +141,10 @@ const bool kFailure = false;
   V(118, String_endsWith)                                                      \
   V(119, String_indexOf)                                                       \
   V(120, String_lastIndexOf)                                                   \
-  V(121, String_substring)                                                     \
-  V(122, String_runeAt)                                                        \
-  V(123, String_class_fromRune)                                                \
+  V(121, String_copyFromTo)                                                    \
+  V(123, String_class_fromByte)                                                \
   V(125, Double_rounded)                                                       \
-  V(124, String_class_fromRunes)                                               \
+  V(124, String_class_fromBytes)                                               \
   V(126, Object_isCanonical)                                                   \
   V(127, Object_markCanonical)                                                 \
   V(128, writeBytesToFile)                                                     \
@@ -1347,65 +1347,78 @@ DEFINE_PRIMITIVE(ByteArray_size) {
 }
 
 
+DEFINE_PRIMITIVE(ByteArray_copyFromTo) {
+  ASSERT(num_args == 2);
+
+  if (!A->Stack(1)->IsSmallInteger()) return kFailure;
+  intptr_t start = static_cast<SmallInteger*>(A->Stack(1))->value();
+
+  if (!A->Stack(0)->IsSmallInteger()) return kFailure;
+  intptr_t stop = static_cast<SmallInteger*>(A->Stack(0))->value();
+
+  if (!A->Stack(2)->IsByteArray()) return kFailure;
+
+  ByteArray* bytes = static_cast<ByteArray*>(A->Stack(2));
+  if ((start <= 0) || (stop > bytes->Size())) return kFailure;
+
+  intptr_t subsize = stop - (start - 1);
+  if (subsize < 0) {
+    return kFailure;
+  }
+
+  ByteArray* result = H->AllocateByteArray(subsize);  // SAFEPOINT
+  bytes = static_cast<ByteArray*>(A->Stack(2));
+  memcpy(result->element_addr(0),
+         bytes->element_addr(start - 1),
+         subsize);
+  RETURN(result);
+}
+
+
 DEFINE_PRIMITIVE(String_at) {
   ASSERT(num_args == 1);
-  Object* receiver = A->Stack(1);
-  SMI_ARGUMENT(index, 0);
-  if (receiver->IsByteString()) {
-    ByteString* string = static_cast<ByteString*>(receiver);
-    if ((index <= 0) || (index > string->Size())) {
-      return kFailure;
-    }
-    uint8_t the_char = string->element(index - 1);
-
-    ByteString* result = H->AllocateByteString(1);  // SAFEPOINT
-    result->set_element(0, the_char);
-    RETURN(result);
-  } else if (receiver->IsWideString()) {
-    WideString* string = static_cast<WideString*>(receiver);
-    if ((index <= 0) || (index > string->Size())) {
-      return kFailure;
-    }
-    uint32_t the_char = string->element(index - 1);
-
-    WideString* result = H->AllocateWideString(1);  // SAFEPOINT
-    result->set_element(0, the_char);
-    RETURN(result);
-  } else {
+  String* rcvr = static_cast<String*>(A->Stack(1));
+  if (!rcvr->IsString()) {
     UNREACHABLE();
     return kFailure;
   }
+  SmallInteger* index = static_cast<SmallInteger*>(A->Stack(0));
+  if (!index->IsSmallInteger()) {
+    return kFailure;
+  }
+  if (index->value() <= 0) {
+    return kFailure;
+  }
+  if (index->value() > rcvr->Size()) {
+    return kFailure;
+  }
+  intptr_t byte = rcvr->element(index->value() - 1);
+  RETURN_SMI(byte);
 }
 
 
 DEFINE_PRIMITIVE(String_size) {
   ASSERT(num_args == 0);
   Object* rcvr = A->Stack(0);
-  if (rcvr->IsByteString()) {
-    ByteString* string = static_cast<ByteString*>(rcvr);
-    RETURN(string->size());
-  } else if (rcvr->IsWideString()) {
-    WideString* string = static_cast<WideString*>(rcvr);
-    RETURN(string->size());
+  if (!rcvr->IsString()) {
+    UNREACHABLE();
+    return kFailure;
   }
-  UNREACHABLE();
-  return kFailure;
+  String* string = static_cast<String*>(rcvr);
+  RETURN(string->size());
 }
 
 
-DEFINE_PRIMITIVE(ByteString_hash) {
+DEFINE_PRIMITIVE(String_hash) {
   ASSERT(num_args == 0);
   Object* rcvr = A->Stack(0);
-  if (rcvr->IsByteString()) {
-    ByteString* string = static_cast<ByteString*>(rcvr);
-    string->EnsureHash(I->isolate());
-    RETURN(string->hash());
-  } else if (rcvr->IsWideString()) {
-    WideString* string = static_cast<WideString*>(rcvr);
-    string->EnsureHash(I->isolate());
-    RETURN(string->hash());
+  if (!rcvr->IsString()) {
+    UNREACHABLE();
+    return kFailure;
   }
-  return kFailure;
+  String* string = static_cast<String*>(rcvr);
+  string->EnsureHash(I->isolate());
+  RETURN(string->hash());
 }
 
 
@@ -1770,7 +1783,7 @@ DEFINE_PRIMITIVE(Object_identityHash) {
       hash = 1;
     }
   } else {
-    // TODO(rmacnak): Use the string's hash? ASSERT(!receiver->IsByteString());
+    // TODO(rmacnak): Use the string's hash? ASSERT(!receiver->IsString());
     hash = receiver->identity_hash();
     if (hash == 0) {
       hash = I->isolate()->random().NextUInt64() & SmallInteger::kMaxValue;
@@ -1788,10 +1801,10 @@ DEFINE_PRIMITIVE(Object_performWithAll) {
   ASSERT(num_args == 3);
 
   Object* receiver = A->Stack(2);
-  ByteString* selector = static_cast<ByteString*>(A->Stack(1));
+  String* selector = static_cast<String*>(A->Stack(1));
   Array* arguments = static_cast<Array*>(A->Stack(0));
 
-  if (!selector->IsByteString() ||
+  if (!selector->IsString() ||
       !selector->is_canonical() ||
       !arguments->IsArray()) {
     UNIMPLEMENTED();
@@ -2062,7 +2075,7 @@ DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
 DEFINE_PRIMITIVE(Platform_operatingSystem) {
   const char* name = OS::Name();
   intptr_t length = strlen(name);
-  ByteString* result = H->AllocateByteString(length);  // SAFEPOINT
+  String* result = H->AllocateString(length);  // SAFEPOINT
   memcpy(result->element_addr(0), name, length);
   RETURN(result);
 }
@@ -2083,17 +2096,11 @@ DEFINE_PRIMITIVE(print) {
   ASSERT(A->stack_depth() >= 2);
 
   Object* message = A->Stack(0);
-  if (message->IsByteString()) {
-    ByteString* string = static_cast<ByteString*>(message);
+  if (message->IsString()) {
+    String* string = static_cast<String*>(message);
     const char* cstr =
         reinterpret_cast<const char*>(string->element_addr(0));
     OS::Print("%.*s\n", static_cast<int>(string->Size()), cstr);
-  } else if (message->IsWideString()) {
-    WideString* string = static_cast<WideString*>(message);
-    // COMPILE_ASSERT(sizeof(wchar_t) == sizeof(uint32_t));
-    const wchar_t* cstr =
-        reinterpret_cast<const wchar_t*>(string->element_addr(0));
-    OS::PrintErr("[%.*ls]\n", static_cast<int>(string->Size()), cstr);
   } else {
     char* cstr = message->ToCString(H);
     OS::Print("[print] %s\n", cstr);
@@ -2157,14 +2164,14 @@ DEFINE_PRIMITIVE(Number_printString) {
     length = strlen(buffer);
   } else if (receiver->IsLargeInteger()) {
     LargeInteger* large = static_cast<LargeInteger*>(receiver);
-    ByteString* result = LargeInteger::PrintString(large, H);
+    String* result = LargeInteger::PrintString(large, H);
     RETURN(result);
   } else {
     UNIMPLEMENTED();
   }
   ASSERT(length < 64);
 
-  ByteString* result = H->AllocateByteString(length);  // SAFEPOINT
+  String* result = H->AllocateString(length);  // SAFEPOINT
   memcpy(result->element_addr(0), buffer, length);
 
   RETURN(result);
@@ -2183,13 +2190,22 @@ DEFINE_PRIMITIVE(unwindProtect) {
 }
 
 
-template<typename L, typename R>
-static bool StringEquals(L* left, R* right,
-                         Heap* H, Isolate* isolate, intptr_t num_args) {
+DEFINE_PRIMITIVE(String_equals) {
+  ASSERT(num_args == 1);
+
+  String* left = static_cast<String*>(A->Stack(1));
+  String* right = static_cast<String*>(A->Stack(0));
+  if (left == right) {
+    RETURN_BOOL(true);
+    return kSuccess;
+  }
+  if (!left->IsString() || !right->IsString()) {
+    RETURN_BOOL(false);
+  }
   if (left->size() != right->size()) {
     RETURN_BOOL(false);
   }
-  if (left->EnsureHash(isolate) != right->EnsureHash(isolate)) {
+  if (left->EnsureHash(I->isolate()) != right->EnsureHash(I->isolate())) {
     RETURN_BOOL(false);
   }
   intptr_t length = left->Size();
@@ -2202,138 +2218,22 @@ static bool StringEquals(L* left, R* right,
 }
 
 
-DEFINE_PRIMITIVE(String_equals) {
-  ASSERT(num_args == 1);
-
-  Object* left = A->Stack(1);
-  Object* right = A->Stack(0);
-  if (left == right) {
-    RETURN_BOOL(true);
-    return kSuccess;
-  }
-  if (left->IsByteString()) {
-    if (right->IsByteString()) {
-      return StringEquals(static_cast<ByteString*>(left),
-                          static_cast<ByteString*>(right),
-                          H, I->isolate(), num_args);
-    } else if (right->IsWideString()) {
-      return StringEquals(static_cast<ByteString*>(left),
-                          static_cast<WideString*>(right),
-                          H, I->isolate(), num_args);
-    } else {
-      RETURN_BOOL(false);
-    }
-  } else if (left->IsWideString()) {
-    if (right->IsByteString()) {
-      return StringEquals(static_cast<WideString*>(left),
-                          static_cast<ByteString*>(right),
-                          H, I->isolate(), num_args);
-    } else if (right->IsWideString()) {
-      return StringEquals(static_cast<WideString*>(left),
-                          static_cast<WideString*>(right),
-                          H, I->isolate(), num_args);
-    } else {
-      RETURN_BOOL(false);
-    }
-  } else {
-    UNREACHABLE();
-    return kFailure;
-  }
-}
-
-
 DEFINE_PRIMITIVE(String_concat) {
   ASSERT(num_args == 1);
-
-  if (A->Stack(1)->IsByteString() &&
-      A->Stack(0)->IsByteString()) {
-    ByteString* a = static_cast<ByteString*>(A->Stack(1));
-    ByteString* b = static_cast<ByteString*>(A->Stack(0));
-    intptr_t a_length = a->Size();
-    intptr_t b_length = b->Size();
-    ByteString* result =
-        H->AllocateByteString(a_length + b_length);  // SAFEPOINT
-    a = static_cast<ByteString*>(A->Stack(1));
-    b = static_cast<ByteString*>(A->Stack(0));
-
-    memcpy(result->element_addr(0), a->element_addr(0), a_length);
-    memcpy(result->element_addr(a_length), b->element_addr(0), b_length);
-
-    RETURN(result);
+  String* a = static_cast<String*>(A->Stack(1));
+  String* b = static_cast<String*>(A->Stack(0));
+  if (!a->IsString() || !b->IsString()) {
+    return kFailure;
   }
-
-  if (A->Stack(1)->IsWideString() &&
-      A->Stack(0)->IsWideString()) {
-    WideString* a = static_cast<WideString*>(A->Stack(1));
-    WideString* b = static_cast<WideString*>(A->Stack(0));
-    intptr_t a_length = a->Size();
-    intptr_t b_length = b->Size();
-    WideString* result =
-        H->AllocateWideString(a_length + b_length);  // SAFEPOINT
-    a = static_cast<WideString*>(A->Stack(1));
-    b = static_cast<WideString*>(A->Stack(0));
-
-    memcpy(result->element_addr(0), a->element_addr(0),
-           a_length * sizeof(uint32_t));
-    memcpy(result->element_addr(a_length), b->element_addr(0),
-           b_length * sizeof(uint32_t));
-
-    RETURN(result);
-  }
-
-  if (A->Stack(1)->IsByteString() &&
-      A->Stack(0)->IsWideString()) {
-    ByteString* a = static_cast<ByteString*>(A->Stack(1));
-    WideString* b = static_cast<WideString*>(A->Stack(0));
-    intptr_t a_length = a->Size();
-    intptr_t b_length = b->Size();
-    if (a_length == 0) {
-      RETURN(b);
-    }
-    if (b_length == 0) {
-      RETURN(a);
-    }
-    WideString* result =
-        H->AllocateWideString(a_length + b_length);  // SAFEPOINT
-    a = static_cast<ByteString*>(A->Stack(1));
-    b = static_cast<WideString*>(A->Stack(0));
-
-    for (intptr_t i = 0; i < a_length; i++) {
-      result->set_element(i, a->element(i));
-    }
-    memcpy(result->element_addr(a_length), b->element_addr(0),
-           b_length * sizeof(uint32_t));
-
-    RETURN(result);
-  }
-
-  if (A->Stack(1)->IsWideString() &&
-      A->Stack(0)->IsByteString()) {
-    WideString* a = static_cast<WideString*>(A->Stack(1));
-    ByteString* b = static_cast<ByteString*>(A->Stack(0));
-    intptr_t a_length = a->Size();
-    intptr_t b_length = b->Size();
-    if (a_length == 0) {
-      RETURN(b);
-    }
-    if (b_length == 0) {
-      RETURN(a);
-    }
-    WideString* result =
-        H->AllocateWideString(a_length + b_length);  // SAFEPOINT
-    a = static_cast<WideString*>(A->Stack(1));
-    b = static_cast<ByteString*>(A->Stack(0));
-
-    memcpy(result->element_addr(0), a->element_addr(0),
-           a_length * sizeof(uint32_t));
-    for (intptr_t i = 0; i < b_length; i++) {
-      result->set_element(a_length + i, b->element(i));
-    }
-
-    RETURN(result);
-  }
-
-  return kFailure;
+  intptr_t a_length = a->Size();
+  intptr_t b_length = b->Size();
+  String* result =
+      H->AllocateString(a_length + b_length);  // SAFEPOINT
+  a = static_cast<String*>(A->Stack(1));
+  b = static_cast<String*>(A->Stack(0));
+  memcpy(result->element_addr(0), a->element_addr(0), a_length);
+  memcpy(result->element_addr(a_length), b->element_addr(0), b_length);
+  RETURN(result);
 }
 
 
@@ -2342,15 +2242,19 @@ DEFINE_PRIMITIVE(handlerMarker) {
 }
 
 
-template<typename L, typename R>
-static bool StringStartsWith(L* string, R* prefix, Heap* H,
-                             intptr_t num_args) {
+DEFINE_PRIMITIVE(String_startsWith) {
+  ASSERT(num_args == 1);
+  String* string = static_cast<String*>(A->Stack(1));
+  String* prefix = static_cast<String*>(A->Stack(0));
+  if (!string->IsString() || !prefix->IsString()) {
+    return kFailure;
+  }
+
   intptr_t string_length = string->Size();
   intptr_t prefix_length = prefix->Size();
   if (prefix_length > string_length) {
     RETURN_BOOL(false);
   }
-
   for (intptr_t i = 0; i < prefix_length; i++) {
     if (string->element(i) != prefix->element(i)) {
       RETURN_BOOL(false);
@@ -2360,47 +2264,19 @@ static bool StringStartsWith(L* string, R* prefix, Heap* H,
 }
 
 
-DEFINE_PRIMITIVE(String_startsWith) {
+DEFINE_PRIMITIVE(String_endsWith) {
   ASSERT(num_args == 1);
-
-  Object* string = A->Stack(1);
-  Object* prefix = A->Stack(0);
-
-  if (string->IsByteString()) {
-    if (prefix->IsByteString()) {
-      return StringStartsWith(static_cast<ByteString*>(string),
-                              static_cast<ByteString*>(prefix),
-                              H, num_args);
-    } else if (prefix->IsWideString()) {
-      return StringStartsWith(static_cast<ByteString*>(string),
-                              static_cast<WideString*>(prefix),
-                              H, num_args);
-    }
-  } else if (string->IsWideString()) {
-    if (prefix->IsByteString()) {
-      return StringStartsWith(static_cast<WideString*>(string),
-                              static_cast<ByteString*>(prefix),
-                              H, num_args);
-    } else if (prefix->IsWideString()) {
-      return StringStartsWith(static_cast<WideString*>(string),
-                              static_cast<WideString*>(prefix),
-                              H, num_args);
-    }
+  String* string = static_cast<String*>(A->Stack(1));
+  String* suffix = static_cast<String*>(A->Stack(0));
+  if (!string->IsString() || !suffix->IsString()) {
+    return kFailure;
   }
 
-  return kFailure;
-}
-
-
-template<typename L, typename R>
-static bool StringEndsWith(L* string, R* suffix, Heap* H,
-                           intptr_t num_args) {
   intptr_t string_length = string->Size();
   intptr_t suffix_length = suffix->Size();
   if (suffix_length > string_length) {
     RETURN_BOOL(false);
   }
-
   intptr_t offset = string_length - suffix_length;
   for (intptr_t i = 0; i < suffix_length; i++) {
     if (string->element(offset + i) != suffix->element(i)) {
@@ -2411,49 +2287,17 @@ static bool StringEndsWith(L* string, R* suffix, Heap* H,
 }
 
 
-DEFINE_PRIMITIVE(String_endsWith) {
-  ASSERT(num_args == 1);
-
-  Object* string = A->Stack(1);
-  Object* suffix = A->Stack(0);
-
-  if (string->IsByteString()) {
-    if (suffix->IsByteString()) {
-      return StringEndsWith(static_cast<ByteString*>(string),
-                            static_cast<ByteString*>(suffix),
-                            H, num_args);
-    } else if (suffix->IsWideString()) {
-      return StringEndsWith(static_cast<ByteString*>(string),
-                            static_cast<WideString*>(suffix),
-                            H, num_args);
-    }
-  } else if (string->IsWideString()) {
-    if (suffix->IsByteString()) {
-      return StringEndsWith(static_cast<WideString*>(string),
-                            static_cast<ByteString*>(suffix),
-                            H, num_args);
-    } else if (suffix->IsWideString()) {
-      return StringEndsWith(static_cast<WideString*>(string),
-                            static_cast<WideString*>(suffix),
-                            H, num_args);
-    }
-  }
-
-  return kFailure;
-}
-
-
 DEFINE_PRIMITIVE(String_indexOf) {
   ASSERT(num_args == 2);
 
-  ByteString* string = static_cast<ByteString*>(A->Stack(2));
-  ByteString* substring = static_cast<ByteString*>(A->Stack(1));
+  String* string = static_cast<String*>(A->Stack(2));
+  String* substring = static_cast<String*>(A->Stack(1));
   SmallInteger* start = static_cast<SmallInteger*>(A->Stack(0));
-  if (!(string->IsByteString())) {
+  if (!(string->IsString())) {
     UNREACHABLE();
     return kFailure;
   }
-  if (!(substring->IsByteString())) {
+  if (!(substring->IsString())) {
     return kFailure;
   }
   if (!start->IsSmallInteger()) {
@@ -2493,14 +2337,14 @@ DEFINE_PRIMITIVE(String_indexOf) {
 DEFINE_PRIMITIVE(String_lastIndexOf) {
   ASSERT(num_args == 2);
 
-  ByteString* string = static_cast<ByteString*>(A->Stack(2));
-  ByteString* substring = static_cast<ByteString*>(A->Stack(1));
+  String* string = static_cast<String*>(A->Stack(2));
+  String* substring = static_cast<String*>(A->Stack(1));
   SmallInteger* start = static_cast<SmallInteger*>(A->Stack(0));
-  if (!(string->IsByteString())) {
+  if (!(string->IsString())) {
     UNREACHABLE();
     return kFailure;
   }
-  if (!(substring->IsByteString())) {
+  if (!(substring->IsString())) {
     return kFailure;
   }
   if (!start->IsSmallInteger()) {
@@ -2539,7 +2383,7 @@ DEFINE_PRIMITIVE(String_lastIndexOf) {
 }
 
 
-DEFINE_PRIMITIVE(String_substring) {
+DEFINE_PRIMITIVE(String_copyFromTo) {
   ASSERT(num_args == 2);
 
   if (!A->Stack(1)->IsSmallInteger()) return kFailure;
@@ -2548,190 +2392,76 @@ DEFINE_PRIMITIVE(String_substring) {
   if (!A->Stack(0)->IsSmallInteger()) return kFailure;
   intptr_t stop = static_cast<SmallInteger*>(A->Stack(0))->value();
 
-  if (A->Stack(2)->IsByteString()) {
-    ByteString* string = static_cast<ByteString*>(A->Stack(2));
-    if ((start <= 0) || (stop > string->Size())) return kFailure;
-    intptr_t subsize;
-    if (start <= stop) {
-      subsize = stop - start + 1;
-    } else {
-      subsize = 0;
-    }
-    ByteString* result = H->AllocateByteString(subsize);  // SAFEPOINT
-    string = static_cast<ByteString*>(A->Stack(2));
+  if (!A->Stack(2)->IsString()) return kFailure;
 
-    memcpy(result->element_addr(0),
-           string->element_addr(start - 1),
-           subsize);
+  String* string = static_cast<String*>(A->Stack(2));
+  if ((start <= 0) || (stop > string->Size())) return kFailure;
+
+  intptr_t subsize = stop - (start - 1);
+  if (subsize < 0) {
+    return kFailure;
+  }
+
+  String* result = H->AllocateString(subsize);  // SAFEPOINT
+  string = static_cast<String*>(A->Stack(2));
+  memcpy(result->element_addr(0),
+         string->element_addr(start - 1),
+         subsize);
+  RETURN(result);
+}
+
+
+DEFINE_PRIMITIVE(String_class_fromByte) {
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(byte, 0);
+  if (byte < 0 || byte > 255) {
+    return kFailure;
+  }
+  String* result = H->AllocateString(1);  // SAFEPOINT
+  result->set_element(0, byte);
+  RETURN(result);
+}
+
+
+DEFINE_PRIMITIVE(String_class_fromBytes) {
+  ASSERT(num_args == 1);
+
+  if (A->Stack(0)->IsByteArray()) {
+    intptr_t length = static_cast<ByteArray*>(A->Stack(0))->Size();
+    String* result = H->AllocateString(length);  // SAFEPOINT
+    ByteArray* bytes = static_cast<ByteArray*>(A->Stack(0));
+    memcpy(result->element_addr(0), bytes->element_addr(0), length);
+    RETURN(result);
+  } else if (A->Stack(0)->IsArray()) {
+    Array* bytes = static_cast<Array*>(A->Stack(0));
+    if (!bytes->IsArray()) {
+      return kFailure;
+    }
+
+    intptr_t length = bytes->Size();
+    for (intptr_t i = 0; i < length; i++) {
+      SmallInteger* byte = static_cast<SmallInteger*>(bytes->element(i));
+      if (!byte->IsSmallInteger()) {
+        return kFailure;
+      }
+      intptr_t raw_byte = byte->value();
+      if (raw_byte < 0 || raw_byte > 255) {
+        return kFailure;
+      }
+    }
+
+    String* result = H->AllocateString(length);  // SAFEPOINT
+    bytes = static_cast<Array*>(A->Stack(0));
+
+    for (intptr_t i = 0; i < length; i++) {
+      SmallInteger* byte = static_cast<SmallInteger*>(bytes->element(i));
+      intptr_t raw_byte = byte->value();
+      result->set_element(i, raw_byte);
+    }
 
     RETURN(result);
   }
-
-  if (A->Stack(2)->IsWideString()) {
-    WideString* string = static_cast<WideString*>(A->Stack(2));
-    if ((start <= 0) || (stop > string->Size())) return kFailure;
-    intptr_t subsize;
-    if (start <= stop) {
-      subsize = stop - start + 1;
-    } else {
-      subsize = 0;
-    }
-    bool wide_result = false;
-    for (intptr_t i = start - 1; i < stop; i++) {
-      if (string->element(i) > 255) {
-        wide_result = true;
-        break;
-      }
-    }
-
-    if (!wide_result) {
-      ByteString* result = H->AllocateByteString(subsize);  // SAFEPOINT
-      string = static_cast<WideString*>(A->Stack(2));
-
-      for (intptr_t i = 0; i < subsize; i++) {
-        result->set_element(i, string->element(i + start - 1));
-      }
-
-      RETURN(result);
-    } else {
-      WideString* result = H->AllocateWideString(subsize);  // SAFEPOINT
-      string = static_cast<WideString*>(A->Stack(2));
-
-      memcpy(result->element_addr(0),
-             string->element_addr(start - 1),
-             subsize * sizeof(uint32_t));
-
-      RETURN(result);
-    }
-  }
-
   return kFailure;
-}
-
-
-DEFINE_PRIMITIVE(String_runeAt) {
-  ASSERT(num_args == 1);
-
-  Object* rcvr = A->Stack(1);
-  SmallInteger* index = static_cast<SmallInteger*>(A->Stack(0));
-  if (rcvr->IsByteString()) {
-    ByteString* string = static_cast<ByteString*>(A->Stack(1));
-    if (!index->IsSmallInteger()) {
-      return kFailure;
-    }
-    if (index->value() <= 0) {
-     return kFailure;
-    }
-     if (index->value() > string->Size()) {
-      return kFailure;
-    }
-
-    intptr_t rune = string->element(index->value() - 1);
-    RETURN_SMI(rune);
-  } else if (rcvr->IsWideString()) {
-    WideString* string = static_cast<WideString*>(A->Stack(1));
-    if (!index->IsSmallInteger()) {
-      return kFailure;
-    }
-    if (index->value() <= 0) {
-     return kFailure;
-    }
-     if (index->value() > string->Size()) {
-      return kFailure;
-    }
-
-    intptr_t rune = string->element(index->value() - 1);
-    RETURN_SMI(rune);
-  } else {
-    UNREACHABLE();
-    return kFailure;
-  }
-}
-
-
-DEFINE_PRIMITIVE(String_class_fromRune) {
-  ASSERT(num_args == 1);
-  SMI_ARGUMENT(rune, 0);
-  if (rune < 0 || rune > 0x10FFFF) {
-    return kFailure;
-  }
-
-  if (rune > 255) {
-    WideString* result = H->AllocateWideString(1);  // SAFEPOINT
-    result->set_element(0, rune);
-    RETURN(result);
-  } else {
-    ByteString* result = H->AllocateByteString(1);  // SAFEPOINT
-    result->set_element(0, rune);
-    RETURN(result);
-  }
-}
-
-
-DEFINE_PRIMITIVE(String_class_fromRunes) {
-  ASSERT(num_args == 1);
-  Array* runes = static_cast<Array*>(A->Stack(0));
-  if (!runes->IsArray()) {
-    return kFailure;
-  }
-
-  intptr_t length = runes->Size();
-  runes = static_cast<Array*>(A->Stack(0));
-
-  bool needs_wide = false;
-  for (intptr_t i = 0; i < length; i++) {
-    SmallInteger* rune = static_cast<SmallInteger*>(runes->element(i));
-    if (!rune->IsSmallInteger()) {
-      return kFailure;
-    }
-    intptr_t raw_rune = rune->value();
-    if (raw_rune < 0 || raw_rune > 0x10FFFF) {
-      return kFailure;
-    }
-    if (raw_rune > 255) {
-      needs_wide = true;
-    }
-  }
-
-  if (!needs_wide) {
-    ByteString* result = H->AllocateByteString(length);  // SAFEPOINT
-    runes = static_cast<Array*>(A->Stack(0));
-
-    for (intptr_t i = 0; i < length; i++) {
-      SmallInteger* rune = static_cast<SmallInteger*>(runes->element(i));
-      if (!rune->IsSmallInteger()) {
-        UNREACHABLE();
-        return kFailure;
-      }
-      intptr_t raw_rune = rune->value();
-      if (raw_rune < 0 || raw_rune > 0x10FFFF) {
-        UNREACHABLE();
-        return kFailure;
-      }
-      result->set_element(i, raw_rune);
-    }
-
-    RETURN(result);
-  } else {
-    WideString* result = H->AllocateWideString(length);  // SAFEPOINT
-    runes = static_cast<Array*>(A->Stack(0));
-
-    for (intptr_t i = 0; i < length; i++) {
-      SmallInteger* rune = static_cast<SmallInteger*>(runes->element(i));
-      if (!rune->IsSmallInteger()) {
-        UNREACHABLE();
-        return kFailure;
-      }
-      intptr_t raw_rune = rune->value();
-      if (raw_rune < 0 || raw_rune > 0x10FFFF) {
-        UNREACHABLE();
-        return kFailure;
-      }
-      result->set_element(i, raw_rune);
-    }
-
-    RETURN(result);
-  }
 }
 
 
@@ -2761,8 +2491,8 @@ DEFINE_PRIMITIVE(Object_markCanonical) {
 DEFINE_PRIMITIVE(writeBytesToFile) {
   ASSERT(num_args == 2);
   ByteArray* bytes = static_cast<ByteArray*>(A->Stack(1));
-  ByteString* filename = static_cast<ByteString*>(A->Stack(0));
-  if (!bytes->IsByteArray() || !filename->IsByteString()) {
+  String* filename = static_cast<String*>(A->Stack(0));
+  if (!bytes->IsByteArray() || !filename->IsString()) {
     UNIMPLEMENTED();
   }
 
@@ -2794,8 +2524,8 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
 
 DEFINE_PRIMITIVE(readFileAsBytes) {
   ASSERT(num_args == 1);
-  ByteString* filename = static_cast<ByteString*>(A->Stack(0));
-  if (!filename->IsByteString()) {
+  String* filename = static_cast<String*>(A->Stack(0));
+  if (!filename->IsString()) {
     UNIMPLEMENTED();
   }
 
@@ -2833,8 +2563,8 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
 
 DEFINE_PRIMITIVE(Double_class_parse) {
   ASSERT(num_args == 1);
-  ByteString* string = static_cast<ByteString*>(A->Stack(0));
-  if (!string->IsByteString()) {
+  String* string = static_cast<String*>(A->Stack(0));
+  if (!string->IsString()) {
     return kFailure;
   }
   double raw_result;

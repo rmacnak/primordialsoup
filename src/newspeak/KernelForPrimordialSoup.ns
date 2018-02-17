@@ -224,6 +224,10 @@ public at: index <Integer> put: value <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 48 *)
 	^(ArgumentError value: index) signal
 )
+public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
+	(* :literalmessage: primitive: 50 *)
+	^ArgumentError new signal
+)
 public copyWithSize: newSize <Integer> ^<ByteArray> = (
 	|
 	newArray = ByteArray new: newSize.
@@ -250,93 +254,6 @@ public size ^<Integer> = (
 public new: size <Integer> ^<ByteArray> = (
 	(* :literalmessage: primitive: 46 *)
 	^(ArgumentError value: size) signal
-)
-)
-public class ByteString _cannotInstantiate = () (
-public , other <String> ^<String> = (
-	(* :literalmessage: primitive: 115 *)
-	^(ArgumentError value: other) signal
-)
-public = other = (
-	(* :literalmessage: primitive: 114 *)
-	halt.
-)
-public asString ^<String> = (
-	^self
-)
-public asSymbol ^<String> = (
-	(isCanonical: self) ifTrue: [^self].
-	^intern: self.
-)
-public at: index <Integer> ^<String> = (
-	(* :literalmessage: primitive: 51 *)
-	^(ArgumentError value: index) signal
-)
-public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 121 *)
-	^ArgumentError new signal
-)
-public endsWith: suffix <String> ^<Boolean> = (
-	(* :literalmessage: primitive: 118 *)
-	^(ArgumentError value: suffix) signal
-)
-public first ^<String> = (
-	^self at: 1
-)
-public hash ^<Integer> = (
-	(* :literalmessage: primitive: 54 *)
-	halt.
-)
-public indexOf: substring <String> ^<Integer> = (
-	^self indexOf: substring startingAt: 1
-)
-public indexOf: substring <String> startingAt: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 119 *)
-	^ArgumentError new signal
-)
-public isString ^<Boolean> = (
-	^true
-)
-public last ^<String> = (
-	^self at: self size
-)
-public lastIndexOf: substring <String> ^<Integer> = (
-	^self lastIndexOf: substring startingAt: 1 + self size
-)
-public lastIndexOf: substring <String> startingAt: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 120 *)
-	^ArgumentError new signal
-)
-public out = (
-	print: self.
-)
-public printString = (
-	^'''', self, ''''
-)
-public runeAt: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 122 *)
-	^(ArgumentError value: index) signal
-)
-public size ^<Integer> = (
-	(* :literalmessage: primitive: 53 *)
-	halt.
-)
-public startsWith: prefix <String> ^<Boolean> = (
-	(* :literalmessage: primitive: 117 *)
-	^(ArgumentError value: prefix) signal
-)
-) : (
-public fromRune: rune <Integer> ^<String> = (
-	(* :literalmessage: primitive: 123 *)
-	^(ArgumentError value: rune) signal
-)
-public fromRunes: runes <Array[Integer]> ^<String> = (
-	(* :literalmessage: primitive: 124 *)
-	^self fromRunesAgain: runes asArray
-)
-private fromRunesAgain: runes <Array[Integer]> ^<String> = (
-	(* :literalmessage: primitive: 124 *)
-	^ArgumentError new signal
 )
 )
 class CannotReturn result: r = Exception (|
@@ -1462,6 +1379,89 @@ public stop = (
 )
 ) : (
 )
+public class String _cannotInstantiate = () (
+public , other <String> ^<String> = (
+	(* :literalmessage: primitive: 115 *)
+	^(ArgumentError value: other) signal
+)
+public = other = (
+	(* :literalmessage: primitive: 114 *)
+	halt.
+)
+public asString ^<String> = (
+	^self
+)
+public asSymbol ^<String> = (
+	(isCanonical: self) ifTrue: [^self].
+	^intern: self.
+)
+public at: index <Integer> ^<String> = (
+	(* :literalmessage: primitive: 51 *)
+	^(ArgumentError value: index) signal
+)
+public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
+	(* :literalmessage: primitive: 121 *)
+	^ArgumentError new signal
+)
+public endsWith: suffix <String> ^<Boolean> = (
+	(* :literalmessage: primitive: 118 *)
+	^(ArgumentError value: suffix) signal
+)
+public first ^<String> = (
+	^self at: 1
+)
+public hash ^<Integer> = (
+	(* :literalmessage: primitive: 54 *)
+	halt.
+)
+public indexOf: substring <String> ^<Integer> = (
+	^self indexOf: substring startingAt: 1
+)
+public indexOf: substring <String> startingAt: index <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 119 *)
+	^ArgumentError new signal
+)
+public isString ^<Boolean> = (
+	^true
+)
+public last ^<String> = (
+	^self at: self size
+)
+public lastIndexOf: substring <String> ^<Integer> = (
+	^self lastIndexOf: substring startingAt: 1 + self size
+)
+public lastIndexOf: substring <String> startingAt: index <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 120 *)
+	^ArgumentError new signal
+)
+public out = (
+	print: self.
+)
+public printString = (
+	^'''', self, ''''
+)
+public size ^<Integer> = (
+	(* :literalmessage: primitive: 53 *)
+	halt.
+)
+public startsWith: prefix <String> ^<Boolean> = (
+	(* :literalmessage: primitive: 117 *)
+	^(ArgumentError value: prefix) signal
+)
+) : (
+public with: byte <Integer> ^<String> = (
+	(* :literalmessage: primitive: 123 *)
+	^(ArgumentError value: byte) signal
+)
+public withAll: bytes <Array[Integer] | ByteArray> ^<String> = (
+	(* :literalmessage: primitive: 124 *)
+	^self withAllAgain: bytes asArray
+)
+private withAllAgain: bytes <Array[Integer] | ByteArray> ^<String> = (
+	(* :literalmessage: primitive: 124 *)
+	^ArgumentError new signal
+)
+)
 public class StringBuilder = (|
 protected running ::= ''.
 |) (
@@ -1477,7 +1477,7 @@ public size = (
 )
 public writeln: line = (
 	add: line.
-	add: (String fromRune: 10).
+	add: (String with: 10).
 )
 ) : (
 )
@@ -1653,9 +1653,6 @@ private maybeGrow = (
 )
 ) : (
 )
-public class WideString _cannotInstantiate = ByteString () (
-) : (
-)
 public class _Array _cannotInstantiate = Collection () (
 public , collection = (
 	|
@@ -1794,7 +1791,7 @@ protected ByteArray = (
 )
 protected Character = (
 	(* squeak compatibility *)
-	^outer KernelForPrimordialSoup ByteString
+	^outer KernelForPrimordialSoup String
 )
 protected Error = (
 	(* squeak compatibility *)
@@ -1816,7 +1813,7 @@ protected Object = (
 )
 protected String = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
-	^outer KernelForPrimordialSoup ByteString
+	^outer KernelForPrimordialSoup String
 )
 protected assert: blockOrBoolean message: message = (
 	#BOGUS.
@@ -1882,8 +1879,7 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 		#dispatchHandle:status:signals:count:.
 		_Array.
 		ByteArray.
-		ByteString.
-		WideString.
+		String.
 		Closure.
 		Ephemeron.
 		Float.

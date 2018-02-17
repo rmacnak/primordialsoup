@@ -30,7 +30,7 @@ class RegularObjectCluster : public Cluster {
   ~RegularObjectCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUint16();
+    intptr_t num_objects = d->ReadUnsigned();
     if (TRACE_FUEL) {
       OS::PrintErr("Nodes format=%" Pd " objects=%" Pd " %" Pd "\n",
                    format_, num_objects, d->position());
@@ -74,7 +74,7 @@ class ByteArrayCluster : public Cluster {
   ~ByteArrayCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUint16();
+    intptr_t num_objects = d->ReadUnsigned();
     if (TRACE_FUEL) {
       OS::PrintErr("Nodes bytearray objects=%" Pd " %" Pd "\n",
                    num_objects, d->position());
@@ -83,7 +83,7 @@ class ByteArrayCluster : public Cluster {
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUint32();
+      intptr_t size = d->ReadUnsigned();
       ByteArray* object = h->AllocateByteArray(size);
       for (intptr_t j = 0; j < size; j++) {
         object->set_element(j, d->ReadUint8());
@@ -102,10 +102,10 @@ class ByteArrayCluster : public Cluster {
   }
 };
 
-class ByteStringCluster : public Cluster {
+class StringCluster : public Cluster {
  public:
-  ByteStringCluster() {}
-  ~ByteStringCluster() {}
+  StringCluster() {}
+  ~StringCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
     ReadNodes(d, h, false);
@@ -113,7 +113,7 @@ class ByteStringCluster : public Cluster {
   }
 
   void ReadNodes(Deserializer* d, Heap* h, bool is_canonical) {
-    intptr_t num_objects = d->ReadUint16();
+    intptr_t num_objects = d->ReadUnsigned();
     if (TRACE_FUEL) {
       OS::PrintErr("Nodes bytestring objects=%" Pd " %" Pd "\n",
                    num_objects, d->position());
@@ -122,8 +122,8 @@ class ByteStringCluster : public Cluster {
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUint32();
-      ByteString* object = h->AllocateByteString(size);
+      intptr_t size = d->ReadUnsigned();
+      String* object = h->AllocateString(size);
       ASSERT(!object->is_canonical());
       object->set_is_canonical(is_canonical);
       for (intptr_t j = 0; j < size; j++) {
@@ -142,54 +142,13 @@ class ByteStringCluster : public Cluster {
   }
 };
 
-class WideStringCluster : public Cluster {
- public:
-  WideStringCluster() {}
-  ~WideStringCluster() {}
-
-  void ReadNodes(Deserializer* d, Heap* h) {
-    ReadNodes(d, h, false);
-    ReadNodes(d, h, true);
-  }
-
-  void ReadNodes(Deserializer* d, Heap* h, bool is_canonical) {
-    intptr_t num_objects = d->ReadUint16();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes bytesymbol objects=%" Pd " %" Pd "\n",
-                   num_objects, d->position());
-    }
-
-    ref_start_ = d->next_ref();
-    ref_stop_ = ref_start_ + num_objects;
-    for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUint32();
-      WideString* object = h->AllocateWideString(size);
-      ASSERT(!object->is_canonical());
-      object->set_is_canonical(is_canonical);
-      for (intptr_t j = 0; j < size; j++) {
-        object->set_element(j, d->ReadUint32());
-      }
-      ASSERT(object->IsWideString());
-      d->RegisterRef(object);
-    }
-    ASSERT(d->next_ref() == ref_stop_);
-  }
-
-  void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges bytesymbol objects=%" Pd " %" Pd "\n",
-                   ref_stop_ - ref_start_, d->position());
-    }
-  }
-};
-
 class ArrayCluster : public Cluster {
  public:
   ArrayCluster() {}
   ~ArrayCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUint16();
+    intptr_t num_objects = d->ReadUnsigned();
     if (TRACE_FUEL) {
       OS::PrintErr("Nodes array objects=%" Pd " %" Pd "\n",
                    num_objects, d->position());
@@ -198,7 +157,7 @@ class ArrayCluster : public Cluster {
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUint16();
+      intptr_t size = d->ReadUnsigned();
       Array* object = h->AllocateArray(size);
       d->RegisterRef(object);
     }
@@ -227,7 +186,7 @@ class WeakArrayCluster : public Cluster {
   ~WeakArrayCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUint16();
+    intptr_t num_objects = d->ReadUnsigned();
     if (TRACE_FUEL) {
       OS::PrintErr("Nodes weakarray objects=%" Pd " %" Pd "\n",
                    num_objects, d->position());
@@ -236,7 +195,7 @@ class WeakArrayCluster : public Cluster {
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUint16();
+      intptr_t size = d->ReadUnsigned();
       WeakArray* object = h->AllocateWeakArray(size);
       d->RegisterRef(object);
     }
@@ -265,7 +224,7 @@ class ClosureCluster : public Cluster {
   ~ClosureCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUint16();
+    intptr_t num_objects = d->ReadUnsigned();
     if (TRACE_FUEL) {
       OS::PrintErr("Nodes closure objects=%" Pd " %" Pd "\n",
                    num_objects, d->position());
@@ -309,7 +268,7 @@ class ActivationCluster : public Cluster {
   ~ActivationCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUint16();
+    intptr_t num_objects = d->ReadUnsigned();
     if (TRACE_FUEL) {
       OS::PrintErr("Nodes activation objects=%" Pd " %" Pd "\n",
                    num_objects, d->position());
@@ -339,7 +298,7 @@ class ActivationCluster : public Cluster {
       object->set_closure(Closure::Cast(d->ReadRef()));
       object->set_receiver(d->ReadRef());
 
-      intptr_t size = d->ReadUint32();
+      intptr_t size = d->ReadUint16();
       if (TRACE_FUEL) OS::PrintErr(" stack %" Pd "\n", size);
       ASSERT(size < Activation::kMaxTemps);
       object->set_stack_depth(SmallInteger::New(size));
@@ -360,7 +319,7 @@ class SmallIntegerCluster : public Cluster {
   ~SmallIntegerCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUint16();
+    intptr_t num_objects = d->ReadUnsigned();
     if (TRACE_FUEL) {
       OS::PrintErr("Nodes smi objects=%" Pd " %" Pd "\n",
                    num_objects, d->position());
@@ -382,7 +341,7 @@ class SmallIntegerCluster : public Cluster {
     }
     ASSERT(d->next_ref() == ref_stop_);
 
-    intptr_t num_large = d->ReadUint16();
+    intptr_t num_large = d->ReadUnsigned();
     for (intptr_t i = 0; i < num_large; i++) {
       bool negative = d->ReadUint8();
       intptr_t bytes = d->ReadUint16();
@@ -498,8 +457,7 @@ void Deserializer::Deserialize() {
   heap_->RegisterClass(kBigintCid, os->LargeInteger());
   heap_->RegisterClass(kFloat64Cid, os->Float64());
   heap_->RegisterClass(kByteArrayCid, os->ByteArray());
-  heap_->RegisterClass(kByteStringCid, os->ByteString());
-  heap_->RegisterClass(kWideStringCid, os->WideString());
+  heap_->RegisterClass(kStringCid, os->String());
   heap_->RegisterClass(kArrayCid, os->Array());
   heap_->RegisterClass(kWeakArrayCid, os->WeakArray());
   heap_->RegisterClass(kEphemeronCid, os->Ephemeron());
@@ -577,7 +535,7 @@ static const int8_t kByteMask = (1 << kDataBitsPerByte) - 1;
 static const int8_t kMaxUnsignedDataPerByte = kByteMask;
 static const uint8_t kEndUnsignedByteMarker = (255 - kMaxUnsignedDataPerByte);
 
-intptr_t Deserializer::ReadUnsigned32() {
+intptr_t Deserializer::ReadUnsigned() {
   const uint8_t* c = cursor_;
   // ASSERT(c < end_);
   uint8_t b = *c++;
@@ -628,8 +586,7 @@ Cluster* Deserializer::ReadCluster() {
   } else {
     switch (-format) {
       case kByteArrayCid: return new ByteArrayCluster();
-      case kByteStringCid: return new ByteStringCluster();
-      case kWideStringCid: return new WideStringCluster();
+      case kStringCid: return new StringCluster();
       case kArrayCid: return new ArrayCluster();
       case kWeakArrayCid: return new WeakArrayCluster();
       case kClosureCid: return new ClosureCluster();

@@ -14,7 +14,7 @@ namespace psoup {
 class CacheEntry {
  public:
   intptr_t cid;
-  ByteString* selector;
+  String* selector;
   Method* target;
   PrimitiveFunction* primitive;
 };
@@ -29,7 +29,7 @@ enum LookupRule {
 class NSCacheEntry {
  public:
   intptr_t cid;
-  ByteString* selector;
+  String* selector;
   Method* caller;
   intptr_t rule;
   Object* absent_receiver;
@@ -45,7 +45,7 @@ class LookupCache {
   }
 
   bool LookupOrdinary(intptr_t cid,
-                      ByteString* selector,
+                      String* selector,
                       Method** target,
                       PrimitiveFunction** primitive) {
     intptr_t hash =
@@ -68,12 +68,12 @@ class LookupCache {
   }
 
   void InsertOrdinary(intptr_t cid,
-                      ByteString* selector,
+                      String* selector,
                       Method* target,
                       PrimitiveFunction* primitive);
 
   bool LookupNS(intptr_t cid,
-                ByteString* selector,
+                String* selector,
                 Method* caller,
                 intptr_t rule,
                 Object** absent_receiver,
@@ -108,7 +108,7 @@ class LookupCache {
   }
 
   bool InsertNS(intptr_t cid,
-                ByteString* selector,
+                String* selector,
                 Method* caller,
                 intptr_t rule,
                 Object* absent_receiver,

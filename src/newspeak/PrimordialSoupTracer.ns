@@ -16,6 +16,7 @@ IdentityMap = p squeak IdentityDictionary.
 SmallInteger = p squeak SmallInteger.
 LargePositiveInteger = p squeak LargePositiveInteger.
 LargeNegativeInteger = p squeak LargeNegativeInteger.
+String = p squeak String.
 ByteString = p squeak ByteString.
 ByteSymbol = p squeak ByteSymbol.
 WideString = p squeak WideString.
@@ -47,14 +48,13 @@ private kMintCid = 4.
 private kBigintCid = 5.
 private kFloat64Cid = 6.
 private kByteArrayCid = 7.
-private kByteStringCid = 8.
-private kWideStringCid = 9.
-private kArrayCid = 10.
-private kWeakArrayCid = 11.
-private kEphemeronCid = 12.
-private kActivationCid = 13.
-private kClosureCid = 14.
-private kFirstPlainObjectCid = 15.
+private kStringCid = 8.
+private kArrayCid = 9.
+private kWeakArrayCid = 10.
+private kEphemeronCid = 11.
+private kActivationCid = 12.
+private kClosureCid = 13.
+private kFirstPlainObjectCid = 14.
 
 psoup = runtime InternalKernel new.
 platform = runtime Platform internalKernel: psoup.
@@ -99,16 +99,14 @@ public writeEdges = (
 		writeBackRef: object method.
 		writeBackRef: object closure.
 		writeBackRef: object receiver.
-		stream uint32: object stackPtr. (* can't write smi because smi cluster maybe later*)
+		stream uint16: object stackPtr. (* can't write smi because smi cluster maybe later*)
 		1 to: object stackPtr do: [:i | writeBackRef: (object tempAt: i)]]
 )
 public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kActivationCid negated.
-	stream uint16: objects size.
-	objects do: [:object |
-		registerBackRef: object.
-		(* stream uint16: object stackPtr *)].
+	putUnsigned: objects size.
+	objects do: [:object | registerBackRef: object].
 )
 ) : (
 )
@@ -136,10 +134,10 @@ public writeEdges = (
 public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kArrayCid negated.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object |
 		registerBackRef: object.
-		stream uint16: (prim indexedSlotsOf: object)].
+		putUnsigned: (prim indexedSlotsOf: object)].
 )
 ) : (
 )
@@ -161,38 +159,11 @@ public writeNodes = (
 	stop = [halt].
 	|
 	writeFormat: kByteArrayCid negated.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object |
 		registerBackRef: object.
-		stream uint32: object size.
+		putUnsigned: object size.
 		1 to: object size do: [:i | stream nextPut: (prim ifFail: stop indexedSlotOf: object at: i)]].
-)
-) : (
-)
-class ByteStringCluster for: cls = Cluster (|
-	klass = cls.
-	objects = List new.
-|halt) (
-public analyze: object = (
-	objects add: object.
-)
-public name = (
-	^'ByteString'
-)
-public writeEdges = (
-)
-public writeNodes = (
-	|
-	prim = vmmirror.
-	stop = [halt].
-	|
-	writeFormat: kByteStringCid negated.
-	stream uint16: objects size. (* non-canonical *)
-	objects do: [:object |
-		registerBackRef: object.
-		stream uint32: object size.
-		1 to: object size do: [:i | stream nextPut: (prim ifFail: stop indexedSlotOf: object at: i)]].
-	stream uint16: 0. (* canonical *)
 )
 ) : (
 )
@@ -216,17 +187,17 @@ public writeNodes = (
 	prim = vmmirror.
 	stop = [halt].
 	|
-	writeFormat: kByteStringCid negated.
-	stream uint16: strings size. (* non-canonical *)
+	writeFormat: kStringCid negated.
+	putUnsigned: strings size. (* non-canonical *)
 	strings do: [:object |
 		registerBackRef: object.
-		stream uint32: object size.
+		putUnsigned: object size.
 		1 to: object size do: [:i | stream nextPut: (prim ifFail: stop indexedSlotOf: object at: i)]].
 
-	stream uint16: symbols size. (* canonical *)
+	putUnsigned: symbols size. (* canonical *)
 	symbols do: [:object |
 		registerBackRef: object.
-		stream uint32: object size.
+		putUnsigned: object size.
 		1 to: object size do: [:i | stream nextPut: (prim ifFail: stop indexedSlotOf: object at: i)]].
 )
 ) : (
@@ -262,8 +233,7 @@ newFormatFor: cls = (
 	psoup WeakArray == cls ifTrue: [^nil].
 	psoup _Array == cls ifTrue: [^nil].
 	psoup ByteArray == cls ifTrue: [^nil].
-	psoup ByteString == cls ifTrue: [^nil].
-	psoup WideString == cls ifTrue: [^nil].
+	psoup String == cls ifTrue: [^nil].
 	psoup MediumInteger == cls ifTrue: [^nil].
 	psoup Ephemeron == cls ifTrue: [^3].
 	psoup Closure == cls ifTrue: [^nil].
@@ -292,7 +262,7 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: 8.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
@@ -323,7 +293,7 @@ public writeNodes = (
 	assert: [klass instSize = 3] message: ''.
 
 	writeFormat: klass instSize.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
@@ -357,7 +327,7 @@ public writeEdges = (
 public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kClosureCid negated.
-	stream uint16: objects size.
+	stream putUnsigned: objects size.
 	objects do: [:object |
 		registerBackRef: object.
 		stream uint16: object numCopiedValues].
@@ -427,7 +397,7 @@ public writeNodes = (
 	assert: [klass instSize = 10] message: ''.
 
 	writeFormat: klass instSize.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
@@ -470,7 +440,7 @@ public writeNodes = (
 	assert: [klass instSize = 7] message: ''.
 
 	writeFormat: klass instSize.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
@@ -588,7 +558,7 @@ public writeNodes = (
 	assert: [klass instSize = 6] message: ''.
 
 	writeFormat: klass instSize.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
@@ -621,7 +591,7 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: klass instSize.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
@@ -643,17 +613,44 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kSmiCid negated.
-	stream uint16: small size.
+	putUnsigned: small size.
 	small do: [:object |
 		registerBackRef: object.
 		on: stream int64: object].
 
-	stream uint16: large size.
+	putUnsigned: large size.
 	large do: [:object |
 		registerBackRef: object.
 		stream nextPut: ((object < 0) ifTrue: [1] ifFalse: [0]).
 		stream uint16: object digitLength.
 		1 to: object digitLength do: [:i | stream nextPut: (object digitAt: i)]].
+)
+) : (
+)
+class StringCluster for: cls = Cluster (|
+	klass = cls.
+	objects = List new.
+|halt) (
+public analyze: object = (
+	objects add: object.
+)
+public name = (
+	^'String'
+)
+public writeEdges = (
+)
+public writeNodes = (
+	|
+	prim = vmmirror.
+	stop = [halt].
+	|
+	writeFormat: kStringCid negated.
+	putUnsigned: objects size. (* non-canonical *)
+	objects do: [:object |
+		registerBackRef: object.
+		putUnsigned: object size.
+		1 to: object size do: [:i | stream nextPut: (prim ifFail: stop indexedSlotOf: object at: i)]].
+	putUnsigned: 0. (* canonical *)
 )
 ) : (
 )
@@ -675,37 +672,10 @@ public writeEdges = (
 public writeNodes = (
 	| prim = vmmirror. |
 	writeFormat: kWeakArrayCid negated.
-	stream uint16: objects size.
+	putUnsigned: objects size.
 	objects do: [:object |
 		registerBackRef: object.
-		stream uint16: (prim indexedSlotsOf: object)].
-)
-) : (
-)
-class WideStringCluster for: cls = Cluster (|
-	klass = cls.
-	objects = List new.
-|) (
-public analyze: object = (
-	objects add: object.
-)
-public name = (
-	^'WideString'
-)
-public writeEdges = (
-)
-public writeNodes = (
-	|
-	prim = vmmirror.
-	stop = [halt].
-	|
-	writeFormat: kWideStringCid negated.
-	stream uint16: objects size. (* non-canonical *)
-	objects do: [:object |
-		registerBackRef: object.
-		stream uint32: object size.
-		1 to: object size do: [:i | stream uint32: (prim ifFail: stop indexedSlotOf: object at: i)]].
-	stream uint16: 0. (* canonical *)
+		putUnsigned: (prim indexedSlotsOf: object)].
 )
 ) : (
 )
@@ -715,10 +685,11 @@ analyze: object = (
 buildReplacements = (
 	replaceClass: Array with: psoup _Array.
 	replaceClass: ByteArray with: psoup ByteArray.
-	replaceClass: ByteString with: psoup ByteString.
-	replaceClass: ByteSymbol with: psoup ByteString.
-	replaceClass: WideString with: psoup WideString.
-	replaceClass: WideSymbol with: psoup WideString.
+	replaceClass: String with: psoup String.
+	replaceClass: ByteString with: psoup String.
+	replaceClass: ByteSymbol with: psoup String.
+	replaceClass: WideString with: psoup String.
+	replaceClass: WideSymbol with: psoup String.
 	replaceClass: Class with: psoup Class.
 	replaceClass: BlockClosure with: psoup Closure.
 	replaceClass: False with: psoup False.
@@ -771,8 +742,7 @@ newClusterForClass: klass = (
 	(* special objects in psoup *)
 	psoup _Array == klass ifTrue: [^ArrayCluster for: klass].
 	psoup ByteArray == klass ifTrue: [^ByteArrayCluster for: klass].
-	psoup ByteString == klass ifTrue: [^ByteSymbolCluster for: klass].
-	psoup WideString == klass ifTrue: [^WideStringCluster for: klass].
+	psoup String == klass ifTrue: [^ByteSymbolCluster for: klass].
 	psoup SmallInteger == klass ifTrue: [^SmallIntegerCluster for: klass].
 	psoup WeakArray == klass ifTrue: [^WeakArrayCluster for: klass].
 	psoup Activation == klass ifTrue: [^ActivationCluster for: klass].
@@ -799,6 +769,9 @@ newReplace: preobject = (
 
 	(* Character -> String *)
 	Character == preclass ifTrue: [^preobject asString asSymbol].
+	
+	WideString == preclass ifTrue: [^preobject squeakToUtf8].
+	WideSymbol == preclass ifTrue: [^preobject squeakToUtf8 asSymbol].
 
 	^preobject
 )
@@ -863,18 +836,18 @@ serialize: root = (
 
 	(* Side-effect these clusters first. *)
 	clusterFor: SmallInteger.
-	clusterFor: ByteString.
+	clusterFor: String.
 
 	enqueue: root.
 	[stack isEmpty] whileFalse: [analyze: stack removeLast].
 
 	(* Now that we're done tracing, we know what symbols are included and 'become' the placeholder array we initialized the kernel with. *)
-	finalSymbols:: (clusters at: psoup ByteString) symbols asArray.
+	finalSymbols:: (clusters at: psoup String) symbols asArray.
 	(clusters at: psoup _Array) replace: symbolsPlaceholder with: finalSymbols. (* swap node *)
 	replacements at: symbolsPlaceholder put: finalSymbols. (* swap incoming edges *)
 
 	interpreter:: '#!fuchsia primordialsoup'.
-	1 to: interpreter size do: [:index | stream nextPut: (interpreter runeAt: index)].
+	1 to: interpreter size do: [:index | stream nextPut: (interpreter at: index)].
 	stream nextPut: 10. (* \n *)
 	stream uint16: 16r1984.
 	stream uint16: 0.

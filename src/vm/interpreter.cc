@@ -170,8 +170,8 @@ void Interpreter::PushClosure(intptr_t num_copied,
 
 void Interpreter::QuickArithmeticSend(intptr_t offset) {
   Array* quick_selectors = H->object_store()->quick_selectors();
-  ByteString* selector =
-    static_cast<ByteString*>(quick_selectors->element(offset * 2));
+  String* selector =
+    static_cast<String*>(quick_selectors->element(offset * 2));
   ASSERT(selector->is_canonical());
   SmallInteger* arity =
     static_cast<SmallInteger*>(quick_selectors->element(offset * 2 + 1));
@@ -182,9 +182,9 @@ void Interpreter::QuickArithmeticSend(intptr_t offset) {
 
 void Interpreter::QuickCommonSend(intptr_t offset) {
   Array* quick_selectors = H->object_store()->quick_selectors();
-  ByteString* selector =
-    static_cast<ByteString*>(quick_selectors->element((offset + 16) * 2));
-  ASSERT(selector->IsByteString() && selector->is_canonical());
+  String* selector =
+    static_cast<String*>(quick_selectors->element((offset + 16) * 2));
+  ASSERT(selector->IsString() && selector->is_canonical());
   SmallInteger* arity =
     static_cast<SmallInteger*>(quick_selectors->element((offset +16) * 2 + 1));
   ASSERT(arity->IsSmallInteger());
@@ -192,15 +192,15 @@ void Interpreter::QuickCommonSend(intptr_t offset) {
 }
 
 
-Method* Interpreter::MethodAt(Behavior* cls, ByteString* selector) {
-  ASSERT(selector->IsByteString());
+Method* Interpreter::MethodAt(Behavior* cls, String* selector) {
+  ASSERT(selector->IsString());
   ASSERT(selector->is_canonical());
   Array* methods = cls->methods();
   ASSERT(methods->IsArray());
   intptr_t length = methods->Size();
   for (intptr_t i = 0; i < length; i++) {
     Method* method = static_cast<Method*>(methods->element(i));
-    ASSERT(method->selector()->IsByteString());
+    ASSERT(method->selector()->IsString());
     ASSERT(method->selector()->is_canonical());
     if (method->selector() == selector) {
       return method;
@@ -210,19 +210,19 @@ Method* Interpreter::MethodAt(Behavior* cls, ByteString* selector) {
 }
 
 
-bool Interpreter::HasMethod(Behavior* cls, ByteString* selector) {
+bool Interpreter::HasMethod(Behavior* cls, String* selector) {
   return MethodAt(cls, selector) != nil;
 }
 
 
 void Interpreter::OrdinarySend(intptr_t selector_index,
                                intptr_t num_args) {
-  ByteString* selector = SelectorAt(selector_index);
+  String* selector = SelectorAt(selector_index);
   SendOrdinary(selector, num_args);
 }
 
 
-void Interpreter::SendOrdinary(ByteString* selector,
+void Interpreter::SendOrdinary(String* selector,
                                intptr_t num_args) {
   Object* receiver = A->Stack(num_args);
 
@@ -277,7 +277,7 @@ Behavior* Interpreter::FindApplicationOf(AbstractMixin* mixin,
 
 void Interpreter::SuperSend(intptr_t selector_index,
                             intptr_t num_args) {
-  ByteString* selector = SelectorAt(selector_index);
+  String* selector = SelectorAt(selector_index);
   Object* receiver = A->receiver();
 
 #if LOOKUP_CACHE
@@ -313,7 +313,7 @@ void Interpreter::SuperSend(intptr_t selector_index,
 
 void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
                                        intptr_t num_args) {
-  ByteString* selector = SelectorAt(selector_index);
+  String* selector = SelectorAt(selector_index);
   Object* method_receiver = A->receiver();
 
 #if LOOKUP_CACHE
@@ -366,7 +366,7 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
 void Interpreter::OuterSend(intptr_t selector_index,
                             intptr_t num_args,
                             intptr_t depth) {
-  ByteString* selector = SelectorAt(selector_index);
+  String* selector = SelectorAt(selector_index);
   Object* receiver = A->receiver();
 
 #if LOOKUP_CACHE
@@ -403,7 +403,7 @@ void Interpreter::OuterSend(intptr_t selector_index,
 
 void Interpreter::SelfSend(intptr_t selector_index,
                            intptr_t num_args) {
-  ByteString* selector = SelectorAt(selector_index);
+  String* selector = SelectorAt(selector_index);
   Object* receiver = A->receiver();
 
 #if LOOKUP_CACHE
@@ -430,7 +430,7 @@ void Interpreter::SelfSend(intptr_t selector_index,
 }
 
 
-void Interpreter::SendLexical(ByteString* selector,
+void Interpreter::SendLexical(String* selector,
                               intptr_t num_args,
                               Object* receiver,
                               AbstractMixin* mixin,
@@ -457,7 +457,7 @@ void Interpreter::SendLexical(ByteString* selector,
 }
 
 
-void Interpreter::SendProtected(ByteString* selector,
+void Interpreter::SendProtected(String* selector,
                                 intptr_t num_args,
                                 Object* receiver,
                                 Behavior* mixin_application,
@@ -486,7 +486,7 @@ void Interpreter::SendProtected(ByteString* selector,
 }
 
 
-void Interpreter::SendDNU(ByteString* selector,
+void Interpreter::SendDNU(String* selector,
                           intptr_t num_args,
                           Object* receiver,
                           Behavior* lookup_class,
@@ -716,11 +716,11 @@ void Interpreter::Activate(Method* method,
 }
 
 
-ByteString* Interpreter::SelectorAt(intptr_t index) {
+String* Interpreter::SelectorAt(intptr_t index) {
   Object* selector = LiteralAt(index);
-  ASSERT(selector->IsByteString());
+  ASSERT(selector->IsString());
   ASSERT(selector->is_canonical());
-  return static_cast<ByteString*>(selector);
+  return static_cast<String*>(selector);
 }
 
 

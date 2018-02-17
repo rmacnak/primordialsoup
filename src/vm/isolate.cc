@@ -138,7 +138,7 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
     for (intptr_t i = 0; i < argc; i++) {
       const char* cstr = isolate_message->argv()[i];
       intptr_t length = strlen(cstr);
-      ByteString* string = heap_->AllocateByteString(length);  // SAFEPOINT
+      String* string = heap_->AllocateString(length);  // SAFEPOINT
       memcpy(string->element_addr(0), cstr, length);
       strings->set_element(i, string);
     }
@@ -172,7 +172,7 @@ void Isolate::Activate(Object* message, Object* port) {
   Scheduler* scheduler = heap_->object_store()->scheduler();
 
   Behavior* cls = scheduler->Klass(heap_);
-  ByteString* selector = heap_->object_store()->dispatch_message();
+  String* selector = heap_->object_store()->dispatch_message();
   Method* method = interpreter_->MethodAt(cls, selector);
 
   HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
@@ -210,7 +210,7 @@ void Isolate::ActivateSignal(intptr_t handle,
   Scheduler* scheduler = heap_->object_store()->scheduler();
 
   Behavior* cls = scheduler->Klass(heap_);
-  ByteString* selector = heap_->object_store()->dispatch_signal();
+  String* selector = heap_->object_store()->dispatch_signal();
   Method* method = interpreter_->MethodAt(cls, selector);
 
   HandleScope h1(heap_, reinterpret_cast<Object**>(&scheduler));

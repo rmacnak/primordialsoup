@@ -65,15 +65,14 @@ enum ClassIds {
   kBigintCid = 5,
   kFloat64Cid = 6,
   kByteArrayCid = 7,
-  kByteStringCid = 8,
-  kWideStringCid = 9,
-  kArrayCid = 10,
-  kWeakArrayCid = 11,
-  kEphemeronCid = 12,
-  kActivationCid = 13,
-  kClosureCid = 14,
+  kStringCid = 8,
+  kArrayCid = 9,
+  kWeakArrayCid = 10,
+  kEphemeronCid = 11,
+  kActivationCid = 12,
+  kClosureCid = 13,
 
-  kFirstRegularObjectCid = 15,
+  kFirstRegularObjectCid = 14,
 };
 
 class AbstractMixin;
@@ -81,7 +80,7 @@ class Activation;
 class Array;
 class Behavior;
 class ByteArray;
-class ByteString;
+class String;
 class Closure;
 class Ephemeron;
 class Heap;
@@ -90,7 +89,6 @@ class Method;
 class Object;
 class SmallInteger;
 class WeakArray;
-class WideString;
 
 #define HEAP_OBJECT_IMPLEMENTATION(klass)                                      \
  private:                                                                      \
@@ -130,11 +128,8 @@ class Object {
   bool IsByteArray() const {
     return IsHeapObject() && (cid() == kByteArrayCid);
   }
-  bool IsByteString() const {
-    return IsHeapObject() && (cid() == kByteStringCid);
-  }
-  bool IsWideString() const {
-    return IsHeapObject() && (cid() == kWideStringCid);
+  bool IsString() const {
+    return IsHeapObject() && (cid() == kStringCid);
   }
   bool IsActivation() const {
     return IsHeapObject() && (cid() == kActivationCid);
@@ -441,7 +436,7 @@ class LargeInteger : public Object {
   static LargeInteger* ShiftLeft(LargeInteger* left,
                                  intptr_t raw_right, Heap* H);
 
-  static ByteString* PrintString(LargeInteger* large, Heap* H);
+  static String* PrintString(LargeInteger* large, Heap* H);
 
   static double AsDouble(LargeInteger* integer);
   static bool FromDouble(double raw_value, Object** result, Heap* H);
@@ -614,8 +609,8 @@ class Ephemeron : public Object {
 };
 
 
-class ByteString : public Object {
-  HEAP_OBJECT_IMPLEMENTATION(ByteString);
+class String : public Object {
+  HEAP_OBJECT_IMPLEMENTATION(String);
 
  public:
   intptr_t Size() const {
@@ -654,49 +649,6 @@ class ByteString : public Object {
   SmallInteger* size_;
   SmallInteger* hash_;
   uint8_t elements_[];
-};
-
-
-class WideString : public Object {
-  HEAP_OBJECT_IMPLEMENTATION(WideString);
-
- public:
-  intptr_t Size() const {
-    return size()->value();
-  }
-  SmallInteger* size() const {
-    return ptr()->size_;
-  }
-  void set_size(SmallInteger* size) {
-    ptr()->size_ = size;
-  }
-  SmallInteger* hash() const {
-    return ptr()->hash_;
-  }
-  void set_hash(SmallInteger* hash) {
-    ptr()->hash_ = hash;
-  }
-  SmallInteger* EnsureHash(Isolate* isolate);
-
-  uint32_t element(intptr_t index) const {
-    ASSERT(index >= 0 && index < Size());
-    return ptr()->elements_[index];
-  }
-  void set_element(intptr_t index, uint32_t value) {
-    ASSERT(index >= 0 && index < Size());
-    ptr()->elements_[index] = value;
-  }
-  uint32_t* element_addr(intptr_t index) {
-    return &ptr()->elements_[index];
-  }
-  const uint32_t* element_addr(intptr_t index) const {
-    return &ptr()->elements_[index];
-  }
-
- private:
-  SmallInteger* size_;
-  SmallInteger* hash_;
-  uint32_t elements_[];
 };
 
 
@@ -930,11 +882,11 @@ class Class : public Behavior {
   HEAP_OBJECT_IMPLEMENTATION(Class);
 
  public:
-  ByteString* name() const { return ptr()->name_; }
+  String* name() const { return ptr()->name_; }
   WeakArray* subclasses() const { return ptr()->subclasses_; }
 
  private:
-  ByteString* name_;
+  String* name_;
   WeakArray* subclasses_;
 };
 
@@ -954,12 +906,12 @@ class AbstractMixin : public Object {
   HEAP_OBJECT_IMPLEMENTATION(AbstractMixin);
 
  public:
-  ByteString* name() const { return ptr()->name_; }
+  String* name() const { return ptr()->name_; }
   Array* methods() const { return ptr()->methods_; }
   AbstractMixin* enclosing_mixin() const { return ptr()->enclosing_mixin_; }
 
  private:
-  ByteString* name_;
+  String* name_;
   Array* methods_;
   AbstractMixin* enclosing_mixin_;
 };
@@ -972,7 +924,7 @@ class Method : public Object {
   Array* literals() const { return ptr()->literals_; }
   ByteArray* bytecode() const { return ptr()->bytecode_; }
   AbstractMixin* mixin() const { return ptr()->mixin_; }
-  ByteString* selector() const { return ptr()->selector_; }
+  String* selector() const { return ptr()->selector_; }
   Object* source() const { return ptr()->source_; }
 
   bool IsPublic() const {
@@ -1011,7 +963,7 @@ class Method : public Object {
   Array* literals_;
   ByteArray* bytecode_;
   AbstractMixin* mixin_;
-  ByteString* selector_;
+  String* selector_;
   Object* source_;
 };
 
@@ -1020,14 +972,14 @@ class Message : public Object {
   HEAP_OBJECT_IMPLEMENTATION(Message);
 
  public:
-  void set_selector(ByteString* selector) {
+  void set_selector(String* selector) {
     StorePointer(&ptr()->selector_, selector);
   }
   void set_arguments(Array* arguments) {
     StorePointer(&ptr()->arguments_, arguments);
   }
  private:
-  ByteString* selector_;
+  String* selector_;
   Array* arguments_;
 };
 
@@ -1047,31 +999,30 @@ class ObjectStore : public Object {
   Object* true_obj() const { return ptr()->true_; }
   Scheduler* scheduler() const { return ptr()->scheduler_; }
   class Array* quick_selectors() const { return ptr()->quick_selectors_; }
-  class ByteString* does_not_understand() const {
+  class String* does_not_understand() const {
     return ptr()->does_not_understand_;
   }
-  class ByteString* non_boolean_receiver() const {
+  class String* non_boolean_receiver() const {
     return ptr()->non_boolean_receiver_;
   }
-  class ByteString* cannot_return() const {
+  class String* cannot_return() const {
     return ptr()->cannot_return_;
   }
-  class ByteString* about_to_return_through() const {
+  class String* about_to_return_through() const {
     return ptr()->about_to_return_through_;
   }
-  class ByteString* unused_bytecode() const {
+  class String* unused_bytecode() const {
     return ptr()->unused_bytecode_;
   }
-  class ByteString* dispatch_message() const {
+  class String* dispatch_message() const {
     return ptr()->dispatch_message_;
   }
-  class ByteString* dispatch_signal() const {
+  class String* dispatch_signal() const {
     return ptr()->dispatch_signal_;
   }
   Behavior* Array() const { return ptr()->Array_; }
   Behavior* ByteArray() const { return ptr()->ByteArray_; }
-  Behavior* ByteString() const { return ptr()->ByteString_; }
-  Behavior* WideString() const { return ptr()->WideString_; }
+  Behavior* String() const { return ptr()->String_; }
   Behavior* Closure() const { return ptr()->Closure_; }
   Behavior* Ephemeron() const { return ptr()->Ephemeron_; }
   Behavior* Float64() const { return ptr()->Float64_; }
@@ -1090,17 +1041,16 @@ class ObjectStore : public Object {
   Object* true_;
   Scheduler* scheduler_;
   class Array* quick_selectors_;
-  class ByteString* does_not_understand_;
-  class ByteString* non_boolean_receiver_;
-  class ByteString* cannot_return_;
-  class ByteString* about_to_return_through_;
-  class ByteString* unused_bytecode_;
-  class ByteString* dispatch_message_;
-  class ByteString* dispatch_signal_;
+  class String* does_not_understand_;
+  class String* non_boolean_receiver_;
+  class String* cannot_return_;
+  class String* about_to_return_through_;
+  class String* unused_bytecode_;
+  class String* dispatch_message_;
+  class String* dispatch_signal_;
   Behavior* Array_;
   Behavior* ByteArray_;
-  Behavior* ByteString_;
-  Behavior* WideString_;
+  Behavior* String_;
   Behavior* Closure_;
   Behavior* Ephemeron_;
   Behavior* Float64_;

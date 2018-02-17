@@ -31,40 +31,7 @@ compileFile: filename = (
 	^builder install applyToObject reflectee.
 )
 decodeUtf8: bytes = (
-	|
-	runes = List new.
-	position ::= 0.
-	a b c d
-	|
-
-	[position < bytes size] whileTrue:
-		[a:: bytes at: 1 + position.
-		 (a >> 7) = 0 ifTrue:
-			[runes add: a.
-			 position:: position + 1].
-
-		 (a >> 5) = 2r110 ifTrue:
-			[a:: a bitAnd: 2r11111.
-			 b:: (bytes at: 2 + position) bitAnd: 2r111111.
-			 runes add: (a << 6) + b.
-			 position:: position + 2].
-
-		 (a >> 4) = 2r1110 ifTrue:
-			[a:: a bitAnd: 2r1111.
-			 b:: (bytes at: 2 + position) bitAnd: 2r111111.
-			 c:: (bytes at: 3 + position) bitAnd: 2r111111.
-			 runes add: (a << 12) + (b << 6) + c.
-			 position:: position + 3].
-
-		 (a >> 3) = 2r11110 ifTrue:
-			[a:: a bitAnd: 2r111.
-			 b:: (bytes at: 2 + position) bitAnd: 2r111111.
-			 c:: (bytes at: 3 + position) bitAnd: 2r111111.
-			 d:: (bytes at: 4 + position) bitAnd: 2r111111.
-			 runes add: (a << 18) + (b << 12) + (c << 6) + d.
-			 position:: position + 4]].
-
-	^String fromRunes: runes
+	^String withAll: bytes
 )
 public main: args = (
 	(args at: 1) = 'child'

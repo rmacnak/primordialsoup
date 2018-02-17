@@ -1198,7 +1198,7 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
 }
 
 
-ByteString* LargeInteger::PrintString(LargeInteger* large, Heap* H) {
+String* LargeInteger::PrintString(LargeInteger* large, Heap* H) {
 #if defined(ARCH_IS_32_BIT)
   const ddigit_t kDivisor = 10000;
   const intptr_t kDivisorLog10 = 4;
@@ -1259,7 +1259,7 @@ ByteString* LargeInteger::PrintString(LargeInteger* large, Heap* H) {
   delete[] scratch;
 
   intptr_t nchars = est_decimal_digits - pos;
-  ByteString* result = H->AllocateByteString(nchars);
+  String* result = H->AllocateString(nchars);
   memcpy(result->element_addr(0), &chars[pos], nchars);
 
   delete[] chars;

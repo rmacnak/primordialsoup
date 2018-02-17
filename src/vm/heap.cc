@@ -617,7 +617,7 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
 }
 
 
-static void PrintStringError(ByteString* string) {
+static void PrintStringError(String* string) {
   const char* cstr = reinterpret_cast<const char*>(string->element_addr(0));
   OS::PrintErr("%.*s", static_cast<int>(string->Size()), cstr);
 }
@@ -636,34 +636,34 @@ void Heap::PrintStack() {
     }
 
     AbstractMixin* receiver_mixin = home->receiver()->Klass(this)->mixin();
-    ByteString* receiver_mixin_name = receiver_mixin->name();
-    if (receiver_mixin_name->IsByteString()) {
+    String* receiver_mixin_name = receiver_mixin->name();
+    if (receiver_mixin_name->IsString()) {
       PrintStringError(receiver_mixin_name);
     } else {
       receiver_mixin_name =
           reinterpret_cast<AbstractMixin*>(receiver_mixin_name)->name();
-      ASSERT(receiver_mixin_name->IsByteString());
+      ASSERT(receiver_mixin_name->IsString());
       PrintStringError(receiver_mixin_name);
       OS::PrintErr(" class");
     }
 
     AbstractMixin* method_mixin = home->method()->mixin();
     if (receiver_mixin != method_mixin) {
-      ByteString* method_mixin_name = method_mixin->name();
+      String* method_mixin_name = method_mixin->name();
       OS::PrintErr("(");
-      if (method_mixin_name->IsByteString()) {
+      if (method_mixin_name->IsString()) {
         PrintStringError(method_mixin_name);
       } else {
         method_mixin_name =
             reinterpret_cast<AbstractMixin*>(method_mixin_name)->name();
-        ASSERT(method_mixin_name->IsByteString());
+        ASSERT(method_mixin_name->IsString());
         PrintStringError(method_mixin_name);
         OS::PrintErr(" class");
       }
       OS::PrintErr(")");
     }
 
-    ByteString* method_name = home->method()->selector();
+    String* method_name = home->method()->selector();
     OS::PrintErr(" ");
     PrintStringError(method_name);
     OS::PrintErr("\n");

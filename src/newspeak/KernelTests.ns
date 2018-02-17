@@ -268,6 +268,43 @@ public testByteArrayAtPut = (
 
 	should: [empty at: 1 put: 9] signal: Error.
 )
+public testByteArrayCopyFromTo = (
+	| array = ByteArray new: 4. empty = ByteArray new: 0. copy |
+	array at: 1 put: 16rA.
+	array at: 2 put: 16rB.
+	array at: 3 put: 16rC.
+	array at: 4 put: 16rD.
+
+	copy:: array copyFrom: 1 to: 4.
+	assert: copy size equals: 4.
+	assert: (copy at: 1) equals: 16rA.
+	assert: (copy at: 4) equals: 16rD.
+
+	copy:: array copyFrom: 2 to: 3.
+	assert: copy size equals: 2.
+	assert: (copy at: 1) equals: 16rB.
+	assert: (copy at: 2) equals: 16rC.
+
+	1 to: 4 do: 
+		[:start |
+		 copy:: array copyFrom: start to: start - 1.
+		 assert: copy size equals: 0].
+
+	copy:: empty copyFrom: 1 to: 0.
+	assert: copy size equals: 0.
+
+	should: [empty copyFrom: 0 to: 0] signal: Error.
+	should: [empty copyFrom: 2 to: 0] signal: Error.
+	should: [empty copyFrom: 1 to: 1] signal: Error.
+
+	should: [array copyFrom: 4 to: 5] signal: Error.
+	should: [array copyFrom: nil to: 2] signal: Error.
+	should: [array copyFrom: 2 to: nil] signal: Error.
+	should: [array copyFrom: 2 to: 50] signal: Error.
+	should: [array copyFrom: 0 to: 2] signal: Error.
+	should: [array copyFrom: 2 asFloat to: 3] signal: Error.
+	should: [array copyFrom: 2 to: 3 asFloat] signal: Error.
+)
 public testByteArrayFloatIndex = (
 	| array = ByteArray new: 1. |
 	should: [array at: 1 asFloat] signal: Error.
@@ -4165,10 +4202,9 @@ public testStringAsString = (
 	assert: #foo asString equals: 'foo'.
 )
 public testStringAt = (
-	(* This is written so it works without and without string/character unification. *)
-	assert: ('foo' at: 1) equals: "f".
-	assert: ('foo' at: 2) equals: "o".
-	assert: ('foo' at: 3) equals: "o".
+	assert: ('foo' at: 1) equals: 102.
+	assert: ('foo' at: 2) equals: 111.
+	assert: ('foo' at: 3) equals: 111.
 
 	should: ['foo' at: 0] signal: Error.
 	should: ['foo' at: 4] signal: Error.
@@ -4190,6 +4226,28 @@ public testStringConcatenation = (
 	should: [3, 'foo'] signal: MessageNotUnderstood.
 	should: [true, 'foo'] signal: MessageNotUnderstood.
 	should: [nil, 'foo'] signal: MessageNotUnderstood.
+)
+public testStringCopyFromTo = (
+	assert: ('Hello, world!' copyFrom: 8 to: 12) equals: 'world'.
+	assert: ('Hello, world!' copyFrom: 5 to: 5) equals: 'o'.
+	
+	1 to: 5 do: 
+		[:start | assert: ('Hello' copyFrom: start to: start - 1) equals: ''].
+	
+	assert: ('' copyFrom: 1 to: 0) equals: ''.
+	
+	should: ['' copyFrom: 0 to: 0] signal: Error.
+	should: ['' copyFrom: 2 to: 0] signal: Error.
+	should: ['' copyFrom: 1 to: 1] signal: Error.
+
+	should: ['Hello, world!' copyFrom: 13 to: 14] signal: Error.
+	should: ['Hello, world!' copyFrom: 0 to: 1] signal: Error.
+	should: ['Hello, world!' copyFrom: 8 to: nil] signal: Error.
+	should: ['Hello, world!' copyFrom: nil to: 9] signal: Error.
+	should: ['Hello, world!' copyFrom: 2 to: 90] signal: Error.
+	should: ['Hello, world!' copyFrom: 80 to: 90] signal: Error.
+	should: ['Hello, world!' copyFrom: 2 to: 5 asFloat] signal: Error.
+	should: ['Hello, world!' copyFrom: 2 asFloat to: 5] signal: Error.
 )
 public testStringEndsWith = (
 	assert: ('foo' endsWith: 'o').
@@ -4215,53 +4273,14 @@ public testStringEquals = (
 	deny: 3 = '3'.
 )
 public testStringFirstLast = (
-	(* This is written so it works without and without string/character unification. *)
-	assert: ('bar' first) equals: "b".
-	assert: ('bar' last) equals: "r".
+	assert: ('bar' first) equals: 98.
+	assert: ('bar' last) equals: 114.
 
 	should: ['' first] signal: Error.
 	should: ['' last] signal: Error.
 )
 public testStringFloatIndex = (
 	should: ['foo' at: 1 asFloat] signal: Error.
-	should: ['foo' runeAt: 1 asFloat] signal: Error.
-)
-public testStringFromRune = (
-	assert: (String fromRune: 122) equals: 'z'.
-	assert: ((String fromRune: 0) runeAt: 1) equals: 0.
-
-	should: [String fromRune: -1] signal: Error.
-	should: [String fromRune: 16r110000] signal: Error.
-	should: [String fromRune: nil] signal: Error.
-	should: [String fromRune: 122 asFloat] signal: Error.
-	should: [String fromRune: 'z'] signal: Error.
-)
-public testStringFromRunes = (
-	| z zebra |
-	z:: String fromRunes: {122}.
-	assert: z size equals: 1.
-	assert: z equals: 'z'.
-
-	zebra:: String fromRunes: {122. 101. 98. 114. 97}.
-	assert: zebra size equals: 5.
-	assert: zebra equals: 'zebra'.
-	assert: (zebra runeAt: 1) equals: 122.
-	assert: (zebra runeAt: 2) equals: 101.
-	assert: (zebra runeAt: 3) equals: 98.
-	assert: (zebra runeAt: 4) equals: 114.
-	assert: (zebra runeAt: 5) equals: 97.
-
-	should: [String fromRunes: -1] signal: Error.
-	should: [String fromRunes: 16r110000] signal: Error.
-	should: [String fromRunes: nil] signal: Error.
-	should: [String fromRunes: 122 asFloat] signal: Error.
-	should: [String fromRunes: 'z'] signal: Error.
-
-	should: [String fromRunes: {-1}] signal: Error.
-	should: [String fromRunes: {16r110000}] signal: Error.
-	should: [String fromRunes: {nil}] signal: Error.
-	should: [String fromRunes: {122 asFloat}] signal: Error.
-	should: [String fromRunes: {'z'}] signal: Error.
 )
 public testStringHash = (
 	assert: 'foo' hash isInteger.
@@ -4279,7 +4298,7 @@ public testStringImmutable = (
 	should: [nonSymbol at: 1 put: "w"] signal: MessageNotUnderstood.
 	assert: nonSymbol equals: 'foobar'.
 
-	should: [nonSymbol runeAt: 1 put: 65] signal: MessageNotUnderstood.
+	should: [nonSymbol at: 1 put: 65] signal: MessageNotUnderstood.
 	assert: nonSymbol equals: 'foobar'.
 )
 public testStringIndexOf = (
@@ -4388,20 +4407,6 @@ public testStringLastIndexOfStartingAt = (
 	should: ['' lastIndexOf: '' startingAt: 0] signal: Error.
 	should: ['' lastIndexOf: '' startingAt: 2] signal: Error.
 )
-public testStringRuneAt = (
-	assert: ('foo' runeAt: 1) equals: 102.
-	assert: ('foo' runeAt: 2) equals: 111.
-	assert: ('foo' runeAt: 3) equals: 111.
-
-	should: ['foo' runeAt: 0] signal: Error.
-	should: ['foo' runeAt: 4] signal: Error.
-
-	should: ['' runeAt: 0] signal: Error.
-
-	should: ['foo' runeAt: -1] signal: Error.
-	should: ['foo' runeAt: nil] signal: Error.
-	should: ['foo' runeAt: 1 asFloat] signal: Error.
-)
 public testStringSize = (
 	assert: 'foo' size equals: 3.
 	assert: #foo size equals: 3.
@@ -4421,27 +4426,60 @@ public testStringStartsWith = (
 	should: ['foo' startsWith: true] signal: Error.
 	should: ['foo' startsWith: nil] signal: Error.
 )
-public testStringSubstring = (
-	assert: ('Hello, world!' copyFrom: 8 to: 12) equals: 'world'.
-	assert: ('Hello, world!' copyFrom: 5 to: 5) equals: 'o'.
+public testStringWith = (
+	assert: (String with: 122) equals: 'z'.
+	assert: ((String with: 0) at: 1) equals: 0.
 
-	should: ['Hello, world!' copyFrom: 8 to: nil] signal: Error.
-	should: ['Hello, world!' copyFrom: nil to: 9] signal: Error.
-	should: ['Hello, world!' copyFrom: 80 to: 90] signal: Error.
+	should: [String with: -1] signal: Error.
+	should: [String with: 16r110000] signal: Error.
+	should: [String with: nil] signal: Error.
+	should: [String with: 122 asFloat] signal: Error.
+	should: [String with: 'z'] signal: Error.
+)
+public testStringWithAll = (
+	| z zebra |
+	z:: String withAll: {122}.
+	assert: z size equals: 1.
+	assert: z equals: 'z'.
+
+	zebra:: String withAll: {122. 101. 98. 114. 97}.
+	assert: zebra size equals: 5.
+	assert: zebra equals: 'zebra'.
+	assert: (zebra at: 1) equals: 122.
+	assert: (zebra at: 2) equals: 101.
+	assert: (zebra at: 3) equals: 98.
+	assert: (zebra at: 4) equals: 114.
+	assert: (zebra at: 5) equals: 97.
+
+	should: [String withAll: -1] signal: Error.
+	should: [String withAll: 16r110000] signal: Error.
+	should: [String withAll: nil] signal: Error.
+	should: [String withAll: 122 asFloat] signal: Error.
+	should: [String withAll: 'z'] signal: Error.
+
+	should: [String withAll: {-1}] signal: Error.
+	should: [String withAll: {16r256}] signal: Error.
+	should: [String withAll: {nil}] signal: Error.
+	should: [String withAll: {122 asFloat}] signal: Error.
+	should: [String withAll: {'z'}] signal: Error.
 )
 public testWideStringAsString = (
 	assert: 'Îñţérñåţîöñåļîžåţîờñ' asString equals: 'Îñţérñåţîöñåļîžåţîờñ'.
 	assert: #'Îñţérñåţîöñåļîžåţîờñ' asString equals: 'Îñţérñåţîöñåļîžåţîờñ'.
 )
 public testWideStringAt = (
-	(* :todo: It's not clear that being able to quickly iterate code points is actually that useful. *)
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 1) equals: 'Î'.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 3) equals: 'ţ'.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 15) equals: 'ž'.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 20) equals: 'ñ'.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 1) equals: 195.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 2) equals: 142.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 3) equals: 195.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 15) equals: 163.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 20) equals: 195.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 36) equals: 225.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 37) equals: 187.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 38) equals: 157.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 40) equals: 177.
 
 	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 0] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 21] signal: Error.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 41] signal: Error.
 
 	should: ['Îñţérñåţîöñåļîžåţîờñ' at: -1] signal: Error.
 	should: ['Îñţérñåţîöñåļîžåţîờñ' at: nil] signal: Error.
@@ -4450,15 +4488,15 @@ public testWideStringAt = (
 public testWideStringConcatenation = (
 	assert: 'Îñţérñåţîöñåļ' , 'îžåţîờñ' equals: 'Îñţérñåţîöñåļîžåţîờñ'.
 	assert: 'Îñţérñåţîöñåļ' , 'îžåţîờñ', '' equals: 'Îñţérñåţîöñåļîžåţîờñ'.
-	assert: ('Îñţérñåţîöñåļ' , 'îžåţîờñ') size equals: 20.
+	assert: ('Îñţérñåţîöñåļ' , 'îžåţîờñ') size equals: 40.
 
 	assert: 'Îñţérñåţîöñåļ' , 'ASCII' equals: 'ÎñţérñåţîöñåļASCII'.
 	assert: 'Îñţérñåţîöñåļ' , 'ASCII', '' equals: 'ÎñţérñåţîöñåļASCII'.
-	assert: ('Îñţérñåţîöñåļ' , 'ASCII') size equals: 18.
+	assert: ('Îñţérñåţîöñåļ' , 'ASCII') size equals: 30.
 
 	assert: 'ASCII' , 'Îñţérñåţîöñåļ' equals: 'ASCIIÎñţérñåţîöñåļ'.
 	assert: 'ASCII' , 'Îñţérñåţîöñåļ', '' equals: 'ASCIIÎñţérñåţîöñåļ'.
-	assert: ('ASCII' , 'Îñţérñåţîöñåļ') size equals: 18.
+	assert: ('ASCII' , 'Îñţérñåţîöñåļ') size equals: 30.
 
 	should: ['Îñţérñåţîöñåļ', 3] signal: Error.
 	should: ['Îñţérñåţîöñåļ', true] signal: Error.
@@ -4466,6 +4504,15 @@ public testWideStringConcatenation = (
 	should: [3, 'Îñţérñåţîöñåļ'] signal: MessageNotUnderstood.
 	should: [true, 'Îñţérñåţîöñåļ'] signal: MessageNotUnderstood.
 	should: [nil, 'Îñţérñåţîöñåļ'] signal: MessageNotUnderstood.
+)
+public testWideStringCopyFromTo = (
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' copyFrom: 10 to: 25) equals: 'ñåţîöñåļ'.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ' copyFrom: 5 to: 6) equals: 'ţ'.
+	assert: ('Îñţérñåţîöñåļîžåţîờñ ASCII' copyFrom: 42 to: 46) equals: 'ASCII'.
+
+	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: 8 to: nil] signal: Error.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: nil to: 9] signal: Error.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: 80 to: 90] signal: Error.
 )
 public testWideStringEndsWith = (
 	assert: ('Îñţérñåţîöñåļîžåţîờñ' endsWith: 'ñ').
@@ -4491,55 +4538,10 @@ public testWideStringEndsWith = (
 	should: ['Îñţérñåţîöñåļîžåţîờñ' endsWith: true] signal: Error.
 	should: ['Îñţérñåţîöñåļîžåţîờñ' endsWith: nil] signal: Error.
 )
-public testWideStringFromRune = (
-	assert: ((String fromRune: 16r10FFFF) runeAt: 1) equals: 16r10FFFF.
-)
-public testWideStringFromRunes = (
-	| mixed lastChar |
-	mixed:: String fromRunes: {100. 200. 300}.
-	assert: mixed size equals: 3.
-	assert: (mixed runeAt: 1) equals: 100.
-	assert: (mixed runeAt: 2) equals: 200.
-	assert: (mixed runeAt: 3) equals: 300.
-
-	lastChar:: String fromRunes: {16r10FFFF}.
-	assert: lastChar size equals: 1.
-	assert: (lastChar runeAt: 1) equals: 16r10FFFF.
-)
-public testWideStringRuneAt = (
-	(* :todo: It's not clear that being able to quickly iterate code points is actually that useful. *)
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 1) equals: 206.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 2) equals: 241.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 3) equals: 355.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 4) equals: 233.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 5) equals: 114.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 6) equals: 241.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 7) equals: 229.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 8) equals: 355.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 9) equals: 238.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 10) equals: 246.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 11) equals: 241.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 12) equals: 229.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 13) equals: 316.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 14) equals: 238.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 15) equals: 382.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 16) equals: 229.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 17) equals: 355.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 18) equals: 238.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 19) equals: 7901.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' runeAt: 20) equals: 241.
-
-	should: ['Îñţérñåţîöñåļîžåţîờñ' runeAt: 0] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' runeAt: 21] signal: Error.
-
-	should: ['Îñţérñåţîöñåļîžåţîờñ' runeAt: -1] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' runeAt: nil] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' runeAt: 1 asFloat] signal: Error.
-)
 public testWideStringSize = (
 	(* :todo: It's not clear that being able to quickly iterate code points is actually that useful. *)
-	assert: 'Îñţérñåţîöñåļîžåţîờñ' size equals: 20.
-	assert: #'Îñţérñåţîöñåļîžåţîờñ' size equals: 20.
+	assert: 'Îñţérñåţîöñåļîžåţîờñ' size equals: 40.
+	assert: #'Îñţérñåţîöñåļîžåţîờñ' size equals: 40.
 )
 public testWideStringStartsWith = (
 	assert: ('Îñţérñåţîöñåļîžåţîờñ' startsWith: 'Î').
@@ -4563,15 +4565,6 @@ public testWideStringStartsWith = (
 	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: 0] signal: Error.
 	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: true] signal: Error.
 	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: nil] signal: Error.
-)
-public testWideStringSubstring = (
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' copyFrom: 6 to: 13) equals: 'ñåţîöñåļ'.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ' copyFrom: 3 to: 3) equals: 'ţ'.
-	assert: ('Îñţérñåţîöñåļîžåţîờñ ASCII' copyFrom: 22 to: 26) equals: 'ASCII'.
-
-	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: 8 to: nil] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: nil to: 9] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: 80 to: 90] signal: Error.
 )
 ) : (
 TEST_CONTEXT = ()

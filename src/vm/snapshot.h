@@ -26,7 +26,7 @@ class Deserializer : public ValueObject {
   uint32_t ReadUint32();
   int32_t ReadInt32();
   int64_t ReadInt64();
-  intptr_t ReadUnsigned32();
+  intptr_t ReadUnsigned();
 
   void Deserialize();
 
@@ -38,7 +38,7 @@ class Deserializer : public ValueObject {
     refs_[next_ref_++] = object;
   }
   Object* ReadRef() {
-    return Ref(ReadUnsigned32());
+    return Ref(ReadUnsigned());
   }
   Object* Ref(intptr_t i) {
     ASSERT(i > 0);

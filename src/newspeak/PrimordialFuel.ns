@@ -10,8 +10,7 @@ private MediumInteger = k MediumInteger.
 private LargeInteger = k LargeInteger.
 private Float = k Float.
 private ByteArray = k ByteArray.
-private ByteString = k ByteString.
-private WideString = k WideString.
+private String = k String.
 private Array = k _Array.
 private WeakArray = k WeakArray.
 private Ephemeron = k Ephemeron.
@@ -33,14 +32,13 @@ private kMintCid = 4.
 private kBigintCid = 5.
 private kFloat64Cid = 6.
 private kByteArrayCid = 7.
-private kByteStringCid = 8.
-private kWideStringCid = 9.
-private kArrayCid = 10.
-private kWeakArrayCid = 11.
-private kEphemeronCid = 12.
-private kActivationCid = 13.
-private kClosureCid = 14.
-private kFirstPlainObjectCid = 15.
+private kStringCid = 8.
+private kArrayCid = 9.
+private kWeakArrayCid = 10.
+private kEphemeronCid = 11.
+private kActivationCid = 12.
+private kClosureCid = 13.
+private kFirstPlainObjectCid = 14.
 private Version = 0.
 |) (
 class ByteStream = (|
@@ -118,7 +116,7 @@ public readEdges = (
 )
 public readNodes = (
 	backRefStart:: nextBackRef.
-	stream uint16 timesRepeat:
+	stream unsigned timesRepeat:
 		[registerBackRef: Activation new].
 	backRefStop:: nextBackRef - 1.
 )
@@ -139,11 +137,8 @@ public readEdges = (
 )
 public readNodes = (
 	backRefStart:: nextBackRef.
-	stream uint16 timesRepeat:
-		[ | size object |
-		size:: stream uint16.
-		object:: Array new: size.
-		registerBackRef: object].
+	stream unsigned timesRepeat:
+		[registerBackRef: (Array new: stream unsigned)].
 	backRefStop:: nextBackRef - 1.
 )
 ) : (
@@ -154,30 +149,11 @@ public adoptInstances = (
 public readEdges = (
 )
 public readNodes = (
-	| count = stream uint16. |
 	(* ByteArray accessors are known to be side-effect free. *)
-	count timesRepeat:
-		[ | size = stream uint32. object = ByteArray new: size. |
+	stream unsigned timesRepeat:
+		[ | size = stream unsigned. object = ByteArray new: size. |
 		1 to: size do: [:index | object at: index put: stream uint8].
 		registerBackRef: object].
-)
-) : (
-)
-class ByteStringCluster = () (
-public adoptInstances = (
-)
-public readEdges = (
-)
-public readNodes = (
-	stream uint16 timesRepeat: [
-		| size = stream uint32. acc = Array new: size. |
-		1 to: size do: [:index | acc at: index put: stream uint8].
-		registerBackRef: (String fromRunes: acc)].
-
-	stream uint16 timesRepeat: [
-		| size = stream uint32. acc = Array new: size. |
-		1 to: size do: [:index | acc at: index put: stream uint8].
-		registerBackRef: (String fromRunes: acc) asSymbol].
 )
 ) : (
 )
@@ -195,7 +171,7 @@ public readEdges = (
 )
 public readNodes = (
 	backRefStart:: nextBackRef.
-	stream uint16 timesRepeat:
+	stream unsigned timesRepeat:
 		[registerBackRef: (Closure withNumCopied: stream uint16)].
 	backRefStop:: nextBackRef - 1.
 )
@@ -218,7 +194,7 @@ public readEdges = (
 )
 public readNodes = (
 	backRefStart:: nextBackRef.
-	stream uint16 timesRepeat:
+	stream unsigned timesRepeat:
 		[registerBackRef: Ephemeron new].
 	backRefStop:: nextBackRef - 1.
 )
@@ -230,14 +206,11 @@ public adoptInstances = (
 public readEdges = (
 )
 public readNodes = (
-	| count |
-	count:: stream uint16.
-	count timesRepeat:
+	stream unsigned timesRepeat:
 		[registerBackRef: stream int64].
 
 	(* :todo: Add use direct diget accessors. *)
-	count:: stream uint16.
-	count timesRepeat:
+	stream unsigned timesRepeat:
 		[ | negative digitLength integer |
 		negative:: stream uint8 = 1.
 		digitLength:: stream uint16.
@@ -274,9 +247,27 @@ public readEdges = (
 public readNodes = (
 	allocClass:: TemporaryClass withFormat: numSlots.
 	backRefStart:: nextBackRef.
-	stream uint16 timesRepeat:
+	stream unsigned timesRepeat:
 		[registerBackRef: allocClass vfBasicNew].
 	backRefStop:: nextBackRef - 1.
+)
+) : (
+)
+class StringCluster = () (
+public adoptInstances = (
+)
+public readEdges = (
+)
+public readNodes = (
+	stream unsigned timesRepeat: [
+		| size = stream unsigned. acc = ByteArray new: size. |
+		1 to: size do: [:index | acc at: index put: stream uint8].
+		registerBackRef: (String withAll: acc)].
+
+	stream unsigned timesRepeat: [
+		| size = stream unsigned. acc = ByteArray new: size. |
+		1 to: size do: [:index | acc at: index put: stream uint8].
+		registerBackRef: (String withAll: acc) asSymbol].
 )
 ) : (
 )
@@ -295,30 +286,9 @@ public readEdges = (
 )
 public readNodes = (
 	backRefStart:: nextBackRef.
-	stream uint16 timesRepeat:
-		[ | size object |
-		size:: stream uint16.
-		object:: Array new: size.
-		registerBackRef: object].
+	stream unsigned timesRepeat:
+		[registerBackRef: (WeakArray new: stream unsigned)].
 	backRefStop:: nextBackRef - 1.
-)
-) : (
-)
-class WideStringCluster = () (
-public adoptInstances = (
-)
-public readEdges = (
-)
-public readNodes = (
-	stream uint16 timesRepeat: [
-		| size = stream uint32. acc = Array new: size. |
-		1 to: size do: [:index | acc at: index put: stream uint32].
-		registerBackRef: (String fromRunes: acc)].
-
-	stream uint16 timesRepeat: [
-		| size = stream uint32. acc = Array new: size. |
-		1 to: size do: [:index | acc at: index put: stream uint32].
-		registerBackRef: (String fromRunes: acc) asSymbol].
 )
 ) : (
 )
@@ -359,8 +329,7 @@ readCluster = (
 	format = kSmiCid ifTrue: [^IntegerCluster new].
 	format = kFloat64Cid ifTrue: [^FloatCluster new].
 	format = kByteArrayCid ifTrue: [^ByteArrayCluster new].
-	format = kByteStringCid ifTrue: [^ByteStringCluster new].
-	format = kWideStringCid ifTrue: [^WideStringCluster new].
+	format = kStringCid ifTrue: [^StringCluster new].
 	format = kArrayCid ifTrue: [^ArrayCluster new].
 	format = kWeakArrayCid ifTrue: [^WeakArrayCluster new].
 	format = kEphemeronCid ifTrue: [^EphemeronCluster new].
@@ -386,8 +355,7 @@ registerSymbolicObjects = (
 	registerBackRef: LargeInteger.
 	registerBackRef: Float.
 	registerBackRef: ByteArray.
-	registerBackRef: ByteString.
-	registerBackRef: WideString.
+	registerBackRef: String.
 	registerBackRef: Array.
 	registerBackRef: WeakArray.
 	registerBackRef: Ephemeron.
@@ -638,12 +606,12 @@ public writeEdges = (
 		writeBackRef: object method.
 		writeBackRef: object closure.
 		writeBackRef: object receiver.
-		stream uint32: object tempSize. (* !!!! *)
+		stream uint16: object tempSize. (* !!!! *)
 		1 to: object tempSize do: [:index | writeBackRef: (object tempAt: index)]].
 )
 public writeNodes = (
 	writeFormat: kActivationCid negated.
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	objects do: [:object |
 		registerBackRef: object.
 		(* :todo: Have small and large contexts?
@@ -672,11 +640,11 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kArrayCid negated.
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	(* Array accessors are known to be side-effect free. *)
 	objects do: [:object |
 		registerBackRef: object.
-		stream uint16: object size].
+		stream unsigned: object size].
 )
 ) : (
 )
@@ -690,44 +658,12 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kByteArrayCid negated.
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	(* ByteArray accessors are known to be side-effect free. *)
 	objects do: [:object |
 		registerBackRef: object.
-		stream uint32: object size.
+		stream unsigned: object size.
 		1 to: object size do: [:index | stream uint8: (object at: index)]].
-)
-) : (
-)
-class ByteStringCluster = (|
-noncanonical = List new.
-canonical = List new.
-|) (
-public analyze: object = (
-	(isCanonical: object)
-		ifTrue: [canonical add: object]
-		ifFalse: [noncanonical add: object].
-)
-public symbols = (
-	^canonical asArray
-)
-public writeEdges = (
-)
-public writeNodes = (
-	writeFormat: kByteStringCid negated.
-
-	(* ByteString accessors are known to be side-effect free. *)
-	stream uint16: noncanonical size.
-	noncanonical do: [:object |
-		registerBackRef: object.
-		stream uint32: object size.
-		1 to: object size do: [:index | stream uint8: (object runeAt: index)]].
-
-	stream uint16: canonical size.
-	canonical do: [:object |
-		registerBackRef: object.
-		stream uint32: object size.
-		1 to: object size do: [:index | stream uint8: (object runeAt: index)]].
 )
 ) : (
 )
@@ -752,7 +688,7 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kClosureCid negated.
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	objects do: [:object |
 		registerBackRef: object.
 		stream uint16: (numCopiedOf: object)].
@@ -780,7 +716,7 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: 3 (* :todo: maybe kEphemeronCid? *).
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	objects do: [:object | registerBackRef: object].
 )
 ) : (
@@ -795,7 +731,7 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kWeakArrayCid negated.
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	objects do: [:object |
 		registerBackRef: object.
 		stream uint64: UNIMPLEMENTED].
@@ -816,13 +752,13 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kSmiCid negated.
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	objects do: [:object |
 		registerBackRef: object.
 		stream int64: object].
 
 	(* :todo: Add use direct diget accessors. *)
-	stream uint16: large size.
+	stream unsigned: large size.
 	large do: [:object | | abs tmp digitLength |
 		registerBackRef: object.
 		object < 0
@@ -870,7 +806,7 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: numSlots.
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	objects do: [:object | registerBackRef: object].
 )
 public writeNonBehaviorEdges = (
@@ -878,6 +814,38 @@ public writeNonBehaviorEdges = (
 	objects do:
 		[:object | 1 to: numSlots do:
 			[:index | writeBackRef: (slotOf: object at: index)]].
+)
+) : (
+)
+class StringCluster = (|
+noncanonical = List new.
+canonical = List new.
+|) (
+public analyze: object = (
+	(isCanonical: object)
+		ifTrue: [canonical add: object]
+		ifFalse: [noncanonical add: object].
+)
+public symbols = (
+	^canonical asArray
+)
+public writeEdges = (
+)
+public writeNodes = (
+	writeFormat: kStringCid negated.
+
+	(* String accessors are known to be side-effect free. *)
+	stream unsigned: noncanonical size.
+	noncanonical do: [:object |
+		registerBackRef: object.
+		stream unsigned: object size.
+		1 to: object size do: [:index | stream uint8: (object at: index)]].
+
+	stream unsigned: canonical size.
+	canonical do: [:object |
+		registerBackRef: object.
+		stream unsigned: object size.
+		1 to: object size do: [:index | stream uint8: (object at: index)]].
 )
 ) : (
 )
@@ -896,40 +864,11 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: kWeakArrayCid negated.
-	stream uint16: objects size.
+	stream unsigned: objects size.
 	(* WeakArray accessors are known to be side-effect free. *)
 	objects do: [:object |
 		registerBackRef: object.
-		stream uint16: object size].
-)
-) : (
-)
-class WideStringCluster = (|
-noncanonical = List new.
-canonical = List new.
-|) (
-public analyze: object = (
-	(isCanonical: object)
-		ifTrue: [canonical add: object]
-		ifFalse: [noncanonical add: object].
-)
-public writeEdges = (
-)
-public writeNodes = (
-	writeFormat: kWideStringCid negated.
-
-	(* WideString accessors are known to be side-effect free. *)
-	stream uint16: noncanonical size.
-	noncanonical do: [:object |
-		registerBackRef: object.
-		stream uint32: object size.
-		1 to: object size do: [:index | stream uint32: (object runeAt: index)]].
-
-	stream uint16: canonical size.
-	canonical do: [:object |
-		registerBackRef: object.
-		stream uint32: object size.
-		1 to: object size do: [:index | stream uint32: (object runeAt: index)]].
+		stream unsigned: object size].
 )
 ) : (
 )
@@ -949,8 +888,7 @@ createSpecialClassClusters = (
 
 	(* clusters at: Float put: FloatCluster new. *)
 	orderedClusters add: (clusters at: ByteArray put: ByteArrayCluster new).
-	orderedClusters add: (clusters at: WideString put: WideStringCluster new).
-	orderedClusters add: (clusters at: ByteString put: ByteStringCluster new).
+	orderedClusters add: (clusters at: String put: StringCluster new).
 	orderedClusters add: (clusters at: Array put: ArrayCluster new).
 	orderedClusters add: (clusters at: WeakArray put: WeakArrayCluster new).
 	orderedClusters add: (clusters at: Ephemeron put: EphemeronCluster new).
@@ -992,8 +930,7 @@ registerSymbolicObjects = (
 	registerPreBackRef: LargeInteger.
 	registerPreBackRef: Float.
 	registerPreBackRef: ByteArray.
-	registerPreBackRef: ByteString.
-	registerPreBackRef: WideString.
+	registerPreBackRef: String.
 	registerPreBackRef: Array.
 	registerPreBackRef: WeakArray.
 	registerPreBackRef: Ephemeron.
@@ -1111,7 +1048,7 @@ replaceMixin: mixin = (
 )
 replaceSymbolTable = (
 	| newSymbolTable |
-	newSymbolTable:: (clusters at: ByteString) symbols.
+	newSymbolTable:: (clusters at: String) symbols.
 
 	(* Replace the written node. *)
 	(clusters at: Array) replace: symbolTablePlaceholder with: newSymbolTable.
@@ -1142,7 +1079,7 @@ public serialize: root = (
 	replaceSymbolTable.
 
 	interpreter:: '#!fuchsia primordialsoup'.
-	1 to: interpreter size do: [:index | stream uint8: (interpreter runeAt: index)].
+	1 to: interpreter size do: [:index | stream uint8: (interpreter at: index)].
 	stream uint8: 10. (* \n *)
 	stream uint16: 16r1984.
 	stream uint16: Version.
@@ -1179,14 +1116,13 @@ public snapshotApp: app withRuntime: runtime = (
 	replaceClass: Activation with: newKernel Activation.
 	replaceClass: Array with: newKernel _Array.
 	replaceClass: ByteArray with: newKernel ByteArray.
-	replaceClass: ByteString with: newKernel ByteString.
+	replaceClass: String with: newKernel String.
 	replaceClass: Closure with: newKernel Closure.
 	replaceClass: Ephemeron with: newKernel Ephemeron.
 	replaceClass: SmallInteger with: newKernel SmallInteger.
 	replaceClass: MediumInteger with: newKernel MediumInteger.
 	replaceClass: LargeInteger with: newKernel LargeInteger.
 	replaceClass: WeakArray with: newKernel WeakArray.
-	replaceClass: WideString with: newKernel WideString.
 
 	replaceClass: True with: newKernel True.
 	replaceClass: False with: newKernel False.

@@ -52,8 +52,8 @@ public parseWithContext: ctxt ifError: onError = (
 ) : (
 )
 class CharacterRangeParser between: c1 and: c2 = CombinatorialParser (|
-lowerBound <Character> = (c1 runeAt: 1).
-upperBound <Character> = (c2 runeAt: 1).
+lowerBound <Integer> = (c1 at: 1).
+upperBound <Integer> = (c2 at: 1).
 |) (
 public compress = (
 	^self
@@ -129,9 +129,8 @@ public atEnd = (
 	^position >= content size
 )
 public next = (
-	| rune |
 	position: position + 1.
-	^content runeAt: position.
+	^content at: position.
 )
 ) : (
 )

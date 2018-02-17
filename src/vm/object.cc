@@ -33,12 +33,9 @@ intptr_t Object::HeapSizeFromClass() const {
   case kByteArrayCid:
     return AllocationSize(sizeof(ByteArray) +
                           sizeof(uint8_t) * ByteArray::Cast(this)->Size());
-  case kByteStringCid:
-    return AllocationSize(sizeof(ByteString) +
-                          sizeof(uint8_t) * ByteString::Cast(this)->Size());
-  case kWideStringCid:
-    return AllocationSize(sizeof(WideString) +
-                          sizeof(uint32_t) * WideString::Cast(this)->Size());
+  case kStringCid:
+    return AllocationSize(sizeof(String) +
+                          sizeof(uint8_t) * String::Cast(this)->Size());
   case kArrayCid:
     return AllocationSize(sizeof(Array) +
                           sizeof(Object*) * Array::Cast(this)->Size());
@@ -76,8 +73,7 @@ void Object::Pointers(Object*** from, Object*** to) {
   case kBigintCid:
   case kFloat64Cid:
   case kByteArrayCid:
-  case kByteStringCid:
-  case kWideStringCid:
+  case kStringCid:
     // No pointers (or only smis for size/hash)
     *from = reinterpret_cast<Object**>(1);
     *to = reinterpret_cast<Object**>(0);
@@ -115,7 +111,7 @@ char* Object::ToCString(Heap* heap) const {
   intptr_t length;
   Object* cls;
   Object* cls2;
-  ByteString* name;
+  String* name;
 
   switch (ClassId()) {
   case kIllegalCid:
@@ -134,26 +130,13 @@ char* Object::ToCString(Heap* heap) const {
     return OS::PrintStr("a Float(%lf)", Float64::Cast(this)->value());
   case kByteArrayCid:
     return OS::PrintStr("a ByteArray(%" Pd ")", ByteArray::Cast(this)->Size());
-  case kByteStringCid:
-    length = ByteString::Cast(this)->Size();
+  case kStringCid:
+    length = String::Cast(this)->Size();
     result = reinterpret_cast<char*>(malloc(length + 14));
-    memcpy(&result[0], "a ByteString ", 13);
-    memcpy(&result[13], ByteString::Cast(this)->element_addr(0), length);
+    memcpy(&result[0], "a String ", 13);
+    memcpy(&result[13], String::Cast(this)->element_addr(0), length);
     result[length + 13] = '\0';
     for (intptr_t i = 0; i < length + 13; i++) {
-      if (result[i] == '\r') {
-        result[i] = '\n';
-      }
-    }
-    return result;
-  case kWideStringCid:
-    // TODO(rmacnak): Need to convert to utf8 to print.
-    length = WideString::Cast(this)->Size();
-    result = reinterpret_cast<char*>(malloc(length + 2));
-    result[0] = '#';
-    memcpy(&result[1], WideString::Cast(this)->element_addr(0), length);
-    result[length + 1] = '\0';
-    for (intptr_t i = 0; i < length + 1; i++) {
       if (result[i] == '\r') {
         result[i] = '\n';
       }
@@ -175,7 +158,7 @@ char* Object::ToCString(Heap* heap) const {
       // A Metaclass.
       cls2 = static_cast<Metaclass*>(cls)->this_class();
       name = static_cast<Class*>(cls2)->name();
-      if (!name->IsByteString()) {
+      if (!name->IsString()) {
         return strdup("Instance of uninitialized metaclass?");
       }
       length = name->Size();
@@ -187,7 +170,7 @@ char* Object::ToCString(Heap* heap) const {
     } else if ((cls->HeapSize() / sizeof(uword)) == 10) {
       // A Class.
       name = static_cast<Class*>(cls)->name();
-      ASSERT(name->IsByteString());
+      ASSERT(name->IsString());
       length = name->Size();
       result = reinterpret_cast<char*>(malloc(length + 12 + 1));
       memcpy(&result[0], "instance of ", 13);
@@ -215,27 +198,7 @@ static uintptr_t kFNVPrime = 1099511628211;
 #endif
 
 
-SmallInteger* ByteString::EnsureHash(Isolate* isolate) {
-  if (hash() == 0) {
-    // FNV-1a hash
-    intptr_t length = Size();
-    uintptr_t h = length + 1;
-    for (intptr_t i = 0; i < length; i++) {
-      h = h ^ element(i);
-      h = h * kFNVPrime;
-    }
-    h = h ^ isolate->salt();
-    h = h & SmallInteger::kMaxValue;
-    if (h == 0) {
-      h = 1;
-    }
-    set_hash(SmallInteger::New(h));
-  }
-  return hash();
-}
-
-
-SmallInteger* WideString::EnsureHash(Isolate* isolate) {
+SmallInteger* String::EnsureHash(Isolate* isolate) {
   if (hash() == 0) {
     // FNV-1a hash
     intptr_t length = Size();
