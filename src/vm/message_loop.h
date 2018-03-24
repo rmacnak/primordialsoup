@@ -32,8 +32,10 @@ class IsolateMessage {
 
  private:
   friend class MessageLoop;
-  friend class DefaultMessageLoop;
+  friend class EPollMessageLoop;
   friend class FuchsiaMessageLoop;
+  friend class IOCPMessageLoop;
+  friend class KQueueMessageLoop;
 
   IsolateMessage* next_;
   Port dest_;
@@ -43,6 +45,13 @@ class IsolateMessage {
   int argc_;
 
   DISALLOW_COPY_AND_ASSIGN(IsolateMessage);
+};
+
+enum {
+  kReadEvent = 0,
+  kWriteEvent,
+  kCloseEvent,
+  kErrorEvent,
 };
 
 class MessageLoop {
@@ -83,10 +92,18 @@ class MessageLoop {
 
 }  // namespace psoup
 
-#if defined(OS_FUCHSIA)
+#if defined(OS_ANDROID)
+#include "vm/message_loop_epoll.h"
+#elif defined(OS_FUCHSIA)
 #include "vm/message_loop_fuchsia.h"
+#elif defined(OS_LINUX)
+#include "vm/message_loop_epoll.h"
+#elif defined(OS_MACOS)
+#include "vm/message_loop_kqueue.h"
+#elif defined(OS_WINDOWS)
+#include "vm/message_loop_iocp.h"
 #else
-#include "vm/message_loop_default.h"
+#error Unknown OS.
 #endif
 
 #endif  // VM_MESSAGE_LOOP_H_

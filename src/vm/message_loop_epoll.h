@@ -1,12 +1,12 @@
-// Copyright (c) 2017, the Dart project authors.  Please see the AUTHORS file
+// Copyright (c) 2018, the Dart project authors.  Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-#ifndef VM_MESSAGE_LOOP_DEFAULT_H_
-#define VM_MESSAGE_LOOP_DEFAULT_H_
+#ifndef VM_MESSAGE_LOOP_EPOLL_H_
+#define VM_MESSAGE_LOOP_EPOLL_H_
 
 #if !defined(VM_MESSAGE_LOOP_H_)
-#error Do not include message_loop_default.h directly; use message_loop.h \
+#error Do not include message_loop_epoll.h directly; use message_loop.h \
   instead.
 #endif
 
@@ -15,12 +15,12 @@
 
 namespace psoup {
 
-#define PlatformMessageLoop DefaultMessageLoop
+#define PlatformMessageLoop EPollMessageLoop
 
-class DefaultMessageLoop : public MessageLoop {
+class EPollMessageLoop : public MessageLoop {
  public:
-  explicit DefaultMessageLoop(Isolate* isolate);
-  ~DefaultMessageLoop();
+  explicit EPollMessageLoop(Isolate* isolate);
+  ~EPollMessageLoop();
 
   void PostMessage(IsolateMessage* message);
   intptr_t AwaitSignal(intptr_t handle, intptr_t signals, int64_t deadline);
@@ -32,16 +32,20 @@ class DefaultMessageLoop : public MessageLoop {
   void Interrupt();
 
  private:
-  IsolateMessage* WaitMessage();
+  IsolateMessage* TakeMessages();
+  void Notify();
 
-  Monitor monitor_;
+  Mutex mutex_;
   IsolateMessage* head_;
   IsolateMessage* tail_;
   int64_t wakeup_;
+  int interrupt_fds_[2];
+  int timer_fd_;
+  int epoll_fd_;
 
-  DISALLOW_COPY_AND_ASSIGN(DefaultMessageLoop);
+  DISALLOW_COPY_AND_ASSIGN(EPollMessageLoop);
 };
 
 }  // namespace psoup
 
-#endif  // VM_MESSAGE_LOOP_DEFAULT_H_
+#endif  // VM_MESSAGE_LOOP_EPOLL_H_
