@@ -119,9 +119,8 @@ const bool kFailure = false;
   V(92, Closure_value2)                                                        \
   V(93, Closure_value3)                                                        \
   V(94, Closure_valueArray)                                                    \
-  V(95, jump)                                                                  \
+  V(95, Activation_jump)                                                       \
   V(96, Behavior_allInstances)                                                 \
-  V(97, Behavior_adoptInstance)                                                \
   V(98, Array_elementsForwardIdentity)                                         \
   V(99, Platform_operatingSystem)                                              \
   V(100, Time_monotonicNanos)                                                  \
@@ -130,13 +129,12 @@ const bool kFailure = false;
   V(103, halt)                                                                 \
   V(104, flushCache)                                                           \
   V(105, collectGarbage)                                                       \
-  V(107, isolateExit)                                                          \
+  V(107, EventLoop_exit)                                                       \
   V(111, Number_printString)                                                   \
-  V(112, simulationGuard)                                                      \
-  V(113, unwindProtect)                                                        \
+  V(113, Closure_ensure)                                                       \
   V(114, String_equals)                                                        \
   V(115, String_concat)                                                        \
-  V(116, handlerMarker)                                                        \
+  V(116, Closure_onDo)                                                         \
   V(117, String_startsWith)                                                    \
   V(118, String_endsWith)                                                      \
   V(119, String_indexOf)                                                       \
@@ -152,7 +150,7 @@ const bool kFailure = false;
   V(131, Double_pow)                                                           \
   V(132, Double_class_parse)                                                   \
   V(133, currentActivation)                                                    \
-  V(134, adoptInstance)                                                        \
+  V(134, Behavior_adoptInstance)                                               \
   V(135, openPort)                                                             \
   V(136, closePort)                                                            \
   V(137, spawn)                                                                \
@@ -2005,7 +2003,7 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
 }
 
 
-DEFINE_PRIMITIVE(jump) {
+DEFINE_PRIMITIVE(Activation_jump) {
   ASSERT(num_args == 1);
   Activation* target = static_cast<Activation*>(A->Stack(0));
   if (!target->IsActivation()) {
@@ -2050,12 +2048,6 @@ DEFINE_PRIMITIVE(Behavior_allInstances) {
   // OS::PrintErr("Found %" Pd " instances of %" Pd "\n", num_instances, cid);
 
   RETURN(result);
-}
-
-
-DEFINE_PRIMITIVE(Behavior_adoptInstance) {
-  UNIMPLEMENTED();
-  return kFailure;
 }
 
 
@@ -2132,7 +2124,7 @@ DEFINE_PRIMITIVE(collectGarbage) {
 }
 
 
-DEFINE_PRIMITIVE(isolateExit) {
+DEFINE_PRIMITIVE(EventLoop_exit) {
   ASSERT(num_args == 1);
   SmallInteger* exit_code = static_cast<SmallInteger*>(A->Stack(0));
   if (!exit_code->IsSmallInteger()) {
@@ -2178,13 +2170,7 @@ DEFINE_PRIMITIVE(Number_printString) {
 }
 
 
-DEFINE_PRIMITIVE(simulationGuard) {
-  // This is a marker primitive for the in-image simulation.
-  return kFailure;
-}
-
-
-DEFINE_PRIMITIVE(unwindProtect) {
+DEFINE_PRIMITIVE(Closure_ensure) {
   // This is a marker primitive checked on non-local return.
   return kFailure;
 }
@@ -2237,7 +2223,8 @@ DEFINE_PRIMITIVE(String_concat) {
 }
 
 
-DEFINE_PRIMITIVE(handlerMarker) {
+DEFINE_PRIMITIVE(Closure_onDo) {
+  // This is a marker primitive for the in-image exception handling machinary.
   return kFailure;
 }
 
@@ -2583,7 +2570,7 @@ DEFINE_PRIMITIVE(currentActivation) {
 }
 
 
-DEFINE_PRIMITIVE(adoptInstance) {
+DEFINE_PRIMITIVE(Behavior_adoptInstance) {
   ASSERT(num_args == 2);
   Behavior* new_cls = static_cast<Behavior*>(A->Stack(1));
   Object* instance = A->Stack(0);
@@ -2681,14 +2668,13 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
   }
 
   intptr_t index = primitive_index->value();
-  if (index == 112 ||  // simulationGuard
-      index == 133 ||  // currentActivation
+  if (index == 133 ||  // currentActivation
       index == 90 ||  // Closure_value0
       index == 91 ||  // Closure_value1
       index == 92 ||  // Closure_value2
       index == 93 ||  // Closure_value3
       index == 94 ||  // Closure_valueArray
-      index == 95 ||  // jump
+      index == 95 ||  // Activation_jump
       index == 89) {  // Object_performWithAll
     return kFailure;
   }
