@@ -2972,9 +2972,8 @@ DEFINE_PRIMITIVE(ZXVmo_read) {
   }
   HandleScope h1(H, reinterpret_cast<Object**>(&multiple_return));
   ByteArray* buffer = H->AllocateByteArray(size->value());  // SAFEPOINT
-  size_t actual;
   zx_status_t status = zx_vmo_read(AsHandle(vmo), buffer->element_addr(0),
-                                   offset->value(), size->value(), &actual);
+                                   offset->value(), size->value());
   multiple_return->set_element(0, buffer);
   RETURN_SMI(status);
 #endif
@@ -3001,9 +3000,8 @@ DEFINE_PRIMITIVE(ZXVmo_write) {
   if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
     return kFailure;
   }
-  size_t actual;
   zx_status_t status = zx_vmo_write(AsHandle(vmo), buffer->element_addr(0),
-                                    offset->value(), buffer->Size(), &actual);
+                                    offset->value(), buffer->Size());
   RETURN_SMI(status);
 #endif
 }

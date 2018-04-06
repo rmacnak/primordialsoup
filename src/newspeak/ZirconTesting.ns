@@ -165,8 +165,8 @@ public testVMOReadWrite = (
 	should: [vmo read: 4 from: -1] signal: Exception.
 	should: [vmo read: 4 from: 8 asFloat] signal: Exception.
 
-	vmo read: vmo size + 1 from: 0. (* Truncated read *)
-	vmo read: 1 from: vmo size. (* Should be: ZX_ERR_OUT_OF_RANGE *)
+	should: [vmo read: vmo size + 1 from: 0] failWithStatus: zx ERR_OUT_OF_RANGE.
+	should: [vmo read: 1 from: vmo size] failWithStatus: zx ERR_OUT_OF_RANGE.
 
 	bytes at: 1 put: 11.
 	bytes at: 2 put: 22.
@@ -190,8 +190,8 @@ public testVMOReadWrite = (
 	should: [vmo write: 4 to: 8 asFloat] signal: Exception.
 
 	vmo write: (ByteArray new: 0) to: 0. (* Empty read *)
-	vmo write: (ByteArray new: vmo size + 1) to: 0. (* Truncated write *)
-	vmo write: (ByteArray new: 1) to: vmo size. (* Should be: ZX_ERR_OUT_OF_RANGE *)
+	should: [vmo write: (ByteArray new: vmo size + 1) to: 0] failWithStatus: zx ERR_OUT_OF_RANGE.
+	should: [vmo write: (ByteArray new: 1) to: vmo size] failWithStatus: zx ERR_OUT_OF_RANGE.
 
 	vmo close.
 

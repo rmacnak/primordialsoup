@@ -4,6 +4,7 @@
 
 #include <fcntl.h>
 #include <fdio/namespace.h>
+#include <fuchsia/cpp/component.h>
 #include <signal.h>
 #include <zx/vmar.h>
 #include <zx/vmo.h>
@@ -12,7 +13,6 @@
 
 #include "garnet/public/lib/app/cpp/application_context.h"
 #include "garnet/public/lib/app/cpp/connect.h"
-#include "garnet/public/lib/app/fidl/application_runner.fidl.h"
 #include "lib/fsl/tasks/message_loop.h"
 #include "lib/fsl/vmo/file.h"
 #include "lib/fsl/vmo/sized_vmo.h"
@@ -21,10 +21,11 @@
 #include "vm/primordial_soup.h"
 #include "vm/virtual_memory.h"
 
-class PrimordialSoupApplicationController : public app::ApplicationController {
+class PrimordialSoupApplicationController
+    : public component::ApplicationController {
  public:
   PrimordialSoupApplicationController(
-      fidl::InterfaceRequest<app::ApplicationController> controller)
+      fidl::InterfaceRequest<component::ApplicationController> controller)
       : binding_(this), wait_callbacks_(), namespace_(nullptr) {
     if (controller.is_valid()) {
       binding_.Bind(std::move(controller));
@@ -38,30 +39,27 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
     }
   }
 
-  void Run(app::ApplicationPackagePtr application,
-           app::ApplicationStartupInfoPtr startup_info) {
-    if (!SetupNamespace(&startup_info->flat_namespace)) return;
+  void Run(component::ApplicationPackage application,
+           component::ApplicationStartupInfo startup_info) {
+    if (!SetupNamespace(&startup_info.flat_namespace)) return;
 
     uintptr_t snapshot;
     size_t snapshot_size;
     if (!MapSnapshot(&snapshot, &snapshot_size)) return;
 
-    fidl::Array<fidl::String>& arguments = startup_info->launch_info->arguments;
-    intptr_t argc = 0;
-    const char** argv = nullptr;
-    if (!arguments.is_null()) {
-      argc = arguments.size();
-      argv = new const char*[argc];
-      for (intptr_t i = 0; i < argc; i++) {
-        argv[i] = arguments[i].data();
-      }
+    fidl::VectorPtr<fidl::StringPtr> arguments =
+        std::move(startup_info.launch_info.arguments);
+    intptr_t argc = arguments->size();
+    const char** argv = new const char*[argc];
+    for (intptr_t i = 0; i < argc; i++) {
+      argv[i] = arguments->at(i)->data();
     }
 
     intptr_t exit_code =
         PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot),
                                   snapshot_size, argc, argv);
 
-    delete argv;
+    delete[] argv;
 
     zx::vmar::root_self().unmap(snapshot, snapshot_size);
 
@@ -72,18 +70,17 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
   }
 
  private:
-  bool SetupNamespace(app::FlatNamespacePtr* flat_namespace) {
-    app::FlatNamespacePtr& flat = *flat_namespace;
+  bool SetupNamespace(component::FlatNamespace* flat) {
     zx_status_t status = fdio_ns_create(&namespace_);
     if (status != ZX_OK) {
       FXL_LOG(ERROR) << "Failed to create namespace";
       return false;
     }
 
-    for (size_t i = 0; i < flat->paths.size(); ++i) {
-      zx::channel dir = std::move(flat->directories[i]);
+    for (size_t i = 0; i < flat->paths->size(); ++i) {
+      zx::channel dir = std::move(flat->directories->at(i));
       zx_handle_t dir_handle = dir.release();
-      const char* path = flat->paths[i].data();
+      const char* path = flat->paths->at(i)->data();
       status = fdio_ns_bind(namespace_, path, dir_handle);
       if (status != ZX_OK) {
         FXL_LOG(ERROR) << "Failed to bind " << path << " to namespace";
@@ -131,11 +128,11 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
     binding_.set_error_handler(fxl::Closure());
   }
 
-  void Wait(const WaitCallback& callback) override {
+  void Wait(WaitCallback callback) override {
     wait_callbacks_.push_back(callback);
   }
 
-  fidl::Binding<app::ApplicationController> binding_;
+  fidl::Binding<component::ApplicationController> binding_;
   std::vector<WaitCallback> wait_callbacks_;
   fdio_ns_t* namespace_;
 
@@ -143,34 +140,41 @@ class PrimordialSoupApplicationController : public app::ApplicationController {
 };
 
 static void RunApplication(
-    app::ApplicationPackagePtr application,
-    app::ApplicationStartupInfoPtr startup_info,
-    fidl::InterfaceRequest<app::ApplicationController> controller) {
+    component::ApplicationPackage application,
+    component::ApplicationStartupInfo startup_info,
+    ::fidl::InterfaceRequest<component::ApplicationController> controller) {
   fsl::MessageLoop loop;
   PrimordialSoupApplicationController app(std::move(controller));
   app.Run(std::move(application), std::move(startup_info));
 }
 
-class PrimordialSoupApplicationRunner : public app::ApplicationRunner {
+class PrimordialSoupApplicationRunner : public component::ApplicationRunner {
  public:
-  explicit PrimordialSoupApplicationRunner(
-      fidl::InterfaceRequest<app::ApplicationRunner> app_runner)
-      : binding_(this, std::move(app_runner)) {}
+  PrimordialSoupApplicationRunner()
+    : context_(component::ApplicationContext::CreateFromStartupInfo()),
+      bindings_() {
+    context_->outgoing_services()->AddService<component::ApplicationRunner>(
+      [this](fidl::InterfaceRequest<component::ApplicationRunner> request) {
+        bindings_.AddBinding(this, std::move(request));
+      });
+  }
 
   ~PrimordialSoupApplicationRunner() override {}
 
  private:
   void StartApplication(
-      app::ApplicationPackagePtr application,
-      app::ApplicationStartupInfoPtr startup_info,
-      fidl::InterfaceRequest<app::ApplicationController> controller) override {
+      component::ApplicationPackage application,
+      component::ApplicationStartupInfo startup_info,
+      ::fidl::InterfaceRequest<component::ApplicationController> controller)
+      override {
     // TODO(rmacnak): Should the embedder or the VM spawn this thread?
     std::thread thread(RunApplication, std::move(application),
                        std::move(startup_info), std::move(controller));
     thread.detach();
   }
 
-  fidl::Binding<app::ApplicationRunner> binding_;
+  std::unique_ptr<component::ApplicationContext> context_;
+  fidl::BindingSet<component::ApplicationRunner> bindings_;
 
   FXL_DISALLOW_COPY_AND_ASSIGN(PrimordialSoupApplicationRunner);
 };
@@ -184,13 +188,7 @@ int main(int argc, const char** argv) {
 
   if (argc < 2) {
     fsl::MessageLoop loop;
-    std::unique_ptr<app::ApplicationContext> context =
-        app::ApplicationContext::CreateFromStartupInfo();
-
-    context->outgoing_services()->AddService<app::ApplicationRunner>(
-        [](fidl::InterfaceRequest<app::ApplicationRunner> app_runner) {
-          new PrimordialSoupApplicationRunner(std::move(app_runner));
-        });
+    PrimordialSoupApplicationRunner runner;
     loop.Run();
   } else {
     psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);

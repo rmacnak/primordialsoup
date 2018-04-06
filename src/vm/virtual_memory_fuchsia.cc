@@ -23,7 +23,7 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
     FATAL1("Failed to open '%s'\n", filename);
   }
   zx_handle_t vmo = ZX_HANDLE_INVALID;
-  zx_status_t status = fdio_get_vmo(fd, &vmo);
+  zx_status_t status = fdio_get_vmo_clone(fd, &vmo);
   close(fd);
   if (status != ZX_OK) {
     FATAL1("fdio_get_vmo() failed: %s\n", zx_status_get_string(status));
