@@ -233,8 +233,7 @@ public copyWithSize: newSize <Integer> ^<ByteArray> = (
 	newArray = ByteArray new: newSize.
 	overlap = size < newSize ifTrue: [size] ifFalse: [newSize].
 	|
-	1 to: overlap do:
-		[:index | newArray at: index put: (self at: index)].
+	newArray replaceFrom: 1 to: overlap with: self startingAt: 1.
 	^newArray
 )
 public do: action <[:Integer]> = (
@@ -246,6 +245,10 @@ public isByteArray ^<Boolean> = (
 public isEmpty ^<Boolean> = (
 	^0 = self size
 )
+public replaceFrom: start <Integer> to: stop <Integer> with: replacement <ByteArray | String> startingAt: replacementStart <Integer> = (
+	(* :literalmessage: primitive: 79 *)
+	^ArgumentError new signal
+)
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 49 *)
 	halt.
@@ -254,6 +257,14 @@ public size ^<Integer> = (
 public new: size <Integer> ^<ByteArray> = (
 	(* :literalmessage: primitive: 46 *)
 	^(ArgumentError value: size) signal
+)
+public withAll: bytes <Array[Integer] | ByteArray> ^<String> = (
+	(* :literalmessage: primitive: 122 *)
+	^self withAllAgain: bytes asArray
+)
+private withAllAgain: bytes <Array[Integer] | ByteArray> ^<String> = (
+	(* :literalmessage: primitive: 122 *)
+	^ArgumentError new signal
 )
 )
 class CannotReturn result: r = Exception (|
@@ -1656,19 +1667,17 @@ private maybeGrow = (
 public class _Array _cannotInstantiate = Collection () (
 public , collection = (
 	|
-	newarray = Array new: self size + collection size.
+	newArray = Array new: self size + collection size.
 	offset = self size.
 	|
-	1 to: self size do:
-		[:index | newarray at: index put: (self at: index)].
+	newArray replaceFrom: 1 to: self size with: self startingAt: 1.
 	1 to: collection size do:
-		[:index | newarray at: index + offset put: (collection at: index)].
-	^newarray
+		[:index | newArray at: index + offset put: (collection at: index)].
+	^newArray
 )
 public allButFirst = (
 	| newArray = Array new: self size - 1. |
-	2 to: self size do:
-		[:index | newArray at: index - 1 put: (self at: index)].
+	newArray replaceFrom: 2 to: self size with: self startingAt: 1.
 	^newArray
 )
 public asArray ^<Array[E]> = (
@@ -1690,17 +1699,15 @@ public collect: transform <[:E | F]> ^<Array[F]> = (
 	^results
 )
 public copy ^<Array[E]> = (
-	| theCopy = Array new: self size. |
-	1 to: self size do:
-		[:index | theCopy at: index put: (self at: index)].
-	^theCopy
+	| newArray = Array new: self size. |
+	newArray replaceFrom: 1 to: self size with: self startingAt: 1.
+	^newArray
 )
 public copyWith: newElement <E> ^<Array[E]> = (
 	|
 	newArray = Array new: 1 + self size.
 	|
-	1 to: self size do:
-		[:index | newArray at: index put: (self at: index)].
+	newArray replaceFrom: 1 to: self size with: self startingAt: 1.
 	newArray at: newArray size put: newElement.
 	^newArray
 )
@@ -1709,8 +1716,7 @@ public copyWithSize: newSize <Integer> ^<Array[E]> = (
 	newArray = Array new: newSize.
 	overlap = size < newSize ifTrue: [size] ifFalse: [newSize].
 	|
-	1 to: overlap do:
-		[:index | newArray at: index put: (self at: index)].
+	newArray replaceFrom: 1 to: overlap with: self startingAt: 1.
 	^newArray
 )
 public do: action <[:E]> = (
@@ -1734,6 +1740,10 @@ public keysAndValuesDo: action <[:Integer :E]> = (
 )
 public last ^<E> = (
 	^self at: self size
+)
+public replaceFrom: start <Integer> to: stop <Integer> with: replacement <Array> startingAt: replacementStart <Integer> = (
+	(* :literalmessage: primitive: 80 *)
+	^ArgumentError new signal
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 41 *)

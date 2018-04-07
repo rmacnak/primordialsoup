@@ -110,6 +110,8 @@ const bool kFailure = false;
   V(76, Closure_numArgsPut)                                                    \
   V(77, Closure_copiedAt)                                                      \
   V(78, Closure_copiedAtPut)                                                   \
+  V(79, ByteArray_replaceFromToWithStartingAt)                                 \
+  V(80, Array_replaceFromToWithStartingAt)                                     \
   V(85, Object_class)                                                          \
   V(86, Object_identical)                                                      \
   V(87, Object_identityHash)                                                   \
@@ -140,9 +142,10 @@ const bool kFailure = false;
   V(119, String_indexOf)                                                       \
   V(120, String_lastIndexOf)                                                   \
   V(121, String_copyFromTo)                                                    \
-  V(123, String_class_fromByte)                                                \
+  V(122, ByteArray_class_withAll)                                              \
+  V(123, String_class_with)                                                    \
+  V(124, String_class_withAll)                                                 \
   V(125, Double_rounded)                                                       \
-  V(124, String_class_fromBytes)                                               \
   V(126, Object_isCanonical)                                                   \
   V(127, Object_markCanonical)                                                 \
   V(128, writeBytesToFile)                                                     \
@@ -1373,6 +1376,89 @@ DEFINE_PRIMITIVE(ByteArray_copyFromTo) {
 }
 
 
+DEFINE_PRIMITIVE(ByteArray_replaceFromToWithStartingAt) {
+  ASSERT(num_args == 4);
+  ByteArray* receiver = static_cast<ByteArray*>(A->Stack(4));
+  if (!receiver->IsByteArray()) {
+    UNREACHABLE();
+  }
+  SMI_ARGUMENT(start, 3);
+  SMI_ARGUMENT(stop, 2);
+  Bytes* replacement = static_cast<Bytes*>(A->Stack(1));
+  if (!replacement->IsBytes()) {
+    return kFailure;
+  }
+  SMI_ARGUMENT(replacementStart, 0);
+
+  if (start <= 0) {
+    return kFailure;
+  }
+  if (stop < start) {
+    // Empty copy.
+    RETURN_SELF();
+  }
+  if (stop > receiver->Size()) {
+    return kFailure;
+  }
+
+  intptr_t count = stop - start + 1;
+
+  if (replacementStart <= 0) {
+    return kFailure;
+  }
+  if (replacementStart + count - 1 > replacement->Size()) {
+    return kFailure;
+  }
+
+  // Note replacement may be receiver.
+  memmove(receiver->element_addr(start - 1),
+          replacement->element_addr(replacementStart - 1),
+          count);
+  RETURN_SELF();
+}
+
+
+DEFINE_PRIMITIVE(Array_replaceFromToWithStartingAt) {
+  ASSERT(num_args == 4);
+  Array* receiver = static_cast<Array*>(A->Stack(4));
+  if (!receiver->IsArray()) {
+    UNREACHABLE();
+  }
+  SMI_ARGUMENT(start, 3);
+  SMI_ARGUMENT(stop, 2);
+  Array* replacement = static_cast<Array*>(A->Stack(1));
+  if (!replacement->IsArray()) {
+    return kFailure;
+  }
+  SMI_ARGUMENT(replacementStart, 0);
+
+  if (start <= 0) {
+    return kFailure;
+  }
+  if (stop < start) {
+    // Empty copy.
+    RETURN_SELF();
+  }
+  if (stop > receiver->Size()) {
+    return kFailure;
+  }
+
+  intptr_t count = stop - start + 1;
+
+  if (replacementStart <= 0) {
+    return kFailure;
+  }
+  if (replacementStart + count - 1 > replacement->Size()) {
+    return kFailure;
+  }
+
+  // Note replacement may be receiver.
+  memmove(receiver->element_addr(start - 1),
+          replacement->element_addr(replacementStart - 1),
+          count * sizeof(Object*));
+  RETURN_SELF();
+}
+
 DEFINE_PRIMITIVE(String_at) {
   ASSERT(num_args == 1);
   String* rcvr = static_cast<String*>(A->Stack(1));
@@ -1415,8 +1501,8 @@ DEFINE_PRIMITIVE(String_hash) {
     return kFailure;
   }
   String* string = static_cast<String*>(rcvr);
-  string->EnsureHash(I->isolate());
-  RETURN(string->hash());
+  SmallInteger* hash = string->EnsureHash(I->isolate());
+  RETURN(hash);
 }
 
 
@@ -1780,15 +1866,17 @@ DEFINE_PRIMITIVE(Object_identityHash) {
     if (hash == 0) {
       hash = 1;
     }
+  } else if (receiver->IsString()) {
+    static_cast<String*>(receiver)->EnsureHash(I->isolate());
+    hash = receiver->header_hash();
   } else {
-    // TODO(rmacnak): Use the string's hash? ASSERT(!receiver->IsString());
-    hash = receiver->identity_hash();
+    hash = receiver->header_hash();
     if (hash == 0) {
       hash = I->isolate()->random().NextUInt64() & SmallInteger::kMaxValue;
       if (hash == 0) {
         hash = 1;
       }
-      receiver->set_identity_hash(hash);
+      receiver->set_header_hash(hash);
     }
   }
   RETURN_SMI(hash);
@@ -2270,6 +2358,7 @@ DEFINE_PRIMITIVE(String_endsWith) {
       RETURN_BOOL(false);
     }
   }
+
   RETURN_BOOL(true);
 }
 
@@ -2398,7 +2487,7 @@ DEFINE_PRIMITIVE(String_copyFromTo) {
 }
 
 
-DEFINE_PRIMITIVE(String_class_fromByte) {
+DEFINE_PRIMITIVE(String_class_with) {
   ASSERT(num_args == 1);
   SMI_ARGUMENT(byte, 0);
   if (byte < 0 || byte > 255) {
@@ -2410,13 +2499,55 @@ DEFINE_PRIMITIVE(String_class_fromByte) {
 }
 
 
-DEFINE_PRIMITIVE(String_class_fromBytes) {
+DEFINE_PRIMITIVE(String_class_withAll) {
   ASSERT(num_args == 1);
 
-  if (A->Stack(0)->IsByteArray()) {
-    intptr_t length = static_cast<ByteArray*>(A->Stack(0))->Size();
+  if (A->Stack(0)->IsBytes()) {
+    intptr_t length = static_cast<Bytes*>(A->Stack(0))->Size();
     String* result = H->AllocateString(length);  // SAFEPOINT
-    ByteArray* bytes = static_cast<ByteArray*>(A->Stack(0));
+    Bytes* bytes = static_cast<Bytes*>(A->Stack(0));
+    memcpy(result->element_addr(0), bytes->element_addr(0), length);
+    RETURN(result);
+  } else if (A->Stack(0)->IsArray()) {
+    Array* bytes = static_cast<Array*>(A->Stack(0));
+    if (!bytes->IsArray()) {
+      return kFailure;
+    }
+
+    intptr_t length = bytes->Size();
+    for (intptr_t i = 0; i < length; i++) {
+      SmallInteger* byte = static_cast<SmallInteger*>(bytes->element(i));
+      if (!byte->IsSmallInteger()) {
+        return kFailure;
+      }
+      intptr_t raw_byte = byte->value();
+      if (raw_byte < 0 || raw_byte > 255) {
+        return kFailure;
+      }
+    }
+
+    String* result = H->AllocateString(length);  // SAFEPOINT
+    bytes = static_cast<Array*>(A->Stack(0));
+
+    for (intptr_t i = 0; i < length; i++) {
+      SmallInteger* byte = static_cast<SmallInteger*>(bytes->element(i));
+      intptr_t raw_byte = byte->value();
+      result->set_element(i, raw_byte);
+    }
+
+    RETURN(result);
+  }
+  return kFailure;
+}
+
+
+DEFINE_PRIMITIVE(ByteArray_class_withAll) {
+  ASSERT(num_args == 1);
+
+  if (A->Stack(0)->IsBytes()) {
+    intptr_t length = static_cast<Bytes*>(A->Stack(0))->Size();
+    String* result = H->AllocateString(length);  // SAFEPOINT
+    Bytes* bytes = static_cast<Bytes*>(A->Stack(0));
     memcpy(result->element_addr(0), bytes->element_addr(0), length);
     RETURN(result);
   } else if (A->Stack(0)->IsArray()) {

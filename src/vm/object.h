@@ -125,6 +125,9 @@ class Object {
   bool IsArray() const {
     return IsHeapObject() && (cid() == kArrayCid);
   }
+  bool IsBytes() const {
+    return IsHeapObject() && (cid() == kByteArrayCid || cid() == kStringCid);
+  }
   bool IsByteArray() const {
     return IsHeapObject() && (cid() == kByteArrayCid);
   }
@@ -210,11 +213,11 @@ class Object {
   void set_cid(intptr_t value) {
     ptr()->header_ = ClassIdField::update(value, ptr()->header_);
   }
-  intptr_t identity_hash() const {
-    return ptr()->identity_hash_;
+  intptr_t header_hash() const {
+    return ptr()->header_hash_;
   }
-  void set_identity_hash(intptr_t value) {
-    ptr()->identity_hash_ = value;
+  void set_header_hash(intptr_t value) {
+    ptr()->header_hash_ = value;
   }
 
   uword Addr() const {
@@ -240,7 +243,7 @@ class Object {
     header = ClassIdField::update(cid, header);
     Object* obj = FromAddr(addr);
     obj->ptr()->header_ = header;
-    obj->ptr()->identity_hash_ = 0;
+    obj->ptr()->header_hash_ = 0;
     ASSERT(obj->cid() == cid);
     ASSERT(!obj->is_marked());
     return obj;
@@ -289,7 +292,7 @@ class Object {
   }
 
   uword header_;
-  uword identity_hash_;
+  uword header_hash_;
 
   class MarkBit : public BitField<bool, kMarkBit, 1> {};
   class CanonicalBit : public BitField<bool, kCanonicalBit, 1> {};
@@ -507,11 +510,17 @@ class Array : public Object {
   void set_size(SmallInteger* s) {
     ptr()->size_ = s;
   }
-  Object* element(intptr_t i) const {
-    return ptr()->elements_[i];
+  Object* element(intptr_t index) const {
+    return ptr()->elements_[index];
   }
-  void set_element(intptr_t i, Object* value) {
-    StorePointer(&ptr()->elements_[i], value);
+  void set_element(intptr_t index, Object* value) {
+    StorePointer(&ptr()->elements_[index], value);
+  }
+  Object** element_addr(intptr_t index) {
+    return &ptr()->elements_[index];
+  }
+  Object* const* element_addr(intptr_t index) const {
+    return &ptr()->elements_[index];
   }
 
   intptr_t Size() const {
@@ -546,11 +555,11 @@ class WeakArray : public Object {
   void set_next(WeakArray* value) {
     ptr()->next_ = value;
   }
-  Object* element(intptr_t i) const {
-    return ptr()->elements_[i];
+  Object* element(intptr_t index) const {
+    return ptr()->elements_[index];
   }
-  void set_element(intptr_t i, Object* value) {
-    StorePointer(&ptr()->elements_[i], value);
+  void set_element(intptr_t index, Object* value) {
+    StorePointer(&ptr()->elements_[index], value);
   }
 
   intptr_t Size() const {
@@ -608,81 +617,50 @@ class Ephemeron : public Object {
   }
 };
 
+class Bytes : public Object {
+  HEAP_OBJECT_IMPLEMENTATION(Bytes);
 
-class String : public Object {
+ public:
+  SmallInteger* size() const {
+    return ptr()->size_;
+  }
+  void set_size(SmallInteger* size) {
+    ptr()->size_ = size;
+  }
+  intptr_t Size() const {
+    return size()->value();
+  }
+  uint8_t element(intptr_t index) const {
+    return *element_addr(index);
+  }
+  void set_element(intptr_t index, uint8_t value) {
+    *element_addr(index) = value;
+  }
+  uint8_t* element_addr(intptr_t index) {
+    uint8_t* elements = reinterpret_cast<uint8_t*>(
+        reinterpret_cast<uword>(ptr()) + sizeof(Bytes));
+    return &elements[index];
+  }
+  const uint8_t* element_addr(intptr_t index) const {
+    const uint8_t* elements = reinterpret_cast<const uint8_t*>(
+        reinterpret_cast<uword>(ptr()) + sizeof(Bytes));
+    return &elements[index];
+  }
+
+ private:
+  SmallInteger* size_;
+};
+
+class String : public Bytes {
   HEAP_OBJECT_IMPLEMENTATION(String);
 
  public:
-  intptr_t Size() const {
-    return size()->value();
-  }
-  SmallInteger* size() const {
-    return ptr()->size_;
-  }
-  void set_size(SmallInteger* size) {
-    ptr()->size_ = size;
-  }
-  SmallInteger* hash() const {
-    return ptr()->hash_;
-  }
-  void set_hash(SmallInteger* hash) {
-    ptr()->hash_ = hash;
-  }
   SmallInteger* EnsureHash(Isolate* isolate);
-
-  uint8_t element(intptr_t index) const {
-    ASSERT(index >= 0 && index < Size());
-    return ptr()->elements_[index];
-  }
-  void set_element(intptr_t index, uint8_t value) {
-    ASSERT(index >= 0 && index < Size());
-    ptr()->elements_[index] = value;
-  }
-  uint8_t* element_addr(intptr_t index) {
-    return &ptr()->elements_[index];
-  }
-  const uint8_t* element_addr(intptr_t index) const {
-    return &ptr()->elements_[index];
-  }
-
- private:
-  SmallInteger* size_;
-  SmallInteger* hash_;
-  uint8_t elements_[];
 };
 
-
-class ByteArray : public Object {
+class ByteArray : public Bytes {
   HEAP_OBJECT_IMPLEMENTATION(ByteArray);
-
- public:
-  SmallInteger* size() const {
-    return ptr()->size_;
-  }
-  void set_size(SmallInteger* size) {
-    ptr()->size_ = size;
-  }
-  intptr_t Size() const {
-    return size()->value();
-  }
-  uint8_t element(intptr_t index) const {
-    return ptr()->elements_[index];
-  }
-  void set_element(intptr_t index, uint8_t value) {
-    ptr()->elements_[index] = value;
-  }
-  uint8_t* element_addr(intptr_t index) {
-    return &ptr()->elements_[index];
-  }
-  const uint8_t* element_addr(intptr_t index) const {
-    return &ptr()->elements_[index];
-  }
-
- private:
-  SmallInteger* size_;
-  uint8_t elements_[];
 };
-
 
 class Activation : public Object {
   HEAP_OBJECT_IMPLEMENTATION(Activation);

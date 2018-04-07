@@ -130,6 +130,121 @@ public testArrayNew = (
 	should: [Array new: nil] signal: Error.
 	should: [Array new] signal: MessageNotUnderstood.
 )
+public testArrayReplace = (
+	| array replacement result |
+	array:: Array new: 5.
+	array at: 1 put: 10.
+	array at: 2 put: 20.
+	array at: 3 put: 30.
+	array at: 4 put: 40.
+	array at: 5 put: 50.
+
+	replacement:: Array new: 3.
+	replacement at: 1 put: 110.
+	replacement at: 2 put: 120.
+	replacement at: 3 put: 130.
+
+	(* Empty. *)
+	result:: array replaceFrom: 3 to: 2 with: replacement startingAt: 2.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 10.
+	assert: (array at: 2) equals: 20.
+	assert: (array at: 3) equals: 30.
+	assert: (array at: 4) equals: 40.
+	assert: (array at: 5) equals: 50.
+
+	(* One. *)
+	result:: array replaceFrom: 3 to: 3 with: replacement startingAt: 1.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 10.
+	assert: (array at: 2) equals: 20.
+	assert: (array at: 3) equals: 110.
+	assert: (array at: 4) equals: 40.
+	assert: (array at: 5) equals: 50.
+
+	(* Two. *)
+	result:: array replaceFrom: 3 to: 4 with: replacement startingAt: 2.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 10.
+	assert: (array at: 2) equals: 20.
+	assert: (array at: 3) equals: 120.
+	assert: (array at: 4) equals: 130.
+	assert: (array at: 5) equals: 50.
+
+	(* Three. *)
+	result:: array replaceFrom: 1 to: 3 with: replacement startingAt: 1.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 110.
+	assert: (array at: 2) equals: 120.
+	assert: (array at: 3) equals: 130.
+	assert: (array at: 4) equals: 130.
+	assert: (array at: 5) equals: 50.
+
+	(* After end source *)
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 6] signal: Error.
+	(* Crossing end source *)
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 3] signal: Error.
+	(* Before beginning source *)
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: -3] signal: Error.
+	(* Crossing begining source *)
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 0] signal: Error.
+
+	(* After end destination *)
+	should: [array replaceFrom: 6 to: 6 with: replacement startingAt: 1] signal: Error.
+	(* Crossing end destination *)
+	should: [array replaceFrom: 5 to: 6 with: replacement startingAt: 1] signal: Error.
+	(* Before beginning destination *)
+	should: [array replaceFrom: 0 to: 0 with: replacement startingAt: 1] signal: Error.
+	(* Crossing begining destination *)
+	should: [array replaceFrom: 0 to: 2 with: replacement startingAt: 1] signal: Error.
+
+	should: [array replaceFrom: nil to: 3 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 3 to: nil with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 3 to: 3 with: nil startingAt: 1] signal: Error.
+	should: [array replaceFrom: 3 to: 3 with: replacement startingAt: nil] signal: Error.
+)
+public testArrayReplaceSlideDown = (
+	| array result |
+	array:: Array new: 7.
+	array at: 1 put: 10.
+	array at: 2 put: 20.
+	array at: 3 put: 30.
+	array at: 4 put: 40.
+	array at: 5 put: 50.
+	array at: 6 put: 60.
+	array at: 7 put: 70.
+
+	result:: array replaceFrom: 3 to: 7 with: array startingAt: 1.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 10.
+	assert: (array at: 2) equals: 20.
+	assert: (array at: 3) equals: 10.
+	assert: (array at: 4) equals: 20.
+	assert: (array at: 5) equals: 30.
+	assert: (array at: 6) equals: 40.
+	assert: (array at: 7) equals: 50.
+)
+public testArrayReplaceSlideUp = (
+	| array result |
+	array:: Array new: 7.
+	array at: 1 put: 10.
+	array at: 2 put: 20.
+	array at: 3 put: 30.
+	array at: 4 put: 40.
+	array at: 5 put: 50.
+	array at: 6 put: 60.
+	array at: 7 put: 70.
+
+	result:: array replaceFrom: 1 to: 5 with: array startingAt: 3.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 30.
+	assert: (array at: 2) equals: 40.
+	assert: (array at: 3) equals: 50.
+	assert: (array at: 4) equals: 60.
+	assert: (array at: 5) equals: 70.
+	assert: (array at: 6) equals: 60.
+	assert: (array at: 7) equals: 70.
+)
 public testArraySort = (
 	| array |
 	array:: {12. 15. 3. 5. 10. 6. 8. 1. 13. 11. 16. 4. 14. 9. 2. 7}.
@@ -328,6 +443,173 @@ public testByteArrayNew = (
 	should: [ByteArray new: '10'] signal: Error.
 	should: [ByteArray new: nil] signal: Error.
 	should: [ByteArray new] signal: MessageNotUnderstood.
+)
+public testByteArrayReplace = (
+	| array replacement result |
+	array:: ByteArray new: 5.
+	array at: 1 put: 10.
+	array at: 2 put: 20.
+	array at: 3 put: 30.
+	array at: 4 put: 40.
+	array at: 5 put: 50.
+
+	replacement:: ByteArray new: 3.
+	replacement at: 1 put: 110.
+	replacement at: 2 put: 120.
+	replacement at: 3 put: 130.
+
+	(* Empty. *)
+	result:: array replaceFrom: 3 to: 2 with: replacement startingAt: 2.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 10.
+	assert: (array at: 2) equals: 20.
+	assert: (array at: 3) equals: 30.
+	assert: (array at: 4) equals: 40.
+	assert: (array at: 5) equals: 50.
+
+	(* One. *)
+	result:: array replaceFrom: 3 to: 3 with: replacement startingAt: 1.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 10.
+	assert: (array at: 2) equals: 20.
+	assert: (array at: 3) equals: 110.
+	assert: (array at: 4) equals: 40.
+	assert: (array at: 5) equals: 50.
+
+	(* Two. *)
+	result:: array replaceFrom: 3 to: 4 with: replacement startingAt: 2.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 10.
+	assert: (array at: 2) equals: 20.
+	assert: (array at: 3) equals: 120.
+	assert: (array at: 4) equals: 130.
+	assert: (array at: 5) equals: 50.
+
+	(* Three. *)
+	result:: array replaceFrom: 1 to: 3 with: replacement startingAt: 1.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 110.
+	assert: (array at: 2) equals: 120.
+	assert: (array at: 3) equals: 130.
+	assert: (array at: 4) equals: 130.
+	assert: (array at: 5) equals: 50.
+
+	(* After end source *)
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 6] signal: Error.
+	(* Crossing end source *)
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 3] signal: Error.
+	(* Before beginning source *)
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: -3] signal: Error.
+	(* Crossing begining source *)
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 0] signal: Error.
+
+	(* After end destination *)
+	should: [array replaceFrom: 6 to: 6 with: replacement startingAt: 1] signal: Error.
+	(* Crossing end destination *)
+	should: [array replaceFrom: 5 to: 6 with: replacement startingAt: 1] signal: Error.
+	(* Before beginning destination *)
+	should: [array replaceFrom: 0 to: 0 with: replacement startingAt: 1] signal: Error.
+	(* Crossing begining destination *)
+	should: [array replaceFrom: 0 to: 2 with: replacement startingAt: 1] signal: Error.
+
+	should: [array replaceFrom: nil to: 3 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 3 to: nil with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 3 to: 3 with: nil startingAt: 1] signal: Error.
+	should: [array replaceFrom: 3 to: 3 with: replacement startingAt: nil] signal: Error.
+)
+public testByteArrayReplaceSlideDown = (
+	| array result |
+	array:: ByteArray new: 7.
+	array at: 1 put: 10.
+	array at: 2 put: 20.
+	array at: 3 put: 30.
+	array at: 4 put: 40.
+	array at: 5 put: 50.
+	array at: 6 put: 60.
+	array at: 7 put: 70.
+
+	result:: array replaceFrom: 3 to: 7 with: array startingAt: 1.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 10.
+	assert: (array at: 2) equals: 20.
+	assert: (array at: 3) equals: 10.
+	assert: (array at: 4) equals: 20.
+	assert: (array at: 5) equals: 30.
+	assert: (array at: 6) equals: 40.
+	assert: (array at: 7) equals: 50.
+)
+public testByteArrayReplaceSlideUp = (
+	| array result |
+	array:: ByteArray new: 7.
+	array at: 1 put: 10.
+	array at: 2 put: 20.
+	array at: 3 put: 30.
+	array at: 4 put: 40.
+	array at: 5 put: 50.
+	array at: 6 put: 60.
+	array at: 7 put: 70.
+
+	result:: array replaceFrom: 1 to: 5 with: array startingAt: 3.
+	assert: result equals: array.
+	assert: (array at: 1) equals: 30.
+	assert: (array at: 2) equals: 40.
+	assert: (array at: 3) equals: 50.
+	assert: (array at: 4) equals: 60.
+	assert: (array at: 5) equals: 70.
+	assert: (array at: 6) equals: 60.
+	assert: (array at: 7) equals: 70.
+)
+public testByteArrayWithAll = (
+	| array bytearray result |
+	array:: Array new: 0.
+	result:: ByteArray withAll: array.
+	assert: result size equals: 0.
+
+	array:: Array new: 3.
+	array at: 1 put: 10.
+	array at: 2 put: 20.
+	array at: 3 put: 30.
+	result:: ByteArray withAll: array.
+	assert: result size equals: 3.
+	assert: (result at: 1) equals: 10.
+	assert: (result at: 2) equals: 20.
+	assert: (result at: 3) equals: 30.
+
+	bytearray:: ByteArray new: 0.
+	result:: ByteArray withAll: bytearray.
+	assert: result size equals: 0.
+
+	bytearray:: ByteArray new: 3.
+	bytearray at: 1 put: 110.
+	bytearray at: 2 put: 120.
+	bytearray at: 3 put: 130.
+	result:: ByteArray withAll: bytearray.
+	assert: result size equals: 3.
+	assert: (result at: 1) equals: 110.
+	assert: (result at: 2) equals: 120.
+	assert: (result at: 3) equals: 130.
+
+	result:: ByteArray withAll: ''.
+	assert: result size equals: 0.
+
+	result:: ByteArray withAll: 'soup'.
+	assert: result size equals: 4.
+	assert: (result at: 1) equals: 115.
+	assert: (result at: 2) equals: 111.
+	assert: (result at: 3) equals: 117.
+	assert: (result at: 4) equals: 112.
+
+	should: [ByteArray withAll: -1] signal: Error.
+	should: [ByteArray withAll: 16r110000] signal: Error.
+	should: [ByteArray withAll: nil] signal: Error.
+	should: [ByteArray withAll: 122 asFloat] signal: Error.
+
+	should: [ByteArray withAll: {nil}] signal: Error.
+	should: [ByteArray withAll: {-1}] signal: Error.
+	should: [ByteArray withAll: {16r256}] signal: Error.
+	should: [ByteArray withAll: {nil}] signal: Error.
+	should: [ByteArray withAll: {122 asFloat}] signal: Error.
+	should: [ByteArray withAll: {'z'}] signal: Error.
 )
 public testIsByteArray = (
 	assert: (ByteArray new: 0) isByteArray.
@@ -4437,25 +4719,62 @@ public testStringWith = (
 	should: [String with: 'z'] signal: Error.
 )
 public testStringWithAll = (
-	| z zebra |
-	z:: String withAll: {122}.
-	assert: z size equals: 1.
-	assert: z equals: 'z'.
+	| result bytearray |
+	result:: String withAll: {122}.
+	assert: result size equals: 1.
+	assert: result equals: 'z'.
 
-	zebra:: String withAll: {122. 101. 98. 114. 97}.
-	assert: zebra size equals: 5.
-	assert: zebra equals: 'zebra'.
-	assert: (zebra at: 1) equals: 122.
-	assert: (zebra at: 2) equals: 101.
-	assert: (zebra at: 3) equals: 98.
-	assert: (zebra at: 4) equals: 114.
-	assert: (zebra at: 5) equals: 97.
+	result:: String withAll: {122. 101. 98. 114. 97}.
+	assert: result size equals: 5.
+	assert: result equals: 'zebra'.
+	assert: (result at: 1) equals: 122.
+	assert: (result at: 2) equals: 101.
+	assert: (result at: 3) equals: 98.
+	assert: (result at: 4) equals: 114.
+	assert: (result at: 5) equals: 97.
+
+	bytearray:: ByteArray new: 0.
+	result:: String withAll: bytearray.
+	assert: result size equals: 0.
+	assert: result equals: ''.
+
+	bytearray:: ByteArray new: 1.
+	bytearray at: 1 put: 122.
+	result:: String withAll: bytearray.
+	assert: result size equals: 1.
+	assert: result equals: 'z'.
+
+	bytearray:: ByteArray new: 5.
+	bytearray at: 1 put: 122.
+	bytearray at: 2 put: 101.
+	bytearray at: 3 put: 98.
+	bytearray at: 4 put: 114.
+	bytearray at: 5 put: 97.
+	result:: String withAll: bytearray.
+	assert: result size equals: 5.
+	assert: result equals: 'zebra'.
+	assert: (result at: 1) equals: 122.
+	assert: (result at: 2) equals: 101.
+	assert: (result at: 3) equals: 98.
+	assert: (result at: 4) equals: 114.
+	assert: (result at: 5) equals: 97.
+
+	result:: String withAll: ''.
+	assert: result size equals: 0.
+	assert: result equals: ''.
+
+	result:: String withAll: 'soup'.
+	assert: result size equals: 4.
+	assert: result equals: 'soup'.
+	assert: (result at: 1) equals: 115.
+	assert: (result at: 2) equals: 111.
+	assert: (result at: 3) equals: 117.
+	assert: (result at: 4) equals: 112.
 
 	should: [String withAll: -1] signal: Error.
 	should: [String withAll: 16r110000] signal: Error.
 	should: [String withAll: nil] signal: Error.
 	should: [String withAll: 122 asFloat] signal: Error.
-	should: [String withAll: 'z'] signal: Error.
 
 	should: [String withAll: {-1}] signal: Error.
 	should: [String withAll: {16r256}] signal: Error.

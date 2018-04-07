@@ -590,7 +590,7 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
     ASSERT(!forwarder->IsForwardingCorpse());
     ASSERT(!forwardee->IsForwardingCorpse());
 
-    forwardee->set_identity_hash(forwarder->identity_hash());
+    forwardee->set_header_hash(forwarder->header_hash());
 
     intptr_t heap_size = forwarder->HeapSize();
 

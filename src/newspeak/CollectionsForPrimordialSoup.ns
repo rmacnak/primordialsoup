@@ -31,8 +31,7 @@ public addFirst: element <E> ^<E> = (
 	size_ >= oldData size
 		ifTrue: [data:: newData:: Array new: (data size * 2 + 1)]
 		ifFalse: [newData:: oldData].
-	size_ to: 1 by: -1 do: [:oldIndex |
-		newData at: 1 + oldIndex put: (oldData at: oldIndex)].
+	newData replaceFrom: 2 to: 1 + size_ with: oldData startingAt: 1.
 	newData at: 1 put: element.
 	size_:: size_ + 1.
 	^element

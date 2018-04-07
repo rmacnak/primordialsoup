@@ -133,10 +133,10 @@ char* Object::ToCString(Heap* heap) const {
   case kStringCid:
     length = String::Cast(this)->Size();
     result = reinterpret_cast<char*>(malloc(length + 14));
-    memcpy(&result[0], "a String ", 13);
-    memcpy(&result[13], String::Cast(this)->element_addr(0), length);
-    result[length + 13] = '\0';
-    for (intptr_t i = 0; i < length + 13; i++) {
+    memcpy(&result[0], "a String ", 9);
+    memcpy(&result[9], String::Cast(this)->element_addr(0), length);
+    result[length + 9] = '\0';
+    for (intptr_t i = 0; i < length + 9; i++) {
       if (result[i] == '\r') {
         result[i] = '\n';
       }
@@ -199,7 +199,7 @@ static uintptr_t kFNVPrime = 1099511628211;
 
 
 SmallInteger* String::EnsureHash(Isolate* isolate) {
-  if (hash() == 0) {
+  if (header_hash() == 0) {
     // FNV-1a hash
     intptr_t length = Size();
     uintptr_t h = length + 1;
@@ -212,9 +212,9 @@ SmallInteger* String::EnsureHash(Isolate* isolate) {
     if (h == 0) {
       h = 1;
     }
-    set_hash(SmallInteger::New(h));
+    set_header_hash(h);
   }
-  return hash();
+  return SmallInteger::New(header_hash());
 }
 
 }  // namespace psoup

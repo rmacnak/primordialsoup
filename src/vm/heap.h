@@ -119,7 +119,6 @@ class Heap {
     Object* obj = Object::InitializeObject(addr, kStringCid, heap_size);
     String* result = static_cast<String*>(obj);
     result->set_size(SmallInteger::New(num_bytes));
-    result->set_hash(SmallInteger::New(0));
     ASSERT(result->IsString());
     ASSERT(result->HeapSize() == heap_size);
     return result;
