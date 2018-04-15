@@ -118,10 +118,10 @@ char* Object::ToCString(Heap* heap) const {
   case kForwardingCorpseCid:
     UNREACHABLE();
   case kSmiCid:
-    return OS::PrintStr("a Smi(%" Pd ")",
+    return OS::PrintStr("a SmallInteger(%" Pd ")",
                         static_cast<const SmallInteger*>(this)->value());
   case kMintCid:
-    return OS::PrintStr("a Mint(%" Pd64 ")",
+    return OS::PrintStr("a MediumInteger(%" Pd64 ")",
                         MediumInteger::Cast(this)->value());
   case kBigintCid:
     return OS::PrintStr("a LargeInteger(%" Pd "digits)",

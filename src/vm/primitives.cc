@@ -131,7 +131,7 @@ const bool kFailure = false;
   V(103, halt)                                                                 \
   V(104, flushCache)                                                           \
   V(105, collectGarbage)                                                       \
-  V(107, EventLoop_exit)                                                       \
+  V(107, MessageLoop_exit)                                                     \
   V(111, Number_printString)                                                   \
   V(113, Closure_ensure)                                                       \
   V(114, String_equals)                                                        \
@@ -2191,6 +2191,7 @@ DEFINE_PRIMITIVE(print) {
 
 
 DEFINE_PRIMITIVE(halt) {
+  OS::PrintErr("Halt:\n");
   H->PrintStack();
   OS::Exit(-1);
   UNREACHABLE();
@@ -2212,7 +2213,7 @@ DEFINE_PRIMITIVE(collectGarbage) {
 }
 
 
-DEFINE_PRIMITIVE(EventLoop_exit) {
+DEFINE_PRIMITIVE(MessageLoop_exit) {
   ASSERT(num_args == 1);
   SmallInteger* exit_code = static_cast<SmallInteger*>(A->Stack(0));
   if (!exit_code->IsSmallInteger()) {
@@ -2608,33 +2609,33 @@ DEFINE_PRIMITIVE(Object_markCanonical) {
 
 DEFINE_PRIMITIVE(writeBytesToFile) {
   ASSERT(num_args == 2);
-  ByteArray* bytes = static_cast<ByteArray*>(A->Stack(1));
+  ByteArray* content = static_cast<ByteArray*>(A->Stack(1));
   String* filename = static_cast<String*>(A->Stack(0));
-  if (!bytes->IsByteArray() || !filename->IsString()) {
+  if (!content->IsByteArray() || !filename->IsString()) {
     UNIMPLEMENTED();
   }
 
-  char* cfilename = reinterpret_cast<char*>(malloc(filename->Size() + 1));
-  memcpy(cfilename, filename->element_addr(0), filename->Size());
-  cfilename[filename->Size()] = 0;
-  FILE* f = fopen(cfilename, "wb");
+  char* raw_filename = reinterpret_cast<char*>(malloc(filename->Size() + 1));
+  memcpy(raw_filename, filename->element_addr(0), filename->Size());
+  raw_filename[filename->Size()] = 0;
+  FILE* f = fopen(raw_filename, "wb");
   if (f == NULL) {
-    FATAL1("Cannot open %s\n", cfilename);
+    FATAL1("Cannot open %s\n", raw_filename);
   }
 
-  size_t length = bytes->Size();
+  size_t length = content->Size();
   size_t start = 0;
   while (start != length) {
-    size_t written = fwrite(bytes->element_addr(start), 1, length - start, f);
+    size_t written = fwrite(content->element_addr(start), 1, length - start, f);
     if (written == 0) {
-      FATAL1("Failed to write '%s'\n", cfilename);
+      FATAL1("Failed to write '%s'\n", raw_filename);
     }
     start += written;
   }
   fflush(f);
   fclose(f);
 
-  free(cfilename);
+  free(raw_filename);
 
   RETURN_SELF();
 }
@@ -2647,16 +2648,16 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
     UNIMPLEMENTED();
   }
 
-  char* cfilename = reinterpret_cast<char*>(malloc(filename->Size() + 1));
-  memcpy(cfilename, filename->element_addr(0), filename->Size());
-  cfilename[filename->Size()] = 0;
-  FILE* f = fopen(cfilename, "rb");
+  char* raw_filename = reinterpret_cast<char*>(malloc(filename->Size() + 1));
+  memcpy(raw_filename, filename->element_addr(0), filename->Size());
+  raw_filename[filename->Size()] = 0;
+  FILE* f = fopen(raw_filename, "rb");
   if (f == NULL) {
-    FATAL1("Failed to stat '%s'\n", cfilename);
+    FATAL1("Failed to stat '%s'\n", raw_filename);
   }
   struct stat st;
   if (fstat(fileno(f), &st) != 0) {
-    FATAL1("Failed to stat '%s'\n", cfilename);
+    FATAL1("Failed to stat '%s'\n", raw_filename);
   }
   size_t length = st.st_size;
 
@@ -2666,14 +2667,14 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   while (remaining > 0) {
     size_t bytes_read = fread(result->element_addr(start), 1, remaining, f);
     if (bytes_read == 0) {
-      FATAL1("Failed to read '%s'\n", cfilename);
+      FATAL1("Failed to read '%s'\n", raw_filename);
     }
     start += bytes_read;
     remaining -= bytes_read;
   }
 
   fclose(f);
-  free(cfilename);
+  free(raw_filename);
 
   RETURN(result);
 }
@@ -2878,7 +2879,9 @@ DEFINE_PRIMITIVE(MessageLoop_awaitSignal) {
   SMI_ARGUMENT(handle, 2);
   SMI_ARGUMENT(signals, 1);
   MINT_ARGUMENT(deadline, 0);
-  RETURN_SMI(I->isolate()->loop()->AwaitSignal(handle, signals, deadline));
+  intptr_t wait_id =
+      I->isolate()->loop()->AwaitSignal(handle, signals, deadline);
+  RETURN_SMI(wait_id);
 }
 
 DEFINE_PRIMITIVE(MessageLoop_cancelSignalWait) {
