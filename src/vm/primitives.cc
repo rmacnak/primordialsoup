@@ -137,10 +137,10 @@ const bool kFailure = false;
   V(114, String_equals)                                                        \
   V(115, String_concat)                                                        \
   V(116, Closure_onDo)                                                         \
-  V(117, String_startsWith)                                                    \
-  V(118, String_endsWith)                                                      \
-  V(119, String_indexOf)                                                       \
-  V(120, String_lastIndexOf)                                                   \
+  V(117, Bytes_startsWith)                                                     \
+  V(118, Bytes_endsWith)                                                       \
+  V(119, Bytes_indexOf)                                                        \
+  V(120, Bytes_lastIndexOf)                                                    \
   V(121, String_copyFromTo)                                                    \
   V(122, ByteArray_class_withAll)                                              \
   V(123, String_class_with)                                                    \
@@ -2318,11 +2318,11 @@ DEFINE_PRIMITIVE(Closure_onDo) {
 }
 
 
-DEFINE_PRIMITIVE(String_startsWith) {
+DEFINE_PRIMITIVE(Bytes_startsWith) {
   ASSERT(num_args == 1);
-  String* string = static_cast<String*>(A->Stack(1));
-  String* prefix = static_cast<String*>(A->Stack(0));
-  if (!string->IsString() || !prefix->IsString()) {
+  Bytes* string = static_cast<Bytes*>(A->Stack(1));
+  Bytes* prefix = static_cast<Bytes*>(A->Stack(0));
+  if (!string->IsBytes() || !prefix->IsBytes()) {
     return kFailure;
   }
 
@@ -2340,11 +2340,11 @@ DEFINE_PRIMITIVE(String_startsWith) {
 }
 
 
-DEFINE_PRIMITIVE(String_endsWith) {
+DEFINE_PRIMITIVE(Bytes_endsWith) {
   ASSERT(num_args == 1);
-  String* string = static_cast<String*>(A->Stack(1));
-  String* suffix = static_cast<String*>(A->Stack(0));
-  if (!string->IsString() || !suffix->IsString()) {
+  Bytes* string = static_cast<Bytes*>(A->Stack(1));
+  Bytes* suffix = static_cast<Bytes*>(A->Stack(0));
+  if (!string->IsBytes() || !suffix->IsBytes()) {
     return kFailure;
   }
 
@@ -2364,17 +2364,17 @@ DEFINE_PRIMITIVE(String_endsWith) {
 }
 
 
-DEFINE_PRIMITIVE(String_indexOf) {
+DEFINE_PRIMITIVE(Bytes_indexOf) {
   ASSERT(num_args == 2);
 
-  String* string = static_cast<String*>(A->Stack(2));
-  String* substring = static_cast<String*>(A->Stack(1));
+  Bytes* string = static_cast<Bytes*>(A->Stack(2));
+  Bytes* substring = static_cast<Bytes*>(A->Stack(1));
   SmallInteger* start = static_cast<SmallInteger*>(A->Stack(0));
-  if (!(string->IsString())) {
+  if (!(string->IsBytes())) {
     UNREACHABLE();
     return kFailure;
   }
-  if (!(substring->IsString())) {
+  if (!(substring->IsBytes())) {
     return kFailure;
   }
   if (!start->IsSmallInteger()) {
@@ -2411,17 +2411,17 @@ DEFINE_PRIMITIVE(String_indexOf) {
 }
 
 
-DEFINE_PRIMITIVE(String_lastIndexOf) {
+DEFINE_PRIMITIVE(Bytes_lastIndexOf) {
   ASSERT(num_args == 2);
 
-  String* string = static_cast<String*>(A->Stack(2));
-  String* substring = static_cast<String*>(A->Stack(1));
+  Bytes* string = static_cast<Bytes*>(A->Stack(2));
+  Bytes* substring = static_cast<Bytes*>(A->Stack(1));
   SmallInteger* start = static_cast<SmallInteger*>(A->Stack(0));
-  if (!(string->IsString())) {
+  if (!(string->IsBytes())) {
     UNREACHABLE();
     return kFailure;
   }
-  if (!(substring->IsString())) {
+  if (!(substring->IsBytes())) {
     return kFailure;
   }
   if (!start->IsSmallInteger()) {
@@ -2612,7 +2612,7 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
   ByteArray* content = static_cast<ByteArray*>(A->Stack(1));
   String* filename = static_cast<String*>(A->Stack(0));
   if (!content->IsByteArray() || !filename->IsString()) {
-    UNIMPLEMENTED();
+    return kFailure;
   }
 
   char* raw_filename = reinterpret_cast<char*>(malloc(filename->Size() + 1));
@@ -2645,7 +2645,7 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   ASSERT(num_args == 1);
   String* filename = static_cast<String*>(A->Stack(0));
   if (!filename->IsString()) {
-    UNIMPLEMENTED();
+    return kFailure;
   }
 
   char* raw_filename = reinterpret_cast<char*>(malloc(filename->Size() + 1));

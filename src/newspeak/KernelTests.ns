@@ -353,6 +353,9 @@ public testBooleanPrintString = (
 TEST_CONTEXT = ()
 )
 public class ByteArrayTests = TestContext () (
+b: string = (
+	^ByteArray withAll: string
+)
 public testByteArrayAt = (
 	| array = ByteArray new: 2. empty = ByteArray new: 0. |
 	array at: 1 put: 3.
@@ -420,10 +423,89 @@ public testByteArrayCopyFromTo = (
 	should: [array copyFrom: 2 asFloat to: 3] signal: Error.
 	should: [array copyFrom: 2 to: 3 asFloat] signal: Error.
 )
+public testByteArrayEndsWith = (
+	| foo zero empty |
+	foo:: ByteArray new: 3.
+	foo at: 1 put: 102.
+	foo at: 2 put: 111.
+	foo at: 3 put: 111.
+	zero:: ByteArray new: 1.
+	zero at: 1 put: 48.
+	empty:: ByteArray new: 0.
+	
+	assert: (foo endsWith: 'o').
+	assert: (foo endsWith: 'foo').
+	assert: (foo endsWith: foo).
+	assert: (foo endsWith: '').
+	assert: (foo endsWith: empty).
+	assert: (empty endsWith: '').
+	assert: (foo endsWith: empty).
+	deny: (foo endsWith: 'toolongfoo').
+	deny: (foo endsWith: 'boo').
+	deny: (foo endsWith: 'bar').
+	deny: (empty endsWith: 'foo').
+	deny: (empty endsWith: foo).
+
+	should: [zero endsWith: 0] signal: Error.
+	should: [foo endsWith: true] signal: Error.
+	should: [foo endsWith: nil] signal: Error.
+)
 public testByteArrayFloatIndex = (
 	| array = ByteArray new: 1. |
 	should: [array at: 1 asFloat] signal: Error.
 	should: [array at: 1 asFloat put: 0] signal: Error.
+)
+public testByteArrayIndexOf = (
+	assert: ((b: 'fofofobar') indexOf: (b: 'fofo')) equals: 1.
+	assert: ((b: 'fofofobar') indexOf: (b: 'bar')) equals: 7.
+	assert: ((b: 'fofofobar') indexOf: (b: 'barr')) equals: 0.
+	assert: ((b: 'fofofobar') indexOf: (b: 'fob')) equals: 5.
+	assert: ((b: 'fofofobar') indexOf: (b: 'baz')) equals: 0.
+	assert: ((b: 'fofofobar') indexOf: (b: 'f')) equals: 1.
+	assert: ((b: 'fofofobar') indexOf: (b: 'r')) equals: 9.
+	assert: ((b: 'fofofobar') indexOf: (b: '')) equals: 1.
+
+	assert: ((b: 'tiny') indexOf: (b: 'toolong')) equals: 0.
+
+	assert: ((b: '') indexOf: (b: '')) equals: 1.
+	assert: ((b: '') indexOf: (b: 'baz')) equals: 0.
+
+	should: [(b: 'fofofobar') indexOf: 0] signal: Error.
+	should: [(b: '') indexOf: Object new] signal: Error.
+)
+public testByteArrayIndexOfStartingAt = (
+	assert: ((b: 'fofofobar') indexOf: (b: 'fofo') startingAt: 1) equals: 1.
+	assert: ((b: 'fofofobar') indexOf: (b: 'fofo') startingAt: 2) equals: 3.
+	assert: ((b: 'fofofobar') indexOf: (b: 'fofo') startingAt: 3) equals: 3.
+	assert: ((b: 'fofofobar') indexOf: (b: 'fofo') startingAt: 4) equals: 0.
+	assert: ((b: 'fofofobar') indexOf: (b: 'bar') startingAt: 1) equals: 7.
+	assert: ((b: 'fofofobar') indexOf: (b: 'bar') startingAt: 7) equals: 7.
+	assert: ((b: 'fofofobar') indexOf: (b: 'bar') startingAt: 8) equals: 0.
+	assert: ((b: 'fofofobar') indexOf: (b: 'barr') startingAt: 6) equals: 0.
+	assert: ((b: 'fofofobar') indexOf: (b: 'fob') startingAt: 5) equals: 5.
+	assert: ((b: 'fofofobar') indexOf: (b: 'fob') startingAt: 6) equals: 0.
+	assert: ((b: 'fofofobar') indexOf: (b: 'baz') startingAt: 1) equals: 0.
+	assert: ((b: 'fofofobar') indexOf: (b: 'f') startingAt: 1) equals: 1.
+	assert: ((b: 'fofofobar') indexOf: (b: 'f') startingAt: 2) equals: 3.
+	assert: ((b: 'fofofobar') indexOf: (b: 'r') startingAt: 1) equals: 9.
+	assert: ((b: 'fofofobar') indexOf: (b: 'r') startingAt: 9) equals: 9.
+	assert: ((b: 'fofofobar') indexOf: (b: '') startingAt: 1) equals: 1.
+	assert: ((b: 'fofofobar') indexOf: (b: '') startingAt: 5) equals: 5.
+	assert: ((b: 'fofofobar') indexOf: (b: '') startingAt: 9) equals: 9.
+
+	assert: ((b: 'tiny') indexOf: (b: 'toolong') startingAt: 1) equals: 0.
+	assert: ((b: 'tiny') indexOf: (b: 'toolong') startingAt: 3) equals: 0.
+
+	assert: ((b: '') indexOf: (b: '') startingAt: 1) equals: 1.
+	assert: ((b: '') indexOf: (b: 'baz') startingAt: 1) equals: 0.
+
+	should: [(b: 'fofofobar') indexOf: 0 startingAt: 1] signal: Error.
+	should: [(b: 'fofobobar') indexOf: Object new startingAt: 1] signal: Error.
+
+	should: [(b: 'fofofobar') indexOf: (b: 'foo') startingAt: 0] signal: Error.
+	should: [(b: 'fofofobar') indexOf: (b: 'foo') startingAt: 11] signal: Error.
+	should: [(b: '') indexOf: (b: '') startingAt: 0] signal: Error.
+	should: [(b: '') indexOf: (b: '') startingAt: 2] signal: Error.
 )
 public testByteArrayIsEmpty = (
 	assert: (ByteArray new: 0) isEmpty.
@@ -434,6 +516,60 @@ public testByteArrayLargeAllocation = (
 	assert: (ByteArray new: size) size equals: size.
 	assert: (ByteArray new: size) size equals: size.
 	assert: (ByteArray new: size) size equals: size.
+)
+public testByteArrayLastIndexOf = (
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fofo')) equals: 3.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'bar')) equals: 7.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'barr')) equals: 0.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fob')) equals: 5.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'baz')) equals: 0.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'f')) equals: 5.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'r')) equals: 9.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: '')) equals: 10.
+
+	assert: ((b: 'tiny') lastIndexOf: (b: 'toolong')) equals: 0.
+
+	assert: ((b: '') lastIndexOf: (b: '')) equals: 1.
+	assert: ((b: '') lastIndexOf: (b: 'baz')) equals: 0.
+
+	should: [(b: 'fofofobar') lastIndexOf: 0] signal: Error.
+	should: [(b: '') lastIndexOf: Object new] signal: Error.
+)
+public testByteArrayLastIndexOfStartingAt = (
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fofo') startingAt: 10) equals: 3.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fofo') startingAt: 4) equals: 3.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fofo') startingAt: 3) equals: 3.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fofo') startingAt: 1) equals: 1.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'bar') startingAt: 10) equals: 7.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'bar') startingAt: 7) equals: 7.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'bar') startingAt: 6) equals: 0.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'barr') startingAt: 10) equals: 0.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fob') startingAt: 10) equals: 5.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fob') startingAt: 4) equals: 0.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'baz') startingAt: 10) equals: 0.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'f') startingAt: 10) equals: 5.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'f') startingAt: 4) equals: 3.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'f') startingAt: 2) equals: 1.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'r') startingAt: 10) equals: 9.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'r') startingAt: 9) equals: 9.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: 'r') startingAt: 8) equals: 0.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: '') startingAt: 10) equals: 10.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: '') startingAt: 5) equals: 5.
+	assert: ((b: 'fofofobar') lastIndexOf: (b: '') startingAt: 1) equals: 1.
+
+	assert: ((b: 'tiny') lastIndexOf: (b: 'toolong') startingAt: 4) equals: 0.
+	assert: ((b: 'tiny') lastIndexOf: (b: 'toolong') startingAt: 2) equals: 0.
+
+	assert: ((b: '') lastIndexOf: (b: '') startingAt: 1) equals: 1.
+	assert: ((b: '') lastIndexOf: (b: 'baz') startingAt: 1) equals: 0.
+
+	should: [(b: 'fofofobar') lastIndexOf: 0 startingAt: 1] signal: Error.
+	should: [(b: '') lastIndexOf: Object new startingAt: 1] signal: Error.
+
+	should: [(b: 'fofofobar') lastIndexOf: (b: 'foo') startingAt: 0] signal: Error.
+	should: [(b: 'fofofobar') lastIndexOf: (b: 'foo') startingAt: 11] signal: Error.
+	should: [(b: '') lastIndexOf: (b: '') startingAt: 0] signal: Error.
+	should: [(b: '') lastIndexOf: (b: '') startingAt: 2] signal: Error.
 )
 public testByteArrayNew = (
 	assert: (ByteArray new: 0) size equals: 0.
@@ -558,6 +694,33 @@ public testByteArrayReplaceSlideUp = (
 	assert: (array at: 5) equals: 70.
 	assert: (array at: 6) equals: 60.
 	assert: (array at: 7) equals: 70.
+)
+public testByteArrayStartsWith = (
+	| foo zero empty |
+	foo:: ByteArray new: 3.
+	foo at: 1 put: 102.
+	foo at: 2 put: 111.
+	foo at: 3 put: 111.
+	zero:: ByteArray new: 1.
+	zero at: 1 put: 48.
+	empty:: ByteArray new: 0.
+
+	assert: (foo startsWith: 'f').
+	assert: (foo startsWith: 'foo').
+	assert: (foo startsWith: foo).
+	assert: (foo startsWith: '').
+	assert: (foo startsWith: empty).
+	assert: (empty startsWith: '').
+	assert: (empty startsWith: empty).
+	deny: (foo startsWith: 'toolong').
+	deny: (foo startsWith: 'fob').
+	deny: (foo startsWith: 'bar').
+	deny: (empty startsWith: 'foo').
+	deny: (empty startsWith: foo).
+
+	should: [zero startsWith: 0] signal: Error.
+	should: [foo startsWith: true] signal: Error.
+	should: [foo startsWith: nil] signal: Error.
 )
 public testByteArrayWithAll = (
 	| array bytearray result |
@@ -4532,14 +4695,25 @@ public testStringCopyFromTo = (
 	should: ['Hello, world!' copyFrom: 2 asFloat to: 5] signal: Error.
 )
 public testStringEndsWith = (
+	| foo empty |
+	foo:: ByteArray new: 3.
+	foo at: 1 put: 102.
+	foo at: 2 put: 111.
+	foo at: 3 put: 111.
+	empty:: ByteArray new: 0.
+
 	assert: ('foo' endsWith: 'o').
 	assert: ('foo' endsWith: 'foo').
+	assert: ('foo' endsWith: foo).
 	assert: ('foo' endsWith: '').
+	assert: ('foo' endsWith: empty).
 	assert: ('' endsWith: '').
+	assert: ('' endsWith: empty).
 	deny: ('foo' endsWith: 'toolongfoo').
 	deny: ('foo' endsWith: 'boo').
 	deny: ('foo' endsWith: 'bar').
 	deny: ('' endsWith: 'foo').
+	deny: ('' endsWith: foo).
 
 	should: ['0' endsWith: 0] signal: Error.
 	should: ['foo' endsWith: true] signal: Error.
@@ -4695,14 +4869,25 @@ public testStringSize = (
 	assert: '' size equals: 0.
 )
 public testStringStartsWith = (
+	| foo empty |
+	foo:: ByteArray new: 3.
+	foo at: 1 put: 102.
+	foo at: 2 put: 111.
+	foo at: 3 put: 111.
+	empty:: ByteArray new: 0.
+
 	assert: ('foo' startsWith: 'f').
 	assert: ('foo' startsWith: 'foo').
+	assert: ('foo' startsWith: foo).
 	assert: ('foo' startsWith: '').
+	assert: ('foo' startsWith: empty).
 	assert: ('' startsWith: '').
+	assert: ('' startsWith: empty).
 	deny: ('foo' startsWith: 'toolong').
 	deny: ('foo' startsWith: 'fob').
 	deny: ('foo' startsWith: 'bar').
 	deny: ('' startsWith: 'foo').
+	deny: ('' startsWith: foo).
 
 	should: ['0' startsWith: 0] signal: Error.
 	should: ['foo' startsWith: true] signal: Error.

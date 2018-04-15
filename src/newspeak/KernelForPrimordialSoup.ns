@@ -239,11 +239,29 @@ public copyWithSize: newSize <Integer> ^<ByteArray> = (
 public do: action <[:Integer]> = (
 	1 to: self size do: [:index <Integer> | action value: (self at: index)].
 )
+public endsWith: suffix <ByteArray | String> ^<Boolean> = (
+	(* :literalmessage: primitive: 118 *)
+	^(ArgumentError value: suffix) signal
+)
+public indexOf: substring <ByteArray | String> ^<Integer> = (
+	^self indexOf: substring startingAt: 1
+)
+public indexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 119 *)
+	^ArgumentError new signal
+)
 public isByteArray ^<Boolean> = (
 	^true
 )
 public isEmpty ^<Boolean> = (
 	^0 = self size
+)
+public lastIndexOf: substring <ByteArray | String> ^<Integer> = (
+	^self lastIndexOf: substring startingAt: 1 + self size
+)
+public lastIndexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 120 *)
+	^ArgumentError new signal
 )
 public replaceFrom: start <Integer> to: stop <Integer> with: replacement <ByteArray | String> startingAt: replacementStart <Integer> = (
 	(* :literalmessage: primitive: 79 *)
@@ -252,6 +270,10 @@ public replaceFrom: start <Integer> to: stop <Integer> with: replacement <ByteAr
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 49 *)
 	halt.
+)
+public startsWith: prefix <ByteArray | String> ^<Boolean> = (
+	(* :literalmessage: primitive: 117 *)
+	^(ArgumentError value: prefix) signal
 )
 ) : (
 public new: size <Integer> ^<ByteArray> = (
@@ -1406,7 +1428,7 @@ public asSymbol ^<String> = (
 	(isCanonical: self) ifTrue: [^self].
 	^intern: self.
 )
-public at: index <Integer> ^<String> = (
+public at: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 51 *)
 	^(ArgumentError value: index) signal
 )
@@ -1414,34 +1436,34 @@ public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
 	(* :literalmessage: primitive: 121 *)
 	^ArgumentError new signal
 )
-public endsWith: suffix <String> ^<Boolean> = (
+public endsWith: suffix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 118 *)
 	^(ArgumentError value: suffix) signal
 )
-public first ^<String> = (
+public first ^<Integer> = (
 	^self at: 1
 )
 public hash ^<Integer> = (
 	(* :literalmessage: primitive: 54 *)
 	halt.
 )
-public indexOf: substring <String> ^<Integer> = (
+public indexOf: substring <ByteArray | String> ^<Integer> = (
 	^self indexOf: substring startingAt: 1
 )
-public indexOf: substring <String> startingAt: index <Integer> ^<Integer> = (
+public indexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 119 *)
 	^ArgumentError new signal
 )
 public isString ^<Boolean> = (
 	^true
 )
-public last ^<String> = (
+public last ^<Integer> = (
 	^self at: self size
 )
-public lastIndexOf: substring <String> ^<Integer> = (
+public lastIndexOf: substring <ByteArray | String> ^<Integer> = (
 	^self lastIndexOf: substring startingAt: 1 + self size
 )
-public lastIndexOf: substring <String> startingAt: index <Integer> ^<Integer> = (
+public lastIndexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 120 *)
 	^ArgumentError new signal
 )
@@ -1455,7 +1477,7 @@ public size ^<Integer> = (
 	(* :literalmessage: primitive: 53 *)
 	halt.
 )
-public startsWith: prefix <String> ^<Boolean> = (
+public startsWith: prefix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 117 *)
 	^(ArgumentError value: prefix) signal
 )
