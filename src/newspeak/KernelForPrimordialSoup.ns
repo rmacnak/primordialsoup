@@ -1,7 +1,7 @@
 Newspeak3
 'NS2PrimordialSoup'
 class KernelForPrimordialSoup = (|
-private theScheduler <Scheduler>
+private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
 |) (
@@ -536,7 +536,7 @@ private invokeNextHandler = (
 					[^invokeOnDoHandler: activation]]].
 		 activation:: activation sender].
 
-	theScheduler unhandledException: self from: signalActivation sender.
+	messageLoop unhandledException: self from: signalActivation sender.
 	UNREACHABLE.
 )
 private invokeOnDoHandler: handler <Activation> = (
@@ -1895,12 +1895,12 @@ public yourself = (
 )
 public buildObjectStoreWithApplication: app platform: platform symbols: symbols = (
 	symbolTable:: symbols.
-	theScheduler:: platform actors buildSchedulerForApplication: app platform: platform.
+	messageLoop:: platform actors buildLoopForApplication: app platform: platform.
 	^{
 		nil.
 		false.
 		true.
-		theScheduler.
+		messageLoop.
 		{#+. 1. #-. 1. #<. 1. #>. 1. #<=. 1. #>=. 1. #=. 1. #~=. 1. #*. 1. #/. 1. #\\. 1. #@. 1. #bitShift:. 1. #//. 1. #bitAnd:. 1. #bitOr:. 1. #at:. 1. #at:put:. 2. #size. 0. #next. 0. #nextPut:. 1. #atEnd. 0. #==. 1. #class. 0. #blockCopy:. 1. #value. 0. #value:. 1. #do:. 1. #new. 0. #new:. 1. #x. 0. #y. 0}.
 		#doesNotUnderstand:.
 		#nonBooleanReceiver:.

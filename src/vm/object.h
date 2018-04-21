@@ -961,12 +961,6 @@ class Message : public Object {
   Array* arguments_;
 };
 
-
-class Scheduler : public Object {
-  HEAP_OBJECT_IMPLEMENTATION(Scheduler);
-};
-
-
 class ObjectStore : public Object {
   HEAP_OBJECT_IMPLEMENTATION(ObjectStore);
 
@@ -975,7 +969,7 @@ class ObjectStore : public Object {
   Object* nil_obj() const { return ptr()->nil_; }
   Object* false_obj() const { return ptr()->false_; }
   Object* true_obj() const { return ptr()->true_; }
-  Scheduler* scheduler() const { return ptr()->scheduler_; }
+  Object* message_loop() const { return ptr()->message_loop_; }
   class Array* quick_selectors() const { return ptr()->quick_selectors_; }
   class String* does_not_understand() const {
     return ptr()->does_not_understand_;
@@ -1017,7 +1011,7 @@ class ObjectStore : public Object {
   Object* nil_;
   Object* false_;
   Object* true_;
-  Scheduler* scheduler_;
+  Object* message_loop_;
   class Array* quick_selectors_;
   class String* does_not_understand_;
   class String* non_boolean_receiver_;

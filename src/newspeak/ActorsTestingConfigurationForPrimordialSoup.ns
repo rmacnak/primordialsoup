@@ -6,7 +6,7 @@ private TestActor = manifest TestActor.
 |) (
 class DrainEventLoopBlockingStrategy usingActors: actors = (|
 private Promise = actors Promise.
-private scheduler = actors theScheduler.
+private messageLoop = actors messageLoop.
 |) (
 public blockFor: promise ifFulfilled: onFulfilled ifBroken: onBroken ifTimeout: onTimeout = (
 	|
@@ -19,7 +19,7 @@ public blockFor: promise ifFulfilled: onFulfilled ifBroken: onBroken ifTimeout: 
 		broken: [:error | resolution:: error. state:: #broken].
 
 	(* This will not process any inter-isolate messages. *)
-	[scheduler drainEventLoop > 0] whileTrue.
+	[messageLoop drainQueue > 0] whileTrue.
 
 	state = #unresolved ifTrue: [^onTimeout value].
 	state = #fulfilled ifTrue: [^onFulfilled value: resolution].

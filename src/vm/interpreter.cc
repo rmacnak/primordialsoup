@@ -32,8 +32,8 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
 
 void Interpreter::PushLiteralVariable(intptr_t offset) {
   // Not used in Newspeak, except by the implementation of eventual sends.
-  // TODO(rmacnak): Add proper push scheduler bytecode.
-  A->Push(heap_->object_store()->scheduler());
+  // TODO(rmacnak): Add proper eventual send bytecode.
+  A->Push(heap_->object_store()->message_loop());
 }
 
 

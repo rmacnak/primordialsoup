@@ -1507,7 +1507,7 @@ pushLiteral: offset = (
 )
 pushLiteralVariable: offset = (
 	(* Not used in Newspeak, except by the implementation of eventual sends. *)
-	pushScheduler.
+	pushMessageLoop.
 )
 pushNewArray: size ^<Activation> = (
 	activation push: (Array new: size).

@@ -169,15 +169,15 @@ void Isolate::ActivateWakeup() {
 
 
 void Isolate::Activate(Object* message, Object* port) {
-  Scheduler* scheduler = heap_->object_store()->scheduler();
+  Object* message_loop = heap_->object_store()->message_loop();
 
-  Behavior* cls = scheduler->Klass(heap_);
+  Behavior* cls = message_loop->Klass(heap_);
   String* selector = heap_->object_store()->dispatch_message();
   Method* method = interpreter_->MethodAt(cls, selector);
 
   HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
   HandleScope h2(heap_, reinterpret_cast<Object**>(&port));
-  HandleScope h3(heap_, reinterpret_cast<Object**>(&scheduler));
+  HandleScope h3(heap_, reinterpret_cast<Object**>(&message_loop));
   HandleScope h4(heap_, reinterpret_cast<Object**>(&method));
 
   Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
@@ -187,7 +187,7 @@ void Isolate::Activate(Object* message, Object* port) {
   new_activation->set_bci(SmallInteger::New(1));
   new_activation->set_method(method);
   new_activation->set_closure(static_cast<Closure*>(nil));
-  new_activation->set_receiver(scheduler);
+  new_activation->set_receiver(message_loop);
   new_activation->set_stack_depth(0);
 
   ASSERT(method->NumArgs() == 2);
@@ -207,13 +207,13 @@ void Isolate::ActivateSignal(intptr_t handle,
                              intptr_t status,
                              intptr_t signals,
                              intptr_t count) {
-  Scheduler* scheduler = heap_->object_store()->scheduler();
+  Object* message_loop = heap_->object_store()->message_loop();
 
-  Behavior* cls = scheduler->Klass(heap_);
+  Behavior* cls = message_loop->Klass(heap_);
   String* selector = heap_->object_store()->dispatch_signal();
   Method* method = interpreter_->MethodAt(cls, selector);
 
-  HandleScope h1(heap_, reinterpret_cast<Object**>(&scheduler));
+  HandleScope h1(heap_, reinterpret_cast<Object**>(&message_loop));
   HandleScope h2(heap_, reinterpret_cast<Object**>(&method));
 
   Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
@@ -223,7 +223,7 @@ void Isolate::ActivateSignal(intptr_t handle,
   new_activation->set_bci(SmallInteger::New(1));
   new_activation->set_method(method);
   new_activation->set_closure(static_cast<Closure*>(nil));
-  new_activation->set_receiver(scheduler);
+  new_activation->set_receiver(message_loop);
   new_activation->set_stack_depth(0);
 
   ASSERT(method->NumArgs() == 4);
