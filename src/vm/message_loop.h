@@ -60,9 +60,7 @@ class MessageLoop {
   virtual ~MessageLoop();
 
   virtual void PostMessage(IsolateMessage* message) = 0;
-  virtual intptr_t AwaitSignal(intptr_t handle,
-                               intptr_t signals,
-                               int64_t deadline) = 0;
+  virtual intptr_t AwaitSignal(intptr_t handle, intptr_t signals) = 0;
   virtual void CancelSignalWait(intptr_t wait_id) = 0;
   virtual void MessageEpilogue(int64_t new_wakeup) = 0;
   virtual void Exit(intptr_t exit_code) = 0;

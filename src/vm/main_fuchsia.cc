@@ -26,7 +26,10 @@ class PrimordialSoupApplicationController
  public:
   PrimordialSoupApplicationController(
       fidl::InterfaceRequest<component::ApplicationController> controller)
-      : binding_(this), wait_callbacks_(), namespace_(nullptr) {
+      : loop_(&kAsyncLoopConfigMakeDefault),
+        binding_(this),
+        wait_callbacks_(),
+        namespace_(nullptr) {
     if (controller.is_valid()) {
       binding_.Bind(std::move(controller));
       binding_.set_error_handler([this] { Kill(); });
@@ -120,8 +123,7 @@ class PrimordialSoupApplicationController
   }
 
   void Kill() override {
-    fsl::MessageLoop* loop = fsl::MessageLoop::GetCurrent();
-    loop->QuitNow();
+    loop_.Quit();
   }
 
   void Detach() override {
@@ -132,6 +134,7 @@ class PrimordialSoupApplicationController
     wait_callbacks_.push_back(callback);
   }
 
+  async::Loop loop_;
   fidl::Binding<component::ApplicationController> binding_;
   std::vector<WaitCallback> wait_callbacks_;
   fdio_ns_t* namespace_;
@@ -143,7 +146,6 @@ static void RunApplication(
     component::ApplicationPackage application,
     component::ApplicationStartupInfo startup_info,
     ::fidl::InterfaceRequest<component::ApplicationController> controller) {
-  fsl::MessageLoop loop;
   PrimordialSoupApplicationController app(std::move(controller));
   app.Run(std::move(application), std::move(startup_info));
 }
@@ -187,12 +189,13 @@ int main(int argc, const char** argv) {
   PrimordialSoup_Startup();
 
   if (argc < 2) {
-    fsl::MessageLoop loop;
+    async::Loop loop(&kAsyncLoopConfigMakeDefault);
     PrimordialSoupApplicationRunner runner;
     loop.Run();
   } else {
     psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);
     void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
+    async::Loop loop(&kAsyncLoopConfigMakeDefault);
     PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot.base()),
                               snapshot.size(), argc - 2, &argv[2]);
     signal(SIGINT, defaultSIGINT);

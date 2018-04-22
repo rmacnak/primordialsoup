@@ -23,7 +23,7 @@ class EPollMessageLoop : public MessageLoop {
   ~EPollMessageLoop();
 
   void PostMessage(IsolateMessage* message);
-  intptr_t AwaitSignal(intptr_t handle, intptr_t signals, int64_t deadline);
+  intptr_t AwaitSignal(intptr_t handle, intptr_t signals);
   void CancelSignalWait(intptr_t wait_id);
   void MessageEpilogue(int64_t new_wakeup);
   void Exit(intptr_t exit_code);

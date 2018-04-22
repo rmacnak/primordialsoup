@@ -2875,12 +2875,10 @@ DEFINE_PRIMITIVE(simulationRoot) {
 
 
 DEFINE_PRIMITIVE(MessageLoop_awaitSignal) {
-  ASSERT(num_args == 3);
-  SMI_ARGUMENT(handle, 2);
-  SMI_ARGUMENT(signals, 1);
-  MINT_ARGUMENT(deadline, 0);
-  intptr_t wait_id =
-      I->isolate()->loop()->AwaitSignal(handle, signals, deadline);
+  ASSERT(num_args == 2);
+  SMI_ARGUMENT(handle, 1);
+  SMI_ARGUMENT(signals, 0);
+  intptr_t wait_id = I->isolate()->loop()->AwaitSignal(handle, signals);
   RETURN_SMI(wait_id);
 }
 

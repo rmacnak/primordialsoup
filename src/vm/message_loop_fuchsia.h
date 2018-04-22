@@ -10,7 +10,9 @@
   instead.
 #endif
 
-#include "lib/fsl/tasks/message_loop.h"
+#include <lib/async-loop/loop.h>
+#include <lib/async/cpp/wait.h>
+#include <lib/zx/timer.h>
 
 #include "vm/port.h"
 
@@ -18,13 +20,13 @@ namespace psoup {
 
 #define PlatformMessageLoop FuchsiaMessageLoop
 
-class FuchsiaMessageLoop : public MessageLoop, private fsl::MessageLoopHandler {
+class FuchsiaMessageLoop : public MessageLoop {
  public:
   explicit FuchsiaMessageLoop(Isolate* isolate);
   ~FuchsiaMessageLoop();
 
   void PostMessage(IsolateMessage* message);
-  intptr_t AwaitSignal(intptr_t handle, intptr_t signals, int64_t deadline);
+  intptr_t AwaitSignal(intptr_t handle, intptr_t signals);
   void CancelSignalWait(intptr_t wait_id);
   void MessageEpilogue(int64_t new_wakeup);
   void Exit(intptr_t exit_code);
@@ -33,11 +35,17 @@ class FuchsiaMessageLoop : public MessageLoop, private fsl::MessageLoopHandler {
   void Interrupt();
 
  private:
-  void OnHandleReady(zx_handle_t handle, zx_signals_t pending, uint64_t count);
-  void OnHandleError(zx_handle_t handle, zx_status_t error);
+  void OnHandleReady(async_t* async,
+                     async::WaitBase* wait,
+                     zx_status_t status,
+                     const zx_packet_signal_t* packet);
 
-  fsl::MessageLoop* loop_;
-  zx_handle_t timer_;
+  using Wait =
+      async::WaitMethod<FuchsiaMessageLoop, &FuchsiaMessageLoop::OnHandleReady>;
+
+  async_loop_t* loop_;
+  zx::timer timer_;
+  Wait timer_wait_;
   int64_t wakeup_;
 
   DISALLOW_COPY_AND_ASSIGN(FuchsiaMessageLoop);

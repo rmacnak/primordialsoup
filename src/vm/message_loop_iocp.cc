@@ -31,9 +31,7 @@ IOCPMessageLoop::~IOCPMessageLoop() {
   CloseHandle(completion_port_);
 }
 
-intptr_t IOCPMessageLoop::AwaitSignal(intptr_t fd,
-                                      intptr_t signals,
-                                      int64_t deadline) {
+intptr_t IOCPMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
   UNIMPLEMENTED();
   return 0;
 }

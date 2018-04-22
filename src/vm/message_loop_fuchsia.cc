@@ -7,6 +7,7 @@
 
 #include "vm/message_loop.h"
 
+#include <lib/async/cpp/task.h>
 #include <zircon/status.h>
 #include <zircon/syscalls.h>
 
@@ -16,61 +17,65 @@ namespace psoup {
 
 FuchsiaMessageLoop::FuchsiaMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
-      loop_(fsl::MessageLoop::GetCurrent()),
+      loop_(async_loop_from_dispatcher(async_get_default())),
       timer_(ZX_HANDLE_INVALID),
+      timer_wait_(this),
       wakeup_(0) {
-  zx_status_t result =
-      zx_timer_create(ZX_TIMER_SLACK_LATE, ZX_CLOCK_MONOTONIC, &timer_);
-  ASSERT(result == ZX_OK);
-  loop_->AddHandler(this, timer_, ZX_TIMER_SIGNALED);
+  zx_status_t status =
+      zx::timer::create(ZX_TIMER_SLACK_LATE, ZX_CLOCK_MONOTONIC, &timer_);
+  ASSERT(status == ZX_OK);
+  timer_wait_.set_object(timer_.get());
+  timer_wait_.set_trigger(ZX_TIMER_SIGNALED);
+  status = timer_wait_.Begin(async_loop_get_dispatcher(loop_));
+  ASSERT(status == ZX_OK);
 }
 
 FuchsiaMessageLoop::~FuchsiaMessageLoop() {
-  zx_status_t result = zx_timer_cancel(timer_);
-  ASSERT(result == ZX_OK);
-  result = zx_handle_close(timer_);
-  ASSERT(result == ZX_OK);
+  zx_status_t status = timer_wait_.Cancel();
+  ASSERT(status == ZX_OK);
 }
 
-intptr_t FuchsiaMessageLoop::AwaitSignal(intptr_t handle,
-                                         intptr_t signals,
-                                         int64_t deadline) {
-  // It seems odd that fsl should take a timeout here instead of deadline,
-  // since the underlying zx_port_wait operates in terms of a deadline.
-  // This is probably a straggler from the conversion.
+intptr_t FuchsiaMessageLoop::AwaitSignal(intptr_t handle, intptr_t signals) {
   open_waits_++;
-  int64_t timeout = deadline - OS::CurrentMonotonicNanos();
-  return loop_->AddHandler(this, handle, signals,
-                           fxl::TimeDelta::FromNanoseconds(timeout));
+
+  Wait* wait = new Wait(this, handle, signals);
+  zx_status_t status = wait->Begin(async_loop_get_dispatcher(loop_));
+  ASSERT(status == ZX_OK);
+  ASSERT((reinterpret_cast<intptr_t>(wait) & 1) == 0);
+  return reinterpret_cast<intptr_t>(wait) >> 1;
 }
 
-void FuchsiaMessageLoop::OnHandleReady(zx_handle_t handle,
-                                       zx_signals_t pending,
-                                       uint64_t count) {
-  if (handle == timer_) {
+void FuchsiaMessageLoop::OnHandleReady(async_t* async,
+                                       async::WaitBase* wait,
+                                       zx_status_t status,
+                                       const zx_packet_signal_t* packet) {
+  wait->Begin(async_loop_get_dispatcher(loop_));
+
+  if (wait == &timer_wait_) {
     DispatchWakeup();
   } else {
-    DispatchSignal(handle, ZX_OK, pending, count);
+    zx_handle_t handle = wait->object();
+    zx_signals_t pending = packet->observed;
+    uint64_t count = packet->count;
+    DispatchSignal(handle, status, pending, count);
   }
 }
 
-void FuchsiaMessageLoop::OnHandleError(zx_handle_t handle, zx_status_t error) {
-  DispatchSignal(handle, error, 0, 0);
-}
-
 void FuchsiaMessageLoop::CancelSignalWait(intptr_t wait_id) {
-  loop_->RemoveHandler(wait_id);
+  Wait* wait = reinterpret_cast<Wait*>(wait_id << 1);
+  wait->Cancel();
+  delete wait;
+
   open_waits_--;
 }
 
 void FuchsiaMessageLoop::MessageEpilogue(int64_t new_wakeup) {
   wakeup_ = new_wakeup;
   if (new_wakeup == 0) {
-    zx_status_t result = zx_timer_cancel(timer_);
+    zx_status_t result = timer_.cancel();
     ASSERT(result == ZX_OK);
   } else {
-    zx_duration_t slack = ZX_MSEC(1);
-    zx_status_t result = zx_timer_set(timer_, new_wakeup, slack);
+    zx_status_t result = timer_.set(zx::time(new_wakeup), zx::msec(1));
     ASSERT(result == ZX_OK);
   }
 
@@ -82,15 +87,16 @@ void FuchsiaMessageLoop::MessageEpilogue(int64_t new_wakeup) {
 void FuchsiaMessageLoop::Exit(intptr_t exit_code) {
   exit_code_ = exit_code;
   isolate_ = NULL;
-  loop_->QuitNow();
+  async_loop_quit(loop_);
 }
 
 void FuchsiaMessageLoop::PostMessage(IsolateMessage* message) {
-  loop_->task_runner()->PostTask([this, message] { DispatchMessage(message); });
+  async::PostTask(async_loop_get_dispatcher(loop_),
+                  [this, message] { DispatchMessage(message); });
 }
 
 intptr_t FuchsiaMessageLoop::Run() {
-  loop_->Run();
+  async_loop_run(loop_, ZX_TIME_INFINITE, false /* once */);
 
   if (open_ports_ > 0) {
     PortMap::CloseAllPorts(this);

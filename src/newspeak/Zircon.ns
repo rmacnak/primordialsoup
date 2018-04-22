@@ -132,7 +132,7 @@ protected waiter ::= 0.
 protected await: signals = (
 	0 = waiter ifFalse: [rawCancelWait: waiter].
 	handleMap at: handle put: [:status :pending | onStatus: status signals: pending].
-	waiter:: rawAwait: handle signals: signals deadline: 16r7FFFFFFFFFFFFFFF.
+	waiter:: rawAwait: handle signals: signals.
 )
 public close = (
 	0 = waiter ifFalse: [rawCancelWait: waiter].
@@ -141,7 +141,7 @@ public close = (
 )
 protected onStatus: status signals: pending = (
 )
-private rawAwait: h signals: s deadline: d = (
+private rawAwait: h signals: s = (
 	(* :literalmessage: primitive: 143 *)
 	halt
 )

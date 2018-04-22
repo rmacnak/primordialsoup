@@ -81,9 +81,7 @@ EPollMessageLoop::~EPollMessageLoop() {
   close(interrupt_fds_[1]);
 }
 
-intptr_t EPollMessageLoop::AwaitSignal(intptr_t fd,
-                                       intptr_t signals,
-                                       int64_t deadline) {
+intptr_t EPollMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
   struct epoll_event event;
   event.events = EPOLLRDHUP | EPOLLET;
   if (signals & (1 << kReadEvent)) {

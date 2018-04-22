@@ -68,9 +68,7 @@ KQueueMessageLoop::~KQueueMessageLoop() {
   close(interrupt_fds_[1]);
 }
 
-intptr_t KQueueMessageLoop::AwaitSignal(intptr_t fd,
-                                        intptr_t signals,
-                                        int64_t deadline) {
+intptr_t KQueueMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
   static const intptr_t kMaxChanges = 2;
   struct kevent changes[kMaxChanges];
   intptr_t nchanges = 0;
