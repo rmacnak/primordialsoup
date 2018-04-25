@@ -16,9 +16,12 @@ testConfigs = {
 	manifest ZirconTestingConfiguration packageTestsUsing: manifest.
 	(* manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest. *)
 }.
+Promise
 |) (
 public main: platform args: args = (
-	| stopwatch minitest testModules tester |
+	| keepAlive stopwatch minitest testModules tester |
+	keepAlive:: platform actors Port new.
+	Promise:: platform actors Promise.
 	stopwatch:: platform kernel Stopwatch new start.
 	minitest:: Minitest usingPlatform: platform.
 	testModules:: platform collections List new.
@@ -28,20 +31,26 @@ public main: platform args: args = (
 			(testConfig testModulesUsingPlatform: platform minitest: minitest)].
 	tester:: minitest Tester testModules: testModules asArray.
 	tester prepare.
-	[tester atEnd] whileFalse:
-		[ | result |
-		tester peekSelector out.
-		result:: tester step.
-		result isError ifTrue: ['error' out. result exception out.].
-		result isFailure ifTrue: ['failure' out. result description out.]].
 
-	(tester successes size printString, ' successes, ',
-	tester failures size printString, ' failures, ',
-	tester errors size printString, ' errors, ',
-	stopwatch elapsedMilliseconds asString, ' ms') out.
-	'' out.
 
-	tester haveAllTestsSucceeded ifFalse: [Error new signal].
+	Promise when: (runTests: tester) fulfilled:
+		[(tester successes size printString, ' successes, ',
+		 tester failures size printString, ' failures, ',
+		 tester errors size printString, ' errors, ',
+		 stopwatch elapsedMilliseconds asString, ' ms') out.
+		 '' out.
+
+		 tester haveAllTestsSucceeded ifFalse: [halt].
+		 keepAlive close]
+)
+runTests: tester = (
+	tester atEnd ifTrue: [^self].
+	tester peekSelector out.
+	^Promise when: tester stepAsync fulfilled:
+		[:result |
+		 result isError ifTrue: ['error' out. result exception out].
+		 result isFailure ifTrue: ['failure' out. result description out].
+		 runTests: tester]
 )
 ) : (
 )

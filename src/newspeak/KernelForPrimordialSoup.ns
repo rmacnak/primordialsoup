@@ -1821,10 +1821,6 @@ protected ByteArray = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup ByteArray
 )
-protected Character = (
-	(* squeak compatibility *)
-	^outer KernelForPrimordialSoup String
-)
 protected Error = (
 	(* squeak compatibility *)
 	^outer KernelForPrimordialSoup Exception

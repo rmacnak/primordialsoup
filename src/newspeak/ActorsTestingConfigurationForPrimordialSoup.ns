@@ -4,41 +4,12 @@ class ActorsTestingConfigurationForPrimordialSoup packageTestsUsing: manifest = 
 private ActorsTesting = manifest ActorsTesting.
 private TestActor = manifest TestActor.
 |) (
-class DrainEventLoopBlockingStrategy usingActors: actors = (|
-private Promise = actors Promise.
-private messageLoop = actors messageLoop.
-|) (
-public blockFor: promise ifFulfilled: onFulfilled ifBroken: onBroken ifTimeout: onTimeout = (
-	|
-	state ::= #unresolved.
-	resolution
-	|
-	Promise
-		when: promise
-		fulfilled: [:value | resolution:: value. state:: #fulfilled]
-		broken: [:error | resolution:: error. state:: #broken].
-
-	(* This will not process any inter-isolate messages. *)
-	[messageLoop drainQueue > 0] whileTrue.
-
-	state = #unresolved ifTrue: [^onTimeout value].
-	state = #fulfilled ifTrue: [^onFulfilled value: resolution].
-	state = #broken ifTrue: [^onBroken value: resolution].
-	halt.
-)
-) : (
-)
 public testModulesUsingPlatform: platform minitest: minitest = (
-	|
-	actors = platform actors.
-	blocker = DrainEventLoopBlockingStrategy usingActors: platform actors.
-	|
 	^{ActorsTesting
 		usingPlatform: platform
-		actors: actors
+		actors: platform actors
 		testActor: TestActor
-		minitest: minitest
-		blocker: blocker}
+		minitest: minitest}
 )
 ) : (
 )
