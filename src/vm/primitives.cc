@@ -1868,15 +1868,15 @@ DEFINE_PRIMITIVE(Object_identityHash) {
     }
   } else if (receiver->IsString()) {
     static_cast<String*>(receiver)->EnsureHash(I->isolate());
-    hash = receiver->header_hash();
+    hash = static_cast<String*>(receiver)->header_hash();
   } else {
-    hash = receiver->header_hash();
+    hash = static_cast<HeapObject*>(receiver)->header_hash();
     if (hash == 0) {
       hash = I->isolate()->random().NextUInt64() & SmallInteger::kMaxValue;
       if (hash == 0) {
         hash = 1;
       }
-      receiver->set_header_hash(hash);
+      static_cast<HeapObject*>(receiver)->set_header_hash(hash);
     }
   }
   RETURN_SMI(hash);
@@ -2587,10 +2587,10 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
 DEFINE_PRIMITIVE(Object_isCanonical) {
   ASSERT(num_args == 1);
   Object* object = A->Stack(0);
-  if (!object->IsHeapObject()) {
-    RETURN_BOOL(true);
+  if (object->IsHeapObject()) {
+    RETURN_BOOL(static_cast<HeapObject*>(object)->is_canonical());
   } else {
-    RETURN_BOOL(object->is_canonical());
+    RETURN_BOOL(true);
   }
 }
 
@@ -2598,10 +2598,10 @@ DEFINE_PRIMITIVE(Object_isCanonical) {
 DEFINE_PRIMITIVE(Object_markCanonical) {
   ASSERT(num_args == 1);
   Object* object = A->Stack(0);
-  if (!object->IsHeapObject()) {
-    // Nop.
+  if (object->IsHeapObject()) {
+    static_cast<HeapObject*>(object)->set_is_canonical(true);
   } else {
-    object->set_is_canonical(true);
+    // Nop.
   }
   RETURN(object);
 }
@@ -2705,7 +2705,7 @@ DEFINE_PRIMITIVE(currentActivation) {
 DEFINE_PRIMITIVE(Behavior_adoptInstance) {
   ASSERT(num_args == 2);
   Behavior* new_cls = static_cast<Behavior*>(A->Stack(1));
-  Object* instance = A->Stack(0);
+  HeapObject* instance = static_cast<HeapObject*>(A->Stack(0));
   Behavior* old_cls = instance->Klass(H);
 
   ASSERT(old_cls->cid() >= kFirstRegularObjectCid);
@@ -2715,7 +2715,7 @@ DEFINE_PRIMITIVE(Behavior_adoptInstance) {
   if (id == nil) {
     id = SmallInteger::New(H->AllocateClassId());  // SAFEPOINT
     new_cls = static_cast<Behavior*>(A->Stack(1));
-    instance = A->Stack(0);
+    instance = static_cast<HeapObject*>(A->Stack(0));
     new_cls->set_id(id);
     H->RegisterClass(id->value(), new_cls);
   }

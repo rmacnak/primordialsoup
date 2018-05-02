@@ -15,7 +15,7 @@ Behavior* Object::Klass(Heap* heap) const {
 }
 
 
-intptr_t Object::HeapSizeFromClass() const {
+intptr_t HeapObject::HeapSizeFromClass() const {
   ASSERT(IsHeapObject());
 
   switch (cid()) {
@@ -57,7 +57,7 @@ intptr_t Object::HeapSizeFromClass() const {
 }
 
 
-void Object::Pointers(Object*** from, Object*** to) {
+void HeapObject::Pointers(Object*** from, Object*** to) {
   ASSERT(IsHeapObject());
 
   switch (cid()) {
@@ -109,8 +109,8 @@ void Object::Pointers(Object*** from, Object*** to) {
 char* Object::ToCString(Heap* heap) const {
   char* result = NULL;
   intptr_t length;
-  Object* cls;
-  Object* cls2;
+  Behavior* cls;
+  Behavior* cls2;
   String* name;
 
   switch (ClassId()) {
@@ -153,7 +153,7 @@ char* Object::ToCString(Heap* heap) const {
   case kClosureCid:
     return strdup("a Closure");
   default:
-    cls = heap->ClassAt(cid());
+    cls = Klass(heap);
     if ((cls->HeapSize() / sizeof(uword)) == 8) {
       // A Metaclass.
       cls2 = static_cast<Metaclass*>(cls)->this_class();

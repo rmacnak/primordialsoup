@@ -102,7 +102,7 @@ class WeakArray;
     return reinterpret_cast<klass*>(                                           \
         reinterpret_cast<uword>(this) - kHeapObjectTag);                       \
   }                                                                            \
-  friend class Object;                                                         \
+  friend class HeapObject;                                                     \
  public:                                                                       \
   static const klass* Cast(const Object* object) {                             \
     return static_cast<const klass*>(object);                                  \
@@ -113,51 +113,23 @@ class WeakArray;
 
 class Object {
  public:
-  bool IsObject() const {
-    return true;
-  }
-  bool IsForwardingCorpse() const {
-    return IsHeapObject() && (cid() == kForwardingCorpseCid);
-  }
-  bool IsFreeListElement() const {
-    return IsHeapObject() && (cid() == kFreeListElementCid);
-  }
-  bool IsArray() const {
-    return IsHeapObject() && (cid() == kArrayCid);
-  }
+  bool IsForwardingCorpse() const { return ClassId() == kForwardingCorpseCid; }
+  bool IsFreeListElement() const { return ClassId() == kFreeListElementCid; }
+  bool IsArray() const { return ClassId() == kArrayCid; }
+  bool IsByteArray() const { return ClassId() == kByteArrayCid; }
+  bool IsString() const { return ClassId() == kStringCid; }
+  bool IsActivation() const { return ClassId() == kActivationCid; }
+  bool IsMediumInteger() const { return ClassId() == kMintCid; }
+  bool IsLargeInteger() const { return ClassId() == kBigintCid; }
+  bool IsFloat64() const { return ClassId() == kFloat64Cid; }
+  bool IsWeakArray() const { return ClassId() == kWeakArrayCid; }
+  bool IsEphemeron() const { return ClassId() == kEphemeronCid; }
+  bool IsClosure() const { return ClassId() == kClosureCid; }
+  bool IsRegularObject() const { return ClassId() >= kFirstRegularObjectCid; }
   bool IsBytes() const {
-    return IsHeapObject() && (cid() == kByteArrayCid || cid() == kStringCid);
+    return (ClassId() == kByteArrayCid) || (ClassId() == kStringCid);
   }
-  bool IsByteArray() const {
-    return IsHeapObject() && (cid() == kByteArrayCid);
-  }
-  bool IsString() const {
-    return IsHeapObject() && (cid() == kStringCid);
-  }
-  bool IsActivation() const {
-    return IsHeapObject() && (cid() == kActivationCid);
-  }
-  bool IsMediumInteger() const {
-    return IsHeapObject() && (cid() == kMintCid);
-  }
-  bool IsLargeInteger() const {
-    return IsHeapObject() && (cid() == kBigintCid);
-  }
-  bool IsFloat64() const {
-    return IsHeapObject() && (cid() == kFloat64Cid);
-  }
-  bool IsWeakArray() const {
-    return IsHeapObject() && (cid() == kWeakArrayCid);
-  }
-  bool IsEphemeron() const {
-    return IsHeapObject() && (cid() == kEphemeronCid);
-  }
-  bool IsClosure() const {
-    return IsHeapObject() && (cid() == kClosureCid);
-  }
-  bool IsRegularObject() const {
-    return IsHeapObject() && (cid() >= kFirstRegularObjectCid);
-  }
+
   bool IsHeapObject() const {
     return (reinterpret_cast<uword>(this) & kSmiTagMask) == kHeapObjectTag;
   }
@@ -185,6 +157,15 @@ class Object {
     return (addr & kNewObjectBits) != kNewObjectBits;
   }
 
+  inline intptr_t ClassId() const;
+  Behavior* Klass(Heap* heap) const;
+
+  char* ToCString(Heap* heap) const;
+  void Print(Heap* heap) const;
+};
+
+class HeapObject : public Object {
+ public:
   void AssertCouldBeBehavior() const {
     ASSERT(IsRegularObject());
     // 8 slots for a class, 7 slots for a metaclass, plus 1 header.
@@ -223,13 +204,13 @@ class Object {
   uword Addr() const {
     return reinterpret_cast<uword>(this) - kHeapObjectTag;
   }
-  static Object* FromAddr(uword addr) {
-    return reinterpret_cast<Object*>(addr + kHeapObjectTag);
+  static HeapObject* FromAddr(uword addr) {
+    return reinterpret_cast<HeapObject*>(addr + kHeapObjectTag);
   }
 
-  static Object* InitializeObject(uword addr,
-                                  intptr_t cid,
-                                  intptr_t heap_size) {
+  static HeapObject* Initialize(uword addr,
+                                intptr_t cid,
+                                intptr_t heap_size) {
     ASSERT(cid != kIllegalCid);
     ASSERT((heap_size & kObjectAlignmentMask) == 0);
     ASSERT(heap_size > 0);
@@ -241,23 +222,13 @@ class Object {
     uword header = 0;
     header = SizeField::update(size_tag, header);
     header = ClassIdField::update(cid, header);
-    Object* obj = FromAddr(addr);
+    HeapObject* obj = FromAddr(addr);
     obj->ptr()->header_ = header;
     obj->ptr()->header_hash_ = 0;
     ASSERT(obj->cid() == cid);
     ASSERT(!obj->is_marked());
     return obj;
   }
-
-  intptr_t ClassId() const {
-    if (IsSmallInteger()) {
-      return kSmiCid;
-    } else {
-      return cid();
-    }
-  }
-
-  Behavior* Klass(Heap* heap) const;
 
   intptr_t HeapSize() const {
     ASSERT(IsHeapObject());
@@ -270,9 +241,6 @@ class Object {
   intptr_t HeapSizeFromClass() const;
   void Pointers(Object*** from, Object*** to);
 
-  char* ToCString(Heap* heap) const;
-  void Print(Heap* heap) const;
-
  protected:
   template<typename type>
   void StorePointer(type* addr, type value) {
@@ -280,14 +248,14 @@ class Object {
   }
 
  private:
-  const Object* ptr() const {
+  const HeapObject* ptr() const {
     ASSERT(IsHeapObject());
-    return reinterpret_cast<Object*>(
+    return reinterpret_cast<const HeapObject*>(
         reinterpret_cast<uword>(this) - kHeapObjectTag);
   }
-  Object* ptr() {
+  HeapObject* ptr() {
     ASSERT(IsHeapObject());
-    return reinterpret_cast<Object*>(
+    return reinterpret_cast<HeapObject*>(
         reinterpret_cast<uword>(this) - kHeapObjectTag);
   }
 
@@ -302,6 +270,13 @@ class Object {
       public BitField<intptr_t, kClassIdFieldOffset, kClassIdFieldSize> {};
 };
 
+intptr_t Object::ClassId() const {
+  if (IsSmallInteger()) {
+    return kSmiCid;
+  } else {
+    return static_cast<const HeapObject*>(this)->cid();
+  }
+}
 
 class ForwardingCorpse {
  public:
@@ -332,7 +307,6 @@ class ForwardingCorpse {
   intptr_t overflow_size_;
 };
 
-
 class SmallInteger : public Object {
  public:
   static const intptr_t kBits = kBitsPerWord - 2;
@@ -362,8 +336,7 @@ class SmallInteger : public Object {
 #endif
 };
 
-
-class MediumInteger : public Object {
+class MediumInteger : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(MediumInteger);
 
  public:
@@ -381,7 +354,6 @@ class MediumInteger : public Object {
   int64_t value_;
 };
 
-
 #if defined(ARCH_IS_32_BIT)
 typedef uint16_t digit_t;
 typedef uint32_t ddigit_t;
@@ -396,7 +368,7 @@ const ddigit_t kDigitShift = sizeof(digit_t) * kBitsPerByte;
 const ddigit_t kDigitBase = static_cast<ddigit_t>(1) << kDigitBits;
 const ddigit_t kDigitMask = kDigitBase - static_cast<ddigit_t>(1);
 
-class LargeInteger : public Object {
+class LargeInteger : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(LargeInteger);
 
  public:
@@ -476,8 +448,7 @@ class LargeInteger : public Object {
   digit_t digits_[];
 };
 
-
-class RegularObject : public Object {
+class RegularObject : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(RegularObject);
 
  public:
@@ -494,13 +465,12 @@ class RegularObject : public Object {
   }
   Object* slots_[];
   Object** to() {
-    intptr_t num_slots = (heap_size() - sizeof(Object)) >> kWordSizeLog2;
+    intptr_t num_slots = (heap_size() - sizeof(HeapObject)) >> kWordSizeLog2;
     return &ptr()->slots_[num_slots - 1];
   }
 };
 
-
-class Array : public Object {
+class Array : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Array);
 
  public:
@@ -538,8 +508,7 @@ class Array : public Object {
   }
 };
 
-
-class WeakArray : public Object {
+class WeakArray : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(WeakArray);
 
  public:
@@ -578,8 +547,7 @@ class WeakArray : public Object {
   }
 };
 
-
-class Ephemeron : public Object {
+class Ephemeron : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Ephemeron);
 
  public:
@@ -617,7 +585,7 @@ class Ephemeron : public Object {
   }
 };
 
-class Bytes : public Object {
+class Bytes : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Bytes);
 
  public:
@@ -662,7 +630,7 @@ class ByteArray : public Bytes {
   HEAP_OBJECT_IMPLEMENTATION(ByteArray);
 };
 
-class Activation : public Object {
+class Activation : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Activation);
 
  public:
@@ -764,8 +732,7 @@ class Activation : public Object {
   }
 };
 
-
-class Float64 : public Object {
+class Float64 : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Float64);
 
  public:
@@ -780,8 +747,7 @@ class Float64 : public Object {
   double value_;
 };
 
-
-class Closure : public Object {
+class Closure : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Closure);
 
  public:
@@ -830,11 +796,7 @@ class Closure : public Object {
   }
 };
 
-
-// === Regular objects with known slot offsets ===
-
-
-class Behavior : public Object {
+class Behavior : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Behavior);
 
  public:
@@ -855,7 +817,6 @@ class Behavior : public Object {
   SmallInteger* format_;
 };
 
-
 class Class : public Behavior {
   HEAP_OBJECT_IMPLEMENTATION(Class);
 
@@ -868,7 +829,6 @@ class Class : public Behavior {
   WeakArray* subclasses_;
 };
 
-
 class Metaclass : public Behavior {
   HEAP_OBJECT_IMPLEMENTATION(Metaclass);
 
@@ -879,8 +839,7 @@ class Metaclass : public Behavior {
   Class* this_class_;
 };
 
-
-class AbstractMixin : public Object {
+class AbstractMixin : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(AbstractMixin);
 
  public:
@@ -894,8 +853,7 @@ class AbstractMixin : public Object {
   AbstractMixin* enclosing_mixin_;
 };
 
-
-class Method : public Object {
+class Method : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Method);
 
  public:
@@ -945,8 +903,7 @@ class Method : public Object {
   Object* source_;
 };
 
-
-class Message : public Object {
+class Message : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Message);
 
  public:
@@ -961,7 +918,7 @@ class Message : public Object {
   Array* arguments_;
 };
 
-class ObjectStore : public Object {
+class ObjectStore : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(ObjectStore);
 
  public:

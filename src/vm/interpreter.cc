@@ -719,7 +719,7 @@ void Interpreter::Activate(Method* method,
 String* Interpreter::SelectorAt(intptr_t index) {
   Object* selector = LiteralAt(index);
   ASSERT(selector->IsString());
-  ASSERT(selector->is_canonical());
+  ASSERT(static_cast<String*>(selector)->is_canonical());
   return static_cast<String*>(selector);
 }
 

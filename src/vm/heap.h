@@ -84,14 +84,14 @@ class Heap {
   RegularObject* AllocateRegularObject(intptr_t cid, intptr_t num_slots) {
     ASSERT(cid == kEphemeronCid || cid >= kFirstRegularObjectCid);
     const intptr_t heap_size =
-        AllocationSize(num_slots * sizeof(Object*) + sizeof(Object));
+        AllocationSize(num_slots * sizeof(Object*) + sizeof(HeapObject));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, cid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, cid, heap_size);
     RegularObject* result = static_cast<RegularObject*>(obj);
     ASSERT(result->IsRegularObject() || result->IsEphemeron());
     ASSERT(result->HeapSize() == heap_size);
 
-    const intptr_t header_slots = sizeof(Object) / sizeof(uword);
+    const intptr_t header_slots = sizeof(HeapObject) / sizeof(uword);
     if (((header_slots + num_slots) & 1) == 1) {
       // The leftover slot will be visited by the GC. Make it a valid oop.
       result->set_slot(num_slots, SmallInteger::New(0));
@@ -104,7 +104,7 @@ class Heap {
     const intptr_t heap_size =
         AllocationSize(num_bytes * sizeof(uint8_t) + sizeof(ByteArray));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kByteArrayCid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kByteArrayCid, heap_size);
     ByteArray* result = static_cast<ByteArray*>(obj);
     result->set_size(SmallInteger::New(num_bytes));
     ASSERT(result->IsByteArray());
@@ -116,7 +116,7 @@ class Heap {
     const intptr_t heap_size =
         AllocationSize(num_bytes * sizeof(uint8_t) + sizeof(String));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kStringCid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kStringCid, heap_size);
     String* result = static_cast<String*>(obj);
     result->set_size(SmallInteger::New(num_bytes));
     ASSERT(result->IsString());
@@ -128,7 +128,7 @@ class Heap {
     const intptr_t heap_size =
         AllocationSize(num_slots * sizeof(Object*) + sizeof(Array));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kArrayCid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kArrayCid, heap_size);
     Array* result = static_cast<Array*>(obj);
     result->set_size(SmallInteger::New(num_slots));
     ASSERT(result->IsArray());
@@ -140,7 +140,7 @@ class Heap {
     const intptr_t heap_size =
         AllocationSize(num_slots * sizeof(Object*) + sizeof(WeakArray));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kWeakArrayCid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kWeakArrayCid, heap_size);
     WeakArray* result = static_cast<WeakArray*>(obj);
     result->set_size(SmallInteger::New(num_slots));
     ASSERT(result->IsWeakArray());
@@ -152,7 +152,7 @@ class Heap {
     const intptr_t heap_size =
         AllocationSize(num_copied * sizeof(Object*) + sizeof(Closure));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kClosureCid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kClosureCid, heap_size);
     Closure* result = static_cast<Closure*>(obj);
     result->set_num_copied(num_copied);
     ASSERT(result->IsClosure());
@@ -163,7 +163,7 @@ class Heap {
   Activation* AllocateActivation() {
     const intptr_t heap_size = AllocationSize(sizeof(Activation));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kActivationCid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kActivationCid, heap_size);
     Activation* result = static_cast<Activation*>(obj);
     ASSERT(result->IsActivation());
     ASSERT(result->HeapSize() == heap_size);
@@ -173,7 +173,7 @@ class Heap {
   MediumInteger* AllocateMediumInteger() {
     const intptr_t heap_size = AllocationSize(sizeof(MediumInteger));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kMintCid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kMintCid, heap_size);
     MediumInteger* result = static_cast<MediumInteger*>(obj);
     ASSERT(result->IsMediumInteger());
     ASSERT(result->HeapSize() == heap_size);
@@ -184,7 +184,7 @@ class Heap {
     const intptr_t heap_size =
         AllocationSize(capacity * sizeof(digit_t) + sizeof(LargeInteger));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kBigintCid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kBigintCid, heap_size);
     LargeInteger* result = static_cast<LargeInteger*>(obj);
     result->set_capacity(capacity);
     ASSERT(result->IsLargeInteger());
@@ -195,7 +195,7 @@ class Heap {
   Float64* AllocateFloat64() {
     const intptr_t heap_size = AllocationSize(sizeof(Float64));
     uword addr = Allocate(heap_size);
-    Object* obj = Object::InitializeObject(addr, kFloat64Cid, heap_size);
+    HeapObject* obj = HeapObject::Initialize(addr, kFloat64Cid, heap_size);
     Float64* result = static_cast<Float64*>(obj);
     ASSERT(result->IsFloat64());
     ASSERT(result->HeapSize() == heap_size);
@@ -325,10 +325,10 @@ class Heap {
   void Grow(size_t free_needed);
 
 #if defined(DEBUG)
-  bool InFromSpace(Object* obj) {
+  bool InFromSpace(HeapObject* obj) {
     return (obj->Addr() >= from_.base()) && (obj->Addr() < from_.limit());
   }
-  bool InToSpace(Object* obj) {
+  bool InToSpace(HeapObject* obj) {
     return (obj->Addr() >= to_.base()) && (obj->Addr() < to_.limit());
   }
 #endif

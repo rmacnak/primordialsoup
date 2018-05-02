@@ -165,7 +165,7 @@ void Heap::FlipSpaces() {
 }
 
 
-static void ForwardClass(Heap* heap, Object* object) {
+static void ForwardClass(Heap* heap, HeapObject* object) {
   ASSERT(object->IsHeapObject());
   Behavior* old_class = heap->ClassAt(object->cid());
   if (old_class->IsForwardingCorpse()) {
@@ -215,7 +215,7 @@ void Heap::ForwardRoots() {
 
 uword Heap::ScavengeToSpace(uword scan) {
   while (scan < top_) {
-    Object* obj = Object::FromAddr(scan);
+    HeapObject* obj = HeapObject::FromAddr(scan);
     intptr_t cid = obj->cid();
     ScavengeClass(cid);
     if (cid == kWeakArrayCid) {
@@ -239,7 +239,7 @@ uword Heap::ScavengeToSpace(uword scan) {
 void Heap::ForwardToSpace() {
   uword scan = to_.object_start();
   while (scan < top_) {
-    Object* obj = Object::FromAddr(scan);
+    HeapObject* obj = HeapObject::FromAddr(scan);
     if (!obj->IsForwardingCorpse()) {
       ForwardClass(this, obj);
       Object** from;
@@ -313,26 +313,27 @@ void Heap::ForwardClassTable() {
 }
 
 
-static bool IsForwarded(uword addr) {
-  ASSERT(Utils::IsAligned(addr, kWordSize));  // Untagged pointer.
-  uword header = *reinterpret_cast<uword*>(addr);
+static bool IsForwarded(HeapObject* obj) {
+  uword header = *reinterpret_cast<uword*>(obj->Addr());
   return header & (1 << kMarkBit);
 }
 
 
-static Object* ForwardingTarget(uword addr) {
-  ASSERT(IsForwarded(addr));
-  uword header = *reinterpret_cast<uword*>(addr);
+static HeapObject* ForwardingTarget(HeapObject* obj) {
+  ASSERT(IsForwarded(obj));
+  uword header = *reinterpret_cast<uword*>(obj->Addr());
   // Mark bit and tag bit are conveniently in the same place.
   ASSERT((header & kSmiTagMask) == kHeapObjectTag);
-  return reinterpret_cast<Object*>(header);
+  return reinterpret_cast<HeapObject*>(header);
 }
 
 
-static void SetForwarded(uword old_addr, uword new_addr) {
-  ASSERT(!IsForwarded(old_addr));
-  uword forwarding_header = new_addr | (1 << kMarkBit);
-  *reinterpret_cast<uword*>(old_addr) = forwarding_header;
+static void SetForwarded(HeapObject* old_obj, HeapObject* new_obj) {
+  ASSERT(!IsForwarded(old_obj));
+  uword header = reinterpret_cast<uword>(new_obj);
+  // Mark bit and tag bit are conveniently in the same place.
+  ASSERT((header & kSmiTagMask) == kHeapObjectTag);
+  *reinterpret_cast<uword*>(old_obj->Addr()) = header;
 }
 
 
@@ -340,53 +341,47 @@ void Heap::MournClassTable() {
   for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
     Object** ptr = &class_table_[i];
 
-    Object* old_target = *ptr;
+    HeapObject* old_target = static_cast<HeapObject*>(*ptr);
     if (old_target->IsImmediateOrOldObject()) {
       continue;
     }
 
-    uword old_target_addr = old_target->Addr();
     DEBUG_ASSERT(InFromSpace(old_target));
 
-    Object* new_target;
-    if (IsForwarded(old_target_addr)) {
-      new_target = ForwardingTarget(old_target_addr);
+    if (IsForwarded(old_target)) {
+      HeapObject* new_target = ForwardingTarget(old_target);
       DEBUG_ASSERT(InToSpace(new_target));
+      *ptr = new_target;
     } else {
-      new_target = SmallInteger::New(class_table_free_);
+      *ptr = SmallInteger::New(class_table_free_);
       class_table_free_ = i;
     }
-
-    *ptr = new_target;
   }
 }
 
 
 void Heap::ScavengePointer(Object** ptr) {
-  Object* old_target = *ptr;
-
+  HeapObject* old_target = static_cast<HeapObject*>(*ptr);
   if (old_target->IsImmediateOrOldObject()) {
     // Target isn't gonna move.
     return;
   }
 
-  uword old_target_addr = old_target->Addr();
   DEBUG_ASSERT(InFromSpace(old_target));
 
-  Object* new_target;
-  if (IsForwarded(old_target_addr)) {
-    new_target = ForwardingTarget(old_target_addr);
+  HeapObject* new_target;
+  if (IsForwarded(old_target)) {
+    new_target = ForwardingTarget(old_target);
   } else {
     // Target is now known to be reachable. Move it to to-space.
     intptr_t size = old_target->HeapSize();
     uword new_target_addr = TryAllocate(size);
     ASSERT(new_target_addr != 0);
     memcpy(reinterpret_cast<void*>(new_target_addr),
-           reinterpret_cast<void*>(old_target_addr),
+           reinterpret_cast<void*>(old_target->Addr()),
            size);
-    SetForwarded(old_target_addr, new_target_addr);
-
-    new_target = Object::FromAddr(new_target_addr);
+    new_target = HeapObject::FromAddr(new_target_addr);
+    SetForwarded(old_target, new_target);
   }
 
   DEBUG_ASSERT(InToSpace(new_target));
@@ -412,7 +407,7 @@ void Heap::ScavengeEphemeronList() {
     survivor->set_next(NULL);
 
     if (survivor->key()->IsImmediateOrOldObject() ||
-        IsForwarded(survivor->key()->Addr())) {
+        IsForwarded(static_cast<HeapObject*>(survivor->key()))) {
       ScavengePointer(survivor->key_ptr());
       ScavengePointer(survivor->value_ptr());
       ScavengePointer(survivor->finalizer_ptr());
@@ -433,7 +428,7 @@ void Heap::MournEphemeronList() {
   while (survivor != NULL) {
     ASSERT(survivor->IsEphemeron());
 
-    DEBUG_ASSERT(InFromSpace(survivor->key()));
+    DEBUG_ASSERT(InFromSpace(static_cast<HeapObject*>(survivor->key())));
     survivor->set_key(nil);
     survivor->set_value(nil);
     // TODO(rmacnak): Put the finalizer on a queue for the event loop
@@ -471,22 +466,20 @@ void Heap::MournWeakList() {
 
 
 void Heap::MournWeakPointer(Object** ptr) {
-  Object* old_target = *ptr;
-
+  HeapObject* old_target = static_cast<HeapObject*>(*ptr);
   if (old_target->IsImmediateOrOldObject()) {
     // Target isn't gonna move.
     return;
   }
 
-  uword old_target_addr = old_target->Addr();
   DEBUG_ASSERT(InFromSpace(old_target));
 
-  Object* new_target;
-  if (IsForwarded(old_target_addr)) {
-    new_target = ForwardingTarget(old_target_addr);
+  HeapObject* new_target;
+  if (IsForwarded(old_target)) {
+    new_target = ForwardingTarget(old_target);
   } else {
     // The object store and nil have already been scavenged.
-    new_target = object_store()->nil_obj();
+    new_target = static_cast<HeapObject*>(object_store()->nil_obj());
   }
 
   DEBUG_ASSERT(InToSpace(new_target));
@@ -499,17 +492,15 @@ void Heap::ScavengeClass(intptr_t cid) {
   ASSERT(cid < class_table_size_);
   // This is very similar to ScavengePointer.
 
-  Object* old_target = class_table_[cid];
-
+  HeapObject* old_target = static_cast<HeapObject*>(class_table_[cid]);
   if (old_target->IsImmediateOrOldObject()) {
     // Target isn't gonna move.
     return;
   }
 
-  uword old_target_addr = old_target->Addr();
   DEBUG_ASSERT(InFromSpace(old_target));
 
-  if (IsForwarded(old_target_addr)) {
+  if (IsForwarded(old_target)) {
     // Already scavenged.
     return;
   }
@@ -519,9 +510,10 @@ void Heap::ScavengeClass(intptr_t cid) {
   uword new_target_addr = TryAllocate(size);
   ASSERT(new_target_addr != 0);
   memcpy(reinterpret_cast<void*>(new_target_addr),
-         reinterpret_cast<void*>(old_target_addr),
+         reinterpret_cast<void*>(old_target->Addr()),
          size);
-  SetForwarded(old_target_addr, new_target_addr);
+  HeapObject* new_target = HeapObject::FromAddr(new_target_addr);
+  SetForwarded(old_target, new_target);
 }
 
 
@@ -539,7 +531,7 @@ intptr_t Heap::CountInstances(intptr_t cid) {
   intptr_t instances = 0;
   uword scan = to_.object_start();
   while (scan < top_) {
-    Object* obj = Object::FromAddr(scan);
+    HeapObject* obj = HeapObject::FromAddr(scan);
     if (obj->cid() == cid) {
       instances++;
     }
@@ -553,7 +545,7 @@ intptr_t Heap::CollectInstances(intptr_t cid, Array* array) {
   intptr_t instances = 0;
   uword scan = to_.object_start();
   while (scan < top_) {
-    Object* obj = Object::FromAddr(scan);
+    HeapObject* obj = HeapObject::FromAddr(scan);
     if (obj->cid() == cid) {
       array->set_element(instances, obj);
       instances++;
@@ -584,8 +576,8 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
   }
 
   for (intptr_t i = 0; i < length; i++) {
-    Object* forwarder = old->element(i);
-    Object* forwardee = neu->element(i);
+    HeapObject* forwarder = static_cast<HeapObject*>(old->element(i));
+    HeapObject* forwardee = static_cast<HeapObject*>(neu->element(i));
 
     ASSERT(!forwarder->IsForwardingCorpse());
     ASSERT(!forwardee->IsForwardingCorpse());
@@ -594,9 +586,7 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
 
     intptr_t heap_size = forwarder->HeapSize();
 
-    Object::InitializeObject(forwarder->Addr(),
-                             kForwardingCorpseCid,
-                             heap_size);
+    HeapObject::Initialize(forwarder->Addr(), kForwardingCorpseCid, heap_size);
     ASSERT(forwarder->IsForwardingCorpse());
     ForwardingCorpse* corpse = reinterpret_cast<ForwardingCorpse*>(forwarder);
     if (forwarder->heap_size() == 0) {
