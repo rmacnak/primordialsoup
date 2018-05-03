@@ -141,7 +141,7 @@ void Interpreter::PushNewArrayWithElements(intptr_t size) {
 void Interpreter::PushNewArray(intptr_t size) {
   Array* result = H->AllocateArray(size);  // SAFEPOINT
   for (intptr_t i = 0; i < size; i++) {
-    result->set_element(i, nil);
+    result->set_element(i, nil, kNoBarrier);
   }
   A->Push(result);
 }
@@ -749,7 +749,7 @@ void Interpreter::LocalReturn(Object* result) {
   SmallInteger* sender_bci = sender->bci();
   ASSERT(sender_bci->IsSmallInteger());  // Not nil.
 
-  A->set_sender(static_cast<Activation*>(nil));
+  A->set_sender(static_cast<Activation*>(nil), kNoBarrier);
   A->set_bci(static_cast<SmallInteger*>(nil));
   sender->Push(result);
 #if RECYCLE_ACTIVATIONS
@@ -809,7 +809,7 @@ void Interpreter::NonLocalReturn(Object* result) {
   Activation* zap = A;
   do {
     Activation* next = zap->sender();
-    zap->set_sender(static_cast<Activation*>(nil));
+    zap->set_sender(static_cast<Activation*>(nil), kNoBarrier);
     zap->set_bci(static_cast<SmallInteger*>(nil));
     zap = next;
   } while (zap != sender);

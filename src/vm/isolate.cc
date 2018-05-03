@@ -15,6 +15,7 @@
 
 namespace psoup {
 
+thread_local Isolate* Isolate::current_ = NULL;
 Monitor* Isolate::isolates_list_monitor_ = NULL;
 Isolate* Isolate::isolates_list_head_ = NULL;
 ThreadPool* Isolate::thread_pool_ = NULL;
@@ -109,10 +110,16 @@ Isolate::Isolate(void* snapshot, size_t snapshot_length, uint64_t seed) :
   }
 
   AddIsolateToList(this);
+
+  ASSERT(current_ == NULL);
+  current_ = this;
 }
 
 
 Isolate::~Isolate() {
+  ASSERT(current_ == this);
+  current_ = NULL;
+
   RemoveIsolateFromList(this);
   delete heap_;
   delete interpreter_;

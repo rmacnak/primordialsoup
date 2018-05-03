@@ -1127,6 +1127,7 @@ DEFINE_PRIMITIVE(Behavior_basicNew) {
     H->RegisterClass(id->value(), behavior);
   }
   ASSERT(id->IsSmallInteger());
+  ASSERT(H->ClassAt(id->value()) == behavior);
   SmallInteger* format = behavior->format();
   ASSERT(format->IsSmallInteger());
   intptr_t num_slots = format->value();
@@ -1136,7 +1137,7 @@ DEFINE_PRIMITIVE(Behavior_basicNew) {
   RegularObject* new_instance = H->AllocateRegularObject(id->value(),
                                                          num_slots);
   for (intptr_t i = 0; i < num_slots; i++) {
-    new_instance->set_slot(i, nil);
+    new_instance->set_slot(i, nil, kNoBarrier);
   }
   RETURN(new_instance);
 }
@@ -1183,7 +1184,7 @@ DEFINE_PRIMITIVE(Array_class_new) {
   }
   Array* result = H->AllocateArray(length);  // SAFEPOINT
   for (intptr_t i = 0; i < length; i++) {
-    result->set_element(i, nil);
+    result->set_element(i, nil, kNoBarrier);
   }
   RETURN(result);
 }
@@ -1240,7 +1241,7 @@ DEFINE_PRIMITIVE(WeakArray_class_new) {
   }
   WeakArray* result = H->AllocateWeakArray(length);  // SAFEPOINT
   for (intptr_t i = 0; i < length; i++) {
-    result->set_element(i, nil);
+    result->set_element(i, nil, kNoBarrier);
   }
   RETURN(result);
 }
@@ -1681,7 +1682,7 @@ DEFINE_PRIMITIVE(Activation_tempSizePut) {
   }
   intptr_t old_depth = receiver->stack_depth();
   for (intptr_t i = old_depth; i < new_depth; i++) {
-    receiver->set_temp(i, nil);
+    receiver->set_temp(i, nil, kNoBarrier);
   }
   receiver->set_stack_depth(depth);
   RETURN(depth);
@@ -1691,11 +1692,11 @@ DEFINE_PRIMITIVE(Activation_tempSizePut) {
 DEFINE_PRIMITIVE(Activation_class_new) {
   ASSERT(num_args == 0);
   Activation* result = H->AllocateActivation();  // SAFEPOINT
-  result->set_sender(static_cast<Activation*>(nil));
+  result->set_sender(static_cast<Activation*>(nil), kNoBarrier);
   result->set_bci(static_cast<SmallInteger*>(nil));
-  result->set_method(static_cast<Method*>(nil));
-  result->set_closure(static_cast<Closure*>(nil));
-  result->set_receiver(nil);
+  result->set_method(static_cast<Method*>(nil), kNoBarrier);
+  result->set_closure(static_cast<Closure*>(nil), kNoBarrier);
+  result->set_receiver(nil, kNoBarrier);
   result->set_stack_depth(0);
   RETURN(result);
 }
@@ -1733,7 +1734,7 @@ DEFINE_PRIMITIVE(Closure_class_new) {
   result->set_initial_bci(initial_bci);
   result->set_num_args(closure_num_args);
   for (intptr_t i = 0; i < num_copied->value(); i++) {
-    result->set_copied(i, nil);
+    result->set_copied(i, nil, kNoBarrier);
   }
 
   RETURN(result);
@@ -1913,13 +1914,14 @@ DEFINE_PRIMITIVE(Object_performWithAll) {
 DEFINE_PRIMITIVE(Closure_value0) {
   ASSERT(num_args == 0);
 
-  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
-
   Closure* closure = static_cast<Closure*>(A->Stack(0));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != 0) {
     return kFailure;
   }
+
+  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
+  closure = static_cast<Closure*>(A->Stack(0));
 
   Activation* home_context = closure->defining_activation();
 
@@ -1948,13 +1950,14 @@ DEFINE_PRIMITIVE(Closure_value0) {
 DEFINE_PRIMITIVE(Closure_value1) {
   ASSERT(num_args == 1);
 
-  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
-
   Closure* closure = static_cast<Closure*>(A->Stack(1));
   ASSERT(closure->IsClosure());
   if (closure->num_args()->value() != 1) {
     return kFailure;
   }
+
+  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
+  closure = static_cast<Closure*>(A->Stack(1));
 
   Activation* home_context = closure->defining_activation();
 
@@ -1983,13 +1986,14 @@ DEFINE_PRIMITIVE(Closure_value1) {
 DEFINE_PRIMITIVE(Closure_value2) {
   ASSERT(num_args == 2);
 
-  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
-
   Closure* closure = static_cast<Closure*>(A->Stack(2));
   ASSERT(closure->IsClosure());
   if (closure->num_args()->value() != 2) {
     return kFailure;
   }
+
+  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
+  closure = static_cast<Closure*>(A->Stack(2));
 
   Activation* home_context = closure->defining_activation();
 
@@ -2019,13 +2023,14 @@ DEFINE_PRIMITIVE(Closure_value2) {
 DEFINE_PRIMITIVE(Closure_value3) {
   ASSERT(num_args == 3);
 
-  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
-
   Closure* closure = static_cast<Closure*>(A->Stack(3));
   ASSERT(closure->IsClosure());
   if (closure->num_args()->value() != 3) {
     return kFailure;
   }
+
+  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
+  closure = static_cast<Closure*>(A->Stack(3));
 
   Activation* home_context = closure->defining_activation();
 
@@ -2056,8 +2061,6 @@ DEFINE_PRIMITIVE(Closure_value3) {
 DEFINE_PRIMITIVE(Closure_valueArray) {
   ASSERT(num_args == 1);
 
-  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
-
   Closure* closure = static_cast<Closure*>(A->Stack(1));
   Array* args = static_cast<Array*>(A->Stack(0));
   ASSERT(closure->IsClosure());
@@ -2065,6 +2068,11 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
   if (closure->num_args() != args->size()) {
     return kFailure;
   }
+
+  Activation* new_activation = H->AllocateActivation();  // SAFEPOINT
+  closure = static_cast<Closure*>(A->Stack(1));
+  args = static_cast<Array*>(A->Stack(0));
+
   Activation* home_context = closure->defining_activation();
 
   new_activation->set_sender(A);
@@ -2208,7 +2216,7 @@ DEFINE_PRIMITIVE(flushCache) {
 
 
 DEFINE_PRIMITIVE(collectGarbage) {
-  H->Scavenge("primitive");  // SAFEPOINT
+  H->CollectAll(Heap::kPrimitive);  // SAFEPOINT
   RETURN_SELF();
 }
 

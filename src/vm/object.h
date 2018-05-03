@@ -28,13 +28,16 @@ enum ObjectAlignment {
   kObjectAlignment = 2 * kWordSize,
   kObjectAlignmentLog2 = kWordSizeLog2 + 1,
   kObjectAlignmentMask = kObjectAlignment - 1,
+
+  kNewObjectBits = kNewObjectAlignmentOffset | kHeapObjectTag,
+  kOldObjectBits = kOldObjectAlignmentOffset | kHeapObjectTag,
 };
 
 enum HeaderBits {
   // During a scavenge: Has this object been copied to to-space?
   kMarkBit = 0,
 
-  // Added to the remembered set. (as-yet-unused)
+  // In remembered set.
   kRememberedBit = 1,
 
   // For symbols.
@@ -90,6 +93,11 @@ class Object;
 class SmallInteger;
 class WeakArray;
 
+enum Barrier {
+  kNoBarrier,
+  kBarrier
+};
+
 #define HEAP_OBJECT_IMPLEMENTATION(klass)                                      \
  private:                                                                      \
   const klass* ptr() const {                                                   \
@@ -138,23 +146,21 @@ class Object {
     return (reinterpret_cast<uword>(this) & kSmiTagMask) == kSmiTag;
   }
   bool IsOldObject() const {
-    ASSERT(IsHeapObject());
     uword addr = reinterpret_cast<uword>(this);
-    return (addr & kNewObjectAlignmentOffset) == kOldObjectAlignmentOffset;
+    return (addr & kObjectAlignmentMask) == kOldObjectBits;
   }
   bool IsNewObject() const {
-    ASSERT(IsHeapObject());
     uword addr = reinterpret_cast<uword>(this);
-    return (addr & kNewObjectAlignmentOffset) == kNewObjectAlignmentOffset;
+    return (addr & kObjectAlignmentMask) == kNewObjectBits;
   }
   // Like !IsHeapObject() || IsOldObject(), but compiles to a single branch.
   bool IsImmediateOrOldObject() const {
-    COMPILE_ASSERT(kHeapObjectTag == 1);
-    COMPILE_ASSERT(kNewObjectAlignmentOffset == kWordSize);
-    static const uword kNewObjectBits =
-        (kNewObjectAlignmentOffset | kHeapObjectTag);
     const uword addr = reinterpret_cast<uword>(this);
-    return (addr & kNewObjectBits) != kNewObjectBits;
+    return (addr & kObjectAlignmentMask) != kNewObjectBits;
+  }
+  bool IsImmediateOrNewObject() const {
+    const uword addr = reinterpret_cast<uword>(this);
+    return (addr & kObjectAlignmentMask) != kOldObjectBits;
   }
 
   inline intptr_t ClassId() const;
@@ -167,6 +173,7 @@ class Object {
 class HeapObject : public Object {
  public:
   void AssertCouldBeBehavior() const {
+    ASSERT(IsHeapObject());
     ASSERT(IsRegularObject());
     // 8 slots for a class, 7 slots for a metaclass, plus 1 header.
     intptr_t heap_slots = heap_size() / sizeof(uword);
@@ -178,6 +185,12 @@ class HeapObject : public Object {
   }
   void set_is_marked(bool value) {
     ptr()->header_ = MarkBit::update(value, ptr()->header_);
+  }
+  bool is_remembered() const {
+    return RememberedBit::decode(ptr()->header_);
+  }
+  void set_is_remembered(bool value) {
+    ptr()->header_ = RememberedBit::update(value, ptr()->header_);
   }
   bool is_canonical() const {
     return CanonicalBit::decode(ptr()->header_);
@@ -243,11 +256,23 @@ class HeapObject : public Object {
 
  protected:
   template<typename type>
-  void StorePointer(type* addr, type value) {
+  void StorePointer(type* addr, type value, Barrier barrier) {
     *addr = value;
+    if (barrier == kNoBarrier) {
+      ASSERT(value->IsImmediateOrOldObject());
+    } else {
+      if (IsOldObject() && value->IsNewObject() && !is_remembered()) {
+        AddToRememberedSet();
+      }
+    }
   }
 
+  uword header_;
+  uword header_hash_;
+
  private:
+  void AddToRememberedSet() const;
+
   const HeapObject* ptr() const {
     ASSERT(IsHeapObject());
     return reinterpret_cast<const HeapObject*>(
@@ -259,10 +284,8 @@ class HeapObject : public Object {
         reinterpret_cast<uword>(this) - kHeapObjectTag);
   }
 
-  uword header_;
-  uword header_hash_;
-
   class MarkBit : public BitField<bool, kMarkBit, 1> {};
+  class RememberedBit : public BitField<bool, kRememberedBit, 1> {};
   class CanonicalBit : public BitField<bool, kCanonicalBit, 1> {};
   class SizeField :
       public BitField<intptr_t, kSizeFieldOffset, kSizeFieldSize> {};
@@ -278,13 +301,15 @@ intptr_t Object::ClassId() const {
   }
 }
 
-class ForwardingCorpse {
+class ForwardingCorpse : public HeapObject {
+  HEAP_OBJECT_IMPLEMENTATION(ForwardingCorpse);
+
  public:
   Object* target() const {
-    return ptr()->target_;
+    return reinterpret_cast<Object*>(ptr()->header_hash_);
   }
   void set_target(Object* value) {
-    ptr()->target_ = value;
+    ptr()->header_hash_ = reinterpret_cast<intptr_t>(value);
   }
   intptr_t overflow_size() const {
     return ptr()->overflow_size_;
@@ -293,17 +318,29 @@ class ForwardingCorpse {
     ptr()->overflow_size_ = value;
   }
 
- protected:
-  uword use_header() { return header_; }
-
  private:
-  ForwardingCorpse* ptr() const {
-    return reinterpret_cast<ForwardingCorpse*>(
-        reinterpret_cast<uword>(this) - kHeapObjectTag);
+  intptr_t overflow_size_;
+};
+
+class FreeListElement : public HeapObject {
+  HEAP_OBJECT_IMPLEMENTATION(FreeListElement);
+
+ public:
+  FreeListElement* next() const {
+    return reinterpret_cast<FreeListElement*>(ptr()->header_hash_);
+  }
+  void set_next(FreeListElement* value) {
+    ASSERT((value == NULL) || value->IsHeapObject());  // Tagged.
+    ptr()->header_hash_ = reinterpret_cast<intptr_t>(value);
+  }
+  intptr_t overflow_size() const {
+    return ptr()->overflow_size_;
+  }
+  void set_overflow_size(intptr_t value) {
+    ptr()->overflow_size_ = value;
   }
 
-  uword header_;
-  Object* target_;
+ private:
   intptr_t overflow_size_;
 };
 
@@ -455,8 +492,8 @@ class RegularObject : public HeapObject {
   Object* slot(intptr_t index) const {
     return ptr()->slots_[index];
   }
-  void set_slot(intptr_t index, Object* value) {
-    StorePointer(&ptr()->slots_[index], value);
+  void set_slot(intptr_t index, Object* value, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->slots_[index], value, barrier);
   }
 
  private:
@@ -478,13 +515,13 @@ class Array : public HeapObject {
     return ptr()->size_;
   }
   void set_size(SmallInteger* s) {
-    ptr()->size_ = s;
+    StorePointer(&ptr()->size_, s, kNoBarrier);
   }
   Object* element(intptr_t index) const {
     return ptr()->elements_[index];
   }
-  void set_element(intptr_t index, Object* value) {
-    StorePointer(&ptr()->elements_[index], value);
+  void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->elements_[index], value, barrier);
   }
   Object** element_addr(intptr_t index) {
     return &ptr()->elements_[index];
@@ -516,7 +553,7 @@ class WeakArray : public HeapObject {
     return ptr()->size_;
   }
   void set_size(SmallInteger* s) {
-    ptr()->size_ = s;
+    StorePointer(&ptr()->size_, s, kNoBarrier);
   }
   WeakArray* next() const {
     return ptr()->next_;
@@ -527,8 +564,8 @@ class WeakArray : public HeapObject {
   Object* element(intptr_t index) const {
     return ptr()->elements_[index];
   }
-  void set_element(intptr_t index, Object* value) {
-    StorePointer(&ptr()->elements_[index], value);
+  void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->elements_[index], value, barrier);
   }
 
   intptr_t Size() const {
@@ -553,20 +590,20 @@ class Ephemeron : public HeapObject {
  public:
   Object* key() const { return ptr()->key_; }
   Object** key_ptr() { return &ptr()->key_; }
-  void set_key(Object* key) {
-    StorePointer(&ptr()->key_, key);
+  void set_key(Object* key, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->key_, key, barrier);
   }
 
   Object* value() const { return ptr()->value_; }
   Object** value_ptr() { return &ptr()->value_; }
-  void set_value(Object* value) {
-    StorePointer(&ptr()->value_, value);
+  void set_value(Object* value, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->value_, value, barrier);
   }
 
   Object* finalizer() const { return ptr()->finalizer_; }
   Object** finalizer_ptr() { return &ptr()->finalizer_; }
-  void set_finalizer(Object* finalizer) {
-    StorePointer(&ptr()->finalizer_, finalizer);
+  void set_finalizer(Object* finalizer, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->finalizer_, finalizer, barrier);
   }
 
   Ephemeron* next() const { return ptr()->next_; }
@@ -593,7 +630,7 @@ class Bytes : public HeapObject {
     return ptr()->size_;
   }
   void set_size(SmallInteger* size) {
-    ptr()->size_ = size;
+    StorePointer(&ptr()->size_, size, kNoBarrier);
   }
   intptr_t Size() const {
     return size()->value();
@@ -639,44 +676,44 @@ class Activation : public HeapObject {
   Activation* sender() const {
     return ptr()->sender_;
   }
-  void set_sender(Activation* s) {
-    StorePointer(&ptr()->sender_, s);
+  void set_sender(Activation* s, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->sender_, s, barrier);
   }
   SmallInteger* bci() const {
     return ptr()->bci_;
   }
   void set_bci(SmallInteger* i) {
-    ptr()->bci_ = i;
+    StorePointer(&ptr()->bci_, i, kNoBarrier);
   }
   Method* method() const {
     return ptr()->method_;
   }
-  void set_method(Method* m) {
-    StorePointer(&ptr()->method_, m);
+  void set_method(Method* m, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->method_, m, barrier);
   }
   Closure* closure() const {
     return ptr()->closure_;
   }
-  void set_closure(Closure* m) {
-    StorePointer(&ptr()->closure_, m);
+  void set_closure(Closure* m, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->closure_, m, barrier);
   }
   Object* receiver() const {
     return ptr()->receiver_;
   }
-  void set_receiver(Object* o) {
-    StorePointer(&ptr()->receiver_, o);
+  void set_receiver(Object* o, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->receiver_, o, barrier);
   }
   intptr_t stack_depth() const {
     return ptr()->stack_depth_->value();
   }
   void set_stack_depth(SmallInteger* d) {
-    ptr()->stack_depth_ = d;
+    StorePointer(&ptr()->stack_depth_, d, kNoBarrier);
   }
   Object* temp(intptr_t index) const {
     return ptr()->temps_[index];
   }
-  void set_temp(intptr_t index, Object* o) {
-    StorePointer(&ptr()->temps_[index], o);
+  void set_temp(intptr_t index, Object* o, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->temps_[index], o, barrier);
   }
 
 
@@ -760,26 +797,26 @@ class Closure : public HeapObject {
   Activation* defining_activation() const {
     return ptr()->defining_activation_;
   }
-  void set_defining_activation(Activation* a) {
-    StorePointer(&ptr()->defining_activation_, a);
+  void set_defining_activation(Activation* a, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->defining_activation_, a, barrier);
   }
   SmallInteger* initial_bci() const {
     return ptr()->initial_bci_;
   }
   void set_initial_bci(SmallInteger* bci) {
-    ptr()->initial_bci_ = bci;
+    StorePointer(&ptr()->initial_bci_, bci, kNoBarrier);
   }
   SmallInteger* num_args() const {
     return ptr()->num_args_;
   }
   void set_num_args(SmallInteger* num) {
-    ptr()->num_args_ = num;
+    StorePointer(&ptr()->num_args_, num, kNoBarrier);
   }
   Object* copied(intptr_t index) const {
     return ptr()->copied_[index];
   }
-  void set_copied(intptr_t index, Object* o) {
-    StorePointer(&ptr()->copied_[index], o);
+  void set_copied(intptr_t index, Object* o, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->copied_[index], o, barrier);
   }
 
  private:
@@ -805,7 +842,9 @@ class Behavior : public HeapObject {
   AbstractMixin* mixin() const { return ptr()->mixin_; }
   Object* enclosing_object() const { return ptr()->enclosing_object_; }
   SmallInteger* id() const { return ptr()->classid_; }
-  void set_id(SmallInteger* id) { ptr()->classid_ = id; }
+  void set_id(SmallInteger* id) {
+    StorePointer(&ptr()->classid_, id, kNoBarrier);
+  }
   SmallInteger* format() const { return ptr()->format_; }
 
  private:
@@ -907,11 +946,11 @@ class Message : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Message);
 
  public:
-  void set_selector(String* selector) {
-    StorePointer(&ptr()->selector_, selector);
+  void set_selector(String* selector, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->selector_, selector, barrier);
   }
-  void set_arguments(Array* arguments) {
-    StorePointer(&ptr()->arguments_, arguments);
+  void set_arguments(Array* arguments, Barrier barrier = kBarrier) {
+    StorePointer(&ptr()->arguments_, arguments, barrier);
   }
  private:
   String* selector_;

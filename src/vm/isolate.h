@@ -24,6 +24,7 @@ class Isolate {
   Isolate(void* snapshot, size_t snapshot_length, uint64_t seed);
   ~Isolate();
 
+  Heap* heap() const { return heap_; }
   MessageLoop* loop() const { return loop_; }
   uintptr_t salt() const { return salt_; }
   Random& random() { return random_; }
@@ -39,6 +40,7 @@ class Isolate {
 
   void Spawn(IsolateMessage* initial_message);
 
+  static Isolate* Current() { return current_; }
   static void Startup();
   static void Shutdown();
 
@@ -61,6 +63,7 @@ class Isolate {
   void AddIsolateToList(Isolate* isolate);
   void RemoveIsolateFromList(Isolate* isolate);
 
+  static thread_local Isolate* current_;
   static Monitor* isolates_list_monitor_;
   static Isolate* isolates_list_head_;
   static ThreadPool* thread_pool_;

@@ -20,7 +20,11 @@ intptr_t HeapObject::HeapSizeFromClass() const {
 
   switch (cid()) {
   case kIllegalCid:
+    UNREACHABLE();
   case kForwardingCorpseCid:
+    return static_cast<const ForwardingCorpse*>(this)->overflow_size();
+  case kFreeListElementCid:
+    return static_cast<const FreeListElement*>(this)->overflow_size();
   case kSmiCid:
     UNREACHABLE();
   case kMintCid:
@@ -62,11 +66,8 @@ void HeapObject::Pointers(Object*** from, Object*** to) {
 
   switch (cid()) {
   case kIllegalCid:
-    UNREACHABLE();
   case kForwardingCorpseCid:
-    *from = reinterpret_cast<Object**>(1);
-    *to = reinterpret_cast<Object**>(0);
-    return;
+  case kFreeListElementCid:
   case kSmiCid:
     UNREACHABLE();
   case kMintCid:
@@ -106,6 +107,13 @@ void HeapObject::Pointers(Object*** from, Object*** to) {
 }
 
 
+void HeapObject::AddToRememberedSet() const {
+  Isolate* isolate = Isolate::Current();
+  ASSERT(isolate != NULL);
+  isolate->heap()->AddToRememberedSet(const_cast<HeapObject*>(this));
+}
+
+
 char* Object::ToCString(Heap* heap) const {
   char* result = NULL;
   intptr_t length;
@@ -116,6 +124,7 @@ char* Object::ToCString(Heap* heap) const {
   switch (ClassId()) {
   case kIllegalCid:
   case kForwardingCorpseCid:
+  case kFreeListElementCid:
     UNREACHABLE();
   case kSmiCid:
     return OS::PrintStr("a SmallInteger(%" Pd ")",
