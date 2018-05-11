@@ -30,7 +30,7 @@ The variable-length objects (ByteArray, ByteString, WideString, Array, WeakArray
 
 ## Garbage Collector
 
-Primordial Soup uses a simple stop-the-world copying garbage collector based on the Dart VM's scavenger. Although the object representation has reserved alignment bits for distinguishing old and new objects, there is currently only a single generation.
+Primordial Soup uses a stop-the-world, generational garbage collector. The new generation uses a semispace scavegner; the old generation uses mark-sweep. New objects are allocated out of double-word alignment and old objects are allocated at double-word aligment. The generational write barrier detects old->new stores by examing the low bits of the source and target objects.
 
 The garbage collector supports weak arrays and a weak class table, as a well as a restricted version of [ephemerons](http://dl.acm.org/citation.cfm?id=263733) where the only action an ephemeron takes on firing is to nil its value slot.
 

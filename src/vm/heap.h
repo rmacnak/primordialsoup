@@ -317,11 +317,7 @@ class Heap {
 
   void PrintStack();
 
-  void CollectAll(Reason reason) {
-    survivor_end_ = end_;  // Tenure everything.
-    Scavenge(reason);
-    MarkSweep(reason);
-  }
+  void CollectAll(Reason reason) { MarkSweep(reason); }
 
   intptr_t CountInstances(intptr_t cid);
   intptr_t CollectInstances(intptr_t cid, Array* array);

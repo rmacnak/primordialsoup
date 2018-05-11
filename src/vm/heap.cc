@@ -661,39 +661,10 @@ void Heap::MarkRoots() {
   for (intptr_t i = 0; i < handles_size_; i++) {
     MarkObject(*handles_[i]);
   }
-
-  // TODO(rmacnak): Investigate marking through new space.
-  uword scan = to_.object_start();
-  while (scan < top_) {
-    HeapObject* obj = HeapObject::FromAddr(scan);
-    if (!obj->IsForwardingCorpse() &&
-        !obj->IsFreeListElement()) {
-      intptr_t cid = obj->cid();
-      ASSERT(cid != kIllegalCid);
-      ASSERT(cid != kForwardingCorpseCid);
-      ASSERT(cid != kFreeListElementCid);
-
-      MarkObject(ClassAt(cid));
-
-      if (cid == kWeakArrayCid) {
-        AddToWeakList(static_cast<WeakArray*>(obj));
-      } else if (cid == kEphemeronCid) {
-        AddToEphemeronList(static_cast<Ephemeron*>(obj));
-      } else {
-        Object** from;
-        Object** to;
-        obj->Pointers(&from, &to);
-        for (Object** ptr = from; ptr <= to; ptr++) {
-          MarkObject(*ptr);
-        }
-      }
-    }
-    scan += obj->HeapSize();
-  }
 }
 
 void Heap::MarkObject(Object* obj) {
-  if (obj->IsImmediateOrNewObject()) return;
+  if (obj->IsImmediateObject()) return;
 
   HeapObject* heap_obj = static_cast<HeapObject*>(obj);
   if (heap_obj->is_marked()) return;
@@ -716,8 +687,6 @@ void Heap::ProcessMarkStack() {
     ASSERT(cid != kForwardingCorpseCid);
     ASSERT(cid != kFreeListElementCid);
 
-    old_size_ += obj->HeapSize();
-
     MarkObject(ClassAt(cid));
 
     if (cid == kWeakArrayCid) {
@@ -728,13 +697,14 @@ void Heap::ProcessMarkStack() {
       Object** from;
       Object** to;
       obj->Pointers(&from, &to);
+      bool has_new_target = ClassAt(cid)->IsNewObject();
       for (Object** ptr = from; ptr <= to; ptr++) {
         Object* target = *ptr;
+        has_new_target |= target->IsNewObject();
         MarkObject(target);
-        ASSERT(obj->IsOldObject());
-        if (target->IsNewObject() && !obj->is_remembered()) {
-          AddToRememberedSet(obj);
-        }
+      }
+      if (has_new_target && obj->IsOldObject()) {
+        AddToRememberedSet(obj);
       }
     }
   }
@@ -742,6 +712,35 @@ void Heap::ProcessMarkStack() {
 
 void Heap::Sweep() {
   freelist_.Reset();
+
+  uword scan = to_.object_start();
+  while (scan < top_) {
+    HeapObject* obj = HeapObject::FromAddr(scan);
+    if (obj->is_marked()) {
+      obj->set_is_marked(false);
+      scan += obj->HeapSize();
+    } else {
+      uword free_scan = scan + obj->HeapSize();
+      while (free_scan < top_) {
+        HeapObject* next = HeapObject::FromAddr(free_scan);
+        if (next->is_marked()) break;
+        free_scan += next->HeapSize();
+      }
+
+      intptr_t size = free_scan - scan;
+      HeapObject* object =
+          HeapObject::Initialize(scan, kFreeListElementCid, size);
+      FreeListElement* element = static_cast<FreeListElement*>(object);
+      if (element->heap_size() == 0) {
+        ASSERT(size > kObjectAlignment);
+        element->set_overflow_size(size);
+      }
+      ASSERT(object->HeapSize() == size);
+      ASSERT(element->HeapSize() == size);
+
+      scan = free_scan;
+    }
+  }
 
   HeapPage* prev = NULL;
   HeapPage* page = pages_;
@@ -771,7 +770,9 @@ bool Heap::SweepPage(HeapPage* page) {
     HeapObject* obj = HeapObject::FromAddr(scan);
     if (obj->is_marked()) {
       obj->set_is_marked(false);
-      scan += obj->HeapSize();
+      intptr_t size = obj->HeapSize();
+      old_size_ += size;
+      scan += size;
     } else {
       uword free_scan = scan + obj->HeapSize();
       while (free_scan < end) {
@@ -847,8 +848,7 @@ void Heap::ScavengeEphemeronList() {
 }
 
 static bool IsMarkSweepSurvivor(Object* obj) {
-  return obj->IsImmediateOrNewObject() ||
-      static_cast<HeapObject*>(obj)->is_marked();
+  return obj->IsImmediateObject() || static_cast<HeapObject*>(obj)->is_marked();
 }
 
 void Heap::MarkEphemeronList() {
@@ -893,8 +893,6 @@ void Heap::MournEphemeronList() {
   while (survivor != NULL) {
     ASSERT(survivor->IsEphemeron());
 
-    DEBUG_ASSERT(survivor->key()->IsOldObject() ||
-                 InFromSpace(static_cast<HeapObject*>(survivor->key())));
     survivor->set_key(nil, kNoBarrier);
     survivor->set_value(nil, kNoBarrier);
     // TODO(rmacnak): Put the finalizer on a queue for the event loop
