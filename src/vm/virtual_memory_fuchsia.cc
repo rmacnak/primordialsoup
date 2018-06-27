@@ -8,7 +8,7 @@
 #include "vm/virtual_memory.h"
 
 #include <fcntl.h>
-#include <fdio/io.h>
+#include <lib/fdio/io.h>
 #include <zircon/process.h>
 #include <zircon/status.h>
 #include <zircon/syscalls.h>

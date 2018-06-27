@@ -18,6 +18,8 @@ On Windows, install Visual Studio and SCons.
 
 To target Android, download the [Android NDK](https://developer.android.com/ndk/downloads/index.html).
 
+To target Fuchsia, [create a checkout](https://fuchsia.googlesource.com/docs/+/HEAD/development/source_code/README.md) of the garnet layer or higher.
+
 ## Building
 
 The VM and snapshots are built with
@@ -32,10 +34,26 @@ To target Android, build with
 ./build ndk=/path/to/android-ndk-r13b
 ```
 
+To target Fuchsia, clone this repository to `third_party/primordialsoup` in a Fuchsia checkout, and include `third_party/primordialsoup/packages` in the list of packages. E.g.,
+
+```
+git clone https://github.com/rmacnak/primordialsoup.git third_party/primordialsoup
+fx set x64 out/release-x64 --release --packages garnet/packages/default,third_party/primordialsoup/packages
+fx full-build
+```
+
 ## Testing
 
 After building, the test suite and some benchmarks can be run with
 
 ```
 ./test
+```
+
+On Fuchsia,
+
+```
+run HelloApp
+run TestRunner
+run BenchmarkRunner
 ```

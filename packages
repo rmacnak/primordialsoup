@@ -1,12 +1,9 @@
 {
-    "languages": [
-        "cpp"
-    ],
-    "packages": {
-        "primordialsoup": "//third_party/primordialsoup",
-        "HelloApp": "//third_party/primordialsoup:HelloApp",
-        "TestRunner": "//third_party/primordialsoup:TestRunner",
-        "BenchmarkRunner": "//third_party/primordialsoup:BenchmarkRunner",
-        "CompilerApp": "//third_party/primordialsoup:CompilerApp"
-    }
+    "packages": [
+        "//third_party/primordialsoup",
+        "//third_party/primordialsoup:HelloApp",
+        "//third_party/primordialsoup:TestRunner",
+        "//third_party/primordialsoup:BenchmarkRunner",
+        "//third_party/primordialsoup:CompilerApp"
+    ]
 }

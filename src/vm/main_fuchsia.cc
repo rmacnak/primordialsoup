@@ -3,16 +3,17 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include <fcntl.h>
-#include <fdio/namespace.h>
-#include <fuchsia/cpp/component.h>
+#include <fuchsia/sys/cpp/fidl.h>
+#include <lib/fdio/namespace.h>
 #include <signal.h>
 #include <zx/vmar.h>
 #include <zx/vmo.h>
 
 #include <thread>  // NOLINT
 
-#include "garnet/public/lib/app/cpp/application_context.h"
-#include "garnet/public/lib/app/cpp/connect.h"
+#include "lib/app/cpp/connect.h"
+#include "lib/app/cpp/startup_context.h"
+#include "lib/fidl/cpp/binding.h"
 #include "lib/fsl/tasks/message_loop.h"
 #include "lib/fsl/vmo/file.h"
 #include "lib/fsl/vmo/sized_vmo.h"
@@ -21,11 +22,11 @@
 #include "vm/primordial_soup.h"
 #include "vm/virtual_memory.h"
 
-class PrimordialSoupApplicationController
-    : public component::ApplicationController {
+class PrimordialSoupComponentController
+    : public fuchsia::sys::ComponentController {
  public:
-  PrimordialSoupApplicationController(
-      fidl::InterfaceRequest<component::ApplicationController> controller)
+  PrimordialSoupComponentController(
+      fidl::InterfaceRequest<fuchsia::sys::ComponentController> controller)
       : loop_(&kAsyncLoopConfigMakeDefault),
         binding_(this),
         wait_callbacks_(),
@@ -36,14 +37,14 @@ class PrimordialSoupApplicationController
     }
   }
 
-  ~PrimordialSoupApplicationController() override {
+  ~PrimordialSoupComponentController() override {
     if (namespace_ != nullptr) {
       fdio_ns_destroy(namespace_);
     }
   }
 
-  void Run(component::ApplicationPackage application,
-           component::ApplicationStartupInfo startup_info) {
+  void Run(fuchsia::sys::Package package,
+           fuchsia::sys::StartupInfo startup_info) {
     if (!SetupNamespace(&startup_info.flat_namespace)) return;
 
     uintptr_t snapshot;
@@ -73,7 +74,7 @@ class PrimordialSoupApplicationController
   }
 
  private:
-  bool SetupNamespace(component::FlatNamespace* flat) {
+  bool SetupNamespace(fuchsia::sys::FlatNamespace* flat) {
     zx_status_t status = fdio_ns_create(&namespace_);
     if (status != ZX_OK) {
       FXL_LOG(ERROR) << "Failed to create namespace";
@@ -135,50 +136,50 @@ class PrimordialSoupApplicationController
   }
 
   async::Loop loop_;
-  fidl::Binding<component::ApplicationController> binding_;
+  fidl::Binding<fuchsia::sys::ComponentController> binding_;
   std::vector<WaitCallback> wait_callbacks_;
   fdio_ns_t* namespace_;
 
-  FXL_DISALLOW_COPY_AND_ASSIGN(PrimordialSoupApplicationController);
+  FXL_DISALLOW_COPY_AND_ASSIGN(PrimordialSoupComponentController);
 };
 
-static void RunApplication(
-    component::ApplicationPackage application,
-    component::ApplicationStartupInfo startup_info,
-    ::fidl::InterfaceRequest<component::ApplicationController> controller) {
-  PrimordialSoupApplicationController app(std::move(controller));
-  app.Run(std::move(application), std::move(startup_info));
+static void RunComponent(
+    fuchsia::sys::Package package,
+    fuchsia::sys::StartupInfo startup_info,
+    ::fidl::InterfaceRequest<fuchsia::sys::ComponentController> controller) {
+  PrimordialSoupComponentController app(std::move(controller));
+  app.Run(std::move(package), std::move(startup_info));
 }
 
-class PrimordialSoupApplicationRunner : public component::ApplicationRunner {
+class PrimordialSoupRunner : public fuchsia::sys::Runner {
  public:
-  PrimordialSoupApplicationRunner()
-    : context_(component::ApplicationContext::CreateFromStartupInfo()),
+  PrimordialSoupRunner()
+    : context_(fuchsia::sys::StartupContext::CreateFromStartupInfo()),
       bindings_() {
-    context_->outgoing_services()->AddService<component::ApplicationRunner>(
-      [this](fidl::InterfaceRequest<component::ApplicationRunner> request) {
+    context_->outgoing().AddPublicService<fuchsia::sys::Runner>(
+      [this](fidl::InterfaceRequest<fuchsia::sys::Runner> request) {
         bindings_.AddBinding(this, std::move(request));
       });
   }
 
-  ~PrimordialSoupApplicationRunner() override {}
+  ~PrimordialSoupRunner() override {}
 
  private:
-  void StartApplication(
-      component::ApplicationPackage application,
-      component::ApplicationStartupInfo startup_info,
-      ::fidl::InterfaceRequest<component::ApplicationController> controller)
+  void StartComponent(
+      fuchsia::sys::Package package,
+      fuchsia::sys::StartupInfo startup_info,
+      ::fidl::InterfaceRequest<fuchsia::sys::ComponentController> controller)
       override {
     // TODO(rmacnak): Should the embedder or the VM spawn this thread?
-    std::thread thread(RunApplication, std::move(application),
+    std::thread thread(RunComponent, std::move(package),
                        std::move(startup_info), std::move(controller));
     thread.detach();
   }
 
-  std::unique_ptr<component::ApplicationContext> context_;
-  fidl::BindingSet<component::ApplicationRunner> bindings_;
+  std::unique_ptr<fuchsia::sys::StartupContext> context_;
+  fidl::BindingSet<fuchsia::sys::Runner> bindings_;
 
-  FXL_DISALLOW_COPY_AND_ASSIGN(PrimordialSoupApplicationRunner);
+  FXL_DISALLOW_COPY_AND_ASSIGN(PrimordialSoupRunner);
 };
 
 static void SIGINT_handler(int sig) {
@@ -190,7 +191,7 @@ int main(int argc, const char** argv) {
 
   if (argc < 2) {
     async::Loop loop(&kAsyncLoopConfigMakeDefault);
-    PrimordialSoupApplicationRunner runner;
+    PrimordialSoupRunner runner;
     loop.Run();
   } else {
     psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);
