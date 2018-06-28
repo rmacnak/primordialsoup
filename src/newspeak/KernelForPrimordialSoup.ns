@@ -1664,7 +1664,7 @@ private maybeGrow = (
 	(used - dead) > (newCapacity >> 1) ifTrue:
 		[newCapacity:: newCapacity << 1].
 
-	('Rehashing weak map to ', newCapacity printString) out.
+	(* ('Rehashing weak map to ', newCapacity printString) out. *)
 
 	newTable:: Array new: newCapacity.
 	mask:: newCapacity - 1.
@@ -2027,7 +2027,7 @@ private rehashSymbolTable = (
 	(symbolTableUsed - dead) > (newCapacity >> 1) ifTrue:
 		[newCapacity:: newCapacity << 1].
 
-	('Rehashing symbol table to ', newCapacity printString) out.
+	(* ('Rehashing symbol table to ', newCapacity printString) out. *)
 
 	newTable:: WeakArray new: newCapacity.
 	1 to: newTable size do: [:index | newTable at: index put: newTable].

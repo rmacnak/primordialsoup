@@ -853,7 +853,7 @@ public drainQueue = (
 public insert: timer = (
 	used >= table size ifTrue:
 		[ | newSize = table size << 1. |
-		 ('Growing timer heap to ', newSize printString) out.
+		 (* ('Growing timer heap to ', newSize printString) out. *)
 		 table:: table copyWithSize: newSize].
 	used = 0 ifTrue: [nextId:: 0]. (* Reset id space when possible. *)
 

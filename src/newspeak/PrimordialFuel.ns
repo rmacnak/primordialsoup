@@ -310,10 +310,10 @@ public deserialize: bytes = (
 
 	result:: readBackRef.
 
-	('Read ', backRefs size printString, ' objects in ',
+	(* ('Read ', backRefs size printString, ' objects in ',
 	 numClusters printString, ' clusters as ',
 	 stream position printString, ' bytes in ',
-	 s elapsedMilliseconds printString, ' ms') out.
+	 s elapsedMilliseconds printString, ' ms') out. *)
 	^result
 )
 readBackRef = (
@@ -470,7 +470,6 @@ grow = (
 	| oldTable newSize mask newTable |
 	oldTable:: table.
 	newSize:: oldTable size * 2.
-	(* ('growing to ', newSize printString) out. *)
 	mask:: newSize - 2.
 	newTable:: Array new: newSize.
 	1 to: newSize do: [:index | newTable at: index put: newTable].
@@ -906,8 +905,6 @@ newClusterForClass: klass = (
 
 	Metaclass = klass ifTrue: [instancesAreBehaviors:: true].
 	Metaclass = (classOf: klass) ifTrue: [instancesAreBehaviors:: true].
-	(* klass out.
-	instancesAreBehaviors out. *)
 	cluster:: RegularObjectCluster for: klass instancesAreBehaviors: instancesAreBehaviors.
 	orderedClusters add: cluster.
 	^cluster
@@ -966,10 +963,10 @@ public serialize: root = (
 	orderedClusters do: [:c | c writeEdges].
 	writeBackRef: root.
 
-	('Wrote ', backRefs size printString, ' objects in ',
+	(* ('Wrote ', backRefs size printString, ' objects in ',
 	 orderedClusters size printString, ' clusters as ',
 	 stream position printString, ' bytes in ',
-	 stopwatch elapsedMilliseconds printString, ' ms') out.
+	 stopwatch elapsedMilliseconds printString, ' ms') out. *)
 	^stream stealBytes
 )
 writeBackRef: object = (
@@ -1089,10 +1086,10 @@ public serialize: root = (
 	orderedClusters do: [:c | c writeEdges].
 	writeBackRef: root.
 
-	(backRefs size printString, ' objects in ',
+	(* (backRefs size printString, ' objects in ',
 	 orderedClusters size printString, ' clusters as ',
 	 stream position printString, ' bytes in ',
-	 stopwatch elapsedMilliseconds printString, ' ms') out.
+	 stopwatch elapsedMilliseconds printString, ' ms') out. *)
 	^stream stealBytes
 )
 public snapshotApp: app withRuntime: runtime = (

@@ -133,6 +133,12 @@ Heap::Heap() :
 Heap::~Heap() {
   to_.Free();
   from_.Free();
+  HeapPage* page = pages_;
+  while (page != NULL) {
+    HeapPage* next = page->next();
+    page->Free();
+    page = next;
+  }
   delete[] remembered_set_;
   delete[] class_table_;
 }
