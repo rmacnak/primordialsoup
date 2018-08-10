@@ -164,7 +164,7 @@ class Heap {
     const intptr_t header_slots = sizeof(HeapObject) / sizeof(uword);
     if (((header_slots + num_slots) & 1) == 1) {
       // The leftover slot will be visited by the GC. Make it a valid oop.
-      result->set_slot(num_slots, SmallInteger::New(0));
+      result->set_slot(num_slots, SmallInteger::New(0), kNoBarrier);
     }
 
     return result;
@@ -226,7 +226,7 @@ class Heap {
     uword addr = Allocate(heap_size, allocator);
     HeapObject* obj = HeapObject::Initialize(addr, kClosureCid, heap_size);
     Closure* result = static_cast<Closure*>(obj);
-    result->set_num_copied(num_copied);
+    result->set_num_copied(SmallInteger::New(num_copied));
     ASSERT(result->IsClosure());
     ASSERT(result->HeapSize() == heap_size);
     return result;

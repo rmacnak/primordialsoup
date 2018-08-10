@@ -52,7 +52,7 @@ intptr_t HeapObject::HeapSizeFromClass() const {
     return AllocationSize(sizeof(Activation));
   case kClosureCid:
     return AllocationSize(sizeof(Closure) +
-                          sizeof(Object*) * Closure::Cast(this)->num_copied());
+                          sizeof(Object*) * Closure::Cast(this)->NumCopied());
   default:
     UNREACHABLE();
     // Need to get num slots from class.

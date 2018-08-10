@@ -1662,7 +1662,7 @@ DEFINE_PRIMITIVE(Activation_tempSize) {
   if (!receiver->IsActivation()) {
     return kFailure;
   }
-  RETURN_SMI(receiver->stack_depth());
+  RETURN_SMI(receiver->StackDepth());
 }
 
 
@@ -1680,7 +1680,7 @@ DEFINE_PRIMITIVE(Activation_tempSizePut) {
   if ((new_depth < 0) || (new_depth > Activation::kMaxTemps)) {
     return kFailure;
   }
-  intptr_t old_depth = receiver->stack_depth();
+  intptr_t old_depth = receiver->StackDepth();
   for (intptr_t i = old_depth; i < new_depth; i++) {
     receiver->set_temp(i, nil, kNoBarrier);
   }
@@ -1747,7 +1747,7 @@ DEFINE_PRIMITIVE(Closure_numCopied) {
   if (!subject->IsClosure()) {
     UNIMPLEMENTED();
   }
-  RETURN_SMI(subject->num_copied());
+  RETURN_SMI(subject->NumCopied());
 }
 
 
@@ -1807,7 +1807,7 @@ DEFINE_PRIMITIVE(Closure_copiedAt) {
   if (index->value() <= 0) {
     return kFailure;
   }
-  if (index->value() > receiver->num_copied()) {
+  if (index->value() > receiver->NumCopied()) {
     return kFailure;
   }
   Object* value = receiver->copied(index->value() - 1);
@@ -1829,7 +1829,7 @@ DEFINE_PRIMITIVE(Closure_copiedAtPut) {
   if (index->value() <= 0) {
     return kFailure;
   }
-  if (index->value() > receiver->num_copied()) {
+  if (index->value() > receiver->NumCopied()) {
     return kFailure;
   }
   receiver->set_copied(index->value() - 1, value);
@@ -1934,7 +1934,7 @@ DEFINE_PRIMITIVE(Closure_value0) {
 
   // No arguments.
 
-  intptr_t num_copied = closure->num_copied();
+  intptr_t num_copied = closure->NumCopied();
   for (intptr_t i = 0; i < num_copied; i++) {
     new_activation->Push(closure->copied(i));
   }
@@ -1970,7 +1970,7 @@ DEFINE_PRIMITIVE(Closure_value1) {
 
   new_activation->Push(A->Stack(0));  // Arg 0
 
-  intptr_t num_copied = closure->num_copied();
+  intptr_t num_copied = closure->NumCopied();
   for (intptr_t i = 0; i < num_copied; i++) {
     new_activation->Push(closure->copied(i));
   }
@@ -2007,7 +2007,7 @@ DEFINE_PRIMITIVE(Closure_value2) {
   new_activation->Push(A->Stack(1));  // Arg 0
   new_activation->Push(A->Stack(0));  // Arg 1
 
-  intptr_t num_copied = closure->num_copied();
+  intptr_t num_copied = closure->NumCopied();
   for (intptr_t i = 0; i < num_copied; i++) {
     new_activation->Push(closure->copied(i));
   }
@@ -2045,7 +2045,7 @@ DEFINE_PRIMITIVE(Closure_value3) {
   new_activation->Push(A->Stack(1));  // Arg 1
   new_activation->Push(A->Stack(0));  // Arg 2
 
-  intptr_t num_copied = closure->num_copied();
+  intptr_t num_copied = closure->NumCopied();
   for (intptr_t i = 0; i < num_copied; i++) {
     new_activation->Push(closure->copied(i));
   }
@@ -2086,7 +2086,7 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
     new_activation->Push(args->element(i));
   }
 
-  intptr_t num_copied = closure->num_copied();
+  intptr_t num_copied = closure->NumCopied();
   for (intptr_t i = 0; i < num_copied; i++) {
     new_activation->Push(closure->copied(i));
   }
@@ -2181,7 +2181,7 @@ DEFINE_PRIMITIVE(Time_utcEpochNanos) { UNIMPLEMENTED(); return kSuccess; }
 
 DEFINE_PRIMITIVE(print) {
   ASSERT(num_args == 1);
-  ASSERT(A->stack_depth() >= 2);
+  ASSERT(A->StackDepth() >= 2);
 
   Object* message = A->Stack(0);
   if (message->IsString()) {
@@ -2840,7 +2840,7 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
     RETURN(receiver);
   }
 
-  intptr_t incoming_depth = A->stack_depth();
+  intptr_t incoming_depth = A->StackDepth();
 
   A->Push(receiver);
   for (intptr_t i = 0; i < callee_num_args; i++) {
@@ -2859,13 +2859,13 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
   }
 
   if (callee_success) {
-    ASSERT(A->stack_depth() == incoming_depth + 1);
+    ASSERT(A->StackDepth() == incoming_depth + 1);
     Object* result = A->Stack(0);
     A->PopNAndPush(num_args + 1 + 1, result);
     return kSuccess;
   } else {
     A->Drop(callee_num_args + 1);
-    ASSERT(A->stack_depth() == incoming_depth);
+    ASSERT(A->StackDepth() == incoming_depth);
 
     Object* failure_token = A->Stack(0);  // Arguments array
     ASSERT(failure_token->IsArray());

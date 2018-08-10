@@ -34,7 +34,8 @@ enum ObjectAlignment {
 };
 
 enum HeaderBits {
-  // During a scavenge: Has this object been copied to to-space?
+  // New object: Already copied to to-space (is forwarding pointer).
+  // Old object: Already seen by the marker (is gray or black).
   kMarkBit = 0,
 
   // In remembered set.
@@ -261,6 +262,7 @@ class HeapObject : public Object {
     if (barrier == kNoBarrier) {
       ASSERT(value->IsImmediateOrOldObject());
     } else {
+      // Generational write barrier:
       if (IsOldObject() && value->IsNewObject() && !is_remembered()) {
         AddToRememberedSet();
       }
@@ -380,12 +382,8 @@ class MediumInteger : public HeapObject {
   static const int64_t kMinValue = kMinInt64;
   static const int64_t kMaxValue = kMaxInt64;
 
-  int64_t value() const {
-    return ptr()->value_;
-  }
-  void set_value(int64_t value) {
-    ptr()->value_ = value;
-  }
+  int64_t value() const { return ptr()->value_; }
+  void set_value(int64_t value) { ptr()->value_ = value; }
 
  private:
   int64_t value_;
@@ -511,12 +509,10 @@ class Array : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Array);
 
  public:
-  SmallInteger* size() const {
-    return ptr()->size_;
-  }
-  void set_size(SmallInteger* s) {
-    StorePointer(&ptr()->size_, s, kNoBarrier);
-  }
+  SmallInteger* size() const { return ptr()->size_; }
+  void set_size(SmallInteger* s) { StorePointer(&ptr()->size_, s, kNoBarrier); }
+  intptr_t Size() const { return size()->value(); }
+
   Object* element(intptr_t index) const {
     return ptr()->elements_[index];
   }
@@ -528,10 +524,6 @@ class Array : public HeapObject {
   }
   Object* const* element_addr(intptr_t index) const {
     return &ptr()->elements_[index];
-  }
-
-  intptr_t Size() const {
-    return size()->value();
   }
 
  private:
@@ -549,28 +541,19 @@ class WeakArray : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(WeakArray);
 
  public:
-  SmallInteger* size() const {
-    return ptr()->size_;
-  }
-  void set_size(SmallInteger* s) {
-    StorePointer(&ptr()->size_, s, kNoBarrier);
-  }
-  WeakArray* next() const {
-    return ptr()->next_;
-  }
-  void set_next(WeakArray* value) {
-    ptr()->next_ = value;
-  }
-  Object* element(intptr_t index) const {
-    return ptr()->elements_[index];
-  }
+  SmallInteger* size() const { return ptr()->size_; }
+  void set_size(SmallInteger* s) { StorePointer(&ptr()->size_, s, kNoBarrier); }
+  intptr_t Size() const { return size()->value(); }
+
+  // Only accessed by the GC. Bypasses barrier, including assertions.
+  WeakArray* next() const { return ptr()->next_; }
+  void set_next(WeakArray* value) { ptr()->next_ = value; }
+
+  Object* element(intptr_t index) const { return ptr()->elements_[index]; }
   void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->elements_[index], value, barrier);
   }
 
-  intptr_t Size() const {
-    return size()->value();
-  }
 
  private:
   Object** from() {
@@ -606,6 +589,7 @@ class Ephemeron : public HeapObject {
     StorePointer(&ptr()->finalizer_, finalizer, barrier);
   }
 
+  // Only accessed by the GC. Bypasses barrier, including assertions.
   Ephemeron* next() const { return ptr()->next_; }
   void set_next(Ephemeron* value) { ptr()->next_ = value; }
 
@@ -626,15 +610,10 @@ class Bytes : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Bytes);
 
  public:
-  SmallInteger* size() const {
-    return ptr()->size_;
-  }
-  void set_size(SmallInteger* size) {
-    StorePointer(&ptr()->size_, size, kNoBarrier);
-  }
-  intptr_t Size() const {
-    return size()->value();
-  }
+  SmallInteger* size() const { return ptr()->size_; }
+  void set_size(SmallInteger* s) { StorePointer(&ptr()->size_, s, kNoBarrier); }
+  intptr_t Size() const { return size()->value(); }
+
   uint8_t element(intptr_t index) const {
     return *element_addr(index);
   }
@@ -673,84 +652,74 @@ class Activation : public HeapObject {
  public:
   static const intptr_t kMaxTemps = 35;
 
-  Activation* sender() const {
-    return ptr()->sender_;
-  }
+  Activation* sender() const { return ptr()->sender_; }
   void set_sender(Activation* s, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->sender_, s, barrier);
   }
-  SmallInteger* bci() const {
-    return ptr()->bci_;
-  }
-  void set_bci(SmallInteger* i) {
-    StorePointer(&ptr()->bci_, i, kNoBarrier);
-  }
-  Method* method() const {
-    return ptr()->method_;
-  }
+
+  SmallInteger* bci() const { return ptr()->bci_; }
+  void set_bci(SmallInteger* i) { StorePointer(&ptr()->bci_, i, kNoBarrier); }
+
+  Method* method() const { return ptr()->method_; }
   void set_method(Method* m, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->method_, m, barrier);
   }
-  Closure* closure() const {
-    return ptr()->closure_;
-  }
+
+  Closure* closure() const { return ptr()->closure_; }
   void set_closure(Closure* m, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->closure_, m, barrier);
   }
-  Object* receiver() const {
-    return ptr()->receiver_;
-  }
+
+  Object* receiver() const { return ptr()->receiver_; }
   void set_receiver(Object* o, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->receiver_, o, barrier);
   }
-  intptr_t stack_depth() const {
-    return ptr()->stack_depth_->value();
-  }
+
+  SmallInteger* stack_depth() const { return ptr()->stack_depth_; }
   void set_stack_depth(SmallInteger* d) {
     StorePointer(&ptr()->stack_depth_, d, kNoBarrier);
   }
-  Object* temp(intptr_t index) const {
-    return ptr()->temps_[index];
-  }
+  intptr_t StackDepth() const { return stack_depth()->value(); }
+
+  Object* temp(intptr_t index) const { return ptr()->temps_[index]; }
   void set_temp(intptr_t index, Object* o, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->temps_[index], o, barrier);
   }
 
-
   Object* Pop() {
-    ASSERT(stack_depth() > 0);
-    Object* top = ptr()->temps_[stack_depth() - 1];
-    set_stack_depth(SmallInteger::New(stack_depth() - 1));
+    ASSERT(StackDepth() > 0);
+    Object* top = temp(StackDepth() - 1);
+    set_stack_depth(SmallInteger::New(StackDepth() - 1));
     return top;
   }
   Object* Stack(intptr_t depth) const {
     ASSERT(depth >= 0);
-    ASSERT(depth < stack_depth());
-    return temp(stack_depth() - depth - 1);
+    ASSERT(depth < StackDepth());
+    return temp(StackDepth() - depth - 1);
   }
   void StackPut(intptr_t depth, Object* o) {
     ASSERT(depth >= 0);
-    ASSERT(depth < stack_depth());
-    set_temp(stack_depth() - depth - 1, o);
+    ASSERT(depth < StackDepth());
+    set_temp(StackDepth() - depth - 1, o);
   }
   void PopNAndPush(intptr_t drop_count, Object* value) {
     ASSERT(drop_count >= 0);
-    ASSERT(drop_count <= stack_depth());
-    set_stack_depth(SmallInteger::New(stack_depth() - drop_count + 1));
-    set_temp(stack_depth() - 1, value);
+    ASSERT(drop_count <= StackDepth());
+    set_stack_depth(SmallInteger::New(StackDepth() - drop_count + 1));
+    set_temp(StackDepth() - 1, value);
   }
   void Push(Object* value) {
     PopNAndPush(0, value);
   }
   void Drop(intptr_t drop_count) {
     ASSERT(drop_count >= 0);
-    ASSERT(drop_count <= stack_depth());
-    set_stack_depth(SmallInteger::New(stack_depth() - drop_count));
+    ASSERT(drop_count <= StackDepth());
+    set_stack_depth(SmallInteger::New(StackDepth() - drop_count));
   }
   void Grow(intptr_t grow_count) {
     ASSERT(grow_count >= 0);
-    ASSERT(stack_depth() + grow_count < kMaxTemps);
-    set_stack_depth(SmallInteger::New(stack_depth() + grow_count));
+    ASSERT(StackDepth() + grow_count < kMaxTemps);
+    set_stack_depth(SmallInteger::New(StackDepth() + grow_count));
   }
 
  private:
@@ -765,7 +734,7 @@ class Activation : public HeapObject {
   SmallInteger* stack_depth_;
   Object* temps_[kMaxTemps];
   Object** to() {
-    return reinterpret_cast<Object**>(&ptr()->temps_[stack_depth() - 1]);
+    return reinterpret_cast<Object**>(&ptr()->temps_[StackDepth() - 1]);
   }
 };
 
@@ -773,12 +742,8 @@ class Float64 : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Float64);
 
  public:
-  double value() const {
-    return ptr()->value_;
-  }
-  void set_value(double v) {
-    ptr()->value_ = v;
-  }
+  double value() const { return ptr()->value_; }
+  void set_value(double v) { ptr()->value_ = v; }
 
  private:
   double value_;
@@ -788,33 +753,30 @@ class Closure : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Closure);
 
  public:
-  intptr_t num_copied() const {
-    return ptr()->num_copied_->value();
+  SmallInteger* num_copied() const { return ptr()->num_copied_; }
+  void set_num_copied(SmallInteger* v) {
+    StorePointer(&ptr()->num_copied_, v, kNoBarrier);
   }
-  void set_num_copied(intptr_t v) {
-    ptr()->num_copied_ = SmallInteger::New(v);
-  }
+  intptr_t NumCopied() const { return num_copied()->value(); }
+
   Activation* defining_activation() const {
     return ptr()->defining_activation_;
   }
   void set_defining_activation(Activation* a, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->defining_activation_, a, barrier);
   }
-  SmallInteger* initial_bci() const {
-    return ptr()->initial_bci_;
-  }
+
+  SmallInteger* initial_bci() const { return ptr()->initial_bci_; }
   void set_initial_bci(SmallInteger* bci) {
     StorePointer(&ptr()->initial_bci_, bci, kNoBarrier);
   }
-  SmallInteger* num_args() const {
-    return ptr()->num_args_;
-  }
+
+  SmallInteger* num_args() const { return ptr()->num_args_; }
   void set_num_args(SmallInteger* num) {
     StorePointer(&ptr()->num_args_, num, kNoBarrier);
   }
-  Object* copied(intptr_t index) const {
-    return ptr()->copied_[index];
-  }
+
+  Object* copied(intptr_t index) const { return ptr()->copied_[index]; }
   void set_copied(intptr_t index, Object* o, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->copied_[index], o, barrier);
   }
@@ -829,7 +791,7 @@ class Closure : public HeapObject {
   SmallInteger* num_args_;
   Object* copied_[];
   Object** to() {
-    return reinterpret_cast<Object**>(&ptr()->copied_[num_copied() - 1]);
+    return reinterpret_cast<Object**>(&ptr()->copied_[NumCopied() - 1]);
   }
 };
 
@@ -896,6 +858,7 @@ class Method : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Method);
 
  public:
+  SmallInteger* header() const { return ptr()->header_; }
   Array* literals() const { return ptr()->literals_; }
   ByteArray* bytecode() const { return ptr()->bytecode_; }
   AbstractMixin* mixin() const { return ptr()->mixin_; }
@@ -903,34 +866,28 @@ class Method : public HeapObject {
   Object* source() const { return ptr()->source_; }
 
   bool IsPublic() const {
-    uword header = ptr()->header_->value();
-    uword am = header >> 28;
+    uword am = header()->value() >> 28;
     ASSERT((am == 0) || (am == 1) || (am == 2));
     return am == 0;
   }
   bool IsProtected() const {
-    uword header = ptr()->header_->value();
-    uword am = header >> 28;
+    uword am = header()->value() >> 28;
     ASSERT((am == 0) || (am == 1) || (am == 2));
     return am == 1;
   }
   bool IsPrivate() const {
-    uword header = ptr()->header_->value();
-    uword am = header >> 28;
+    uword am = header()->value() >> 28;
     ASSERT((am == 0) || (am == 1) || (am == 2));
     return am == 2;
   }
   intptr_t Primitive() const {
-    uword header = ptr()->header_->value();
-    return (header >> 16) & 1023;
+    return (header()->value() >> 16) & 1023;
   }
   intptr_t NumArgs() const {
-    uword header = ptr()->header_->value();
-    return (header >> 0) & 255;
+    return (header()->value() >> 0) & 255;
   }
   intptr_t NumTemps() const {
-    uword header = ptr()->header_->value();
-    return (header >> 8) & 255;
+    return (header()->value() >> 8) & 255;
   }
 
  private:
@@ -952,6 +909,7 @@ class Message : public HeapObject {
   void set_arguments(Array* arguments, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->arguments_, arguments, barrier);
   }
+
  private:
   String* selector_;
   Array* arguments_;

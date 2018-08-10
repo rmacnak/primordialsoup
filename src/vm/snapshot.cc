@@ -254,7 +254,7 @@ class ClosureCluster : public Cluster {
       object->set_initial_bci(static_cast<SmallInteger*>(d->ReadRef()));
       object->set_num_args(static_cast<SmallInteger*>(d->ReadRef()));
 
-      intptr_t size = object->num_copied();
+      intptr_t size = object->NumCopied();
       for (intptr_t j = 0; j < size; j++) {
         object->set_copied(j, d->ReadRef(), kNoBarrier);
       }

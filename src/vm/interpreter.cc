@@ -632,7 +632,7 @@ void Interpreter::InsertAbsentReceiver(Object* receiver, intptr_t num_args) {
   ASSERT(num_args >= 0);
   ASSERT(num_args < 255);
 
-  ASSERT(A->stack_depth() >= num_args);
+  ASSERT(A->StackDepth() >= num_args);
   A->Grow(1);
   for (intptr_t i = 0; i < num_args; i++) {
     A->StackPut(i, A->Stack(i + 1));
@@ -680,7 +680,7 @@ void Interpreter::Activate(Method* method,
       A->PopNAndPush(num_args + 1, receiver);
       return;
     } else if (Primitives::Invoke(prim, num_args, H, this)) {  // SAFEPOINT
-      ASSERT(A->stack_depth() >= 0);
+      ASSERT(A->StackDepth() >= 0);
       return;
     }
   }
@@ -882,13 +882,13 @@ void Interpreter::PopJumpFalse(intptr_t delta) {
 
 
 void Interpreter::Dup() {
-  ASSERT(A->stack_depth() > 0);
+  ASSERT(A->StackDepth() > 0);
   A->Push(A->Stack(0));
 }
 
 
 void Interpreter::Pop() {
-  ASSERT(A->stack_depth() > 0);
+  ASSERT(A->StackDepth() > 0);
   A->Drop(1);
 }
 
