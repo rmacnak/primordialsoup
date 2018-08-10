@@ -4,6 +4,7 @@
 
 #include <fcntl.h>
 #include <fuchsia/sys/cpp/fidl.h>
+#include <lib/async-loop/cpp/loop.h>
 #include <lib/fdio/namespace.h>
 #include <signal.h>
 #include <zx/vmar.h>
@@ -11,10 +12,9 @@
 
 #include <thread>  // NOLINT
 
-#include "lib/app/cpp/connect.h"
-#include "lib/app/cpp/startup_context.h"
+#include "lib/component/cpp/connect.h"
+#include "lib/component/cpp/startup_context.h"
 #include "lib/fidl/cpp/binding.h"
-#include "lib/fsl/tasks/message_loop.h"
 #include "lib/fsl/vmo/file.h"
 #include "lib/fsl/vmo/sized_vmo.h"
 #include "lib/fxl/macros.h"
@@ -27,7 +27,7 @@ class PrimordialSoupComponentController
  public:
   PrimordialSoupComponentController(
       fidl::InterfaceRequest<fuchsia::sys::ComponentController> controller)
-      : loop_(&kAsyncLoopConfigMakeDefault),
+      : loop_(&kAsyncLoopConfigAttachToThread),
         binding_(this),
         wait_callbacks_(),
         namespace_(nullptr) {
@@ -65,7 +65,7 @@ class PrimordialSoupComponentController
 
     delete[] argv;
 
-    zx::vmar::root_self().unmap(snapshot, snapshot_size);
+    zx::vmar::root_self()->unmap(snapshot, snapshot_size);
 
     for (const auto& iter : wait_callbacks_) {
       iter(exit_code);
@@ -117,8 +117,8 @@ class PrimordialSoupComponentController
       return false;
     }
 
-    zx::vmar::root_self().map(0, snapshot_vmo.vmo(), 0, snapshot_vmo.size(),
-                              ZX_VM_FLAG_PERM_READ, snapshot);
+    zx::vmar::root_self()->map(0, snapshot_vmo.vmo(), 0, snapshot_vmo.size(),
+                               ZX_VM_FLAG_PERM_READ, snapshot);
     *snapshot_size = snapshot_vmo.size();
     return true;
   }
@@ -128,7 +128,7 @@ class PrimordialSoupComponentController
   }
 
   void Detach() override {
-    binding_.set_error_handler(fxl::Closure());
+    binding_.set_error_handler(fit::closure());
   }
 
   void Wait(WaitCallback callback) override {
@@ -154,7 +154,7 @@ static void RunComponent(
 class PrimordialSoupRunner : public fuchsia::sys::Runner {
  public:
   PrimordialSoupRunner()
-    : context_(fuchsia::sys::StartupContext::CreateFromStartupInfo()),
+    : context_(component::StartupContext::CreateFromStartupInfo()),
       bindings_() {
     context_->outgoing().AddPublicService<fuchsia::sys::Runner>(
       [this](fidl::InterfaceRequest<fuchsia::sys::Runner> request) {
@@ -176,7 +176,7 @@ class PrimordialSoupRunner : public fuchsia::sys::Runner {
     thread.detach();
   }
 
-  std::unique_ptr<fuchsia::sys::StartupContext> context_;
+  std::unique_ptr<component::StartupContext> context_;
   fidl::BindingSet<fuchsia::sys::Runner> bindings_;
 
   FXL_DISALLOW_COPY_AND_ASSIGN(PrimordialSoupRunner);
@@ -190,13 +190,13 @@ int main(int argc, const char** argv) {
   PrimordialSoup_Startup();
 
   if (argc < 2) {
-    async::Loop loop(&kAsyncLoopConfigMakeDefault);
+    async::Loop loop(&kAsyncLoopConfigAttachToThread);
     PrimordialSoupRunner runner;
     loop.Run();
   } else {
     psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);
     void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
-    async::Loop loop(&kAsyncLoopConfigMakeDefault);
+    async::Loop loop(&kAsyncLoopConfigAttachToThread);
     PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot.base()),
                               snapshot.size(), argc - 2, &argv[2]);
     signal(SIGINT, defaultSIGINT);

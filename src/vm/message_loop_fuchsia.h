@@ -10,7 +10,7 @@
   instead.
 #endif
 
-#include <lib/async-loop/loop.h>
+#include <lib/async-loop/cpp/loop.h>
 #include <lib/async/cpp/wait.h>
 #include <lib/zx/timer.h>
 
@@ -35,7 +35,7 @@ class FuchsiaMessageLoop : public MessageLoop {
   void Interrupt();
 
  private:
-  void OnHandleReady(async_t* async,
+  void OnHandleReady(async_dispatcher_t* async,
                      async::WaitBase* wait,
                      zx_status_t status,
                      const zx_packet_signal_t* packet);

@@ -17,7 +17,7 @@ namespace psoup {
 
 FuchsiaMessageLoop::FuchsiaMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
-      loop_(async_loop_from_dispatcher(async_get_default())),
+      loop_(async_loop_from_dispatcher(async_get_default_dispatcher())),
       timer_(ZX_HANDLE_INVALID),
       timer_wait_(this),
       wakeup_(0) {
@@ -45,7 +45,7 @@ intptr_t FuchsiaMessageLoop::AwaitSignal(intptr_t handle, intptr_t signals) {
   return reinterpret_cast<intptr_t>(wait) >> 1;
 }
 
-void FuchsiaMessageLoop::OnHandleReady(async_t* async,
+void FuchsiaMessageLoop::OnHandleReady(async_dispatcher_t* async,
                                        async::WaitBase* wait,
                                        zx_status_t status,
                                        const zx_packet_signal_t* packet) {

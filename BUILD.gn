@@ -12,10 +12,11 @@ executable("vm") {
   if (is_fuchsia) {
     libs = [ "zircon" ]
     deps = [
-      "//garnet/public/lib/app/cpp",
-      "//garnet/public/lib/svc/cpp",
-      "//garnet/public/lib/fxl",
+      "//garnet/public/lib/component/cpp",
       "//garnet/public/lib/fsl",
+      "//garnet/public/lib/fxl",
+      "//garnet/public/lib/svc/cpp",
+      "//zircon/public/lib/async-loop-cpp",
     ]
   } else {
     libs = [ "pthread" ]
@@ -255,7 +256,7 @@ template("psoup_package") {
     meta = [
       {
         path = rebase_path("runtime")
-        dest = "runtime"
+        dest = "deprecated_runtime"
       }
     ]
   }
