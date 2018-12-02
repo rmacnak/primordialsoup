@@ -7,35 +7,14 @@
 
 #include "vm/globals.h"
 #include "vm/object.h"
-#include "vm/primitives.h"
 
 namespace psoup {
-
-class CacheEntry {
- public:
-  intptr_t cid;
-  String* selector;
-  Method* target;
-  PrimitiveFunction* primitive;
-};
 
 enum LookupRule {
   kSelf = 0,
   kSuper = 256,
   kImplicitReceiver = 257,
   kMNU = 258,
-};
-
-class NSCacheEntry {
- public:
-  intptr_t cid;
-  String* selector;
-  Method* caller;
-  intptr_t rule;
-  Object* absent_receiver;
-  Method* target;
-  PrimitiveFunction* primitive;
-  uword alignment_;
 };
 
 class LookupCache {
@@ -46,21 +25,21 @@ class LookupCache {
 
   bool LookupOrdinary(intptr_t cid,
                       String* selector,
-                      Method** target,
-                      PrimitiveFunction** primitive) {
-    intptr_t hash =
-        cid ^ (reinterpret_cast<intptr_t>(selector) >> kObjectAlignmentLog2);
-    intptr_t probe1 = hash & kCacheMask;
-    if (entries[probe1].cid == cid &&
-        entries[probe1].selector == selector) {
-      *target = entries[probe1].target;
+                      Method** target) {
+    intptr_t hash = cid
+        ^ (reinterpret_cast<intptr_t>(selector) >> kObjectAlignmentLog2);
+
+    intptr_t probe1 = hash & kMask;
+    if (entries_[probe1].ordinary_cid == cid &&
+        entries_[probe1].ordinary_selector == selector) {
+      *target = entries_[probe1].ordinary_target;
       return true;
     }
 
-    intptr_t probe2 = (hash >> 3) & kCacheMask;
-    if (entries[probe2].cid == cid &&
-        entries[probe2].selector == selector) {
-      *target = entries[probe2].target;
+    intptr_t probe2 = (hash >> 3) & kMask;
+    if (entries_[probe2].ordinary_cid == cid &&
+        entries_[probe2].ordinary_selector == selector) {
+      *target = entries_[probe2].ordinary_target;
       return true;
     }
 
@@ -69,63 +48,66 @@ class LookupCache {
 
   void InsertOrdinary(intptr_t cid,
                       String* selector,
-                      Method* target,
-                      PrimitiveFunction* primitive);
+                      Method* target);
 
   bool LookupNS(intptr_t cid,
                 String* selector,
                 Method* caller,
                 intptr_t rule,
                 Object** absent_receiver,
-                Method** target,
-                PrimitiveFunction** primitive) {
+                Method** target) {
     intptr_t hash = cid
-      ^ (reinterpret_cast<intptr_t>(selector) >> kObjectAlignmentLog2)
-      ^ (reinterpret_cast<intptr_t>(caller) >> kObjectAlignmentLog2)
-      ^ rule;
+        ^ (reinterpret_cast<intptr_t>(selector) >> kObjectAlignmentLog2)
+        ^ (reinterpret_cast<intptr_t>(caller) >> kObjectAlignmentLog2);
+    intptr_t cid_and_rule = (cid << 16) | rule;
 
-    intptr_t probe1 = hash & kNSCacheMask;
-    if (ns_entries[probe1].cid == cid &&
-        ns_entries[probe1].selector == selector &&
-        ns_entries[probe1].caller == caller &&
-        ns_entries[probe1].rule == rule) {
-      *absent_receiver = ns_entries[probe1].absent_receiver;
-      *target = ns_entries[probe1].target;
+    intptr_t probe1 = hash & kMask;
+    if (entries_[probe1].ns_cid_and_rule == cid_and_rule &&
+        entries_[probe1].ns_selector == selector &&
+        entries_[probe1].ns_caller == caller) {
+      *absent_receiver = entries_[probe1].ns_absent_receiver;
+      *target = entries_[probe1].ns_target;
       return true;
     }
 
-    intptr_t probe2 = (hash >> 3) & kNSCacheMask;
-    if (ns_entries[probe2].cid == cid &&
-        ns_entries[probe2].selector == selector &&
-        ns_entries[probe2].caller == caller &&
-        ns_entries[probe2].rule == rule) {
-      *absent_receiver = ns_entries[probe2].absent_receiver;
-      *target = ns_entries[probe2].target;
+    intptr_t probe2 = (hash >> 3) & kMask;
+    if (entries_[probe2].ns_cid_and_rule == cid_and_rule &&
+        entries_[probe2].ns_selector == selector &&
+        entries_[probe2].ns_caller == caller) {
+      *absent_receiver = entries_[probe2].ns_absent_receiver;
+      *target = entries_[probe2].ns_target;
       return true;
     }
 
     return false;
   }
 
-  bool InsertNS(intptr_t cid,
+  void InsertNS(intptr_t cid,
                 String* selector,
                 Method* caller,
                 intptr_t rule,
                 Object* absent_receiver,
-                Method* target,
-                PrimitiveFunction* primitive);
+                Method* target);
 
   void Clear();
 
  private:
-  static const intptr_t kCacheSize = 256;
-  static const intptr_t kCacheMask = kCacheSize - 1;
+  struct Entry {
+    intptr_t ordinary_cid;
+    String* ordinary_selector;
+    Method* ordinary_target;
 
-  static const intptr_t kNSCacheSize = 128;
-  static const intptr_t kNSCacheMask = kNSCacheSize - 1;
+    intptr_t ns_cid_and_rule;
+    String* ns_selector;
+    Method* ns_caller;
+    Object* ns_absent_receiver;
+    Method* ns_target;
+  };
 
-  CacheEntry entries[kCacheSize];
-  NSCacheEntry ns_entries[kNSCacheSize];
+  static const intptr_t kSize = 512;
+  static const intptr_t kMask = kSize - 1;
+
+  Entry entries_[kSize];
 };
 
 }  // namespace psoup

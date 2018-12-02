@@ -228,9 +228,7 @@ void Interpreter::SendOrdinary(String* selector,
 
 #if LOOKUP_CACHE
   Method* target;
-  PrimitiveFunction* primitive;
-  if (lookup_cache_.LookupOrdinary(receiver->ClassId(), selector,
-                                   &target, &primitive)) {
+  if (lookup_cache_.LookupOrdinary(receiver->ClassId(), selector, &target)) {
     Activate(target, num_args);  // SAFEPOINT
     return;
   }
@@ -243,8 +241,7 @@ void Interpreter::SendOrdinary(String* selector,
     if (method != nil) {
       if (method->IsPublic()) {
 #if LOOKUP_CACHE
-        lookup_cache_.InsertOrdinary(receiver->ClassId(), selector,
-                                     method, 0);
+        lookup_cache_.InsertOrdinary(receiver->ClassId(), selector, method);
 #endif
         Activate(method, num_args);  // SAFEPOINT
         return;
@@ -283,14 +280,12 @@ void Interpreter::SuperSend(intptr_t selector_index,
 #if LOOKUP_CACHE
   Object* absent_receiver;
   Method* target;
-  PrimitiveFunction* primitive;
   if (lookup_cache_.LookupNS(receiver->ClassId(),
                              selector,
                              A->method(),
                              kSuper,
                              &absent_receiver,
-                             &target,
-                             &primitive)) {
+                             &target)) {
     if (absent_receiver == 0) {
       absent_receiver = receiver;
     }
@@ -319,14 +314,12 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
 #if LOOKUP_CACHE
   Object* absent_receiver;
   Method* target;
-  PrimitiveFunction* primitive;
   if (lookup_cache_.LookupNS(method_receiver->ClassId(),
                              selector,
                              A->method(),
                              kImplicitReceiver,
                              &absent_receiver,
-                             &target,
-                             &primitive)) {
+                             &target)) {
     if (absent_receiver == 0) {
       absent_receiver = method_receiver;
     }
@@ -372,14 +365,12 @@ void Interpreter::OuterSend(intptr_t selector_index,
 #if LOOKUP_CACHE
   Object* absent_receiver;
   Method* target;
-  PrimitiveFunction* primitive;
   if (lookup_cache_.LookupNS(receiver->ClassId(),
                              selector,
                              A->method(),
                              depth,
                              &absent_receiver,
-                             &target,
-                             &primitive)) {
+                             &target)) {
     if (absent_receiver == 0) {
       absent_receiver = receiver;
     }
@@ -409,14 +400,12 @@ void Interpreter::SelfSend(intptr_t selector_index,
 #if LOOKUP_CACHE
   Object* absent_receiver;
   Method* target;
-  PrimitiveFunction* primitive;
   if (lookup_cache_.LookupNS(receiver->ClassId(),
                              selector,
                              A->method(),
                              kSelf,
                              &absent_receiver,
-                             &target,
-                             &primitive)) {
+                             &target)) {
     if (absent_receiver == 0) {
       absent_receiver = receiver;
     }
@@ -446,8 +435,7 @@ void Interpreter::SendLexical(String* selector,
                            A->method(),
                            rule,
                            receiver == method_receiver ? 0 : receiver,
-                           method,
-                           0);
+                           method);
 #endif
     ActivateAbsent(method, receiver, num_args);  // SAFEPOINT
     return;
@@ -473,8 +461,7 @@ void Interpreter::SendProtected(String* selector,
                              A->method(),
                              rule,
                              receiver == method_receiver ? 0 : receiver,
-                             method,
-                             0);
+                             method);
 #endif
       ActivateAbsent(method, receiver, num_args);  // SAFEPOINT
       return;
