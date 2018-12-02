@@ -253,7 +253,6 @@ def BuildSnapshots(outdir, host_vm):
 
 
 def Main():
-  target_os = ARGUMENTS.get('os', None)
   host_os = None
   if platform.system() == 'Linux':
     host_os = 'linux'
@@ -261,6 +260,7 @@ def Main():
     host_os = 'macos'
   elif platform.system() == 'Windows':
     host_os = 'windows'
+  target_os = ARGUMENTS.get('os', host_os)
 
   target_cxx = ARGUMENTS.get('cxx_target', None)
   host_cxx = None
@@ -314,9 +314,11 @@ def Main():
     # If cross compiling, also build for the target.
     BuildVM(target_cxx, target_arch, target_os, True, sanitize)
     BuildVM(target_cxx, target_arch, target_os, False, sanitize)
-  elif host_arch == 'x64' and sanitize != 'thread' and target_arch == None :
-    # If on X64, also build for IA32. Skip when using TSan as it doesn't
-    # support IA32. Also skip when a specific architecture was asked for.
+  elif host_arch == 'x64' and sanitize != 'thread' and target_arch == None \
+       and target_os != 'macos' :
+    # If on X64, also build for IA32. Skip when using TSan or targeting Mac, as
+    # they don't support IA32. Also skip when a specific architecture was asked
+    # for.
     BuildVM(host_cxx, 'ia32', host_os, True, sanitize)
     BuildVM(host_cxx, 'ia32', host_os,  False, sanitize)
 

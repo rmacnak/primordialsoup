@@ -2,6 +2,17 @@
 
 test_x64() {
   set -x
+  out/DebugX64/primordialsoup out/snapshots/HelloApp.vfuel
+  out/ReleaseX64/primordialsoup out/snapshots/HelloApp.vfuel
+
+  out/DebugX64/primordialsoup out/snapshots/TestRunner.vfuel
+  out/ReleaseX64/primordialsoup out/snapshots/TestRunner.vfuel
+
+  out/ReleaseX64/primordialsoup out/snapshots/BenchmarkRunner.vfuel
+}
+
+test_x64_and_ia32() {
+  set -x
   out/DebugIA32/primordialsoup out/snapshots/HelloApp.vfuel
   out/DebugX64/primordialsoup out/snapshots/HelloApp.vfuel
   out/ReleaseIA32/primordialsoup out/snapshots/HelloApp.vfuel
@@ -50,7 +61,11 @@ test_mips() {
 }
 
 case $(uname -m) in
-  x86_64) test_x64 ;;
+  x86_64)
+    case $(uname -s) in
+      Darwin) test_x64 ;;
+      *) test_x64_and_ia32
+    esac ;;
   aarch64) test_arm64 ;;
   armv7l) test_arm ;;
   armv6l) test_arm ;;
