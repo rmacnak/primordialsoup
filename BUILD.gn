@@ -12,11 +12,10 @@ executable("vm") {
   if (is_fuchsia) {
     libs = [ "zircon" ]
     deps = [
-      "//garnet/public/lib/component/cpp",
-      "//garnet/public/lib/fsl",
-      "//garnet/public/lib/fxl",
-      "//garnet/public/lib/svc/cpp",
+      "//zircon/public/lib/async-cpp",
       "//zircon/public/lib/async-loop-cpp",
+      "//zircon/public/lib/fbl",
+      "//zircon/public/lib/fdio",
     ]
   } else {
     libs = [ "pthread" ]
@@ -65,6 +64,7 @@ executable("vm") {
     "src/vm/lockers.h",
     "src/vm/lookup_cache.cc",
     "src/vm/lookup_cache.h",
+    "src/vm/main.cc",
     "src/vm/math.h",
     "src/vm/message_loop.cc",
     "src/vm/message_loop.h",
@@ -120,18 +120,12 @@ executable("vm") {
     "src/vm/virtual_memory_macos.cc",
     "src/vm/virtual_memory_win.cc",
   ]
-
-  if (is_fuchsia) {
-    sources += [ "src/vm/main_fuchsia.cc" ]
-  } else {
-    sources += [ "src/vm/main.cc" ]
-  }
 }
 
-hello_snapshot = "$root_out_dir/HelloApp.vfuel"
-tests_snapshot = "$root_out_dir/TestRunner.vfuel"
-benchmarks_snapshot = "$root_out_dir/BenchmarkRunner.vfuel"
-compiler_snapshot = "$root_out_dir/CompilerApp.vfuel"
+hello_snapshot = "$target_out_dir/HelloApp.vfuel"
+tests_snapshot = "$target_out_dir/TestRunner.vfuel"
+benchmarks_snapshot = "$target_out_dir/BenchmarkRunner.vfuel"
+compiler_snapshot = "$target_out_dir/CompilerApp.vfuel"
 
 action("snapshots") {
   deps = [
@@ -239,30 +233,82 @@ action("snapshots") {
   ]
 }
 
-package("primordialsoup") {
-  deps = [ ":vm" ]
+package("hello_app") {
+  deps = [
+    ":snapshots",
+    ":vm",
+  ]
   binary = "primordialsoup"
+  resources = [
+    {
+      path = rebase_path(hello_snapshot)
+      dest = "HelloApp.vfuel"
+    },
+  ]
+  meta = [
+    {
+      path = rebase_path("meta/hello_app.cmx")
+      dest = "hello_app.cmx"
+    },
+  ]
 }
 
-template("psoup_package") {
-  package(target_name) {
-    deps = [ ":snapshots" ]
-    resources = [
-      {
-        path = rebase_path(invoker.snapshot)
-        dest = "program.vfuel"
-      }
-    ]
-    meta = [
-      {
-        path = rebase_path("runtime")
-        dest = "deprecated_runtime"
-      }
-    ]
-  }
+package("test_runner") {
+  deps = [
+    ":snapshots",
+    ":vm",
+  ]
+  binary = "primordialsoup"
+  resources = [
+    {
+      path = rebase_path(tests_snapshot)
+      dest = "TestRunner.vfuel"
+    },
+  ]
+  meta = [
+    {
+      path = rebase_path("meta/test_runner.cmx")
+      dest = "test_runner.cmx"
+    },
+  ]
 }
 
-psoup_package("HelloApp") { snapshot = hello_snapshot }
-psoup_package("TestRunner") { snapshot = tests_snapshot }
-psoup_package("BenchmarkRunner") { snapshot = benchmarks_snapshot }
-psoup_package("CompilerApp") { snapshot = compiler_snapshot }
+package("benchmark_runner") {
+  deps = [
+    ":snapshots",
+    ":vm",
+  ]
+  binary = "primordialsoup"
+  resources = [
+    {
+      path = rebase_path(benchmarks_snapshot)
+      dest = "BenchmarkRunner.vfuel"
+    },
+  ]
+  meta = [
+    {
+      path = rebase_path("meta/benchmark_runner.cmx")
+      dest = "benchmark_runner.cmx"
+    },
+  ]
+}
+
+package("compiler_app") {
+  deps = [
+    ":snapshots",
+    ":vm",
+  ]
+  binary = "primordialsoup"
+  resources = [
+    {
+      path = rebase_path(compiler_snapshot)
+      dest = "CompilerApp.vfuel"
+    },
+  ]
+  meta = [
+    {
+      path = rebase_path("meta/compiler_app.cmx")
+      dest = "compiler_app.cmx"
+    },
+  ]
+}

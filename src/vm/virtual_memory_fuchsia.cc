@@ -35,7 +35,7 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   }
   zx_handle_t vmar = zx_vmar_root_self();
   uintptr_t addr;
-  status = zx_vmar_map(vmar, 0, vmo, 0, size, ZX_VM_FLAG_PERM_READ, &addr);
+  status = zx_vmar_map(vmar, ZX_VM_FLAG_PERM_READ, 0, vmo, 0, size, &addr);
   zx_handle_close(vmo);
   if (status != ZX_OK) {
     FATAL2("zx_vmar_map(%" Pd ") failed: %s\n", size,
@@ -76,7 +76,7 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
   zx_object_set_property(vmo, ZX_PROP_NAME, name, strlen(name));
 
   uintptr_t addr;
-  status = zx_vmar_map(vmar, 0, vmo, 0, size, prot, &addr);
+  status = zx_vmar_map(vmar, prot, 0, vmo, 0, size, &addr);
   zx_handle_close(vmo);
   if (status != ZX_OK) {
     FATAL2("zx_vmar_map(%" Pd ") failed: %s\n", size,
@@ -115,9 +115,9 @@ bool VirtualMemory::Protect(Protection protection) {
       prot = 0;
   }
   zx_handle_t vmar = zx_vmar_root_self();
-  zx_status_t status = zx_vmar_protect(vmar,
+  zx_status_t status = zx_vmar_protect(vmar, prot,
                                        reinterpret_cast<uintptr_t>(address_),
-                                       size_, prot);
+                                       size_);
   if (status != ZX_OK) {
     FATAL1("zx_vmar_protect failed: %s\n", zx_status_get_string(status));
   }

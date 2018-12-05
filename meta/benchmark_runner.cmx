@@ -1,0 +1,10 @@
+{
+    "program": {
+        "binary": "bin/app",
+        "args": [ "pkg/data/BenchmarkRunner.vfuel" ]
+    },
+    "sandbox": {
+        "features": [],
+        "services": []
+    }
+}

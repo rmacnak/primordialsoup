@@ -2,9 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+#include "vm/globals.h"
+
+#if defined(OS_FUCHSIA)
+#include <lib/async-loop/cpp/loop.h>
+#endif
 #include <signal.h>
 
-#include "vm/globals.h"
 #include "vm/os.h"
 #include "vm/primordial_soup.h"
 #include "vm/virtual_memory.h"
@@ -13,12 +17,15 @@ static void SIGINT_handler(int sig) {
   PrimordialSoup_InterruptAll();
 }
 
-
 int main(int argc, const char** argv) {
   if (argc < 2) {
     psoup::OS::PrintErr("Usage: %s <program.vfuel>\n", argv[0]);
     return -1;
   }
+
+#if defined(OS_FUCHSIA)
+  async::Loop loop(&kAsyncLoopConfigAttachToThread);
+#endif
 
   psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);
   PrimordialSoup_Startup();

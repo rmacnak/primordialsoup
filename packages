@@ -1,9 +1,8 @@
 {
     "packages": [
-        "//third_party/primordialsoup",
-        "//third_party/primordialsoup:HelloApp",
-        "//third_party/primordialsoup:TestRunner",
-        "//third_party/primordialsoup:BenchmarkRunner",
-        "//third_party/primordialsoup:CompilerApp"
+        "//third_party/primordialsoup:hello_app",
+        "//third_party/primordialsoup:test_runner",
+        "//third_party/primordialsoup:benchmark_runner",
+        "//third_party/primordialsoup:compiler_app"
     ]
 }
