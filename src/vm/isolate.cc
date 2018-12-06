@@ -88,7 +88,7 @@ void Isolate::Interrupt() {
 void Isolate::PrintStack() {
   MonitorLocker ml(isolates_list_monitor_);
   OS::PrintErr("%" Px " interrupted: \n", reinterpret_cast<uword>(this));
-  heap_->PrintStack();
+  heap_->activation()->PrintStack(heap_);
 }
 
 
@@ -190,12 +190,12 @@ void Isolate::Activate(Object* message, Object* port) {
   Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
 
   Object* nil = heap_->object_store()->nil_obj();
-  new_activation->set_sender(static_cast<Activation*>(nil));
+  new_activation->set_sender(static_cast<Activation*>(nil), kNoBarrier);
   new_activation->set_bci(SmallInteger::New(1));
   new_activation->set_method(method);
-  new_activation->set_closure(static_cast<Closure*>(nil));
+  new_activation->set_closure(static_cast<Closure*>(nil), kNoBarrier);
   new_activation->set_receiver(message_loop);
-  new_activation->set_stack_depth(0);
+  new_activation->set_stack_depth(SmallInteger::New(0));
 
   ASSERT(method->NumArgs() == 2);
   new_activation->Push(message);
@@ -226,12 +226,12 @@ void Isolate::ActivateSignal(intptr_t handle,
   Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
 
   Object* nil = heap_->object_store()->nil_obj();
-  new_activation->set_sender(static_cast<Activation*>(nil));
+  new_activation->set_sender(static_cast<Activation*>(nil), kNoBarrier);
   new_activation->set_bci(SmallInteger::New(1));
   new_activation->set_method(method);
-  new_activation->set_closure(static_cast<Closure*>(nil));
+  new_activation->set_closure(static_cast<Closure*>(nil), kNoBarrier);
   new_activation->set_receiver(message_loop);
-  new_activation->set_stack_depth(0);
+  new_activation->set_stack_depth(SmallInteger::New(0));
 
   ASSERT(method->NumArgs() == 4);
   new_activation->Push(SmallInteger::New(handle));

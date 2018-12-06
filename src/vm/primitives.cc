@@ -1697,7 +1697,7 @@ DEFINE_PRIMITIVE(Activation_class_new) {
   result->set_method(static_cast<Method*>(nil), kNoBarrier);
   result->set_closure(static_cast<Closure*>(nil), kNoBarrier);
   result->set_receiver(nil, kNoBarrier);
-  result->set_stack_depth(0);
+  result->set_stack_depth(SmallInteger::New(0));
   RETURN(result);
 }
 
@@ -1930,7 +1930,7 @@ DEFINE_PRIMITIVE(Closure_value0) {
   new_activation->set_method(home_context->method());
   new_activation->set_closure(closure);
   new_activation->set_receiver(home_context->receiver());
-  new_activation->set_stack_depth(0);
+  new_activation->set_stack_depth(SmallInteger::New(0));
 
   // No arguments.
 
@@ -1966,7 +1966,7 @@ DEFINE_PRIMITIVE(Closure_value1) {
   new_activation->set_method(home_context->method());
   new_activation->set_closure(closure);
   new_activation->set_receiver(home_context->receiver());
-  new_activation->set_stack_depth(0);
+  new_activation->set_stack_depth(SmallInteger::New(0));
 
   new_activation->Push(A->Stack(0));  // Arg 0
 
@@ -2002,7 +2002,7 @@ DEFINE_PRIMITIVE(Closure_value2) {
   new_activation->set_method(home_context->method());
   new_activation->set_closure(closure);
   new_activation->set_receiver(home_context->receiver());
-  new_activation->set_stack_depth(0);
+  new_activation->set_stack_depth(SmallInteger::New(0));
 
   new_activation->Push(A->Stack(1));  // Arg 0
   new_activation->Push(A->Stack(0));  // Arg 1
@@ -2039,7 +2039,7 @@ DEFINE_PRIMITIVE(Closure_value3) {
   new_activation->set_method(home_context->method());
   new_activation->set_closure(closure);
   new_activation->set_receiver(home_context->receiver());
-  new_activation->set_stack_depth(0);
+  new_activation->set_stack_depth(SmallInteger::New(0));
 
   new_activation->Push(A->Stack(2));  // Arg 0
   new_activation->Push(A->Stack(1));  // Arg 1
@@ -2080,7 +2080,7 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
   new_activation->set_method(home_context->method());
   new_activation->set_closure(closure);
   new_activation->set_receiver(home_context->receiver());
-  new_activation->set_stack_depth(0);
+  new_activation->set_stack_depth(SmallInteger::New(0));
 
   for (intptr_t i = 0; i < args->Size(); i++) {
     new_activation->Push(args->element(i));
@@ -2200,7 +2200,7 @@ DEFINE_PRIMITIVE(print) {
 
 DEFINE_PRIMITIVE(halt) {
   OS::PrintErr("Halt:\n");
-  H->PrintStack();
+  H->activation()->PrintStack(H);
   OS::Exit(-1);
   UNREACHABLE();
   return kFailure;

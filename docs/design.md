@@ -22,15 +22,15 @@ An object's class is encoded as an index into a class table, its cid. The cid oc
 
 An object's size is encoded in allocation (double-word) units, or 0 if it is larger than the 8/16-bit header field allows. The size field can only overflow for variable-length objects such as arrays or strings, in which case the object's size in memory is computed from its length field. The size field is only used for computing the address of the next object in the heap for iteration, and is not used for bounds checks.
 
-The objects of a handful of classes have special representations, and their cids are constant values known to the VM. These classes are SmallInteger, MediumInteger, LargeInteger, Float64, ByteArray, ByteString, WideString, Array, WeakArray, Ephemeron, Activation and Closure. All other objects have a fixed number of pointers as determined by their class. In particular, Method, Class, Metaclass, InstanceMixin and ClassMixin are regular classes.
+The objects of a handful of classes have special representations, and their cids are constant values known to the VM. These classes are SmallInteger, MediumInteger, LargeInteger, Float64, ByteArray, String, Array, WeakArray, Ephemeron, Activation and Closure. All other objects have a fixed number of pointers as determined by their class. In particular, Method, Class, Metaclass, InstanceMixin and ClassMixin are regular classes.
 
-SmallIntegers represent signed 31-/63-bit values on 32-/64-bit architectures respectively, MediumIntegers represent signed 64-bit values, and LargeIntegers represent values with greater magnitude.
+SmallIntegers represent signed 31-/63-bit values on 32-/64-bit architectures respectively, MediumIntegers represent signed 64-bit values, and LargeIntegers represent values with greater magnitude. Integer operations produce the smallest representation that can fit the result.
 
-The variable-length objects (ByteArray, ByteString, WideString, Array, WeakArray, Closure) have a length field encoded as a SmallInteger. This allows bounds checks and length access to happen without checking for an overflow field and without converting the length or index. Each of these classes has its own set of accessing primitives, so there is no need to check a format field as in Squeak, the class check for method lookup was enough.
+The variable-length objects (ByteArray, String, Array, WeakArray, Closure) have a length field encoded as a SmallInteger. This allows bounds checks and length access to happen without checking for an overflow field and without converting the length or index. Each of these classes has its own set of accessing primitives, so there is no need to check a format field as in Squeak, the class check for method lookup was enough.
 
 ## Garbage Collector
 
-Primordial Soup uses a stop-the-world, generational garbage collector. The new generation uses a semispace scavegner; the old generation uses mark-sweep. New objects are allocated out of double-word alignment and old objects are allocated at double-word aligment. The generational write barrier detects old->new stores by examing the low bits of the source and target objects.
+Primordial Soup uses a stop-the-world, generational garbage collector. The new generation uses a semispace scavenger; the old generation uses mark-sweep. New objects are allocated out of double-word alignment and old objects are allocated at double-word aligment. The generational write barrier detects old->new stores by examining the low bits of the source and target objects.
 
 The garbage collector supports weak arrays and a weak class table, as a well as a restricted version of [ephemerons](http://dl.acm.org/citation.cfm?id=263733) where the only action an ephemeron takes on firing is to nil its value slot.
 

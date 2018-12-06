@@ -80,29 +80,20 @@ void Interpreter::PopIntoRemoteTemp(intptr_t vector_offset, intptr_t offset) {
 
 
 void Interpreter::PushLiteral(intptr_t offset) {
-  Object* literal = LiteralAt(offset);
+  Method* method = A->method();
+  Object* literal;
+  if (offset == method->literals()->Size() + 1) {
+    // Hack. When transforming from Squeak CompiledMethod, we drop
+    // the last two literals (the selector/AdditionalMethodState and
+    // the mixin class association) because we put them in the Method
+    // instead of the literal array. The mixin class associtation is
+    // accessed by nested class accessors.
+    literal = method->mixin();
+  } else {
+    ASSERT((offset >= 0) && (offset < method->literals()->Size()));
+    literal = method->literals()->element(offset);
+  }
   A->Push(literal);
-}
-
-
-void Interpreter::PushReceiver() {
-  Object* receiver = A->receiver();
-  A->Push(receiver);
-}
-
-
-void Interpreter::PushFalse() {
-  A->Push(H->object_store()->false_obj());
-}
-
-
-void Interpreter::PushTrue() {
-  A->Push(H->object_store()->true_obj());
-}
-
-
-void Interpreter::PushNil() {
-  A->Push(H->object_store()->nil_obj());
 }
 
 
@@ -120,11 +111,6 @@ void Interpreter::PushEnclosingObject(intptr_t depth) {
     target_mixin = target_mixin->enclosing_mixin();
   }
   A->Push(enclosing_object);
-}
-
-
-void Interpreter::PushInteger(intptr_t value) {
-  A->Push(SmallInteger::New(value));
 }
 
 
@@ -176,7 +162,7 @@ void Interpreter::QuickArithmeticSend(intptr_t offset) {
   SmallInteger* arity =
     static_cast<SmallInteger*>(quick_selectors->element(offset * 2 + 1));
   ASSERT(arity->IsSmallInteger());
-  SendOrdinary(selector, arity->value());
+  SendOrdinary(selector, arity->value());  // SAFEPOINT
 }
 
 
@@ -188,7 +174,7 @@ void Interpreter::QuickCommonSend(intptr_t offset) {
   SmallInteger* arity =
     static_cast<SmallInteger*>(quick_selectors->element((offset +16) * 2 + 1));
   ASSERT(arity->IsSmallInteger());
-  SendOrdinary(selector, arity->value());
+  SendOrdinary(selector, arity->value());  // SAFEPOINT
 }
 
 
@@ -218,7 +204,7 @@ bool Interpreter::HasMethod(Behavior* cls, String* selector) {
 void Interpreter::OrdinarySend(intptr_t selector_index,
                                intptr_t num_args) {
   String* selector = SelectorAt(selector_index);
-  SendOrdinary(selector, num_args);
+  SendOrdinary(selector, num_args);  // SAFEPOINT
 }
 
 
@@ -302,7 +288,7 @@ void Interpreter::SuperSend(intptr_t selector_index,
                 num_args,
                 receiver,
                 method_mixin_app->superclass(),
-                kSuper);
+                kSuper);  // SAFEPOINT
 }
 
 
@@ -340,7 +326,7 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
                   num_args,
                   candidate_receiver,
                   candidate_mixin,
-                  kImplicitReceiver);
+                  kImplicitReceiver);  // SAFEPOINT
       return;
     }
     candidate_mixin = candidate_mixin->enclosing_mixin();
@@ -351,8 +337,7 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
                 num_args,
                 method_receiver,
                 method_receiver->Klass(H),
-                kImplicitReceiver);
-  return;
+                kImplicitReceiver);  // SAFEPOINT
 }
 
 
@@ -388,7 +373,7 @@ void Interpreter::OuterSend(intptr_t selector_index,
     receiver = mixin_app->enclosing_object();
     target_mixin = target_mixin->enclosing_mixin();
   }
-  SendLexical(selector, num_args, receiver, target_mixin, depth);
+  SendLexical(selector, num_args, receiver, target_mixin, depth);  // SAFEPOINT
 }
 
 
@@ -415,7 +400,7 @@ void Interpreter::SelfSend(intptr_t selector_index,
 #endif
 
   AbstractMixin* method_mixin = A->method()->mixin();
-  SendLexical(selector, num_args, receiver, method_mixin, kSelf);
+  SendLexical(selector, num_args, receiver, method_mixin, kSelf);  // SAFEPOINT
 }
 
 
@@ -469,7 +454,8 @@ void Interpreter::SendProtected(String* selector,
     lookup_class = lookup_class->superclass();
   }
   bool present_receiver = false;
-  SendDNU(selector, num_args, receiver, mixin_application, present_receiver);
+  SendDNU(selector, num_args, receiver, mixin_application,
+          present_receiver);  // SAFEPOINT
 }
 
 
@@ -636,8 +622,7 @@ void Interpreter::ActivateAbsent(Method* method,
 }
 
 
-void Interpreter::Activate(Method* method,
-                           intptr_t num_args) {
+void Interpreter::Activate(Method* method, intptr_t num_args) {
   ASSERT(num_args == method->NumArgs());
 
   HandleScope h1(H, reinterpret_cast<Object**>(&method));
@@ -654,7 +639,7 @@ void Interpreter::Activate(Method* method,
       Object* receiver = A->Stack(0);
       ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
       Object* value = static_cast<RegularObject*>(receiver)->slot(offset);
-      A->PopNAndPush(num_args + 1, value);
+      A->PopNAndPush(1, value);
       return;
     } else if ((prim & 512) != 0) {
       // Setter
@@ -664,17 +649,12 @@ void Interpreter::Activate(Method* method,
       Object* value = A->Stack(0);
       ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
       static_cast<RegularObject*>(receiver)->set_slot(offset, value);
-      A->PopNAndPush(num_args + 1, receiver);
+      A->PopNAndPush(2, receiver);
       return;
     } else if (Primitives::Invoke(prim, num_args, H, this)) {  // SAFEPOINT
       ASSERT(A->StackDepth() >= 0);
       return;
     }
-  }
-
-  if (interrupt_ != 0) {
-    isolate_->PrintStack();
-    Exit();
   }
 
 #if RECYCLE_ACTIVATIONS
@@ -686,9 +666,9 @@ void Interpreter::Activate(Method* method,
   new_activation->set_sender(A);
   new_activation->set_bci(SmallInteger::New(1));
   new_activation->set_method(method);
-  new_activation->set_closure(static_cast<Closure*>(nil));
+  new_activation->set_closure(static_cast<Closure*>(nil), kNoBarrier);
   new_activation->set_receiver(A->Stack(num_args));
-  new_activation->set_stack_depth(0);
+  new_activation->set_stack_depth(SmallInteger::New(0));
 
   for (intptr_t i = num_args - 1; i >= 0; i--) {
     new_activation->Push(A->Stack(i));
@@ -700,29 +680,21 @@ void Interpreter::Activate(Method* method,
   A->Drop(num_args + 1);
 
   H->set_activation(new_activation);
+
+  if (interrupt_ != 0) {
+    isolate_->PrintStack();
+    Exit();
+  }
 }
 
 
 String* Interpreter::SelectorAt(intptr_t index) {
-  Object* selector = LiteralAt(index);
+  Array* literals = A->method()->literals();
+  ASSERT((index >= 0) && (index < literals->Size()));
+  Object* selector = literals->element(index);
   ASSERT(selector->IsString());
   ASSERT(static_cast<String*>(selector)->is_canonical());
   return static_cast<String*>(selector);
-}
-
-
-Object* Interpreter::LiteralAt(intptr_t index) {
-  ASSERT(index >= 0);
-  if (index == A->method()->literals()->Size() + 1) {
-    // Hack. When transforming from Squeak CompiledMethod, we drop
-    // the last two literals (the selector/AdditionalMethodState and
-    // the mixin class association) because we put them in the Method
-    // instead of the literal array. The mixin class associtation is
-    // accessed by nested class accessors.
-    return A->method()->mixin();
-  }
-  ASSERT(index < A->method()->literals()->Size());
-  return A->method()->literals()->element(index);
 }
 
 
@@ -806,77 +778,16 @@ void Interpreter::NonLocalReturn(Object* result) {
 }
 
 
-void Interpreter::MethodReturnReceiver() {
+void Interpreter::MethodReturn(Object* result) {
   // TODO(rmacnak): Squeak groups the syntactically similar method return and
   // non-local return into the same bytecode. Change the bytecodes to group the
   // functionally similar method return with closure local return instead.
   if (A->closure() == nil) {
-    LocalReturn(A->receiver());
+    LocalReturn(result);
   } else {
     ASSERT(A->closure()->IsClosure());
-    NonLocalReturn(A->receiver());
+    NonLocalReturn(result);
   }
-}
-
-
-void Interpreter::MethodReturnTop() {
-  // TODO(rmacnak): Squeak groups the syntactically similar method return and
-  // non-local return into the same bytecode. Change the bytecodes to group the
-  // functionally similar method return with closure local return instead.
-  if (A->closure() == nil) {
-    LocalReturn(A->Pop());
-  } else {
-    ASSERT(A->closure()->IsClosure());
-    NonLocalReturn(A->Pop());
-  }
-}
-
-
-void Interpreter::BlockReturnTop() {
-  ASSERT(A->closure()->IsClosure());  // Not nil.
-  LocalReturn(A->Pop());
-}
-
-
-void Interpreter::Jump(intptr_t delta) {
-  SmallInteger* bci = A->bci();
-  A->set_bci(SmallInteger::New(bci->value() + delta));
-}
-
-
-void Interpreter::PopJumpTrue(intptr_t delta) {
-  Object* top = A->Pop();
-  if (top == H->object_store()->false_obj()) {
-  } else if (top == H->object_store()->true_obj()) {
-    SmallInteger* bci = A->bci();
-    A->set_bci(SmallInteger::New(bci->value() + delta));
-  } else {
-    SendNonBooleanReceiver(top);
-  }
-}
-
-
-void Interpreter::PopJumpFalse(intptr_t delta) {
-  Object* top = A->Pop();
-  if (top == H->object_store()->true_obj()) {
-  } else if (top == H->object_store()->false_obj()) {
-    SmallInteger* bci = A->bci();
-    A->set_bci(SmallInteger::New(bci->value() + delta));
-  } else {
-    SendNonBooleanReceiver(top);
-  }
-}
-
-
-void Interpreter::Dup() {
-  ASSERT(A->StackDepth() > 0);
-  A->Push(A->Stack(0));
-}
-
-
-void Interpreter::Pop() {
-  ASSERT(A->StackDepth() > 0);
-  A->Drop(1);
 }
 
 
@@ -922,44 +833,36 @@ void Interpreter::Interpret() {
     uint8_t byte1 = FetchNextByte();
     switch (byte1) {
     case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
-    case 8: case 9: case 10: case 11: case 12: case 13: case 14: case 15: {
+    case 8: case 9: case 10: case 11: case 12: case 13: case 14: case 15:
       FATAL("Unused bytecode");  // V4: push receiver variable
       break;
-    }
     case 16: case 17: case 18: case 19: case 20: case 21: case 22: case 23:
-    case 24: case 25: case 26: case 27: case 28: case 29: case 30: case 31: {
-      PushLiteralVariable(byte1 & 15);
+    case 24: case 25: case 26: case 27: case 28: case 29: case 30: case 31:
+      PushLiteralVariable(byte1 - 16);
       break;
-    }
     case 32: case 33: case 34: case 35: case 36: case 37: case 38: case 39:
     case 40: case 41: case 42: case 43: case 44: case 45: case 46: case 47:
     case 48: case 49: case 50: case 51: case 52: case 53: case 54: case 55:
-    case 56: case 57: case 58: case 59: case 60: case 61: case 62: case 63: {
-      PushLiteral(byte1 & 31);
+    case 56: case 57: case 58: case 59: case 60: case 61: case 62: case 63:
+      PushLiteral(byte1 - 32);
       break;
-    }
-    case 64: case 65: case 66: case 67: case 68: case 69: case 70: case 71: {
-      PushTemporary(byte1 & 7);
+    case 64: case 65: case 66: case 67: case 68: case 69: case 70: case 71:
+    case 72: case 73: case 74: case 75:
+      PushTemporary(byte1 - 64);
       break;
-    }
-    case 72: case 73: case 74: case 75: {
-      PushTemporary((byte1 & 7) + 8);
+    case 76:
+      A->Push(A->receiver());
       break;
-    }
-    case 76: {
-      PushReceiver();
-      break;
-    }
-    case 77: {
+    case 77:
       switch (extB) {
         case 0:
-          PushFalse();
+          A->Push(H->object_store()->false_obj());
           break;
         case 1:
-          PushTrue();
+          A->Push(H->object_store()->true_obj());
           break;
         case 2:
-          PushNil();
+          A->Push(H->object_store()->nil_obj());
           break;
         case 3:
           FATAL("Unused bytecode");  // V4: push thisContext
@@ -970,15 +873,12 @@ void Interpreter::Interpret() {
       }
       extB = 0;
       break;
-    }
-    case 78: {
-      PushInteger(0);
+    case 78:
+      A->Push(SmallInteger::New(0));
       break;
-    }
-    case 79: {
-      PushInteger(1);
+    case 79:
+      A->Push(SmallInteger::New(1));
       break;
-    }
 #if STATIC_PREDICTION_BYTECODES
     case 80: {
       // +
@@ -1256,32 +1156,28 @@ void Interpreter::Interpret() {
     case 188: case 189: case 190: case 191:
       PopIntoTemporary(byte1 & 7);
       break;
-    case 192: case 193: case 194: case 195:
-    case 196: case 197: case 198: case 199:
-      Jump((byte1 & 7) + 1);
-      break;
-    case 200: case 201: case 202: case 203:
-    case 204: case 205: case 206: case 207:
-      PopJumpTrue((byte1 & 7) + 1);
-      break;
-    case 208: case 209: case 210: case 211:
-    case 212: case 213: case 214: case 215:
-      PopJumpFalse((byte1 & 7) + 1);
+    case 192: case 193: case 194: case 195:  // V4: short jump
+    case 196: case 197: case 198: case 199:  // V4: short jump
+    case 200: case 201: case 202: case 203:  // V4: short branch true
+    case 204: case 205: case 206: case 207:  // V4: short branch true
+    case 208: case 209: case 210: case 211:  // V4: short branch false
+    case 212: case 213: case 214: case 215:  // V4: short branch false
+      FATAL("Unused bytecode");
       break;
     case 216:
-      MethodReturnReceiver();
+      MethodReturn(A->receiver());
       break;
     case 217:
-      MethodReturnTop();
+      MethodReturn(A->Pop());
       break;
     case 218:
-      BlockReturnTop();
+      LocalReturn(A->Pop());
       break;
     case 219:
-      Dup();
+      A->Push(A->Stack(0));
       break;
     case 220:
-      Pop();
+      A->Drop(1);
       break;
     case 221:  // V4: nop
     case 222:  // V4: break
@@ -1319,7 +1215,7 @@ void Interpreter::Interpret() {
     }
     case 229: {
       uint8_t byte2 = FetchNextByte();
-      PushInteger((extB << 8) + byte2);
+      A->Push(SmallInteger::New((extB << 8) + byte2));
       extB = 0;
       break;
     }
@@ -1359,8 +1255,8 @@ void Interpreter::Interpret() {
       uint8_t byte2 = FetchNextByte();
       intptr_t selector_index = (extA << 5) + (byte2 >> 3);
       intptr_t num_args = (extB << 3) | (byte2 & 7);
-      OrdinarySend(selector_index, num_args);
       extA = extB = 0;
+      OrdinarySend(selector_index, num_args);
       break;
     }
     case 239:
@@ -1370,42 +1266,57 @@ void Interpreter::Interpret() {
       uint8_t byte2 = FetchNextByte();
       intptr_t selector_index = (extA << 5) + (byte2 >> 3);
       intptr_t num_args = (extB << 3) | (byte2 & 7);
-      ImplicitReceiverSend(selector_index, num_args);
       extA = extB = 0;
+      ImplicitReceiverSend(selector_index, num_args);
       break;
     }
     case 241: {
       uint8_t byte2 = FetchNextByte();
       intptr_t selector_index = (extA << 5) + (byte2 >> 3);
       intptr_t num_args = (extB << 3) | (byte2 & 7);
-      SuperSend(selector_index, num_args);
       extA = extB = 0;
+      SuperSend(selector_index, num_args);
       break;
     }
     case 242: {
       uint8_t byte2 = FetchNextByte();
-      Jump((extB << 8) + byte2);
+      intptr_t delta = (extB << 8) + byte2;
       extB = 0;
+      A->set_bci(SmallInteger::New(A->bci()->value() + delta));
       break;
     }
     case 243: {
       uint8_t byte2 = FetchNextByte();
-      PopJumpTrue((extB << 8) + byte2);
+      intptr_t delta = (extB << 8) + byte2;
       extB = 0;
+      Object* top = A->Pop();
+      if (top == H->object_store()->false_obj()) {
+      } else if (top == H->object_store()->true_obj()) {
+        A->set_bci(SmallInteger::New(A->bci()->value() + delta));
+      } else {
+        SendNonBooleanReceiver(top);
+      }
       break;
     }
     case 244: {
       uint8_t byte2 = FetchNextByte();
-      PopJumpFalse((extB << 8) + byte2);
+      intptr_t delta = (extB << 8) + byte2;
       extB = 0;
+      Object* top = A->Pop();
+      if (top == H->object_store()->true_obj()) {
+      } else if (top == H->object_store()->false_obj()) {
+        A->set_bci(SmallInteger::New(A->bci()->value() + delta));
+      } else {
+        SendNonBooleanReceiver(top);
+      }
       break;
     }
     case 245: {
       uint8_t byte2 = FetchNextByte();
       intptr_t selector_index = (extA << 5) + (byte2 >> 3);
       intptr_t num_args = (extB << 3) | (byte2 & 7);
-      SelfSend(selector_index, num_args);
       extA = extB = 0;
+      SelfSend(selector_index, num_args);
       break;
     }
     case 246:  // V4: unassigned
@@ -1437,8 +1348,8 @@ void Interpreter::Interpret() {
       intptr_t num_copied = (byte2 >> 3 & 7) + ((extA / 16) << 3);
       intptr_t num_args = (byte2 & 7) + ((extA % 16) << 3);
       intptr_t block_size = byte3 + (extB << 8);
-      PushClosure(num_copied, num_args, block_size);
       extA = extB = 0;
+      PushClosure(num_copied, num_args, block_size);
       break;
     }
     case 254: {
@@ -1447,8 +1358,8 @@ void Interpreter::Interpret() {
       intptr_t selector_index = (extA << 5) + (byte2 >> 3);
       intptr_t num_args = (extB << 3) | (byte2 & 7);
       intptr_t depth = byte3;
-      OuterSend(selector_index, num_args, depth);
       extA = extB = 0;
+      OuterSend(selector_index, num_args, depth);
       break;
     }
     case 255:

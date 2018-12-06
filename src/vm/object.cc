@@ -115,12 +115,6 @@ void HeapObject::AddToRememberedSet() const {
 
 
 char* Object::ToCString(Heap* heap) const {
-  char* result = NULL;
-  intptr_t length;
-  Behavior* cls;
-  Behavior* cls2;
-  String* name;
-
   switch (ClassId()) {
   case kIllegalCid:
   case kForwardingCorpseCid:
@@ -133,24 +127,16 @@ char* Object::ToCString(Heap* heap) const {
     return OS::PrintStr("a MediumInteger(%" Pd64 ")",
                         MediumInteger::Cast(this)->value());
   case kBigintCid:
-    return OS::PrintStr("a LargeInteger(%" Pd "digits)",
+    return OS::PrintStr("a LargeInteger(%" Pd " digits)",
                         LargeInteger::Cast(this)->size());
   case kFloat64Cid:
     return OS::PrintStr("a Float(%lf)", Float64::Cast(this)->value());
   case kByteArrayCid:
     return OS::PrintStr("a ByteArray(%" Pd ")", ByteArray::Cast(this)->Size());
   case kStringCid:
-    length = String::Cast(this)->Size();
-    result = reinterpret_cast<char*>(malloc(length + 14));
-    memcpy(&result[0], "a String ", 9);
-    memcpy(&result[9], String::Cast(this)->element_addr(0), length);
-    result[length + 9] = '\0';
-    for (intptr_t i = 0; i < length + 9; i++) {
-      if (result[i] == '\r') {
-        result[i] = '\n';
-      }
-    }
-    return result;
+    return OS::PrintStr("a String %.*s",
+                        static_cast<int>(String::Cast(this)->Size()),
+                        String::Cast(this)->element_addr(0));
   case kArrayCid:
     return OS::PrintStr("an Array(%" Pd ")", Array::Cast(this)->Size());
   case kWeakArrayCid:
@@ -162,30 +148,28 @@ char* Object::ToCString(Heap* heap) const {
   case kClosureCid:
     return strdup("a Closure");
   default:
-    cls = Klass(heap);
-    if ((cls->HeapSize() / sizeof(uword)) == 8) {
+    Behavior* cls = Klass(heap);
+    Behavior* theMetaclass = heap->ClassAt(kSmiCid)->Klass(heap)->Klass(heap);
+    if (cls->Klass(heap) == theMetaclass) {
+      ASSERT(cls->HeapSize() >= AllocationSize(sizeof(Metaclass)));
       // A Metaclass.
-      cls2 = static_cast<Metaclass*>(cls)->this_class();
-      name = static_cast<Class*>(cls2)->name();
+      String* name = static_cast<Metaclass*>(cls)->this_class()->name();
       if (!name->IsString()) {
-        return strdup("Instance of uninitialized metaclass?");
+        return strdup("instance of uninitialized metaclass?");
       }
-      length = name->Size();
-      result = reinterpret_cast<char*>(malloc(length + 12 + 6 + 1));
-      memcpy(&result[0], "instance of ", 13);
-      memcpy(&result[12], name->element_addr(0), length);
-      memcpy(&result[12+length], " class", 6 + 1);
-      return result;
-    } else if ((cls->HeapSize() / sizeof(uword)) == 10) {
+      return OS::PrintStr("instance of %.*s class",
+                          static_cast<int>(name->Size()),
+                          reinterpret_cast<const char*>(name->element_addr(0)));
+    } else {
+      ASSERT(cls->HeapSize() >= AllocationSize(sizeof(Class)));
       // A Class.
-      name = static_cast<Class*>(cls)->name();
-      ASSERT(name->IsString());
-      length = name->Size();
-      result = reinterpret_cast<char*>(malloc(length + 12 + 1));
-      memcpy(&result[0], "instance of ", 13);
-      memcpy(&result[12], name->element_addr(0), length);
-      result[12+length] = 0;
-      return result;
+      String* name = static_cast<Class*>(cls)->name();
+      if (!name->IsString()) {
+        return strdup("instance of uninitialized class?");
+      }
+      return OS::PrintStr("instance of %.*s",
+                          static_cast<int>(name->Size()),
+                          reinterpret_cast<const char*>(name->element_addr(0)));
     }
     UNREACHABLE();
     return strdup("a RegularObject");
@@ -197,6 +181,62 @@ void Object::Print(Heap* heap) const {
   char* cstr = ToCString(heap);
   OS::Print("%s\n", cstr);
   free(cstr);
+}
+
+
+static void PrintStringError(String* string) {
+  const char* cstr = reinterpret_cast<const char*>(string->element_addr(0));
+  OS::PrintErr("%.*s", static_cast<int>(string->Size()), cstr);
+}
+
+
+void Activation::PrintStack(Heap* heap) {
+  Activation* act = this;
+  while (act != heap->object_store()->nil_obj()) {
+    OS::PrintErr("  ");
+
+    Activation* home = act;
+    while (home->closure() != heap->object_store()->nil_obj()) {
+      ASSERT(home->closure()->IsClosure());
+      OS::PrintErr("[] in ");
+      home = home->closure()->defining_activation();
+    }
+
+    AbstractMixin* receiver_mixin = home->receiver()->Klass(heap)->mixin();
+    String* receiver_mixin_name = receiver_mixin->name();
+    if (receiver_mixin_name->IsString()) {
+      PrintStringError(receiver_mixin_name);
+    } else {
+      receiver_mixin_name =
+          reinterpret_cast<AbstractMixin*>(receiver_mixin_name)->name();
+      ASSERT(receiver_mixin_name->IsString());
+      PrintStringError(receiver_mixin_name);
+      OS::PrintErr(" class");
+    }
+
+    AbstractMixin* method_mixin = home->method()->mixin();
+    if (receiver_mixin != method_mixin) {
+      String* method_mixin_name = method_mixin->name();
+      OS::PrintErr("(");
+      if (method_mixin_name->IsString()) {
+        PrintStringError(method_mixin_name);
+      } else {
+        method_mixin_name =
+            reinterpret_cast<AbstractMixin*>(method_mixin_name)->name();
+        ASSERT(method_mixin_name->IsString());
+        PrintStringError(method_mixin_name);
+        OS::PrintErr(" class");
+      }
+      OS::PrintErr(")");
+    }
+
+    String* method_name = home->method()->selector();
+    OS::PrintErr(" ");
+    PrintStringError(method_name);
+    OS::PrintErr("\n");
+
+    act = act->sender();
+  }
 }
 
 

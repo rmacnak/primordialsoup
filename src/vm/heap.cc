@@ -1251,60 +1251,6 @@ intptr_t Heap::CollectInstances(intptr_t cid, Array* array) {
   return instances;
 }
 
-static void PrintStringError(String* string) {
-  const char* cstr = reinterpret_cast<const char*>(string->element_addr(0));
-  OS::PrintErr("%.*s", static_cast<int>(string->Size()), cstr);
-}
-
-void Heap::PrintStack() {
-  Activation* act = activation();
-  while (act != object_store()->nil_obj()) {
-    OS::PrintErr("  ");
-
-    Activation* home = act;
-    while (home->closure() != object_store()->nil_obj()) {
-      ASSERT(home->closure()->IsClosure());
-      OS::PrintErr("[] in ");
-      home = home->closure()->defining_activation();
-    }
-
-    AbstractMixin* receiver_mixin = home->receiver()->Klass(this)->mixin();
-    String* receiver_mixin_name = receiver_mixin->name();
-    if (receiver_mixin_name->IsString()) {
-      PrintStringError(receiver_mixin_name);
-    } else {
-      receiver_mixin_name =
-          reinterpret_cast<AbstractMixin*>(receiver_mixin_name)->name();
-      ASSERT(receiver_mixin_name->IsString());
-      PrintStringError(receiver_mixin_name);
-      OS::PrintErr(" class");
-    }
-
-    AbstractMixin* method_mixin = home->method()->mixin();
-    if (receiver_mixin != method_mixin) {
-      String* method_mixin_name = method_mixin->name();
-      OS::PrintErr("(");
-      if (method_mixin_name->IsString()) {
-        PrintStringError(method_mixin_name);
-      } else {
-        method_mixin_name =
-            reinterpret_cast<AbstractMixin*>(method_mixin_name)->name();
-        ASSERT(method_mixin_name->IsString());
-        PrintStringError(method_mixin_name);
-        OS::PrintErr(" class");
-      }
-      OS::PrintErr(")");
-    }
-
-    String* method_name = home->method()->selector();
-    OS::PrintErr(" ");
-    PrintStringError(method_name);
-    OS::PrintErr("\n");
-
-    act = act->sender();
-  }
-}
-
 uword FreeList::TryAllocate(intptr_t size) {
   intptr_t index = IndexForSize(size);
   while (index < kSizeClasses) {

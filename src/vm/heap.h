@@ -315,8 +315,6 @@ class Heap {
     return new_size + old_size_;
   }
 
-  void PrintStack();
-
   void CollectAll(Reason reason) { MarkSweep(reason); }
 
   intptr_t CountInstances(intptr_t cid);

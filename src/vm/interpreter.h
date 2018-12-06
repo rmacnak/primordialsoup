@@ -16,8 +16,8 @@
 namespace psoup {
 
 class Heap;
-class Object;
 class Isolate;
+class Object;
 
 class Interpreter {
  public:
@@ -28,7 +28,7 @@ class Interpreter {
   void Enter();
   void Exit();
   void SendOrdinary(String* selector, intptr_t num_args);
-  Method* MethodAt(Behavior*, String* selector);
+  Method* MethodAt(Behavior* cls, String* selector);
 
   void Interrupt() { interrupt_ = 1; }
 
@@ -39,21 +39,14 @@ class Interpreter {
   void PushTemporary(intptr_t offset);
   void PushRemoteTemp(intptr_t vector_offset, intptr_t offset);
 
-  void StoreIntoLiteralVariable(intptr_t offset);
   void StoreIntoTemporary(intptr_t offset);
   void StoreIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
 
-  void PopIntoLiteralVariable(intptr_t offset);
   void PopIntoTemporary(intptr_t offset);
   void PopIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
 
   void PushLiteral(intptr_t offset);
-  void PushReceiver();
-  void PushFalse();
-  void PushTrue();
-  void PushNil();
   void PushEnclosingObject(intptr_t depth);
-  void PushInteger(intptr_t value);
   void PushNewArrayWithElements(intptr_t size);
   void PushNewArray(intptr_t size);
   void PushClosure(intptr_t num_copied, intptr_t num_args, intptr_t block_size);
@@ -67,23 +60,11 @@ class Interpreter {
   void OuterSend(intptr_t selector_index, intptr_t num_args, intptr_t depth);
   void SelfSend(intptr_t selector_index, intptr_t num_args);
 
-  void MethodReturnReceiver();
-  void MethodReturnTop();
-  void BlockReturnTop();
-
-  void Jump(intptr_t delta);
-  void PopJumpTrue(intptr_t delta);
-  void PopJumpFalse(intptr_t delta);
-
-  void Dup();
-  void Pop();
-
   uint8_t FetchNextByte();
 
   Behavior* FindApplicationOf(AbstractMixin* mixin, Behavior* klass);
   bool HasMethod(Behavior*, String* selector);
   String* SelectorAt(intptr_t index);
-  Object* LiteralAt(intptr_t index);
 
   void SendLexical(String* selector,
                    intptr_t num_args,
@@ -102,14 +83,14 @@ class Interpreter {
                Behavior* lookup_class,
                bool present_receiver);
   void SendCannotReturn(Object* result);
-  void SendAboutToReturnThrough(Object* result,
-                                Activation* unwind);
+  void SendAboutToReturnThrough(Object* result, Activation* unwind);
   void SendNonBooleanReceiver(Object* non_boolean);
 
   void ActivateAbsent(Method* method, Object* receiver, intptr_t num_args);
   void InsertAbsentReceiver(Object* receiver, intptr_t num_args);
   void Activate(Method* method, intptr_t num_args);
 
+  void MethodReturn(Object* result);
   void LocalReturn(Object* result);
   void NonLocalReturn(Object* result);
 

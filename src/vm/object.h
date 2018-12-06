@@ -722,6 +722,8 @@ class Activation : public HeapObject {
     set_stack_depth(SmallInteger::New(StackDepth() + grow_count));
   }
 
+  void PrintStack(Heap* heap);
+
  private:
   Object** from() {
     return reinterpret_cast<Object**>(&ptr()->sender_);
