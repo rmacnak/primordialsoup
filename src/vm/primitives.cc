@@ -1193,31 +1193,27 @@ DEFINE_PRIMITIVE(Array_class_new) {
 DEFINE_PRIMITIVE(Array_at) {
   ASSERT(num_args == 1);
   Array* array = static_cast<Array*>(A->Stack(1));
-  if (!array->IsArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsArray());
   SMI_ARGUMENT(index, 0);
-  if ((index <= 0) || (index > array->Size())) {
+  index--;
+  if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
-  RETURN(array->element(index - 1));
+  RETURN(array->element(index));
 }
 
 
 DEFINE_PRIMITIVE(Array_atPut) {
   ASSERT(num_args == 2);
   Array* array = static_cast<Array*>(A->Stack(2));
-  if (!array->IsArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsArray());
   SMI_ARGUMENT(index, 1);
-  if ((index <= 0) || (index > array->Size())) {
+  index--;
+  if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
   Object* value = A->Stack(0);
-  array->set_element(index - 1, value);
+  array->set_element(index, value);
   RETURN(value);
 }
 
@@ -1225,10 +1221,7 @@ DEFINE_PRIMITIVE(Array_atPut) {
 DEFINE_PRIMITIVE(Array_size) {
   ASSERT(num_args == 0);
   Array* array = static_cast<Array*>(A->Stack(0));
-  if (!array->IsArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsArray());
   RETURN(array->size());
 }
 
@@ -1250,31 +1243,27 @@ DEFINE_PRIMITIVE(WeakArray_class_new) {
 DEFINE_PRIMITIVE(WeakArray_at) {
   ASSERT(num_args == 1);
   WeakArray* array = static_cast<WeakArray*>(A->Stack(1));
-  if (!array->IsWeakArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsWeakArray());
   SMI_ARGUMENT(index, 0);
-  if ((index <= 0) || (index > array->Size())) {
+  index--;
+  if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
-  RETURN(array->element(index - 1));
+  RETURN(array->element(index));
 }
 
 
 DEFINE_PRIMITIVE(WeakArray_atPut) {
   ASSERT(num_args == 2);
   WeakArray* array = static_cast<WeakArray*>(A->Stack(2));
-  if (!array->IsWeakArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsWeakArray());
   SMI_ARGUMENT(index, 1);
-  if ((index <= 0) || (index > array->Size())) {
+  index--;
+  if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
   Object* value = A->Stack(0);
-  array->set_element(index - 1, value);
+  array->set_element(index, value);
   RETURN(value);
 }
 
@@ -1282,10 +1271,7 @@ DEFINE_PRIMITIVE(WeakArray_atPut) {
 DEFINE_PRIMITIVE(WeakArray_size) {
   ASSERT(num_args == 0);
   WeakArray* array = static_cast<WeakArray*>(A->Stack(0));
-  if (!array->IsWeakArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsWeakArray());
   RETURN(array->size());
 }
 
@@ -1305,15 +1291,13 @@ DEFINE_PRIMITIVE(ByteArray_class_new) {
 DEFINE_PRIMITIVE(ByteArray_at) {
   ASSERT(num_args == 1);
   ByteArray* array = static_cast<ByteArray*>(A->Stack(1));
-  if (!array->IsByteArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsByteArray());
   SMI_ARGUMENT(index, 0);
-  if ((index <= 0) || (index > array->Size())) {
+  index--;
+  if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
-  uint8_t value = array->element(index - 1);
+  uint8_t value = array->element(index);
   RETURN(SmallInteger::New(value));
 }
 
@@ -1321,19 +1305,17 @@ DEFINE_PRIMITIVE(ByteArray_at) {
 DEFINE_PRIMITIVE(ByteArray_atPut) {
   ASSERT(num_args == 2);
   ByteArray* array = static_cast<ByteArray*>(A->Stack(2));
-  if (!array->IsByteArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsByteArray());
   SMI_ARGUMENT(index, 1);
-  if ((index <= 0) || (index > array->Size())) {
+  index--;
+  if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
   SMI_ARGUMENT(value, 0);
-  if (value < 0 || value > 255) {
+  if ((value < 0) || (value > 255)) {
     return kFailure;
   }
-  array->set_element(index - 1, value);
+  array->set_element(index, value);
   RETURN_SMI(value);
 }
 
@@ -1341,10 +1323,7 @@ DEFINE_PRIMITIVE(ByteArray_atPut) {
 DEFINE_PRIMITIVE(ByteArray_size) {
   ASSERT(num_args == 0);
   ByteArray* array = static_cast<ByteArray*>(A->Stack(0));
-  if (!array->IsByteArray()) {
-    UNREACHABLE();
-    return kFailure;
-  }
+  ASSERT(array->IsByteArray());
   RETURN(array->size());
 }
 
@@ -1462,46 +1441,30 @@ DEFINE_PRIMITIVE(Array_replaceFromToWithStartingAt) {
 
 DEFINE_PRIMITIVE(String_at) {
   ASSERT(num_args == 1);
-  String* rcvr = static_cast<String*>(A->Stack(1));
-  if (!rcvr->IsString()) {
-    UNREACHABLE();
+  String* string = static_cast<String*>(A->Stack(1));
+  ASSERT(string->IsString());
+  SMI_ARGUMENT(index, 0);
+  index--;
+  if ((index < 0) || (index >= string->Size())) {
     return kFailure;
   }
-  SmallInteger* index = static_cast<SmallInteger*>(A->Stack(0));
-  if (!index->IsSmallInteger()) {
-    return kFailure;
-  }
-  if (index->value() <= 0) {
-    return kFailure;
-  }
-  if (index->value() > rcvr->Size()) {
-    return kFailure;
-  }
-  intptr_t byte = rcvr->element(index->value() - 1);
-  RETURN_SMI(byte);
+  uint8_t value = string->element(index);
+  RETURN(SmallInteger::New(value));
 }
 
 
 DEFINE_PRIMITIVE(String_size) {
   ASSERT(num_args == 0);
-  Object* rcvr = A->Stack(0);
-  if (!rcvr->IsString()) {
-    UNREACHABLE();
-    return kFailure;
-  }
-  String* string = static_cast<String*>(rcvr);
+  String* string = static_cast<String*>(A->Stack(0));
+  ASSERT(string->IsString());
   RETURN(string->size());
 }
 
 
 DEFINE_PRIMITIVE(String_hash) {
   ASSERT(num_args == 0);
-  Object* rcvr = A->Stack(0);
-  if (!rcvr->IsString()) {
-    UNREACHABLE();
-    return kFailure;
-  }
-  String* string = static_cast<String*>(rcvr);
+  String* string = static_cast<String*>(A->Stack(0));
+  ASSERT(string->IsString());
   SmallInteger* hash = string->EnsureHash(I->isolate());
   RETURN(hash);
 }
@@ -2499,7 +2462,7 @@ DEFINE_PRIMITIVE(String_copyFromTo) {
 DEFINE_PRIMITIVE(String_class_with) {
   ASSERT(num_args == 1);
   SMI_ARGUMENT(byte, 0);
-  if (byte < 0 || byte > 255) {
+  if ((byte < 0) || (byte > 255)) {
     return kFailure;
   }
   String* result = H->AllocateString(1);  // SAFEPOINT
@@ -2530,7 +2493,7 @@ DEFINE_PRIMITIVE(String_class_withAll) {
         return kFailure;
       }
       intptr_t raw_byte = byte->value();
-      if (raw_byte < 0 || raw_byte > 255) {
+      if ((raw_byte < 0) || (raw_byte > 255)) {
         return kFailure;
       }
     }
@@ -2572,7 +2535,7 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
         return kFailure;
       }
       intptr_t raw_byte = byte->value();
-      if (raw_byte < 0 || raw_byte > 255) {
+      if ((raw_byte < 0) || (raw_byte > 255)) {
         return kFailure;
       }
     }

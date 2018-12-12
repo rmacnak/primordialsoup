@@ -6,6 +6,7 @@
 
 #include "vm/heap.h"
 #include "vm/isolate.h"
+#include "vm/math.h"
 #include "vm/os.h"
 #include "vm/primitives.h"
 
@@ -885,11 +886,11 @@ void Interpreter::Interpret() {
       Object* left = A->Stack(1);
       Object* right = A->Stack(0);
       if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        intptr_t cleft = static_cast<SmallInteger*>(left)->value();
-        intptr_t cright = static_cast<SmallInteger*>(right)->value();
-        intptr_t cresult = cleft + cright;
-        if (SmallInteger::IsSmiValue(cresult)) {
-          A->PopNAndPush(2, SmallInteger::New(cresult));
+        intptr_t raw_left = static_cast<SmallInteger*>(left)->value();
+        intptr_t raw_right = static_cast<SmallInteger*>(right)->value();
+        intptr_t raw_result = raw_left + raw_right;
+        if (SmallInteger::IsSmiValue(raw_result)) {
+          A->PopNAndPush(2, SmallInteger::New(raw_result));
           break;
         }
       }
@@ -901,11 +902,11 @@ void Interpreter::Interpret() {
       Object* left = A->Stack(1);
       Object* right = A->Stack(0);
       if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        intptr_t cleft = static_cast<SmallInteger*>(left)->value();
-        intptr_t cright = static_cast<SmallInteger*>(right)->value();
-        intptr_t cresult = cleft - cright;
-        if (SmallInteger::IsSmiValue(cresult)) {
-          A->PopNAndPush(2, SmallInteger::New(cresult));
+        intptr_t raw_left = static_cast<SmallInteger*>(left)->value();
+        intptr_t raw_right = static_cast<SmallInteger*>(right)->value();
+        intptr_t raw_result = raw_left - raw_right;
+        if (SmallInteger::IsSmiValue(raw_result)) {
+          A->PopNAndPush(2, SmallInteger::New(raw_result));
           break;
         }
       }
@@ -994,17 +995,6 @@ void Interpreter::Interpret() {
     }
     case 87: {
       // ~=
-      Object* left = A->Stack(1);
-      Object* right = A->Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        if (reinterpret_cast<intptr_t>(left) !=
-            reinterpret_cast<intptr_t>(right)) {
-          A->PopNAndPush(2, H->object_store()->true_obj());
-        } else {
-          A->PopNAndPush(2, H->object_store()->false_obj());
-        }
-        break;
-      }
       QuickArithmeticSend(byte1 & 15);
       break;
     }
@@ -1020,6 +1010,18 @@ void Interpreter::Interpret() {
     }
     case 90: {
       /* \\ */
+      Object* left = A->Stack(1);
+      Object* right = A->Stack(0);
+      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+        intptr_t raw_left = static_cast<SmallInteger*>(left)->value();
+        intptr_t raw_right = static_cast<SmallInteger*>(right)->value();
+        if (raw_right != 0) {
+          intptr_t raw_result = Math::FloorMod(raw_left, raw_right);
+          ASSERT(SmallInteger::IsSmiValue(raw_result));
+          A->PopNAndPush(2, SmallInteger::New(raw_result));
+          break;
+        }
+      }
       QuickArithmeticSend(byte1 & 15);
       break;
     }
@@ -1043,10 +1045,10 @@ void Interpreter::Interpret() {
       Object* left = A->Stack(1);
       Object* right = A->Stack(0);
       if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        intptr_t cleft = static_cast<SmallInteger*>(left)->value();
-        intptr_t cright = static_cast<SmallInteger*>(right)->value();
-        intptr_t cresult = cleft & cright;
-        A->PopNAndPush(2, SmallInteger::New(cresult));
+        intptr_t raw_left = static_cast<SmallInteger*>(left)->value();
+        intptr_t raw_right = static_cast<SmallInteger*>(right)->value();
+        intptr_t raw_result = raw_left & raw_right;
+        A->PopNAndPush(2, SmallInteger::New(raw_result));
         break;
       }
       QuickArithmeticSend(byte1 & 15);
@@ -1057,10 +1059,10 @@ void Interpreter::Interpret() {
       Object* left = A->Stack(1);
       Object* right = A->Stack(0);
       if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        intptr_t cleft = static_cast<SmallInteger*>(left)->value();
-        intptr_t cright = static_cast<SmallInteger*>(right)->value();
-        intptr_t cresult = cleft | cright;
-        A->PopNAndPush(2, SmallInteger::New(cresult));
+        intptr_t raw_left = static_cast<SmallInteger*>(left)->value();
+        intptr_t raw_right = static_cast<SmallInteger*>(right)->value();
+        intptr_t raw_result = raw_left | raw_right;
+        A->PopNAndPush(2, SmallInteger::New(raw_result));
         break;
       }
       QuickArithmeticSend(byte1 & 15);
@@ -1068,13 +1070,24 @@ void Interpreter::Interpret() {
     }
     case 96: {
       // at:
-      Array* array = static_cast<Array*>(A->Stack(1));
+      Object* array = A->Stack(1);
       SmallInteger* index = static_cast<SmallInteger*>(A->Stack(0));
-      if (array->IsArray() && index->IsSmallInteger()) {
-        if (index->value() > 0 && index->value() <= array->Size()) {
-          Object* value = array->element(index->value() - 1);
-          A->PopNAndPush(2, value);
-          break;
+      if (index->IsSmallInteger()) {
+        intptr_t raw_index = index->value() - 1;
+        if (array->IsArray()) {
+          if ((raw_index >= 0) &&
+              (raw_index < static_cast<Array*>(array)->Size())) {
+            Object* value = static_cast<Array*>(array)->element(raw_index);
+            A->PopNAndPush(2, value);
+            break;
+          }
+        } else if (array->IsBytes()) {
+          if ((raw_index >= 0) &&
+              (raw_index < static_cast<Bytes*>(array)->Size())) {
+            uint8_t raw_value = static_cast<Bytes*>(array)->element(raw_index);
+            A->PopNAndPush(2, SmallInteger::New(raw_value));
+            break;
+          }
         }
       }
       QuickCommonSend(byte1 & 15);
@@ -1082,14 +1095,28 @@ void Interpreter::Interpret() {
     }
     case 97: {
       // at:put:
-      Array* array = static_cast<Array*>(A->Stack(2));
+      Object* array = A->Stack(2);
       SmallInteger* index = static_cast<SmallInteger*>(A->Stack(1));
-      if (array->IsArray() && index->IsSmallInteger()) {
-        if (index->value() > 0 && index->value() <= array->Size()) {
-          Object* value = A->Stack(0);
-          array->set_element(index->value() - 1, value);
-          A->PopNAndPush(3, value);
-          break;
+      if (index->IsSmallInteger()) {
+        intptr_t raw_index = index->value() - 1;
+        if (array->IsArray()) {
+          if ((raw_index >= 0) &&
+              (raw_index < static_cast<Array*>(array)->Size())) {
+            Object* value = A->Stack(0);
+            static_cast<Array*>(array)->set_element(raw_index, value);
+            A->PopNAndPush(3, value);
+            break;
+          }
+        } else if (array->IsByteArray()) {
+          SmallInteger* value = static_cast<SmallInteger*>(A->Stack(0));
+          if ((raw_index >= 0) &&
+              (raw_index < static_cast<ByteArray*>(array)->Size()) &&
+              value <= SmallInteger::New(255)) {
+            static_cast<ByteArray*>(array)->set_element(raw_index,
+                                                        value->value());
+            A->PopNAndPush(3, value);
+            break;
+          }
         }
       }
       QuickCommonSend(byte1 & 15);
@@ -1097,9 +1124,12 @@ void Interpreter::Interpret() {
     }
     case 98: {
       // size
-      Array* array = static_cast<Array*>(A->Stack(0));
+      Object* array = A->Stack(0);
       if (array->IsArray()) {
-        A->PopNAndPush(1, array->size());
+        A->PopNAndPush(1, static_cast<Array*>(array)->size());
+        break;
+      } else if (array->IsBytes()) {
+        A->PopNAndPush(1, static_cast<Bytes*>(array)->size());
         break;
       }
       QuickCommonSend(byte1 & 15);
