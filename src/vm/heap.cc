@@ -4,7 +4,7 @@
 
 #include "vm/heap.h"
 
-#include "vm/lookup_cache.h"
+#include "vm/interpreter.h"
 #include "vm/os.h"
 
 namespace psoup {
@@ -96,16 +96,9 @@ Heap::Heap() :
     class_table_size_(0),
     class_table_capacity_(0),
     class_table_free_(0),
-    object_store_(NULL),
-    current_activation_(NULL),
+    interpreter_(NULL),
     handles_(),
     handles_size_(0),
-#if RECYCLE_ACTIVATIONS
-    recycle_list_(NULL),
-#endif
-#if LOOKUP_CACHE
-    lookup_cache_(NULL),
-#endif
     ephemeron_list_(NULL),
     weak_list_(NULL) {
   to_.Allocate(kInitialSemispaceCapacity);
@@ -141,6 +134,26 @@ Heap::~Heap() {
   }
   delete[] remembered_set_;
   delete[] class_table_;
+}
+
+Message* Heap::AllocateMessage() {
+  Behavior* behavior = interpreter_->object_store()->Message();
+  ASSERT(behavior->IsRegularObject());
+  behavior->AssertCouldBeBehavior();
+  SmallInteger* id = behavior->id();
+  if (id == interpreter_->nil_obj()) {
+    id = SmallInteger::New(AllocateClassId());  // SAFEPOINT
+    behavior = interpreter_->object_store()->Message();
+    RegisterClass(id->value(), behavior);
+  }
+  ASSERT(id->IsSmallInteger());
+  SmallInteger* format = behavior->format();
+  ASSERT(format->IsSmallInteger());
+  intptr_t num_slots = format->value();
+  ASSERT(num_slots == 2);
+  Object* new_instance = AllocateRegularObject(id->value(),
+                                               num_slots);
+  return static_cast<Message*>(new_instance);
 }
 
 uword Heap::AllocateNew(intptr_t size) {
@@ -320,6 +333,8 @@ void Heap::Scavenge(Reason reason) {
   to_.ReadWrite();
 #endif
 
+  interpreter_->GCPrologue();
+
   // Strong references.
   ScavengeRoots();
   uword scan = to_.object_start();
@@ -339,7 +354,7 @@ void Heap::Scavenge(Reason reason) {
   from_.NoAccess();
 #endif
 
-  ClearCaches();
+  interpreter_->GCEpilogue();
 
   survivor_end_ = top_;
 
@@ -406,7 +421,7 @@ static void ForwardClass(Heap* heap, HeapObject* object) {
         reinterpret_cast<ForwardingCorpse*>(old_class)->target());
     ASSERT(!new_class->IsForwardingCorpse());
     new_class->AssertCouldBeBehavior();
-    if (new_class->id() == heap->object_store()->nil_obj()) {
+    if (new_class->id() == heap->interpreter()->nil_obj()) {
       ASSERT(old_class->id()->IsSmallInteger());
       new_class->set_id(old_class->id());
     }
@@ -436,11 +451,19 @@ void Heap::ScavengeRoots() {
     ScavengeOldObject(obj);
   }
 
-  ScavengePointer(reinterpret_cast<Object**>(&object_store_));
-  ScavengePointer(reinterpret_cast<Object**>(&current_activation_));
-
   for (intptr_t i = 0; i < handles_size_; i++) {
     ScavengePointer(handles_[i]);
+  }
+
+  Object** from;
+  Object** to;
+  interpreter_->RootPointers(&from, &to);
+  for (Object** ptr = from; ptr <= to; ptr++) {
+    ScavengePointer(ptr);
+  }
+  interpreter_->StackPointers(&from, &to);
+  for (Object** ptr = from; ptr <= to; ptr++) {
+    ScavengePointer(ptr);
   }
 }
 
@@ -622,6 +645,8 @@ void Heap::MarkSweep(Reason reason) {
   remembered_set_size_ = 0;
   old_size_ = 0;
 
+  interpreter_->GCPrologue();
+
   // Strong references.
   MarkRoots();
   while (!mark_stack->IsEmpty()) {
@@ -640,7 +665,7 @@ void Heap::MarkSweep(Reason reason) {
   MournWeakListMarkSweep();
   MournClassTableMarkSweep();
 
-  ClearCaches();
+  interpreter_->GCEpilogue();
 
   Sweep();
 
@@ -661,11 +686,19 @@ void Heap::MarkSweep(Reason reason) {
 }
 
 void Heap::MarkRoots() {
-  MarkObject(object_store_);
-  MarkObject(current_activation_);
-
   for (intptr_t i = 0; i < handles_size_; i++) {
     MarkObject(*handles_[i]);
+  }
+
+  Object** from;
+  Object** to;
+  interpreter_->RootPointers(&from, &to);
+  for (Object** ptr = from; ptr <= to; ptr++) {
+    MarkObject(*ptr);
+  }
+  interpreter_->StackPointers(&from, &to);
+  for (Object** ptr = from; ptr <= to; ptr++) {
+    MarkObject(*ptr);
   }
 }
 
@@ -892,7 +925,7 @@ void Heap::MarkEphemeronList() {
 }
 
 void Heap::MournEphemeronList() {
-  Object* nil = object_store()->nil_obj();
+  Object* nil = interpreter_->nil_obj();
   Ephemeron* survivor = ephemeron_list_;
   ephemeron_list_ = NULL;
 
@@ -981,7 +1014,7 @@ void Heap::MournWeakPointerScavenge(Object** ptr) {
     new_target = ForwardingTarget(old_target);
   } else {
     // The object store and nil have already been scavenged.
-    new_target = static_cast<HeapObject*>(object_store()->nil_obj());
+    new_target = static_cast<HeapObject*>(interpreter_->nil_obj());
   }
 
   DEBUG_ASSERT(new_target->IsOldObject() || InToSpace(new_target));
@@ -998,8 +1031,8 @@ void Heap::MournWeakPointerMarkSweep(Object** ptr) {
     return;
   }
 
-  ASSERT(IsMarkSweepSurvivor(object_store()->nil_obj()));
-  *ptr = object_store()->nil_obj();
+  ASSERT(IsMarkSweepSurvivor(interpreter_->nil_obj()));
+  *ptr = interpreter_->nil_obj();
 }
 
 void Heap::MournClassTableScavenge() {
@@ -1058,6 +1091,8 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
     }
   }
 
+  interpreter_->GCPrologue();  // Before creating forwarders!
+
   for (intptr_t i = 0; i < length; i++) {
     HeapObject* forwarder = static_cast<HeapObject*>(old->element(i));
     HeapObject* forwardee = static_cast<HeapObject*>(neu->element(i));
@@ -1084,17 +1119,25 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
   ForwardHeap();  // Using old class table.
   ForwardClassTable();
 
-  ClearCaches();
+  interpreter_->GCEpilogue();
 
   return true;
 }
 
 void Heap::ForwardRoots() {
-  ForwardPointer(reinterpret_cast<Object**>(&object_store_));
-  ForwardPointer(reinterpret_cast<Object**>(&current_activation_));
-
   for (intptr_t i = 0; i < handles_size_; i++) {
     ForwardPointer(handles_[i]);
+  }
+
+  Object** from;
+  Object** to;
+  interpreter_->RootPointers(&from, &to);
+  for (Object** ptr = from; ptr <= to; ptr++) {
+    ForwardPointer(ptr);
+  }
+  interpreter_->StackPointers(&from, &to);
+  for (Object** ptr = from; ptr <= to; ptr++) {
+    ForwardPointer(ptr);
   }
 }
 
@@ -1138,7 +1181,7 @@ void Heap::ForwardHeap() {
 }
 
 void Heap::ForwardClassTable() {
-  Object* nil = object_store()->nil_obj();
+  Object* nil = interpreter_->nil_obj();
 
   for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
     Behavior* old_class = static_cast<Behavior*>(class_table_[i]);
@@ -1163,15 +1206,6 @@ void Heap::ForwardClassTable() {
       class_table_free_ = i;
     }
   }
-}
-
-void Heap::ClearCaches() {
-#if LOOKUP_CACHE
-  lookup_cache_->Clear();
-#endif
-#if RECYCLE_ACTIVATIONS
-  recycle_list_ = NULL;
-#endif
 }
 
 intptr_t Heap::AllocateClassId() {

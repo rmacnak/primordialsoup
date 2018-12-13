@@ -1,6 +1,12 @@
-# Primordial Soup Design
+# Design of Primordial Soup
 
-Primordial Soup is a bytecode interpreter, using the V4 bytecode of the Cog VM and the object representation of the Dart VM. It uses an architecture-independent clustering snapshot format inspired by Fuel and Parcels. 
+Primordial Soup (or psoup) is an implementation of the Newspeak programming language. It consists of a virtual machine and platform modules written against the primitives the VM provides.
+
+A Newspeak program defines a graph of objects that evolves over time as a result of message sends. The virtual machine runs snapshots, which are the serialized form of the platform object and an application object. The VM starts by deserializing a snapshot into a heap, then interprets bytecode from an initial message until it encounters an exit primitive. This repository includes a snapshot for a compiler that takes Newspeak source code and produces application snapshots that can be run by the VM.
+
+The major components of the virtual machine are an object memory, an interpreter and a set of primitives. The object memory defines the representation of objects in memory, and manages their allocation and garbage collection. The interpreter executes bytecode methods produced by the compiler. It implements operations on the expression stack, message sends and returns. Some methods have a corresponding primitive, which runs in place of the method body. Primitives implement operations that cannot be expressed by the language as a regular method body, such as arithmetic, array access, string operations, become, allInstances, isolate messaging, etc. Together, these components direct the evolution of a program's objects over time.
+
+(It is essential for the object-capability model that code outside of the platform implementation cannot mark its methods as primitive, otherwise the set of primitives would constitute ambient authority. Currently the compiler marks methods as primitive based metadata in their bodies, providing an ambient authority.)
 
 ## Object Representation
 
@@ -48,7 +54,7 @@ Primordial Soup allows creating multiple "isolates" in the same process. Isolate
 
 Each isolate may contain multiple actors.
 
-## Snapshot Format
+## Snapshots
 
 The initial heap of an isolate is loaded from a snapshot. Unlike traditional Smalltalk images, this snapshot is not a memory dump with pointer fixups. Nor is it a traditional recursive serialization like the Dart VM's snapshots. Instead it is clustered serialization like [Fuel](http://rmod.inria.fr/web/software/Fuel) and [Parcels](http://scg.unibe.ch/archive/papers/Mira05aParcels.pdf).
 
@@ -67,6 +73,28 @@ Messages between isolates use the same snapshot format, but they contain partial
 Primordial Soup uses the Newsqueak V4 bytecode of the [Cog VM](http://www.mirandabanda.org/cogblog/about-cog/), but only the subset required by Newspeak. A description of this bytecode set may be found in the class comment of EncoderForNewsqueakV4 in a [VMMaker](http://www.mirandabanda.org/cogblog/build-image/) or [Newspeak-on-Squeak](http://www.newspeaklanguage.org/downloads) image.
 
 Using this bytecode set allows us to take advantage of the existing Newspeak-on-Squeak bytecode compiler. Eventually we may use a modified bytecode set to make use of the opcode space occupied by Smalltalk-only bytecodes and to add VM-level support for eventual sends.
+
+## Stack-to-Context Mapping
+
+Newspeak, like Smalltalk, provides first-class activation records. Newspeak calls them _Activations_ and Smalltalk calls them _Contexts_. In Smalltalk they are accessible from the psuedo-variable `thisContext` and in Newspeak they are accessed via activation mirrors. Activations make possible introspection of the program state and arbitrary control constructs without specific support from the VM, including
+
+ - displaying the state of computation in a debugger
+ - stepping in a debugger with arbitrary stopping policies
+ - expression evaluation with access to local slots
+ - resumable exceptions
+ - generators
+ - continutations, full or delimited
+ - corountines or other kinds cooperative multi-threading
+
+The simplest implementation allocates activation objects for each method or closure invocation and executes the program by manipulating these objects. Most program time, however, is spent in simple sends and returns. Primordial Soup avoids the allocation and indirection costs of such an implementation by running execution on a mostly conventional stack.
+
+Each frame has an extra zero-initialized slot to remember a paired activation object. Whenever the program requires a first-class activation, the object is allocated, stable state like the method is copied into the object, and the object and frame are given pointers to each other. Whenever state is accessed through the activation object, it can be in three states:
+
+ - the object is no longer paired with a frame: its state can be accessed directly
+ - the object is paired with a dead frame: all the volatile state is set to nil and frame pointer is cleared
+ - the object is paired with a living frame: we read state out of the frame or flush the stack to objects, write state to the object, then restore the top activation to the stack
+
+In the common case where first-class activations are not used, the only overhead compared to an implementation not providing first-class activations is the initialization of the extra frame slot.  In particular, no extra work is performed on return; all volatile state is implicitly cleared by return making the frame pointer from activation object invalid. For a more detailed account of this scheme in the Cog VM, see [Under Cover Contexts and the Big Frame-Up](http://www.mirandabanda.org/cogblog/2009/01/14/under-cover-contexts-and-the-big-frame-up).
 
 ## Bootstraping
 

@@ -859,6 +859,14 @@ public testValueWithArguments = (
 	assert: ([:x :y | x - y] valueWithArguments: {42. 24}) equals: 18.
 	assert: ([:x :y :z | x - y + z] valueWithArguments: {13. 3. 1}) equals: 11.
 )
+public testValueWithArgumentsNonArray = (
+	should: [[1] valueWithArguments: nil] signal: Error.
+	should: [[1] valueWithArguments: false] signal: Error.
+	should: [[1] valueWithArguments: true] signal: Error.
+	should: [[1] valueWithArguments: 'string'] signal: Error.
+	should: [[1] valueWithArguments: 0] signal: Error.
+	should: [[1] valueWithArguments: []] signal: Error.
+)
 public testValueWithArgumentsTooFew = (
 	should: [[:x | x - 4] valueWithArguments: {}] signal: Error.
 	should: [[:x :y | x - y] valueWithArguments: {1}] signal: Error.

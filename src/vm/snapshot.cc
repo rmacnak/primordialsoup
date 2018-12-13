@@ -5,6 +5,7 @@
 #include "vm/snapshot.h"
 
 #include "vm/heap.h"
+#include "vm/interpreter.h"
 #include "vm/object.h"
 #include "vm/os.h"
 
@@ -465,7 +466,8 @@ void Deserializer::Deserialize() {
   heap_->RegisterClass(kActivationCid, os->Activation());
   heap_->RegisterClass(kClosureCid, os->Closure());
 
-  heap_->InitializeRoot(os);
+  heap_->InitializeGrowthPolicy();
+  heap_->interpreter()->InitializeRoot(os);
 
   int64_t stop = OS::CurrentMonotonicNanos();
   intptr_t time = stop - start;

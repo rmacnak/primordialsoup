@@ -6,16 +6,16 @@
 #define VM_HEAP_H_
 
 #include "vm/assert.h"
-#include "vm/globals.h"
-#include "vm/utils.h"
-#include "vm/object.h"
 #include "vm/flags.h"
+#include "vm/globals.h"
+#include "vm/object.h"
+#include "vm/utils.h"
 #include "vm/virtual_memory.h"
 
 namespace psoup {
 
 class HeapPage;
-class LookupCache;
+class Interpreter;
 
 // Note these values are never valid Object*.
 #if defined(ARCH_IS_32_BIT)
@@ -275,40 +275,7 @@ class Heap {
     return result;
   }
 
-  Message* AllocateMessage() {
-    Behavior* behavior = object_store()->Message();
-    ASSERT(behavior->IsRegularObject());
-    behavior->AssertCouldBeBehavior();
-    SmallInteger* id = behavior->id();
-    if (id == object_store()->nil_obj()) {
-      id = SmallInteger::New(AllocateClassId());  // SAFEPOINT
-      behavior = object_store()->Message();
-      RegisterClass(id->value(), behavior);
-    }
-    ASSERT(id->IsSmallInteger());
-    SmallInteger* format = behavior->format();
-    ASSERT(format->IsSmallInteger());
-    intptr_t num_slots = format->value();
-    ASSERT(num_slots == 2);
-    Object* new_instance = AllocateRegularObject(id->value(),
-                                                 num_slots);
-    return static_cast<Message*>(new_instance);
-  }
-
-#if RECYCLE_ACTIVATIONS
-  Activation* AllocateOrRecycleActivation() {
-    Activation* result = recycle_list_;
-    if (result != 0) {
-      recycle_list_ = result->sender();
-      return result;
-    }
-    return AllocateActivation();
-  }
-  void RecycleActivation(Activation* a) {
-    a->set_sender(recycle_list_);
-    recycle_list_ = a;
-  }
-#endif
+  Message* AllocateMessage();
 
   size_t Size() const {
     size_t new_size = top_ - to_.object_start();
@@ -336,29 +303,15 @@ class Heap {
     return static_cast<Behavior*>(class_table_[cid]);
   }
 
-  void InitializeRoot(ObjectStore* os) {
-    ASSERT(object_store_ == NULL);
-    object_store_ = os;
-    ASSERT(object_store_->IsArray());
-
-    // GC safe value until we create the initial message.
-    current_activation_ = reinterpret_cast<Activation*>(SmallInteger::New(0));
-
+  void InitializeInterpreter(Interpreter* interpreter) {
+    ASSERT(interpreter_ == NULL);
+    interpreter_ = interpreter;
+  }
+  void InitializeGrowthPolicy() {
     SetOldAllocationLimit();
   }
-#if LOOKUP_CACHE
-  void InitializeLookupCache(LookupCache* cache) {
-    ASSERT(lookup_cache_ == NULL);
-    lookup_cache_ = cache;
-  }
-#endif
 
-  ObjectStore* object_store() const { return object_store_; }
-  Activation* activation() const { return current_activation_; }
-  void set_activation(Activation* new_activation) {
-    ASSERT(new_activation->IsActivation());
-    current_activation_ = new_activation;
-  }
+  Interpreter* interpreter() const { return interpreter_; }
 
   void DropHandles() { handles_size_ = 0; }
 
@@ -409,8 +362,6 @@ class Heap {
   void ForwardRoots();
   void ForwardHeap();
   void ForwardClassTable();
-
-  void ClearCaches();
 
   uword TryAllocateNew(intptr_t size) {
     uword result = top_;
@@ -482,20 +433,11 @@ class Heap {
   intptr_t class_table_free_;
 
   // Roots.
-  ObjectStore* object_store_;
-  Activation* current_activation_;
+  Interpreter* interpreter_;
   static const intptr_t kHandlesCapacity = 8;
   Object** handles_[kHandlesCapacity];
   intptr_t handles_size_;
   friend class HandleScope;
-
-  // Caches.
-#if RECYCLE_ACTIVATIONS
-  Activation* recycle_list_;
-#endif
-#if LOOKUP_CACHE
-  LookupCache* lookup_cache_;
-#endif
 
   Ephemeron* ephemeron_list_;
   WeakArray* weak_list_;

@@ -5,6 +5,7 @@
 #include "vm/object.h"
 
 #include "vm/heap.h"
+#include "vm/interpreter.h"
 #include "vm/isolate.h"
 #include "vm/os.h"
 
@@ -192,11 +193,11 @@ static void PrintStringError(String* string) {
 
 void Activation::PrintStack(Heap* heap) {
   Activation* act = this;
-  while (act != heap->object_store()->nil_obj()) {
+  while (act != heap->interpreter()->nil_obj()) {
     OS::PrintErr("  ");
 
     Activation* home = act;
-    while (home->closure() != heap->object_store()->nil_obj()) {
+    while (home->closure() != heap->interpreter()->nil_obj()) {
       ASSERT(home->closure()->IsClosure());
       OS::PrintErr("[] in ");
       home = home->closure()->defining_activation();

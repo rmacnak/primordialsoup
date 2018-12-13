@@ -22,6 +22,7 @@ class Object;
 class Interpreter {
  public:
   Interpreter(Heap* heap, Isolate* isolate);
+  ~Interpreter();
 
   Isolate* isolate() const { return isolate_; }
 
@@ -29,8 +30,75 @@ class Interpreter {
   void Exit();
   void SendOrdinary(String* selector, intptr_t num_args);
   Method* MethodAt(Behavior* cls, String* selector);
+  void ActivateClosure(intptr_t num_args);
 
-  void Interrupt() { interrupt_ = 1; }
+  void Interrupt() { checked_stack_limit_ = reinterpret_cast<Object**>(-1); }
+  void PrintStack();
+
+  const uint8_t* IPForAssert() { return ip_; }
+
+  Activation* CurrentActivation();
+  void SetCurrentActivation(Activation* new_activation);
+  Object* ActivationSender(Activation* activation);
+  void ActivationSenderPut(Activation* activation,
+                           Activation* new_sender);
+  Object* ActivationBCI(Activation* activation);
+  void ActivationBCIPut(Activation* activation, SmallInteger* new_bci);
+  void ActivationMethodPut(Activation* activation, Method* new_method);
+  void ActivationClosurePut(Activation* activation, Closure* new_closure);
+  void ActivationReceiverPut(Activation* activation, Object* value);
+  Object* ActivationTempAt(Activation* activation, intptr_t index);
+  void ActivationTempAtPut(Activation* activation, intptr_t index,
+                           Object* value);
+  intptr_t ActivationTempSize(Activation* activation);
+  void ActivationTempSizePut(Activation* activation, intptr_t new_size);
+
+  void GCPrologue();
+  void RootPointers(Object*** from, Object*** to);
+  void StackPointers(Object*** from, Object*** to);
+  void GCEpilogue();
+
+  void Push(Object* value) {
+    ASSERT(sp_ <= stack_base_);
+    ASSERT(sp_ > stack_limit_);
+    *--sp_ = value;
+  }
+  Object* Pop() {
+    ASSERT(StackDepth() > 0);
+    return *sp_++;
+  }
+  void PopNAndPush(intptr_t n, Object* value) {
+    ASSERT(StackDepth() >= n);
+    sp_ += (n - 1);
+    *sp_ = value;
+  }
+  Object* Stack(intptr_t depth) {
+    ASSERT(StackDepth() >= depth);
+    return sp_[depth];
+  }
+  void StackPut(intptr_t depth, Object* value) {
+    ASSERT(StackDepth() >= depth);
+    sp_[depth] = value;
+  }
+  void Grow(intptr_t elements) { sp_ -= elements; }
+  void Drop(intptr_t elements) {
+    ASSERT(StackDepth() >= elements);
+    sp_ += elements;
+  }
+  intptr_t StackDepth() { return &fp_[-4] - sp_; }  // Magic!
+
+  ObjectStore* object_store() const { return object_store_; }
+  Object* nil_obj() const { return nil_; }
+  Object* false_obj() const { return false_; }
+  Object* true_obj() const { return true_; }
+  void InitializeRoot(ObjectStore* object_store) {
+    ASSERT(object_store_ == NULL);
+    ASSERT(object_store->IsArray());
+    nil_ = object_store->nil_obj();
+    false_ = object_store->false_obj();
+    true_ = object_store->true_obj();
+    object_store_ = object_store;
+  }
 
  private:
   void Interpret();
@@ -60,8 +128,6 @@ class Interpreter {
   void OuterSend(intptr_t selector_index, intptr_t num_args, intptr_t depth);
   void SelfSend(intptr_t selector_index, intptr_t num_args);
 
-  uint8_t FetchNextByte();
-
   Behavior* FindApplicationOf(AbstractMixin* mixin, Behavior* klass);
   bool HasMethod(Behavior*, String* selector);
   String* SelectorAt(intptr_t index);
@@ -89,19 +155,34 @@ class Interpreter {
   void ActivateAbsent(Method* method, Object* receiver, intptr_t num_args);
   void InsertAbsentReceiver(Object* receiver, intptr_t num_args);
   void Activate(Method* method, intptr_t num_args);
+  void StackOverflow();
 
   void MethodReturn(Object* result);
   void LocalReturn(Object* result);
   void NonLocalReturn(Object* result);
 
-#if RECYCLE_ACTIVATIONS
-  // How many activations are known to be reachable only from the current
-  // activation.
-  intptr_t recycle_depth_;
-#endif
+  void CreateBaseFrame(Activation* activation);
+  Activation* EnsureActivation(Object** fp);
+  Activation* FlushAllFrames();
+  bool HasLivingFrame(Activation* activation);
+
+  static constexpr intptr_t kStackSlots = 1024;
+  static constexpr intptr_t kStackSize = kStackSlots * sizeof(Object*);
+
+  const uint8_t* ip_;
+  Object** sp_;
+  Object** fp_;
+  Object** stack_base_;
+  Object** stack_limit_;
+  Object** volatile checked_stack_limit_;
+
+  Object* nil_;
+  Object* false_;
+  Object* true_;
+  ObjectStore* object_store_;
+
   Heap* const heap_;
   Isolate* const isolate_;
-  volatile uword interrupt_;
   jmp_buf* environment_;
   LookupCache lookup_cache_;
 };

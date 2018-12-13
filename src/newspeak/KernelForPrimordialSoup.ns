@@ -162,6 +162,8 @@ public terminate = (
 	(* Make myself unresumable. *)
 	sender:: nil.
 	bci:: nil.
+	(* Match the interpreter's behavior. Note this differs from Cog, which keeps the parameters. *)
+	tempSize:: 0.
 )
 public terminateTo: previousContext = (
 	(* Terminate all the Contexts between me and previousContext, if previousContext is on my Context stack. Make previousContext my sender. *)

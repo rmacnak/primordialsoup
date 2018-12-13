@@ -686,22 +686,6 @@ class Activation : public HeapObject {
     StorePointer(&ptr()->temps_[index], o, barrier);
   }
 
-  Object* Pop() {
-    ASSERT(StackDepth() > 0);
-    Object* top = temp(StackDepth() - 1);
-    set_stack_depth(SmallInteger::New(StackDepth() - 1));
-    return top;
-  }
-  Object* Stack(intptr_t depth) const {
-    ASSERT(depth >= 0);
-    ASSERT(depth < StackDepth());
-    return temp(StackDepth() - depth - 1);
-  }
-  void StackPut(intptr_t depth, Object* o) {
-    ASSERT(depth >= 0);
-    ASSERT(depth < StackDepth());
-    set_temp(StackDepth() - depth - 1, o);
-  }
   void PopNAndPush(intptr_t drop_count, Object* value) {
     ASSERT(drop_count >= 0);
     ASSERT(drop_count <= StackDepth());
@@ -710,16 +694,6 @@ class Activation : public HeapObject {
   }
   void Push(Object* value) {
     PopNAndPush(0, value);
-  }
-  void Drop(intptr_t drop_count) {
-    ASSERT(drop_count >= 0);
-    ASSERT(drop_count <= StackDepth());
-    set_stack_depth(SmallInteger::New(StackDepth() - drop_count));
-  }
-  void Grow(intptr_t grow_count) {
-    ASSERT(grow_count >= 0);
-    ASSERT(StackDepth() + grow_count < kMaxTemps);
-    set_stack_depth(SmallInteger::New(StackDepth() + grow_count));
   }
 
   void PrintStack(Heap* heap);
@@ -890,6 +864,13 @@ class Method : public HeapObject {
   }
   intptr_t NumTemps() const {
     return (header()->value() >> 8) & 255;
+  }
+
+  const uint8_t* IP(const SmallInteger* bci) {
+    return bytecode()->element_addr(bci->value() - 1);
+  }
+  SmallInteger* BCI(const uint8_t* ip) {
+    return SmallInteger::New((ip - bytecode()->element_addr(0)) + 1);
   }
 
  private:

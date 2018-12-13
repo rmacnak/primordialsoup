@@ -88,7 +88,7 @@ void Isolate::Interrupt() {
 void Isolate::PrintStack() {
   MonitorLocker ml(isolates_list_monitor_);
   OS::PrintErr("%" Px " interrupted: \n", reinterpret_cast<uword>(this));
-  heap_->activation()->PrintStack(heap_);
+  interpreter_->PrintStack();
 }
 
 
@@ -155,7 +155,7 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
   Port port_id = isolate_message->dest_port();
   Object* port;
   if (port_id == ILLEGAL_PORT) {
-    port = heap_->object_store()->nil_obj();
+    port = interpreter_->nil_obj();
   } else if (SmallInteger::IsSmiValue(port_id)) {
     port = SmallInteger::New(port_id);
   } else {
@@ -170,16 +170,16 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
 
 
 void Isolate::ActivateWakeup() {
-  Object* nil = heap_->object_store()->nil_obj();
+  Object* nil = interpreter_->nil_obj();
   Activate(nil, nil);
 }
 
 
 void Isolate::Activate(Object* message, Object* port) {
-  Object* message_loop = heap_->object_store()->message_loop();
+  Object* message_loop = interpreter_->object_store()->message_loop();
 
   Behavior* cls = message_loop->Klass(heap_);
-  String* selector = heap_->object_store()->dispatch_message();
+  String* selector = interpreter_->object_store()->dispatch_message();
   Method* method = interpreter_->MethodAt(cls, selector);
 
   HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
@@ -189,7 +189,7 @@ void Isolate::Activate(Object* message, Object* port) {
 
   Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
 
-  Object* nil = heap_->object_store()->nil_obj();
+  Object* nil = interpreter_->nil_obj();
   new_activation->set_sender(static_cast<Activation*>(nil), kNoBarrier);
   new_activation->set_bci(SmallInteger::New(1));
   new_activation->set_method(method);
@@ -206,7 +206,7 @@ void Isolate::Activate(Object* message, Object* port) {
     new_activation->Push(nil);
   }
 
-  heap_->set_activation(new_activation);
+  interpreter_->SetCurrentActivation(new_activation);  // SAFEPOINT
 }
 
 
@@ -214,10 +214,10 @@ void Isolate::ActivateSignal(intptr_t handle,
                              intptr_t status,
                              intptr_t signals,
                              intptr_t count) {
-  Object* message_loop = heap_->object_store()->message_loop();
+  Object* message_loop = interpreter_->object_store()->message_loop();
 
   Behavior* cls = message_loop->Klass(heap_);
-  String* selector = heap_->object_store()->dispatch_signal();
+  String* selector = interpreter_->object_store()->dispatch_signal();
   Method* method = interpreter_->MethodAt(cls, selector);
 
   HandleScope h1(heap_, reinterpret_cast<Object**>(&message_loop));
@@ -225,7 +225,7 @@ void Isolate::ActivateSignal(intptr_t handle,
 
   Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
 
-  Object* nil = heap_->object_store()->nil_obj();
+  Object* nil = interpreter_->nil_obj();
   new_activation->set_sender(static_cast<Activation*>(nil), kNoBarrier);
   new_activation->set_bci(SmallInteger::New(1));
   new_activation->set_method(method);
@@ -244,7 +244,7 @@ void Isolate::ActivateSignal(intptr_t handle,
     new_activation->Push(nil);
   }
 
-  heap_->set_activation(new_activation);
+  interpreter_->SetCurrentActivation(new_activation);  // SAFEPOINT
 }
 
 
