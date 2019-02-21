@@ -1086,7 +1086,7 @@ void Interpreter::Exit() {
 
 void Interpreter::PrintStack() {
   Activation* top = FlushAllFrames();  // SAFEPOINT
-  top->Print(H);
+  top->PrintStack(H);
   CreateBaseFrame(top);
 }
 

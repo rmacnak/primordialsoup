@@ -32,13 +32,7 @@ class RegularObjectCluster : public Cluster {
 
   void ReadNodes(Deserializer* d, Heap* h) {
     intptr_t num_objects = d->ReadUnsigned();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes format=%" Pd " objects=%" Pd " %" Pd "\n",
-                   format_, num_objects, d->position());
-    }
-
     cid_ = h->AllocateClassId();
-
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -49,10 +43,6 @@ class RegularObjectCluster : public Cluster {
   }
 
   void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges format=%" Pd " objects=%" Pd " %" Pd "\n",
-                   format_, ref_stop_ - ref_start_, d->position());
-    }
     Object* cls = d->ReadRef();
     h->RegisterClass(cid_, static_cast<Behavior*>(cls));
 
@@ -76,11 +66,6 @@ class ByteArrayCluster : public Cluster {
 
   void ReadNodes(Deserializer* d, Heap* h) {
     intptr_t num_objects = d->ReadUnsigned();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes bytearray objects=%" Pd " %" Pd "\n",
-                   num_objects, d->position());
-    }
-
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -95,12 +80,7 @@ class ByteArrayCluster : public Cluster {
     ASSERT(d->next_ref() == ref_stop_);
   }
 
-  void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges bytearray objects=%" Pd " %" Pd "\n",
-                   ref_stop_ - ref_start_, d->position());
-    }
-  }
+  void ReadEdges(Deserializer* d, Heap* h) {}
 };
 
 class StringCluster : public Cluster {
@@ -115,11 +95,6 @@ class StringCluster : public Cluster {
 
   void ReadNodes(Deserializer* d, Heap* h, bool is_canonical) {
     intptr_t num_objects = d->ReadUnsigned();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes bytestring objects=%" Pd " %" Pd "\n",
-                   num_objects, d->position());
-    }
-
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -135,12 +110,7 @@ class StringCluster : public Cluster {
     ASSERT(d->next_ref() == ref_stop_);
   }
 
-  void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges bytestring objects=%" Pd " %" Pd "\n",
-                   ref_stop_ - ref_start_, d->position());
-    }
-  }
+  void ReadEdges(Deserializer* d, Heap* h) {}
 };
 
 class ArrayCluster : public Cluster {
@@ -150,11 +120,6 @@ class ArrayCluster : public Cluster {
 
   void ReadNodes(Deserializer* d, Heap* h) {
     intptr_t num_objects = d->ReadUnsigned();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes array objects=%" Pd " %" Pd "\n",
-                   num_objects, d->position());
-    }
-
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -166,11 +131,6 @@ class ArrayCluster : public Cluster {
   }
 
   void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges array objects=%" Pd " %" Pd "\n",
-                   ref_stop_ - ref_start_, d->position());
-    }
-
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
       Array* object = Array::Cast(d->Ref(i));
       intptr_t size = object->Size();
@@ -188,11 +148,6 @@ class WeakArrayCluster : public Cluster {
 
   void ReadNodes(Deserializer* d, Heap* h) {
     intptr_t num_objects = d->ReadUnsigned();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes weakarray objects=%" Pd " %" Pd "\n",
-                   num_objects, d->position());
-    }
-
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -204,11 +159,6 @@ class WeakArrayCluster : public Cluster {
   }
 
   void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges weakarray objects=%" Pd " %" Pd "\n",
-                   ref_stop_ - ref_start_, d->position());
-    }
-
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
       WeakArray* object = WeakArray::Cast(d->Ref(i));
       intptr_t size = object->Size();
@@ -226,11 +176,6 @@ class ClosureCluster : public Cluster {
 
   void ReadNodes(Deserializer* d, Heap* h) {
     intptr_t num_objects = d->ReadUnsigned();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes closure objects=%" Pd " %" Pd "\n",
-                   num_objects, d->position());
-    }
-
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -242,11 +187,6 @@ class ClosureCluster : public Cluster {
   }
 
   void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges closure objects=%" Pd " %" Pd "\n",
-                   ref_stop_ - ref_start_, d->position());
-    }
-
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
       Closure* object = Closure::Cast(d->Ref(i));
 
@@ -271,11 +211,6 @@ class ActivationCluster : public Cluster {
 
   void ReadNodes(Deserializer* d, Heap* h) {
     intptr_t num_objects = d->ReadUnsigned();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes activation objects=%" Pd " %" Pd "\n",
-                   num_objects, d->position());
-    }
-
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -286,11 +221,6 @@ class ActivationCluster : public Cluster {
   }
 
   void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges activation objects=%" Pd " %" Pd "\n",
-                   ref_stop_ - ref_start_, d->position());
-    }
-
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
       Activation* object = Activation::Cast(d->Ref(i));
 
@@ -301,7 +231,6 @@ class ActivationCluster : public Cluster {
       object->set_receiver(d->ReadRef(), kNoBarrier);
 
       intptr_t size = d->ReadUint16();
-      if (TRACE_FUEL) OS::PrintErr(" stack %" Pd "\n", size);
       ASSERT(size < Activation::kMaxTemps);
       object->set_stack_depth(SmallInteger::New(size));
 
@@ -322,11 +251,6 @@ class SmallIntegerCluster : public Cluster {
 
   void ReadNodes(Deserializer* d, Heap* h) {
     intptr_t num_objects = d->ReadUnsigned();
-    if (TRACE_FUEL) {
-      OS::PrintErr("Nodes smi objects=%" Pd " %" Pd "\n",
-                   num_objects, d->position());
-    }
-
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -380,12 +304,7 @@ class SmallIntegerCluster : public Cluster {
     }
   }
 
-  void ReadEdges(Deserializer* d, Heap* h) {
-    if (TRACE_FUEL) {
-      OS::PrintErr("Edges smi objects=%" Pd " %" Pd "\n",
-                   ref_stop_ - ref_start_, d->position());
-    }
-  }
+  void ReadEdges(Deserializer* d, Heap* h) {}
 };
 
 Deserializer::Deserializer(Heap* heap, void* snapshot, size_t snapshot_length) :
@@ -429,16 +348,10 @@ void Deserializer::Deserialize() {
   }
 
   num_clusters_ = ReadUint16();
-  if (TRACE_FUEL) {
-    OS::PrintErr("%" Pd " clusters\n", num_clusters_);
-  }
   clusters_ = new Cluster*[num_clusters_];
 
   intptr_t num_nodes = ReadUint32();
-  if (TRACE_FUEL) {
-    OS::PrintErr("num_nodes=%" Pd "\n", num_nodes);
-  }
-  refs_ = new Object*[num_nodes + 1];  // Back refs are 1-origin.
+  refs_ = new Object*[num_nodes + 1];  // Refs are 1-origin.
   next_ref_ = 1;
 
   for (intptr_t i = 0; i < num_clusters_; i++) {
