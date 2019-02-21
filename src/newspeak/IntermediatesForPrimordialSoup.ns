@@ -37,9 +37,6 @@ public isTopLevel = (
 	nil = existingMixin ifTrue: [^true (* New class declarations are eagerly computed. *)].
 	^nil = existingMixin _enclosingMixin
 )
-public printOn: stream = (
-	stream nextPutAll: 'IntermediateClassDeclaration:'; nextPutAll: simpleName.
-)
 ) : (
 )
 public class IntermediateMethod = (|
@@ -112,9 +109,6 @@ public compiledMethod ^<CompiledMethod> = (
 )
 public name = (
 	^selector
-)
-public printOn: stream = (
-	stream nextPutAll: 'IntermediateMethod:'; nextPutAll: name.
 )
 public simpleName = (
 	^selector
@@ -193,10 +187,6 @@ public checkNameConflictsForSlot: slotName <Symbol> mutable: isMutable <Boolean>
 		method selector = (slotName, ':') ifTrue:
 			[^Error signal: 'Class already has method named ', method selector]].
 )
-public printOn: stream = (
-	stream nextPutAll: 'IntermediateMixin:'; nextPutAll: declaration qualifiedName.
-	isMeta ifTrue: [stream nextPutAll: ' class'].
-)
 ) : (
 )
 public class IntermediateSlotDeclaration = (|
@@ -233,9 +223,6 @@ public generateSetterForSlot: index <Integer> ^<IntermediateMethod> = (
 	method selector: method method selector.
 	method isSynthetic: true.
 	^method
-)
-public printOn: stream = (
-	stream nextPutAll: 'IntermediateSlotDeclaration:'; nextPutAll: simpleName.
 )
 public simpleName = (
 	^name

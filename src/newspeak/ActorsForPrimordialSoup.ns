@@ -146,18 +146,6 @@ public eventualSend: selector <Symbol> arguments: arguments <Array> ^<Ref> = (
 public immediateSend: message <Message> ^<Object> = (
 	^Error signal: 'Cannot immediate-send to a broken ref: ', message selector
 )
-public printOn: stream = (
-	stream nextPutAll: 'InternalBrokenRef: '.
-	problem printOn: stream.
-)
-public refPrintOn: stream = (
-	stream nextPutAll: '<broken ref: '.
-	problem printOn: stream.
-	stream nextPutAll: '>'.
-)
-public shorten ^<InternalRef> = (
-	^self
-)
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise = InternalLocalPromise new. |
 	currentActor
@@ -210,18 +198,6 @@ public eventualSend: selector <Symbol> arguments: arguments <Array> ^<Ref> = (
 )
 public immediateSend: message <Message> ^<Object> = (
 	^Error signal: 'Cannot immediate-send to an eventual ref: ', message selector
-)
-public printOn: stream = (
-	stream nextPutAll: 'InternalFarRef: '.
-	target printOn: stream.
-)
-public refPrintOn: stream = (
-	stream nextPutAll: '<far ref: '.
-	target printOn: stream.
-	stream nextPutAll: '>'.
-)
-public shorten ^<InternalRef> = (
-	^self
 )
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise = InternalLocalPromise new. |
@@ -283,20 +259,6 @@ public internalResolve: internalRef <InternalRef> = (
 		[reactors do: [:reactor | resolution addReactor: reactor].
 		reactors:: nil].
 )
-public printOn: stream = (
-	stream nextPutAll: 'InternalLocalPromise: '.
-	state printOn: stream.
-)
-public refPrintOn: stream = (
-	state = #resolved
-		ifTrue: [resolution refPrintOn: stream]
-		ifFalse: [stream nextPutAll: '<local promise>'].
-)
-public shorten ^<InternalRef> = (
-	state = #unresolved ifTrue: [^self].
-	state = #resolved ifTrue: [^resolution].
-	halt.
-)
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise |
 	state = #resolved ifTrue: [^resolution whenFulfilled: onValue whenBroken: onError].
@@ -332,18 +294,6 @@ public eventualSend: selector <Symbol> arguments: arguments <Array> ^<Ref> = (
 public immediateSend: message <Message> ^<Object> = (
 	^message sendTo: target
 )
-public printOn: stream = (
-	stream nextPutAll: 'InternalNearRef: '.
-	target printOn: stream.
-)
-public refPrintOn: stream = (
-	stream nextPutAll: '<near ref: '.
-	target printOn: stream.
-	stream nextPutAll: '>'.
-)
-public shorten ^<InternalRef> = (
-	^self
-)
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise = InternalLocalPromise new. |
 	currentActor
@@ -375,12 +325,6 @@ public immediateSend: message <Message> ^<Object> = (
 )
 public isInternalRef ^<Boolean> = (
 	^true
-)
-public refPrintOn: stream = (
-	subclassResponsibility
-)
-public shorten ^<InternalRef> = (
-	subclassResponsibility
 )
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	subclassResponsibility
@@ -446,10 +390,6 @@ public internalResolve: internalRef <InternalRef> = (
 		ifFalse: [resolution:: internalRef].
 	state:: #resolved.
 )
-public printOn: stream = (
-	stream nextPutAll: 'InternalRemotePromise: '.
-	state printOn: stream.
-)
 public redirectFrom: sourceActor to: destinationActor resolving: resolver = (
 	| redirector |
 	destinationActor = targetsActor ifTrue:
@@ -469,16 +409,6 @@ public redirectFrom: sourceActor to: destinationActor resolving: resolver = (
 		selector: #addReactor:
 		arguments: {redirector}
 		resolver: nil.
-)
-public refPrintOn: stream = (
-	state = #resolved
-		ifTrue: [resolution refPrintOn: stream]
-		ifFalse: [stream nextPutAll: '<remote promise>'].
-)
-public shorten ^<InternalRef> = (
-	state = #unresolved ifTrue: [^self].
-	state = #resolved ifTrue: [^resolution].
-	halt.
 )
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise redirector |
@@ -759,10 +689,6 @@ protected doesNotUnderstand: message <Message> = (
 )
 public isPromise = (
 	^true
-)
-public printOn: stream = (
-	(* BOGUS - debugging *)
-	internalRef refPrintOn: stream.
 )
 protected yourself = (
 	^super yourself
