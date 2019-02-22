@@ -25,9 +25,9 @@ class OS {
   static void PrintErr(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);
   static char* PrintStr(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);
 
-  NORETURN_ATTRIBUTE static void Abort();
+  NORETURN static void Abort();
 
-  NORETURN_ATTRIBUTE static void Exit(int code);
+  NORETURN static void Exit(int code);
 };
 
 }  // namespace psoup

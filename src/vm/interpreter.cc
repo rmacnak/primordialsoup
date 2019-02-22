@@ -264,27 +264,20 @@ void Interpreter::PushClosure(intptr_t num_copied,
 }
 
 
-void Interpreter::QuickArithmeticSend(intptr_t offset) {
-  Array* quick_selectors = object_store()->quick_selectors();
-  String* selector =
-    static_cast<String*>(quick_selectors->element(offset * 2));
-  ASSERT(selector->is_canonical());
-  SmallInteger* arity =
-    static_cast<SmallInteger*>(quick_selectors->element(offset * 2 + 1));
-  ASSERT(arity->IsSmallInteger());
-  SendOrdinary(selector, arity->value());  // SAFEPOINT
+void Interpreter::Perform(String* selector, intptr_t num_args) {
+  OrdinarySend(selector, num_args);  // SAFEPOINT
 }
 
 
-void Interpreter::QuickCommonSend(intptr_t offset) {
-  Array* quick_selectors = object_store()->quick_selectors();
+void Interpreter::CommonSend(intptr_t offset) {
+  Array* common_selectors = object_store()->common_selectors();
   String* selector =
-    static_cast<String*>(quick_selectors->element((offset + 16) * 2));
-  ASSERT(selector->IsString() && selector->is_canonical());
+    static_cast<String*>(common_selectors->element(offset * 2));
+  ASSERT(selector->is_canonical());
   SmallInteger* arity =
-    static_cast<SmallInteger*>(quick_selectors->element((offset +16) * 2 + 1));
+    static_cast<SmallInteger*>(common_selectors->element(offset * 2 + 1));
   ASSERT(arity->IsSmallInteger());
-  SendOrdinary(selector, arity->value());  // SAFEPOINT
+  OrdinarySend(selector, arity->value());  // SAFEPOINT
 }
 
 
@@ -314,11 +307,11 @@ bool Interpreter::HasMethod(Behavior* cls, String* selector) {
 void Interpreter::OrdinarySend(intptr_t selector_index,
                                intptr_t num_args) {
   String* selector = SelectorAt(selector_index);
-  SendOrdinary(selector, num_args);  // SAFEPOINT
+  OrdinarySend(selector, num_args);  // SAFEPOINT
 }
 
 
-void Interpreter::SendOrdinary(String* selector,
+void Interpreter::OrdinarySend(String* selector,
                                intptr_t num_args) {
   Object* receiver = Stack(num_args);
 
@@ -330,6 +323,13 @@ void Interpreter::SendOrdinary(String* selector,
   }
 #endif
 
+  OrdinarySendMiss(selector, num_args);  // SAFEPOINT
+}
+
+
+void Interpreter::OrdinarySendMiss(String* selector,
+                                   intptr_t num_args) {
+  Object* receiver = Stack(num_args);
   Behavior* receiver_class = receiver->Klass(H);
   Behavior* lookup_class = receiver_class;
   while (lookup_class != nil) {
@@ -343,7 +343,7 @@ void Interpreter::SendOrdinary(String* selector,
         return;
       } else if (method->IsProtected()) {
         bool present_receiver = true;
-        SendDNU(selector, num_args, receiver,
+        DNUSend(selector, num_args, receiver,
                 receiver_class, present_receiver);  // SAFEPOINT
         return;
       }
@@ -351,7 +351,7 @@ void Interpreter::SendOrdinary(String* selector,
     lookup_class = lookup_class->superclass();
   }
   bool present_receiver = true;
-  SendDNU(selector, num_args, receiver,
+  DNUSend(selector, num_args, receiver,
           receiver_class, present_receiver);  // SAFEPOINT
 }
 
@@ -382,19 +382,25 @@ void Interpreter::SuperSend(intptr_t selector_index,
                              kSuper,
                              &absent_receiver,
                              &target)) {
-    if (absent_receiver == 0) {
-      absent_receiver = receiver;
-    }
-    ActivateAbsent(target, absent_receiver, num_args);  // SAFEPOINT
+    ASSERT(absent_receiver == 0);
+    absent_receiver = receiver;
+    ActivateAbsent(target, receiver, num_args);  // SAFEPOINT
     return;
   }
 #endif
 
+  SuperSendMiss(selector, num_args);  // SAFEPOINT
+}
+
+
+void Interpreter::SuperSendMiss(String* selector,
+                                intptr_t num_args) {
+  Object* receiver = FrameReceiver(fp_);
   AbstractMixin* method_mixin = FrameMethod(fp_)->mixin();
   Behavior* receiver_class = receiver->Klass(H);
   Behavior* method_mixin_app = FindApplicationOf(method_mixin,
                                                  receiver_class);
-  SendProtected(selector,
+  ProtectedSend(selector,
                 num_args,
                 receiver,
                 method_mixin_app->superclass(),
@@ -424,6 +430,14 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
   }
 #endif
 
+  return ImplicitReceiverSendMiss(selector, num_args);  // SAFEPOINT
+}
+
+
+void Interpreter::ImplicitReceiverSendMiss(String* selector,
+                                           intptr_t num_args) {
+  Object* method_receiver = FrameReceiver(fp_);
+
   Object* candidate_receiver = method_receiver;
   AbstractMixin* candidate_mixin = FrameMethod(fp_)->mixin();
 
@@ -432,7 +446,7 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
         FindApplicationOf(candidate_mixin,
                           candidate_receiver->Klass(H));
     if (HasMethod(candidateMixinApplication, selector)) {
-      SendLexical(selector,
+      LexicalSend(selector,
                   num_args,
                   candidate_receiver,
                   candidate_mixin,
@@ -443,7 +457,7 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
     if (candidate_mixin == nil) break;
     candidate_receiver = candidateMixinApplication->enclosing_object();
   }
-  SendProtected(selector,
+  ProtectedSend(selector,
                 num_args,
                 method_receiver,
                 method_receiver->Klass(H),
@@ -466,14 +480,20 @@ void Interpreter::OuterSend(intptr_t selector_index,
                              depth,
                              &absent_receiver,
                              &target)) {
-    if (absent_receiver == 0) {
-      absent_receiver = receiver;
-    }
+    ASSERT(absent_receiver != 0);
     ActivateAbsent(target, absent_receiver, num_args);  // SAFEPOINT
     return;
   }
 #endif
 
+  OuterSendMiss(selector, num_args, depth);  // SAFEPOINT
+}
+
+
+void Interpreter::OuterSendMiss(String* selector,
+                                intptr_t num_args,
+                                intptr_t depth) {
+  Object* receiver = FrameReceiver(fp_);
   AbstractMixin* target_mixin = FrameMethod(fp_)->mixin();
   intptr_t count = 0;
   while (count < depth) {
@@ -483,7 +503,7 @@ void Interpreter::OuterSend(intptr_t selector_index,
     receiver = mixin_app->enclosing_object();
     target_mixin = target_mixin->enclosing_mixin();
   }
-  SendLexical(selector, num_args, receiver, target_mixin, depth);  // SAFEPOINT
+  LexicalSend(selector, num_args, receiver, target_mixin, depth);  // SAFEPOINT
 }
 
 
@@ -501,20 +521,25 @@ void Interpreter::SelfSend(intptr_t selector_index,
                              kSelf,
                              &absent_receiver,
                              &target)) {
-    if (absent_receiver == 0) {
-      absent_receiver = receiver;
-    }
-    ActivateAbsent(target, absent_receiver, num_args);  // SAFEPOINT
+    ASSERT(absent_receiver == 0);
+    ActivateAbsent(target, receiver, num_args);  // SAFEPOINT
     return;
   }
 #endif
 
-  AbstractMixin* method_mixin = FrameMethod(fp_)->mixin();
-  SendLexical(selector, num_args, receiver, method_mixin, kSelf);  // SAFEPOINT
+  SelfSendMiss(selector, num_args);  // SAFEPOINT
 }
 
 
-void Interpreter::SendLexical(String* selector,
+void Interpreter::SelfSendMiss(String* selector,
+                               intptr_t num_args) {
+  Object* receiver = FrameReceiver(fp_);
+  AbstractMixin* method_mixin = FrameMethod(fp_)->mixin();
+  LexicalSend(selector, num_args, receiver, method_mixin, kSelf);  // SAFEPOINT
+}
+
+
+void Interpreter::LexicalSend(String* selector,
                               intptr_t num_args,
                               Object* receiver,
                               AbstractMixin* mixin,
@@ -535,12 +560,12 @@ void Interpreter::SendLexical(String* selector,
     ActivateAbsent(method, receiver, num_args);  // SAFEPOINT
     return;
   }
-  SendProtected(selector, num_args, receiver,
+  ProtectedSend(selector, num_args, receiver,
                 receiver_class, rule);  // SAFEPOINT
 }
 
 
-void Interpreter::SendProtected(String* selector,
+void Interpreter::ProtectedSend(String* selector,
                                 intptr_t num_args,
                                 Object* receiver,
                                 Behavior* mixin_application,
@@ -564,12 +589,12 @@ void Interpreter::SendProtected(String* selector,
     lookup_class = lookup_class->superclass();
   }
   bool present_receiver = false;
-  SendDNU(selector, num_args, receiver, mixin_application,
+  DNUSend(selector, num_args, receiver, mixin_application,
           present_receiver);  // SAFEPOINT
 }
 
 
-void Interpreter::SendDNU(String* selector,
+void Interpreter::DNUSend(String* selector,
                           intptr_t num_args,
                           Object* receiver,
                           Behavior* lookup_class,
@@ -921,14 +946,19 @@ String* Interpreter::SelectorAt(intptr_t index) {
 
 void Interpreter::LocalReturn(Object* result) {
   Object** saved_fp = FrameSavedFP(fp_);
-  if (saved_fp != 0) {
-    ip_ = FrameSavedIP(fp_);
-    sp_ = FrameSavedSP(fp_);
-    fp_ = saved_fp;
-    Push(result);
+  if (saved_fp == 0) {
+    LocalBaseReturn(result);  // SAFEPOINT
     return;
   }
 
+  ip_ = FrameSavedIP(fp_);
+  sp_ = FrameSavedSP(fp_);
+  fp_ = saved_fp;
+  Push(result);
+}
+
+
+void Interpreter::LocalBaseReturn(Object* result) {
   // Returning from the base frame.
   Activation* top;
   {
@@ -1162,7 +1192,7 @@ void Interpreter::Interpret() {
           break;
         }
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 81: {
@@ -1178,7 +1208,7 @@ void Interpreter::Interpret() {
           break;
         }
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 82: {
@@ -1194,7 +1224,7 @@ void Interpreter::Interpret() {
         }
         break;
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 83: {
@@ -1210,7 +1240,7 @@ void Interpreter::Interpret() {
         }
         break;
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 84: {
@@ -1226,7 +1256,7 @@ void Interpreter::Interpret() {
         }
         break;
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 85: {
@@ -1242,7 +1272,7 @@ void Interpreter::Interpret() {
         }
         break;
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 86: {
@@ -1258,22 +1288,22 @@ void Interpreter::Interpret() {
         }
         break;
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 87: {
       // ~=
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 88: {
       // *
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 89: {
       // /
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 90: {
@@ -1290,22 +1320,22 @@ void Interpreter::Interpret() {
           break;
         }
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 91: {
       // @
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 92: {
       // bitShift:
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 93: {
       // //
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 94: {
@@ -1319,7 +1349,7 @@ void Interpreter::Interpret() {
         PopNAndPush(2, SmallInteger::New(raw_result));
         break;
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 95: {
@@ -1333,7 +1363,7 @@ void Interpreter::Interpret() {
         PopNAndPush(2, SmallInteger::New(raw_result));
         break;
       }
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 96: {
@@ -1358,7 +1388,7 @@ void Interpreter::Interpret() {
           }
         }
       }
-      QuickCommonSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 97: {
@@ -1387,7 +1417,7 @@ void Interpreter::Interpret() {
           }
         }
       }
-      QuickCommonSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 98: {
@@ -1400,26 +1430,26 @@ void Interpreter::Interpret() {
         PopNAndPush(1, static_cast<Bytes*>(array)->size());
         break;
       }
-      QuickCommonSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     }
     case 99: case 100: case 101: case 102: case 103:
     case 104: case 105: case 106: case 107:
     case 108: case 109: case 110: case 111:
-      QuickCommonSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
 #else  // !STATIC_PREDICTION_BYTECODES
     case 80: case 81: case 82: case 83:
     case 84: case 85: case 86: case 87:
     case 88: case 89: case 90: case 91:
     case 92: case 93: case 94: case 95:
-      QuickArithmeticSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
     case 96: case 97: case 98: case 99:
     case 100: case 101: case 102: case 103:
     case 104: case 105: case 106: case 107:
     case 108: case 109: case 110: case 111:
-      QuickCommonSend(byte1 & 15);
+      CommonSend(byte1 - 80);
       break;
 #endif  // STATIC_PREDICTION_BYTECODES
     case 112: case 113: case 114: case 115:
@@ -1995,18 +2025,6 @@ void Interpreter::GCPrologue() {
     ip_slot = FrameSavedIPSlot(fp);
     fp = FrameSavedFP(fp);
   }
-}
-
-
-void Interpreter::RootPointers(Object*** from, Object*** to) {
-  *from = &nil_;
-  *to = reinterpret_cast<Object**>(&object_store_);
-}
-
-
-void Interpreter::StackPointers(Object*** from, Object*** to) {
-  *from = sp_;
-  *to = stack_base_ - 1;
 }
 
 

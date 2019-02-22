@@ -1837,7 +1837,7 @@ DEFINE_PRIMITIVE(Object_performWithAll) {
     I->Push(arguments->element(i));
   }
 
-  I->SendOrdinary(selector, perform_args);
+  I->Perform(selector, perform_args);
   return kSuccess;
 }
 

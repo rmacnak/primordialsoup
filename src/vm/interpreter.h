@@ -28,7 +28,7 @@ class Interpreter {
 
   void Enter();
   void Exit();
-  void SendOrdinary(String* selector, intptr_t num_args);
+  void Perform(String* selector, intptr_t num_args);
   Method* MethodAt(Behavior* cls, String* selector);
   void ActivateClosure(intptr_t num_args);
 
@@ -40,8 +40,7 @@ class Interpreter {
   Activation* CurrentActivation();
   void SetCurrentActivation(Activation* new_activation);
   Object* ActivationSender(Activation* activation);
-  void ActivationSenderPut(Activation* activation,
-                           Activation* new_sender);
+  void ActivationSenderPut(Activation* activation, Activation* new_sender);
   Object* ActivationBCI(Activation* activation);
   void ActivationBCIPut(Activation* activation, SmallInteger* new_bci);
   void ActivationMethodPut(Activation* activation, Method* new_method);
@@ -54,8 +53,14 @@ class Interpreter {
   void ActivationTempSizePut(Activation* activation, intptr_t new_size);
 
   void GCPrologue();
-  void RootPointers(Object*** from, Object*** to);
-  void StackPointers(Object*** from, Object*** to);
+  void RootPointers(Object*** from, Object*** to) {
+    *from = &nil_;
+    *to = reinterpret_cast<Object**>(&object_store_);
+  }
+  void StackPointers(Object*** from, Object*** to) {
+    *from = sp_;
+    *to = stack_base_ - 1;
+  }
   void GCEpilogue();
 
   void Push(Object* value) {
@@ -103,67 +108,75 @@ class Interpreter {
  private:
   void Interpret();
 
-  void PushLiteralVariable(intptr_t offset);
-  void PushTemporary(intptr_t offset);
-  void PushRemoteTemp(intptr_t vector_offset, intptr_t offset);
+  INLINE void PushLiteralVariable(intptr_t offset);
+  INLINE void PushTemporary(intptr_t offset);
+  INLINE void PushRemoteTemp(intptr_t vector_offset, intptr_t offset);
 
-  void StoreIntoTemporary(intptr_t offset);
-  void StoreIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
+  INLINE void StoreIntoTemporary(intptr_t offset);
+  INLINE void StoreIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
 
-  void PopIntoTemporary(intptr_t offset);
-  void PopIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
+  INLINE void PopIntoTemporary(intptr_t offset);
+  INLINE void PopIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
 
-  void PushLiteral(intptr_t offset);
-  void PushEnclosingObject(intptr_t depth);
-  void PushNewArrayWithElements(intptr_t size);
-  void PushNewArray(intptr_t size);
+  INLINE void PushLiteral(intptr_t offset);
+  INLINE void PushEnclosingObject(intptr_t depth);
+  INLINE void PushNewArrayWithElements(intptr_t size);
+  INLINE void PushNewArray(intptr_t size);
   void PushClosure(intptr_t num_copied, intptr_t num_args, intptr_t block_size);
 
-  void QuickArithmeticSend(intptr_t offset);
-  void QuickCommonSend(intptr_t offset);
-
-  void OrdinarySend(intptr_t selector_index, intptr_t num_args);
-  void SuperSend(intptr_t selector_index, intptr_t num_args);
-  void ImplicitReceiverSend(intptr_t selector_index, intptr_t num_args);
-  void OuterSend(intptr_t selector_index, intptr_t num_args, intptr_t depth);
-  void SelfSend(intptr_t selector_index, intptr_t num_args);
+  INLINE void CommonSend(intptr_t offset);
+  INLINE void OrdinarySend(intptr_t selector_index, intptr_t num_args);
+  INLINE void OrdinarySend(String* selector, intptr_t num_args);
+  NOINLINE void OrdinarySendMiss(String* selector, intptr_t num_args);
+  INLINE void SuperSend(intptr_t selector_index, intptr_t num_args);
+  NOINLINE void SuperSendMiss(String* selector, intptr_t num_args);
+  INLINE void ImplicitReceiverSend(intptr_t selector_index, intptr_t num_args);
+  NOINLINE void ImplicitReceiverSendMiss(String* selector, intptr_t num_args);
+  INLINE void OuterSend(intptr_t selector_index, intptr_t num_args,
+                        intptr_t depth);
+  NOINLINE void OuterSendMiss(String* selector, intptr_t num_args,
+                              intptr_t depth);
+  INLINE void SelfSend(intptr_t selector_index, intptr_t num_args);
+  NOINLINE void SelfSendMiss(String* selector, intptr_t num_args);
 
   Behavior* FindApplicationOf(AbstractMixin* mixin, Behavior* klass);
   bool HasMethod(Behavior*, String* selector);
-  String* SelectorAt(intptr_t index);
+  INLINE String* SelectorAt(intptr_t index);
 
-  void SendLexical(String* selector,
+  void LexicalSend(String* selector,
                    intptr_t num_args,
                    Object* receiver,
                    AbstractMixin* mixin,
                    intptr_t rule);
-  void SendProtected(String* selector,
+  void ProtectedSend(String* selector,
                      intptr_t num_args,
                      Object* receiver,
                      Behavior* starting_at,
                      intptr_t rule);
-
-  void SendDNU(String* selector,
+  void DNUSend(String* selector,
                intptr_t num_args,
                Object* receiver,
                Behavior* lookup_class,
                bool present_receiver);
-  void SendCannotReturn(Object* result);
-  void SendAboutToReturnThrough(Object* result, Activation* unwind);
-  void SendNonBooleanReceiver(Object* non_boolean);
 
-  void ActivateAbsent(Method* method, Object* receiver, intptr_t num_args);
-  void InsertAbsentReceiver(Object* receiver, intptr_t num_args);
-  void Activate(Method* method, intptr_t num_args);
-  void StackOverflow();
+  NOINLINE void SendCannotReturn(Object* result);
+  NOINLINE void SendAboutToReturnThrough(Object* result, Activation* unwind);
+  NOINLINE void SendNonBooleanReceiver(Object* non_boolean);
 
-  void MethodReturn(Object* result);
-  void LocalReturn(Object* result);
-  void NonLocalReturn(Object* result);
+  INLINE void InsertAbsentReceiver(Object* receiver, intptr_t num_args);
+  INLINE void ActivateAbsent(Method* method, Object* receiver,
+                             intptr_t num_args);
+  NOINLINE void Activate(Method* method, intptr_t num_args);
+  NOINLINE void StackOverflow();
 
-  void CreateBaseFrame(Activation* activation);
-  Activation* EnsureActivation(Object** fp);
-  Activation* FlushAllFrames();
+  INLINE void MethodReturn(Object* result);
+  INLINE void LocalReturn(Object* result);
+  NOINLINE void LocalBaseReturn(Object* result);
+  NOINLINE void NonLocalReturn(Object* result);
+
+  NOINLINE void CreateBaseFrame(Activation* activation);
+  NOINLINE Activation* EnsureActivation(Object** fp);
+  NOINLINE Activation* FlushAllFrames();
   bool HasLivingFrame(Activation* activation);
 
   static constexpr intptr_t kStackSlots = 1024;

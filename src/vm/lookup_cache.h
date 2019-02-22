@@ -23,6 +23,7 @@ class LookupCache {
     Clear();
   }
 
+  INLINE
   bool LookupOrdinary(intptr_t cid,
                       String* selector,
                       Method** target) {
@@ -50,6 +51,7 @@ class LookupCache {
                       String* selector,
                       Method* target);
 
+  INLINE
   bool LookupNS(intptr_t cid,
                 String* selector,
                 Method* caller,

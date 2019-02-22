@@ -231,11 +231,27 @@ inline D bit_cast(const S& source) {
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
-#define NORETURN_ATTRIBUTE __attribute__((noreturn))
+#define NORETURN __attribute__((noreturn))
 #elif defined(_MSC_VER)
-#define NORETURN_ATTRIBUTE __declspec(noreturn)
+#define NORETURN __declspec(noreturn)
 #else
-#define NORETURN_ATTRIBUTE
+#define NORETURN
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+#define INLINE inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+#define INLINE __forceinline
+#else
+#define INLINE
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+#define NOINLINE __attribute__((noinline))
+#elif defined(_MSC_VER)
+#define NOINLINE __declspec(noinline)
+#else
+#define NOINLINE
 #endif
 
 #endif  // VM_GLOBALS_H_

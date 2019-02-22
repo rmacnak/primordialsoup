@@ -361,18 +361,18 @@ class SmallInteger : public Object {
     return reinterpret_cast<intptr_t>(this) >> kSmiTagShift;
   }
 
+#if defined(ARCH_IS_32_BIT)
   static bool IsSmiValue(int64_t value) {
     return (value >= static_cast<int64_t>(kMinValue)) &&
            (value <= static_cast<int64_t>(kMaxValue));
   }
+#endif
 
-#if defined(ARCH_IS_32_BIT)
   static bool IsSmiValue(intptr_t value) {
     // Check if the top two bits are equal.
     ASSERT(kSmiTagShift == 1);
     return (value ^ (value << 1)) >= 0;
   }
-#endif
 };
 
 class MediumInteger : public HeapObject {
@@ -907,7 +907,7 @@ class ObjectStore : public HeapObject {
   Object* false_obj() const { return ptr()->false_; }
   Object* true_obj() const { return ptr()->true_; }
   Object* message_loop() const { return ptr()->message_loop_; }
-  class Array* quick_selectors() const { return ptr()->quick_selectors_; }
+  class Array* common_selectors() const { return ptr()->common_selectors_; }
   class String* does_not_understand() const {
     return ptr()->does_not_understand_;
   }
@@ -949,7 +949,7 @@ class ObjectStore : public HeapObject {
   Object* false_;
   Object* true_;
   Object* message_loop_;
-  class Array* quick_selectors_;
+  class Array* common_selectors_;
   class String* does_not_understand_;
   class String* non_boolean_receiver_;
   class String* cannot_return_;
