@@ -162,7 +162,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '/DEBUG',  # Debug symbols
     ]
 
-  env['CPPPATH'] = ['src']
+  env['CPPPATH'] = ['.']
 
   objects = []
 
@@ -205,7 +205,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   ]
   for cc in vm_ccs:
     objects += env.Object(os.path.join(outdir, 'vm', cc + '.o'),
-                          os.path.join('src', 'vm', cc + '.cc'))
+                          os.path.join('vm', cc + '.cc'))
 
   double_conversion_ccs = [
     'bignum',
@@ -219,14 +219,14 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   ]
   for cc in double_conversion_ccs:
     objects += env.Object(os.path.join(outdir, 'double-conversion', cc + '.o'),
-                          os.path.join('src', 'double-conversion', cc + '.cc'))
+                          os.path.join('double-conversion', cc + '.cc'))
 
   program = env.Program(os.path.join(outdir, 'primordialsoup'), objects)
   return str(program[0])
 
 
 def BuildSnapshots(outdir, host_vm):
-  nssources = Glob(os.path.join('src', 'newspeak', '*.ns'))
+  nssources = Glob(os.path.join('newspeak', '*.ns'))
   compilersnapshot = os.path.join('snapshots', 'compiler.vfuel')
   snapshots = []
   cmd = host_vm + ' ' + compilersnapshot + ' $SOURCES'
