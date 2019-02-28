@@ -403,7 +403,7 @@ public testByteArrayCopyFromTo = (
 	assert: (copy at: 1) equals: 16rB.
 	assert: (copy at: 2) equals: 16rC.
 
-	1 to: 4 do: 
+	1 to: 4 do:
 		[:start |
 		 copy:: array copyFrom: start to: start - 1.
 		 assert: copy size equals: 0].
@@ -432,7 +432,7 @@ public testByteArrayEndsWith = (
 	zero:: ByteArray new: 1.
 	zero at: 1 put: 48.
 	empty:: ByteArray new: 0.
-	
+
 	assert: (foo endsWith: 'o').
 	assert: (foo endsWith: 'foo').
 	assert: (foo endsWith: foo).
@@ -2253,6 +2253,51 @@ public testIntegerMultiply = (
 	assert: minInt32 * minInt32 equals: 4611686018427387904.
 	assert: maxInt32 * maxInt32 equals: 4611686014132420609.
 )
+public testIntegerParse = (
+	assert: (Integer parse: '3') equals: 3.
+	assert: (Integer parse: '-3') equals: -3.
+	assert: (Integer parse: '0123456789') equals: 0123456789.
+	assert: (Integer parse: '-0123456789') equals: -0123456789.
+	assert: (Integer parse: 'CAFE' radix: 16) equals: 16rCAFE.
+	assert: (Integer parse: 'cafe' radix: 16) equals: 16rCAFE.
+	assert: (Integer parse: 'Z' radix: 36) equals: 35.
+	assert: (Integer parse: 'z' radix: 36) equals: 35.
+
+	2 to: 36 do: [:radix | assert: (Integer parse: '10' radix: radix) equals: radix].
+	2 to: 36 do: [:radix | assert: (Integer parse: '100' radix: radix) equals: radix * radix].
+
+	(* Last valid digit. *)
+	2 to: 36 do:
+		[:radix |
+		assert: (Integer parse: ('123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' copyFrom: radix - 1 to: radix - 1) radix: radix) equals: radix - 1.
+		assert: (Integer parse: ('123456789abcdefghijklmnopqrstuvwxyz' copyFrom: radix - 1 to: radix - 1) radix: radix) equals: radix - 1].
+
+	(* Digit out of range. *)
+	2 to: 36 do:
+		[:radix |
+		should: [Integer parse: ('123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' copyFrom: radix to: radix) radix: radix] signal: Error.
+		should: [Integer parse: ('123456789abcdefghijklmnopqrstuvwxyz' copyFrom: radix to: radix) radix: radix] signal: Error].
+
+	(* Bad radix *)
+	should: [Integer parse: '0' radix: -1] signal: Error.
+	should: [Integer parse: '0' radix: 0] signal: Error.
+	should: [Integer parse: '0' radix: 1] signal: Error.
+	should: [Integer parse: '0' radix: 37] signal: Error.
+
+	should: [Integer parse: 'xyz'] signal: Error.
+	should: [Integer parse: ''] signal: Error.
+	should: [Integer parse: '--9'] signal: Error.
+	should: [Integer parse: 'nan'] signal: Error.
+	should: [Integer parse: 'NAN'] signal: Error.
+	should: [Integer parse: 'infinity'] signal: Error.
+	should: [Integer parse: '-infinity'] signal: Error.
+	should: [Integer parse: 'inf'] signal: Error.
+	should: [Integer parse: '-inf'] signal: Error.
+	should: [Integer parse: '3.0'] signal: Error.
+
+	should: [Integer parse: ' 3'] signal: Error.
+	should: [Integer parse: '3 '] signal: Error.
+)
 public testIntegerRounded = (
 	assert: -1 rounded equals: -1.
 	assert: 0 rounded equals: 0.
@@ -3144,6 +3189,14 @@ public testLargeIntegerOr = (
 	assert: (g bitOr: 0) equals: g.
 	assert: (h bitOr: 0) equals: h.
 )
+public testLargeIntegerParse = (
+	assert: (Integer parse: '-9223372036854775809') equals: largestNegativeLargeInteger.
+	assert: (Integer parse: '9223372036854775808') equals: smallestPositiveLargeInteger.
+
+	assert: (Integer parse: 'FFFFFFFFFFFFFFFF' radix: 16) equals: 16rFFFFFFFFFFFFFFFF.
+	assert: (Integer parse: 'ABCDABCDABCDABCD' radix: 16) equals: 16rABCDABCDABCDABCD.
+	assert: (Integer parse: '-9999999999999999999') equals: -9999999999999999999.
+)
 public testLargeIntegerQuo = (
 	|
 	a = 16rC425942592C7528C08D25976E.
@@ -3983,6 +4036,10 @@ public testMediumIntegerOr = (
 
 	assert: (maxInt64 bitOr: maxInt63) equals: maxInt64.
 )
+public testMediumIntegerParse = (
+	assert: (Integer parse: '9223372036854775807') equals: maxInt64.
+	assert: (Integer parse: '-9223372036854775808') equals: minInt64.
+)
 public testMediumIntegerQuo = (
 	assert: (minInt31 quo: 1) equals: minInt31.
 	assert: (minInt32 quo: 1) equals: minInt32.
@@ -4747,12 +4804,12 @@ public testStringConcatenation = (
 public testStringCopyFromTo = (
 	assert: ('Hello, world!' copyFrom: 8 to: 12) equals: 'world'.
 	assert: ('Hello, world!' copyFrom: 5 to: 5) equals: 'o'.
-	
-	1 to: 5 do: 
+
+	1 to: 5 do:
 		[:start | assert: ('Hello' copyFrom: start to: start - 1) equals: ''].
-	
+
 	assert: ('' copyFrom: 1 to: 0) equals: ''.
-	
+
 	should: ['' copyFrom: 0 to: 0] signal: Error.
 	should: ['' copyFrom: 2 to: 0] signal: Error.
 	should: ['' copyFrom: 1 to: 1] signal: Error.

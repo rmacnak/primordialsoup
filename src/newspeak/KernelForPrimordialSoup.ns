@@ -1057,8 +1057,34 @@ public | other <Integer> ^<Integer> = (
 	^(ArgumentError value: other) signal
 )
 ) : (
+private digitValue: byte <Integer> ^<Integer> = (
+	byte >= 48 ifTrue: [byte <= 57 ifTrue: [^byte - 48]].
+	byte >= 65 ifTrue: [byte <= 90 ifTrue: [^byte - 55]].
+	byte >= 97 ifTrue: [byte <= 122 ifTrue: [^byte - 87]].
+	^37
+)
 public parse: string <String> ^<Integer> = (
-	halt.
+	^self parse: string radix: 10
+)
+public parse: string <String> radix: radix <Integer> ^<Integer> = (
+	| negative start value |
+	radix < 2 ifTrue: [^(ArgumentError value: radix) signal].
+	radix > 36 ifTrue: [^(ArgumentError value: radix) signal].
+	string size = 0 ifTrue: [^(ArgumentError value: string) signal].
+	45 = (string at: 1)
+		ifTrue:
+			[negative:: true.
+			 string size < 2 ifTrue: [^(ArgumentError value: string) signal].
+			 start:: 2]
+		ifFalse:
+			[negative:: false.
+			 start:: 1].
+	value:: 0.
+	start to: string size do:
+		[:index | | digitValue = self digitValue: (string at: index). |
+		digitValue >= radix ifTrue: [^(ArgumentError value: string) signal].
+		value:: value * radix + digitValue].
+	^negative ifTrue: [0 - value] ifFalse: [value]
 )
 )
 class Interval from: start_ to: stop_ by: step_ = Collection (|
