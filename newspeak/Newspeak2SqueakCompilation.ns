@@ -36,7 +36,6 @@ Copyright 2012-2013 Gilad Bracha, Ryan Macnak and Cadence Design Systems
 	private Set = platform collections Set.
 
 	private ASTTool = asts ASTTool.
-	private ASTCopier = asts ASTCopier.
 
 	private AST = asts AST.
 	private BlockAST = asts BlockAST.
@@ -1224,12 +1223,6 @@ public symbolNode: node <SymbolAST> = (
 )
 ) : (
 )
-class ASTCopier = outer Newspeak2SqueakCompilation ASTCopier () (
-public mixinClassNode: aNode = (
-	^MixinClassNode new
-)
-) : (
-)
 class ASTTraverser = ASTTool () (
 public blockLocalReturnNode: node <BlockLocalReturnAST> = (
 	node expression apply: self.
@@ -2082,14 +2075,15 @@ private classDeclarationInitializerFor: aNode <ClassHeaderAST> ^<MethodAST> = (
 	initHdr <MessagePatternAST>
 	body <CodeBodyAST>
 	slots <Collection[StmtAST]>
-	copier <ASTCopier>
 	|
 
 	start:: aNode superConstructorCall start.
-	end:: aNode  superConstructorCall end.
-	copier:: ASTCopier new.
-	initHdr:: aNode constructor apply: copier. (* set up scope with constructor parameters *)
-	initHdr selector: (initializerSelectorNameFor: initHdr selector).
+	end:: aNode superConstructorCall end.
+	initHdr:: MessagePatternAST new
+		accessModifier: aNode constructor accessModifier;
+		selector: (initializerSelectorNameFor: aNode constructor selector);
+		parameters: aNode constructor parameters;
+		copyPositionFrom: aNode constructor.
 
 	(* Call super initializers *)
 	stmts:: mixinInitializationCallsFor: aNode inheritanceChain.
@@ -2101,7 +2095,7 @@ private classDeclarationInitializerFor: aNode <ClassHeaderAST> ^<MethodAST> = (
 
 	(*  run init expressions *)
 	aNode initExprs do:
-		[:ie <ExpressionAST> | stmts add: (ie apply: copier)].
+		[:ie <ExpressionAST> | stmts add: ie].
 
 	body:: CodeBodyAST new
 		parameters: initHdr parameters
@@ -2320,7 +2314,7 @@ computeSlotInitializersFor: aNode <ClassHeaderAST> ^ <Collection[StmtAST]> = (
 	^(aNode slots reject: [:slot | slot initializer isNil]) collect:
 		[:slot <SlotDefAST> |
 		| aMsg <MessageAST> slotInitializer <ExpressionAST> |
-		slotInitializer:: slot initializer apply: ASTCopier new.
+		slotInitializer:: slot initializer.
 		aNode isSeq ifFalse: [slotInitializer:: futureFor: slotInitializer].
 		aMsg:: MessageAST new
 			send: (initializerSelectorForSlot: slot) with: {slotInitializer};
@@ -2575,7 +2569,7 @@ makePrimaryFactoryFor: hdr <ClassHeaderAST> ^<MethodAST> = (
 	body <CodeBodyAST>
 	|
 
-	cons:: hdr constructor apply: ASTCopier new.
+	cons:: hdr constructor.
 	start:: cons start.
 	end:: cons end.
 
@@ -2657,15 +2651,18 @@ mixinApplicationClassNode: nc <MixinApplicationClassAST>
 	^classDecl
 )
 mixinApplicationInitializerFor: classDef <MixinApplicationClassAST> ^ <MethodAST> = (
-(* Probably migrate to superclass *)
+	(* Probably migrate to superclass *)
 	|
-	pattern = classDef constructor apply: ASTCopier new.
+	pattern = MessagePatternAST new
+		accessModifier: classDef constructor accessModifier;
+		selector: (initializerSelectorNameFor: classDef constructor selector);
+		parameters: classDef constructor parameters;
+		copyPositionFrom: classDef constructor.
 	iList = classDef inheritanceChain.
 	stmts = mixinInitializationCallsFor: iList.
 	body = CodeBodyAST new temporaries: {} statements: stmts.
 	mtd = MethodAST new pattern: pattern body: body accessModifier: #public.
 	|
-	pattern selector: (initializerSelectorNameFor: pattern selector).
 	body start: stmts first start; end: stmts last end.
 	mtd start: pattern start; end: body end.
 	^mtd.
@@ -2675,13 +2672,16 @@ mixinCall: number <Integer> inheritanceList: iList <Collection[SendAST]> ^ <Norm
 	(* create call to superclass initializer *)
 	|
 	aNode <SendAST> = iList at: number.
-	var <VariableAST> = VariableAST new name: #self; start: aNode start; end: aNode end.
-	mixinMsg <MessageAST> = aNode message apply: ASTCopier new.
-	send <NormalSendAST> = UnresolvedSendAST new to: var send: mixinMsg; start: aNode start; end: aNode end.
 	|
-
-	mixinMsg selector: (superMixinInitializerSelectorFor: mixinMsg selector number: number - 1).
-	^send
+	^UnresolvedSendAST new
+		to: (VariableAST new
+			name: #self;
+			copyPositionFrom: aNode)
+		send: (MessageAST new
+			selector: (superMixinInitializerSelectorFor: aNode message selector number: number - 1);
+			arguments: aNode message arguments;
+			copyPositionFrom: aNode message);
+		copyPositionFrom: aNode
 )
 mixinInitializationCallsFor: iList <List[SendAST]> ^ <List[StmtAST]> = (
 	| stmts <List[StmtAST]> = List new. |
@@ -2699,16 +2699,17 @@ private mixinInitializerFor: aNode <ClassHeaderAST> ^ <MethodAST> = (
 	body <CodeBodyAST>
 	slots <Collection[StmtAST]>
 	subs <Collection[MethodAST]>
-	copier <ASTCopier>
 	|
-	copier:: ASTCopier new.
-	initHdr:: aNode constructor apply: copier. (* set up scope with constructor parameters *)
-	initHdr selector: (mixinInitializerSelectorNameFor: initHdr selector).
+	initHdr:: MessagePatternAST new
+		accessModifier: aNode constructor accessModifier;
+		selector: (mixinInitializerSelectorNameFor: aNode constructor selector);
+		parameters: aNode constructor parameters;
+		copyPositionFrom: aNode constructor.
 
 	stmts:: (aNode slots reject: [:slot | slot initializer isNil]) collect:
 		[:slot <SlotDefAST> |
 		| aMsg <MessageAST> slotInitializer <ExpressionAST> |
-		slotInitializer:: slot initializer apply: copier.
+		slotInitializer:: slot initializer.
 		aNode isSeq ifFalse: [slotInitializer:: futureFor: slotInitializer].
 		aMsg:: MessageAST new
 			send: (initializerSelectorForSlot: slot) with: {slotInitializer};
@@ -2721,7 +2722,7 @@ private mixinInitializerFor: aNode <ClassHeaderAST> ^ <MethodAST> = (
 
 	(* then add the initializer code *)
 	aNode initExprs do:
-		[:ie <ExpressionAST> | stmts add: (ie apply: copier)].
+		[:ie <ExpressionAST> | stmts add: ie].
 	start:: stmts isEmpty ifTrue: [initHdr end+2] ifFalse: [stmts first start].
 	end:: stmts isEmpty ifTrue: [initHdr end + 3] ifFalse: [stmts last end].
 	body:: CodeBodyAST new
@@ -2867,13 +2868,15 @@ superConstructorNameFor: aNode <ClassHeaderAST> ^ <Symbol> = (
 superFactoryCallFor: aNode <SendAST> ^ <NormalSendAST> = (
 	(* Probably migrate to superclass *)
 	(* create call to superclass initializer *)
-	|
-	var <VariableAST> = VariableAST new name: #super; start: aNode start; end: aNode end.
-	superInitMsg <MessageAST> = aNode message apply: ASTCopier new.
-	send <NormalSendAST> = UnresolvedSendAST new to: var send: superInitMsg; start: aNode start; end: aNode end.
-	|
-	superInitMsg selector: (initializerSelectorNameFor: superInitMsg selector).
-	^send
+	^UnresolvedSendAST new
+		to: (VariableAST new
+			name: #super;
+			copyPositionFrom: aNode)
+		send: (MessageAST new
+			selector: (initializerSelectorNameFor: aNode message selector);
+			arguments: aNode message arguments;
+			copyPositionFrom: aNode message);
+		copyPositionFrom: aNode
 )
 superMixinInitializerSelectorFor: selector <Symbol> number: i <Integer> ^<Symbol> = (
 	^('mixinInitializer`',  i printString, '`', selector ) asSymbol
