@@ -808,6 +808,23 @@ public setterAstFor: varName <Symbol> putting: newVal <AST> ^<SendAST> = (
 )
 ) : (
 )
+class Interval from: start_ to: stop_ = (
+|
+public start = start_.
+public stop = stop_.
+|
+) (
+public first ^<E> = (
+	^self start
+)
+public includes: element <E> ^<Boolean> = (
+	^start <= element and: [element <= stop]
+)
+public last ^<E> = (
+	^self stop
+)
+) : (
+)
 class LocalVariableDebugInfo = (
 (* Debugger information for a local. *)
 |
@@ -827,7 +844,7 @@ addDebugInfo: node <AST> = (
 	(* Byte to map is first byte of e.g. send, which is the next, i.e. pc.
 	Hence this must be sent immediately before generating the send or store bytecode.
 	Can't send after generating the bytecode because there may be multiple bytes and mapping the last byte is wrong. *)
-	debugInfo mapBCI: cgen bci to: (node start to: node end).
+	debugInfo mapBCI: cgen bci to: (Interval from: node start to: node end).
 )
 addLocalVar: var <AllocatedLocal> = (
 	var remote ifFalse:
@@ -987,7 +1004,7 @@ public codeBodyNode: node <CodeBodyAST> = (
 			ifTrue: [statement apply: self]
 			ifFalse: [self applyForEffectTo: statement]].
 
-	validBCIRange:: startBCI to: cgen bci - 1.
+	validBCIRange:: Interval from: startBCI to: cgen bci - 1.
 	localVariableDebugInfos do: [:each | each validBCIRange: validBCIRange].
 
 	^localVariableDebugInfos
@@ -1086,7 +1103,7 @@ public loopNode: node <LoopAST> = (
 
 	valueExpected ifTrue: [cgen pushNil]. (* Result of loop message. Technically wrong, but Squeak makes the same mistake, and loops are almost never evaluated for value. *)
 
-	localVariableDebugInfos do: [:each | each validBCIRange: (each validBCIRange first to: cgen bci - 1)].
+	localVariableDebugInfos do: [:each | each validBCIRange: (Interval from: each validBCIRange first to: cgen bci - 1)].
 )
 public methodLocalReturnNode: node <MethodLocalReturnAST> = (
 	^self returnStatNode: node

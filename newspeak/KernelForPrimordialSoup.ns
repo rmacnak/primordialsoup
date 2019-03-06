@@ -1087,28 +1087,6 @@ public parse: string <String> radix: radix <Integer> ^<Integer> = (
 	^negative ifTrue: [0 - value] ifFalse: [value]
 )
 )
-class Interval from: start_ to: stop_ by: step_ = Collection (|
-public start <E extends Number> = start_.
-public stop <E extends Number> = stop_.
-public step <E extends Number> = step_.
-|) (
-public do: action <[:E]> = (
-	| value ::= start. |
-	step > 0
-		ifTrue: [[value <= stop] whileTrue: [action value: value. value:: value + step]]
-		ifFalse: [[value >= stop] whileTrue: [action value: value. value:: value + step]]
-)
-public first ^<E> = (
-	^self start
-)
-public printString ^<String> = (
-	| result |
-	result:: start printString, ' to: ', stop printString.
-	1 = step ifFalse: [result:: result, ' by: ', step printString].
-	^result
-)
-) : (
-)
 public class LargeInteger _cannotInstantiate = Integer () (
 ) : (
 )
@@ -1365,12 +1343,6 @@ public sqrt ^<Float> = (
 )
 public tan ^<Float> = (
 	^self asFloat tan
-)
-public to: stop = (
-	^Interval from: self to: stop by: 1
-)
-public to: stop by: step = (
-	^Interval from: self to: stop by: step
 )
 public to: stop by: step do: action = (
 	| current ::= self. |
