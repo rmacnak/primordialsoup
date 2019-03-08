@@ -16,9 +16,6 @@
 
 namespace psoup {
 
-// Defined in vm/thread_win.cc
-extern bool private_flag_windows_run_tls_destructors;
-
 
 static int64_t qpc_ticks_per_second = 0;
 
@@ -166,7 +163,6 @@ void OS::Startup() {
   init_once_called = true;
   // Do not pop up a message box when abort is called.
   _set_abort_behavior(0, _WRITE_ABORT_MSG);
-  ThreadLocalData::Startup();
   LARGE_INTEGER ticks_per_sec;
   if (!QueryPerformanceFrequency(&ticks_per_sec)) {
     qpc_ticks_per_second = 0;
@@ -176,22 +172,15 @@ void OS::Startup() {
 }
 
 
-void OS::Shutdown() {
-  // TODO(zra): Enable once VM can shutdown cleanly.
-  // ThreadLocalData::Shutdown();
-}
+void OS::Shutdown() {}
 
 
 void OS::Abort() {
-  // TODO(zra): Remove once VM shuts down cleanly.
-  private_flag_windows_run_tls_destructors = false;
   abort();
 }
 
 
 void OS::Exit(int code) {
-  // TODO(zra): Remove once VM shuts down cleanly.
-  private_flag_windows_run_tls_destructors = false;
   // On Windows we use ExitProcess so that threads can't clobber the exit_code.
   // See: https://code.google.com/p/nativeclient/issues/detail?id=2870
   ::ExitProcess(code);

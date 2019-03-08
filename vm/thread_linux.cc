@@ -81,10 +81,8 @@ static void* ThreadStart(void* data_ptr) {
   uword parameter = data->parameter();
   delete data;
 
-  // Create new Thread object and set as TLS for new thread.
-  Thread* thread = new Thread();
-  Thread::SetCurrent(thread);
-  thread->set_name(name);
+  // Set the thread name.
+  pthread_setname_np(pthread_self(), name);
 
   // Call the supplied thread start function handing it its parameters.
   function(parameter);
@@ -118,29 +116,6 @@ const ThreadJoinId Thread::kInvalidThreadJoinId =
     static_cast<ThreadJoinId>(0);
 
 
-ThreadLocalKey Thread::CreateThreadLocal(ThreadDestructor destructor) {
-  pthread_key_t key = kUnsetThreadLocalKey;
-  int result = pthread_key_create(&key, destructor);
-  VALIDATE_PTHREAD_RESULT(result);
-  ASSERT(key != kUnsetThreadLocalKey);
-  return key;
-}
-
-
-void Thread::DeleteThreadLocal(ThreadLocalKey key) {
-  ASSERT(key != kUnsetThreadLocalKey);
-  int result = pthread_key_delete(key);
-  VALIDATE_PTHREAD_RESULT(result);
-}
-
-
-void Thread::SetThreadLocal(ThreadLocalKey key, uword value) {
-  ASSERT(key != kUnsetThreadLocalKey);
-  int result = pthread_setspecific(key, reinterpret_cast<void*>(value));
-  VALIDATE_PTHREAD_RESULT(result);
-}
-
-
 ThreadId Thread::GetCurrentThreadId() {
   return pthread_self();
 }
@@ -151,17 +126,8 @@ ThreadId Thread::GetCurrentThreadTraceId() {
 }
 
 
-ThreadJoinId Thread::GetCurrentThreadJoinId(Thread* thread) {
-  ASSERT(thread != NULL);
-  // Make sure we're filling in the join id for the current thread.
-  ASSERT(thread->id() == GetCurrentThreadId());
-  // Make sure the join_id_ hasn't been set, yet.
-  DEBUG_ASSERT(thread->join_id_ == kInvalidThreadJoinId);
-  pthread_t id = pthread_self();
-#if defined(DEBUG)
-  thread->join_id_ = id;
-#endif
-  return id;
+ThreadJoinId Thread::GetCurrentThreadJoinId() {
+  return pthread_self();
 }
 
 

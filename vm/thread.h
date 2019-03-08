@@ -25,55 +25,9 @@
 
 namespace psoup {
 
-// Forward declarations.
-class Mutex;
-class Isolate;
-
-class Thread {
+class Thread : public AllStatic {
  public:
-  Thread();
-  ~Thread();
-
-  ThreadId id() const {
-    ASSERT(id_ != Thread::kInvalidThreadId);
-    return id_;
-  }
-
-  ThreadId trace_id() const {
-    ASSERT(trace_id_ != Thread::kInvalidThreadId);
-    return trace_id_;
-  }
-
-  const char* name() const { return name_; }
-  void set_name(const char* name) {
-    ASSERT(Thread::Current() == this);
-    ASSERT(name_ == NULL);
-    ASSERT(name != NULL);
-    name_ = strdup(name);
-  }
-
-  Isolate* isolate() const { return isolate_; }
-  void set_isolate(Isolate* isolate) {
-    isolate_ = isolate;
-  }
-
-  // The currently executing thread, or NULL if not yet initialized.
-  static Thread* Current() {
-    Thread* thread = GetCurrentTLS();
-    if (thread == NULL) {
-      thread = CreateAndSetUnknownThread();
-    }
-    return thread;
-  }
-  static void SetCurrent(Thread* current);
-
-  static Thread* GetCurrentTLS() {
-    return reinterpret_cast<Thread*>(Thread::GetThreadLocal(thread_key_));
-  }
-  static void SetCurrentTLS(uword value) { SetThreadLocal(thread_key_, value); }
-
   typedef void (*ThreadStartFunction)(uword parameter);
-  typedef void (*ThreadDestructor)(void* parameter);
 
   // Start a thread running the specified function. Returns 0 if the
   // thread started successfuly and a system specific error code if
@@ -82,25 +36,15 @@ class Thread {
                    ThreadStartFunction function,
                    uword parameter);
 
-  static ThreadLocalKey CreateThreadLocal(ThreadDestructor destructor = NULL);
-  static void DeleteThreadLocal(ThreadLocalKey key);
-  static uword GetThreadLocal(ThreadLocalKey key) {
-    return ThreadInlineImpl::GetThreadLocal(key);
-  }
   static ThreadId GetCurrentThreadId();
-  static void SetThreadLocal(ThreadLocalKey key, uword value);
   static void Join(ThreadJoinId id);
   static intptr_t ThreadIdToIntPtr(ThreadId id);
   static ThreadId ThreadIdFromIntPtr(intptr_t id);
   static bool Compare(ThreadId a, ThreadId b);
 
   // This function can be called only once per Thread, and should only be
-  // called when the retunred id will eventually be passed to Thread::Join().
-  static ThreadJoinId GetCurrentThreadJoinId(Thread* thread);
-
-  // Called at VM startup and shutdown.
-  static void Startup();
-  static void Shutdown();
+  // called when the returned id will eventually be passed to Thread::Join().
+  static ThreadJoinId GetCurrentThreadJoinId();
 
   static void DisableThreadCreation();
   static void EnableThreadCreation();
@@ -109,21 +53,6 @@ class Thread {
   static const ThreadJoinId kInvalidThreadJoinId;
 
   static ThreadId GetCurrentThreadTraceId();
-
- private:
-  static Thread* CreateAndSetUnknownThread();
-
-  static ThreadLocalKey thread_key_;
-
-  const ThreadId id_;
-#if defined(DEBUG)
-  // In DEBUG mode we use this field to ensure that GetCurrentThreadJoinId is
-  // only called once per Thread.
-  ThreadJoinId join_id_;
-#endif
-  const ThreadId trace_id_;  // Used to interface with tracing tools.
-  char* name_;  // A name for this thread.
-  Isolate* isolate_;
 };
 
 class Mutex {

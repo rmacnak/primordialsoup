@@ -190,7 +190,6 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     'primitives',
     'primordial_soup',
     'snapshot',
-    'thread',
     'thread_android',
     'thread_fuchsia',
     'thread_linux',

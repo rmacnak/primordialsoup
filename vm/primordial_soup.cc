@@ -16,7 +16,6 @@
 
 PSOUP_EXTERN_C void PrimordialSoup_Startup() {
   psoup::OS::Startup();
-  psoup::Thread::Startup();
   psoup::Primitives::Startup();
   psoup::PortMap::Startup();
   psoup::Isolate::Startup();
@@ -27,7 +26,6 @@ PSOUP_EXTERN_C void PrimordialSoup_Shutdown() {
   psoup::Isolate::Shutdown();
   psoup::PortMap::Shutdown();
   psoup::Primitives::Shutdown();
-  psoup::Thread::Shutdown();
   psoup::OS::Shutdown();
 }
 

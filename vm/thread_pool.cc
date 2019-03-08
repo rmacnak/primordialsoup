@@ -98,9 +98,7 @@ void ThreadPool::Shutdown() {
 
     // First tell all the workers to shut down.
     Worker* current = saved;
-    Thread* thread = Thread::Current();
-    ASSERT(thread != NULL);
-    ThreadId id = thread->id();
+    ThreadId id = Thread::GetCurrentThreadId();
     while (current != NULL) {
       Worker* next = current->all_next_;
       ThreadId currentId = current->id();
@@ -259,9 +257,7 @@ bool ThreadPool::ReleaseIdleWorker(Worker* worker) {
 
   // The thread for worker will exit. Add its ThreadId to the join_list_
   // so that we can join on it at the next opportunity.
-  Thread* thread = Thread::Current();
-  ASSERT(thread != NULL);
-  ThreadJoinId join_id = Thread::GetCurrentThreadJoinId(thread);
+  ThreadJoinId join_id = Thread::GetCurrentThreadJoinId();
   JoinList::AddLocked(join_id, &join_list_);
   count_stopped_++;
   count_idle_--;
@@ -418,9 +414,7 @@ void ThreadPool::Worker::Shutdown() {
 // static
 void ThreadPool::Worker::Main(uword args) {
   Worker* worker = reinterpret_cast<Worker*>(args);
-  Thread* thread = Thread::Current();
-  ASSERT(thread != NULL);
-  ThreadId id = thread->id();
+  ThreadId id = Thread::GetCurrentThreadId();
   ThreadPool* pool;
 
   {
@@ -441,7 +435,7 @@ void ThreadPool::Worker::Main(uword args) {
     // Inform the thread pool that we are exiting. We remove this worker from
     // shutting_down_workers_ list because there will be no need for the
     // ThreadPool to take action for this worker.
-    ThreadJoinId join_id = Thread::GetCurrentThreadJoinId(thread);
+    ThreadJoinId join_id = Thread::GetCurrentThreadJoinId();
     {
       MutexLocker ml(&pool->mutex_);
       JoinList::AddLocked(join_id, &pool->join_list_);

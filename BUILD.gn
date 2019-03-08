@@ -93,7 +93,6 @@ executable("vm") {
     "vm/random.h",
     "vm/snapshot.cc",
     "vm/snapshot.h",
-    "vm/thread.cc",
     "vm/thread.h",
     "vm/thread_android.cc",
     "vm/thread_android.h",
