@@ -38,7 +38,7 @@ To target Fuchsia, clone this repository to `third_party/primordialsoup` in a Fu
 
 ```
 git clone https://github.com/rmacnak/primordialsoup.git third_party/primordialsoup
-fx set x64 out/release-x64 --release --packages garnet/packages/default,third_party/primordialsoup/packages
+fx set x64 out/release-x64 --release --monolith garnet/packages/default,third_party/primordialsoup/packages
 fx full-build
 ```
 
@@ -53,7 +53,7 @@ After building, the test suite and some benchmarks can be run with
 On Fuchsia,
 
 ```
-run HelloApp
-run TestRunner
-run BenchmarkRunner
+run fuchsia-pkg://fuchsia.com/hello_app#meta/hello_app.cmx
+run fuchsia-pkg://fuchsia.com/test_runner#meta/test_runner.cmx
+run fuchsia-pkg://fuchsia.com/benchmark_runner#meta/benchmark_runner.cmx
 ```

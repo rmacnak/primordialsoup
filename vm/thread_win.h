@@ -45,9 +45,6 @@ class MonitorData {
   DISALLOW_COPY_AND_ASSIGN(MonitorData);
 };
 
-
-typedef void (*ThreadDestructor)(void* parameter);
-
 }  // namespace psoup
 
 #endif  // VM_THREAD_WIN_H_

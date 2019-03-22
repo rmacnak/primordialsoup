@@ -311,3 +311,12 @@ package("compiler_app") {
     },
   ]
 }
+
+group("packages") {
+  deps = [
+    "//third_party/primordialsoup:hello_app",
+    "//third_party/primordialsoup:test_runner",
+    "//third_party/primordialsoup:benchmark_runner",
+    "//third_party/primordialsoup:compiler_app",
+  ]
+}
