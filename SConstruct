@@ -223,11 +223,9 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     'thread_macos',
     'thread_pool',
     'thread_win',
-    'virtual_memory_android',
     'virtual_memory_emscripten',
     'virtual_memory_fuchsia',
-    'virtual_memory_linux',
-    'virtual_memory_macos',
+    'virtual_memory_posix',
     'virtual_memory_win',
   ]
   for cc in vm_ccs:

@@ -120,11 +120,9 @@ executable("vm") {
     "vm/utils_macos.h",
     "vm/utils_win.h",
     "vm/virtual_memory.h",
-    "vm/virtual_memory_android.cc",
     "vm/virtual_memory_emscripten.cc",
     "vm/virtual_memory_fuchsia.cc",
-    "vm/virtual_memory_linux.cc",
-    "vm/virtual_memory_macos.cc",
+    "vm/virtual_memory_posix.cc",
     "vm/virtual_memory_win.cc",
   ]
 }

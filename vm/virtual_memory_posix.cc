@@ -3,7 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"
-#if defined(OS_MACOS)
+#if defined(OS_ANDROID) || defined(OS_MACOS) || defined(OS_LINUX)
 
 #include "vm/virtual_memory.h"
 
@@ -71,6 +71,10 @@ void VirtualMemory::Free() {
 
 
 bool VirtualMemory::Protect(Protection protection) {
+#if defined(__aarch64__)
+  // mprotect crashes my DragonBoard, so skip on ARM64.
+  return true;
+#else
   int prot;
   switch (protection) {
     case kNoAccess: prot = PROT_NONE; break;
@@ -83,8 +87,9 @@ bool VirtualMemory::Protect(Protection protection) {
 
   int result = mprotect(address_, size_, prot);
   return result == 0;
+#endif
 }
 
 }  // namespace psoup
 
-#endif  // defined(OS_MACOS)
+#endif  // defined(OS_ANDROID) || defined(OS_MACOS) || defined(OS_LINUX)
