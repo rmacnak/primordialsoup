@@ -149,10 +149,10 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-Wl,-z,relro,-z,now',
       '-Wl,--gc-sections',
       '-Wl,-z,noexecstack',
+      '-static-libstdc++',
     ]
     env['LIBS'] = [
       'm',
-      'stdc++',
       'log',
     ]
   elif target_os == 'windows':
@@ -323,7 +323,7 @@ def Main():
 
   ndk = ARGUMENTS.get('ndk', None)
   if ndk != None:
-    # The following paths were taken from android-ndk-r13b. They might differ
+    # The following paths were taken from android-ndk-r19c. They might differ
     # between versions of the Android NDK.
     if host_os == 'linux':
       android_host_name = 'linux-x86_64'
@@ -334,45 +334,23 @@ def Main():
     else:
       raise Exception("Android NDK paths not known for this OS")
 
-    target_cxx = ndk + '/toolchains/arm-linux-androideabi-4.9/prebuilt/' \
-        + android_host_name + '/bin/arm-linux-androideabi-g++'
-    sysroot = ndk + '/platforms/android-24/arch-arm/'
-    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
+        + android_host_name + '/bin/armv7a-linux-androideabi24-clang++'
     BuildVM(target_cxx, 'arm', 'android', False, None);
     BuildVM(target_cxx, 'arm', 'android', True, None);
 
-    target_cxx = ndk + '/toolchains/aarch64-linux-android-4.9/prebuilt/' \
-        + android_host_name + '/bin/aarch64-linux-android-g++'
-    sysroot = ndk + '/platforms/android-24/arch-arm64/'
-    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
+        + android_host_name + '/bin/aarch64-linux-android24-clang++'
     BuildVM(target_cxx, 'arm64', 'android', False, None);
     BuildVM(target_cxx, 'arm64', 'android', True, None);
 
-    target_cxx = ndk + '/toolchains/mipsel-linux-android-4.9/prebuilt/' \
-        + android_host_name + '/bin/mipsel-linux-android-g++'
-    sysroot = ndk + '/platforms/android-24/arch-mips/'
-    target_cxx = target_cxx + ' --sysroot ' + sysroot
-    BuildVM(target_cxx, 'mips', 'android', False, None);
-    BuildVM(target_cxx, 'mips', 'android', True, None);
-
-    target_cxx = ndk + '/toolchains/mips64el-linux-android-4.9/prebuilt/' \
-        + android_host_name + '/bin/mips64el-linux-android-g++'
-    sysroot = ndk + '/platforms/android-24/arch-mips64/'
-    target_cxx = target_cxx + ' --sysroot ' + sysroot
-    BuildVM(target_cxx, 'mips64', 'android', False, None);
-    BuildVM(target_cxx, 'mips64', 'android', True, None);
-
-    target_cxx = ndk + '/toolchains/x86-4.9/prebuilt/' \
-        + android_host_name + '/bin/i686-linux-android-g++'
-    sysroot = ndk + '/platforms/android-24/arch-x86/'
-    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
+        + android_host_name + '/bin/i686-linux-android24-clang++'
     BuildVM(target_cxx, 'ia32', 'android', False, None);
     BuildVM(target_cxx, 'ia32', 'android', True, None);
 
-    target_cxx = ndk + '/toolchains/x86_64-4.9/prebuilt/' \
-        + android_host_name + '/bin/x86_64-linux-android-g++'
-    sysroot = ndk + '/platforms/android-24/arch-x86_64/'
-    target_cxx = target_cxx + ' --sysroot ' + sysroot
+    target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
+        + android_host_name + '/bin/x86_64-linux-android24-clang++'
     BuildVM(target_cxx, 'x64', 'android', False, None);
     BuildVM(target_cxx, 'x64', 'android', True, None);
 

@@ -31,7 +31,7 @@ The VM and snapshots are built with
 To target Android, build with
 
 ```
-./build ndk=/path/to/android-ndk-r13b
+./build ndk=/path/to/android-ndk-r19c
 ```
 
 To target Fuchsia, clone this repository to `third_party/primordialsoup` in a Fuchsia checkout, and include `third_party/primordialsoup/packages` in the list of packages. E.g.,
