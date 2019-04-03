@@ -36,16 +36,16 @@
 #define OS_WINDOWS 1
 #elif defined(__Fuchsia__)
 #define OS_FUCHSIA 1
+#elif defined(__EMSCRIPTEN__)
+#define OS_EMSCRIPTEN 1
 #else
 #error Automatic OS detection failed.
 #endif
 
 
-#if defined(_M_X64) || defined(__x86_64__) \
-    || defined(__aarch64__) || defined(__mips64) || defined(__riscv64)
+#if defined(_M_X64) || (__SIZEOF_POINTER__ == 8)
 #define ARCH_IS_64_BIT 1
-#elif defined(_M_IX86) || defined(__i386__) \
-    || defined(__arm__) || defined(__mips__) || defined(__riscv32)
+#elif defined(_M_IX86) || (__SIZEOF_POINTER__ == 4)
 #define ARCH_IS_32_BIT 1
 #else
 #error Unknown architecture.
@@ -62,9 +62,15 @@
 
 
 // Short form printf format specifiers
+#if defined(OS_EMSCRIPTEN)
+#define Pd "ld"
+#define Pu "lu"
+#define Px "lx"
+#else
 #define Pd PRIdPTR
 #define Pu PRIuPTR
 #define Px PRIxPTR
+#endif
 #define Pd64 PRId64
 #define Pu64 PRIu64
 #define Px64 PRIx64

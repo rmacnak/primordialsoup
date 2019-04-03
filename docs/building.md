@@ -1,6 +1,6 @@
 # Building
 
-Primordial Soup has support for 32-bit and 64-bit architectures and has platform support for Android, [Fuchsia](https://fuchsia.googlesource.com/docs/+/master/README.md), Linux, macOS and Windows.
+Primordial Soup has support for 32-bit and 64-bit architectures and has platform support for Android, [Emscripten](https://emscripten.org/), [Fuchsia](https://fuchsia.googlesource.com/docs/+/master/README.md), Linux, macOS and Windows.
 
 ## Dependencies
 

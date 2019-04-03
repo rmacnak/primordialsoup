@@ -3,6 +3,7 @@
 // BSD-style license that can be found in the LICENSE file.
 
 #include "vm/globals.h"
+#if !defined(OS_EMSCRIPTEN)
 
 #if defined(OS_FUCHSIA)
 #include <lib/async-loop/cpp/loop.h>
@@ -46,3 +47,5 @@ int main(int argc, const char** argv) {
 
   return exit_code;
 }
+
+#endif  // !defined(OS_EMSCRIPTEN)

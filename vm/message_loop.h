@@ -33,6 +33,7 @@ class IsolateMessage {
  private:
   friend class MessageLoop;
   friend class EPollMessageLoop;
+  friend class EmscriptenMessageLoop;
   friend class FuchsiaMessageLoop;
   friend class IOCPMessageLoop;
   friend class KQueueMessageLoop;
@@ -92,6 +93,8 @@ class MessageLoop {
 
 #if defined(OS_ANDROID)
 #include "vm/message_loop_epoll.h"
+#elif defined(OS_EMSCRIPTEN)
+#include "vm/message_loop_emscripten.h"
 #elif defined(OS_FUCHSIA)
 #include "vm/message_loop_fuchsia.h"
 #elif defined(OS_LINUX)

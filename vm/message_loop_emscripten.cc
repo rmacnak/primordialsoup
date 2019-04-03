@@ -1,0 +1,112 @@
+// Copyright (c) 2019, the Dart project authors.  Please see the AUTHORS file
+// for details. All rights reserved. Use of this source code is governed by a
+// BSD-style license that can be found in the LICENSE file.
+
+#include "vm/globals.h"  // NOLINT
+#if defined(OS_EMSCRIPTEN)
+
+#include "vm/message_loop.h"
+
+#include <emscripten.h>
+
+#include "vm/os.h"
+
+namespace psoup {
+
+EmscriptenMessageLoop::EmscriptenMessageLoop(Isolate* isolate)
+    : MessageLoop(isolate),
+      head_(NULL),
+      tail_(NULL),
+      wakeup_(0) {}
+
+EmscriptenMessageLoop::~EmscriptenMessageLoop() {}
+
+intptr_t EmscriptenMessageLoop::AwaitSignal(intptr_t handle,
+                                            intptr_t signals) {
+  UNIMPLEMENTED();
+  return 0;
+}
+
+void EmscriptenMessageLoop::CancelSignalWait(intptr_t wait_id) {
+  UNIMPLEMENTED();
+}
+
+void EmscriptenMessageLoop::MessageEpilogue(int64_t new_wakeup) {
+  wakeup_ = new_wakeup;
+
+  if ((open_ports_ == 0) && (wakeup_ == 0)) {
+    Exit(0);
+  }
+}
+
+void EmscriptenMessageLoop::Exit(intptr_t exit_code) {
+  exit_code_ = exit_code;
+  isolate_ = NULL;
+
+  if (open_ports_ > 0) {
+    PortMap::CloseAllPorts(this);
+  }
+
+  while (head_ != NULL) {
+    IsolateMessage* message = head_;
+    head_ = message->next_;
+    delete message;
+  }
+}
+
+void EmscriptenMessageLoop::PostMessage(IsolateMessage* message) {
+  if (head_ == NULL) {
+    head_ = tail_ = message;
+  } else {
+    tail_->next_ = message;
+    tail_ = message;
+  }
+}
+
+intptr_t EmscriptenMessageLoop::Run() {
+  UNREACHABLE();
+  return -1;
+}
+
+int EmscriptenMessageLoop::HandleOneMessage() {
+  if (isolate_ == NULL) {
+    return -1;
+  }
+
+  IsolateMessage* message = head_;
+  if (head_ != NULL) {
+    head_ = message->next_;
+    if (head_ == NULL) {
+      tail_ = NULL;
+    }
+  }
+
+  if (message == NULL) {
+    DispatchWakeup();
+  } else {
+    DispatchMessage(message);
+  }
+
+  int64_t now = OS::CurrentMonotonicNanos();
+
+  int timeoutMillis;
+  if (head_ != NULL) {
+    timeoutMillis = 0;
+  } else if (wakeup_ == 0) {
+    timeoutMillis = -1;
+  } else if (wakeup_ <= now) {
+    timeoutMillis = 0;
+  } else {
+    timeoutMillis = (wakeup_ - now) / kNanosecondsPerMillisecond;
+  }
+
+  return timeoutMillis;
+}
+
+void EmscriptenMessageLoop::Interrupt() {
+  UNREACHABLE();
+}
+
+}  // namespace psoup
+
+#endif  // defined(OS_EMSCRIPTEN)

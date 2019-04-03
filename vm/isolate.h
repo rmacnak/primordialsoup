@@ -63,7 +63,11 @@ class Isolate {
   void AddIsolateToList(Isolate* isolate);
   void RemoveIsolateFromList(Isolate* isolate);
 
+#if defined(OS_EMSCRIPTEN)
+  static Isolate* current_;
+#else
   static thread_local Isolate* current_;
+#endif
   static Monitor* isolates_list_monitor_;
   static Isolate* isolates_list_head_;
   static ThreadPool* thread_pool_;

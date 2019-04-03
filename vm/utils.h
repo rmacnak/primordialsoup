@@ -66,6 +66,8 @@ class Utils {
 
 #if defined(OS_ANDROID)
 #include "vm/utils_android.h"
+#elif defined(OS_EMSCRIPTEN)
+#include "vm/utils_emscripten.h"
 #elif defined(OS_FUCHSIA)
 #include "vm/utils_fuchsia.h"
 #elif defined(OS_LINUX)

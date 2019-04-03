@@ -8,6 +8,9 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     env = Environment(TARGET_ARCH='x86', tools=['msvc', 'mslink'])
   elif target_os == 'windows' and arch == 'x64':
     env = Environment(TARGET_ARCH='x86_64', tools=['msvc', 'mslink'])
+  elif target_os == 'emscripten':
+    env = Environment(ENV = os.environ, tools=['g++', 'gnulink'])
+    env['CXX'] = cxx or 'em++'
   else:
     env = Environment(tools=['g++', 'gnulink'])
     env['CXX'] = cxx
@@ -28,6 +31,8 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
 
   if target_os == 'android':
     configname += 'Android'
+  elif target_os == 'emscripten':
+    configname += 'Emscripten'
 
   if sanitize == 'address':
     configname += 'ASan'
@@ -70,6 +75,11 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     env['CCFLAGS'] += ['-m64']
     env['LINKFLAGS'] += ['-m64']
     configname += 'RISCV64'
+  elif arch == 'wasm':
+    configname += 'WASM'
+    env['LINKFLAGS'] += [ '-s', 'WASM=1' ]
+  else:
+    raise Exception('Unknown architecture: ' + arch)
 
   outdir = os.path.join('out', configname)
 
@@ -161,6 +171,19 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '/NXCOMPAT',
       '/DEBUG',  # Debug symbols
     ]
+  elif target_os == 'emscripten':
+    env['LINKFLAGS'] += [
+      '-s', 'ALLOW_MEMORY_GROWTH=1',
+      '-s', 'ENVIRONMENT=web',
+      '-s', 'EXPORTED_FUNCTIONS=["_load_snapshot", "_handle_one_message"]',
+      '-s', 'EXTRA_EXPORTED_RUNTIME_METHODS=["ccall"]',
+      '-s', 'FILESYSTEM=0',
+      '-s', 'MALLOC=emmalloc',
+      '-s', 'TOTAL_STACK=131072',
+      '--shell-file', 'meta/shell.html',
+    ]
+  else:
+    raise Exception('Unknown operating system: ' + target_os)
 
   env['CPPPATH'] = ['.']
 
@@ -175,13 +198,16 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     'large_integer',
     'lookup_cache',
     'main',
+    'main_emscripten',
     'message_loop',
+    'message_loop_emscripten',
     'message_loop_epoll',
     'message_loop_fuchsia',
     'message_loop_iocp',
     'message_loop_kqueue',
     'object',
     'os_android',
+    'os_emscripten',
     'os_fuchsia',
     'os_linux',
     'os_macos',
@@ -191,12 +217,14 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     'primordial_soup',
     'snapshot',
     'thread_android',
+    'thread_emscripten',
     'thread_fuchsia',
     'thread_linux',
     'thread_macos',
     'thread_pool',
     'thread_win',
     'virtual_memory_android',
+    'virtual_memory_emscripten',
     'virtual_memory_fuchsia',
     'virtual_memory_linux',
     'virtual_memory_macos',
@@ -220,7 +248,11 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     objects += env.Object(os.path.join(outdir, 'double-conversion', cc + '.o'),
                           os.path.join('double-conversion', cc + '.cc'))
 
-  program = env.Program(os.path.join(outdir, 'primordialsoup'), objects)
+  if target_os == 'emscripten':
+    program = env.Program(os.path.join(outdir, 'primordialsoup.html'), objects)
+    Depends(program, 'meta/shell.html');
+  else:
+    program = env.Program(os.path.join(outdir, 'primordialsoup'), objects)
   return str(program[0])
 
 
