@@ -565,8 +565,8 @@ public pass = (
 	UNREACHABLE.
 )
 public printString = (
-	nil = messageText ifTrue: [^super printString].
-	^super printString, messageText
+	nil = messageText ifTrue: [^super class name].
+	^super class name, ': ', messageText
 )
 public resume: resumptionValue = (
 	| savedSignalActivation = signalActivation. |

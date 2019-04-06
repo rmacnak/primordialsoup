@@ -23,7 +23,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       env['CCFLAGS'] += ['-DDEBUG']
     configname += 'Debug'
   else:
-    if target_os == "windows":
+    if target_os == 'windows':
       env['CCFLAGS'] += ['/DNDEBUG']
     else:
       env['CCFLAGS'] += ['-DNDEBUG']
@@ -83,7 +83,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
 
   outdir = os.path.join('out', configname)
 
-  if target_os == "windows":
+  if target_os == 'windows':
     env['CCFLAGS'] += [
       '/O2',
       '/Z7',  # Debug symbols
@@ -175,8 +175,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     env['LINKFLAGS'] += [
       '-s', 'ALLOW_MEMORY_GROWTH=1',
       '-s', 'ENVIRONMENT=web',
-      '-s', 'EXPORTED_FUNCTIONS=["_load_snapshot", "_handle_one_message"]',
-      '-s', 'EXTRA_EXPORTED_RUNTIME_METHODS=["ccall"]',
+      '-s', 'EXPORTED_FUNCTIONS=["_load_snapshot", "_handle_message", "_handle_signal"]',
       '-s', 'FILESYSTEM=0',
       '-s', 'MALLOC=emmalloc',
       '-s', 'TOTAL_STACK=131072',

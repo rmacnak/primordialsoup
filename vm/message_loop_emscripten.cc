@@ -33,10 +33,6 @@ void EmscriptenMessageLoop::CancelSignalWait(intptr_t wait_id) {
 
 void EmscriptenMessageLoop::MessageEpilogue(int64_t new_wakeup) {
   wakeup_ = new_wakeup;
-
-  if ((open_ports_ == 0) && (wakeup_ == 0)) {
-    Exit(0);
-  }
 }
 
 void EmscriptenMessageLoop::Exit(intptr_t exit_code) {
@@ -68,11 +64,7 @@ intptr_t EmscriptenMessageLoop::Run() {
   return -1;
 }
 
-int EmscriptenMessageLoop::HandleOneMessage() {
-  if (isolate_ == NULL) {
-    return -1;
-  }
-
+int EmscriptenMessageLoop::HandleMessage() {
   IsolateMessage* message = head_;
   if (head_ != NULL) {
     head_ = message->next_;
@@ -87,20 +79,28 @@ int EmscriptenMessageLoop::HandleOneMessage() {
     DispatchMessage(message);
   }
 
-  int64_t now = OS::CurrentMonotonicNanos();
+  return ComputeTimeout();
+}
 
-  int timeoutMillis;
-  if (head_ != NULL) {
-    timeoutMillis = 0;
-  } else if (wakeup_ == 0) {
-    timeoutMillis = -1;
-  } else if (wakeup_ <= now) {
-    timeoutMillis = 0;
-  } else {
-    timeoutMillis = (wakeup_ - now) / kNanosecondsPerMillisecond;
+int EmscriptenMessageLoop::HandleSignal(int handle,
+                                        int status,
+                                        int signals,
+                                        int count) {
+  DispatchSignal(handle, status, signals, count);
+  return ComputeTimeout();
+}
+
+int EmscriptenMessageLoop::ComputeTimeout() {
+  if (head_ != NULL) return 0;
+
+  if (wakeup_ == 0) return -1;
+
+  int64_t now = OS::CurrentMonotonicNanos();
+  if (wakeup_ <= now) {
+    return 0;
   }
 
-  return timeoutMillis;
+  return (wakeup_ - now) / kNanosecondsPerMillisecond;
 }
 
 void EmscriptenMessageLoop::Interrupt() {

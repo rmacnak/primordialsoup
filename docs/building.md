@@ -42,6 +42,13 @@ fx set core.x64 --release --with-base garnet/packages:default,third_party/primor
 fx full-build
 ```
 
+To target WebAssembly, build with
+
+```
+source /path/to/emsdk/emsdk_env.sh
+./build os=emscripten arch=wasm
+```
+
 ## Testing
 
 After building, the test suite and some benchmarks can be run with

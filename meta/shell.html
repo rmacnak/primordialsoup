@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8"/>
     <title>Primordial Soup</title>
   </head>
   <body>
-    <script type='text/javascript'>
+    <script type="text/javascript">
       function scheduleTurn(timeout) {
         if (timeout >= 0) {
           setTimeout(function() {
-            var timeout = Module.ccall('handle_one_message', 'number', [], []);
+            var timeout = Module._handle_message();
             scheduleTurn(timeout);
           }, timeout);
         }
@@ -27,14 +27,16 @@
             var jsBuffer = new Uint8Array(request.response);
             var cBuffer = _malloc(jsBuffer.length);
             writeArrayToMemory(jsBuffer, cBuffer);
-            Module.ccall('load_snapshot', 'number', ['number', 'number'], [cBuffer, jsBuffer.length]);
+            Module._load_snapshot(cBuffer, jsBuffer.length);
             _free(cBuffer);
             scheduleTurn(0);
           };
           request.send();
         },
         print: function(text) {
-          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          if (arguments.length > 1) {
+            text = Array.prototype.slice.call(arguments).join(" ");
+          }
           console.log(text);
 
           var pre = document.createElement("pre");
@@ -44,7 +46,9 @@
           window.scrollTo(0, document.body.scrollHeight);
         },
         printErr: function(text) {
-          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          if (arguments.length > 1) {
+            text = Array.prototype.slice.call(arguments).join(" ");
+          }
           console.error(text);
 
           var pre = document.createElement("pre");

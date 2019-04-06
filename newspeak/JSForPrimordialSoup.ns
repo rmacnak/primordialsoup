@@ -1,0 +1,124 @@
+Newspeak3
+'NS2PrimordialSoup'
+class JSForPrimordialSoup usingPlatform: platform = (
+	|
+	public undefined = Alien withIndex: 0.
+	public global = Alien withIndex: 4.
+	private nextExpatIndex ::= 1.
+	private handleMap = platform actors handleMap.
+	|
+) (
+class Alien withIndex: i = (
+	|
+	public index <Integer> = i.
+	|
+) (
+private asJSSelector: nsSelector <String> ^<String> = (
+	| position = nsSelector indexOf: ':'. |
+	0 = position ifTrue: [^nsSelector].
+	^nsSelector copyFrom: 1 to: position - 1
+)
+public at: key = (
+	rawPushAlien: self index.
+	rawPush: key.
+	rawPerformGet.
+	^rawPop
+)
+public at: key put: value = (
+	rawPushAlien: self index.
+	rawPush: key.
+	rawPush: value.
+	rawPerformSet.
+	^rawPop
+)
+protected doesNotUnderstand: message = (
+	| jsSelector = asJSSelector: message selector. |
+	^#new = jsSelector
+		ifTrue: [self newWithArguments: message arguments]
+		ifFalse: [self perform: jsSelector withArguments: message arguments]
+)
+public isClosure ^<Boolean> = (
+	^false
+)
+public newWithArguments: arguments <Array> = (
+	rawPushAlien: self index.
+	1 to: arguments size do:
+		[:argumentIndex | rawPush: (arguments at: argumentIndex)].
+	rawPerformNew: arguments size.
+	^rawPop
+)
+public perform: selector <String> withArguments: arguments <Array> = (
+	rawPushAlien: self index.
+	rawPush: selector.
+	1 to: arguments size do:
+		[:argumentIndex | rawPush: (arguments at: argumentIndex)].
+	rawPerformCall: arguments size.
+	^rawPop
+)
+public printString ^<String> = (
+	^self perform: #toString withArguments: {}
+)
+private pushExpat: closure = (
+	| expatIndex |
+	expatIndex:: nextExpatIndex.
+	nextExpatIndex:: 1 + expatIndex.
+	handleMap at: expatIndex put:
+		[:status :pending |
+		| arguments = Array new: status. |
+		status to: 1 by: -1 do:
+			[:argumentIndex | arguments at: argumentIndex put: rawPop].
+		rawPush: (closure valueWithArguments: arguments)].
+	rawPushExpat: expatIndex.
+)
+private rawPerformCall: numArgs = (
+	(* :literalmessage: primitive: 163 *)
+	^Error signal: rawPop printString
+)
+private rawPerformDelete = (
+	(* :literalmessage: primitive: 162 *)
+	^Error signal: rawPop printString
+)
+private rawPerformGet = (
+	(* :literalmessage: primitive: 160 *)
+	^Error signal: rawPop printString
+)
+private rawPerformNew: numArgs = (
+	(* :literalmessage: primitive: 164 *)
+	^Error signal: rawPop printString
+)
+private rawPerformSet = (
+	(* :literalmessage: primitive: 161 *)
+	^Error signal: rawPop printString
+)
+private rawPop = (
+	(* :literalmessage: primitive: 157 *)
+	^Alien withIndex: rawPopAgain
+)
+private rawPopAgain = (
+	(* :literalmessage: primitive: 158 *)
+	halt
+)
+private rawPush: object = (
+	(* :literalmessage: primitive: 154 *)
+	object isClosure
+		ifTrue: [pushExpat: object]
+		ifFalse: [rawPushAlien: object index]
+)
+private rawPushAlien: alienIndex = (
+	(* :literalmessage: primitive: 155 *)
+	halt
+)
+private rawPushExpat: expatIndex = (
+	(* :literalmessage: primitive: 156 *)
+	halt
+)
+public removeKey: key = (
+	rawPushAlien: self index.
+	rawPush: key.
+	rawPerformDelete.
+	^rawPop
+)
+) : (
+)
+) : (
+)

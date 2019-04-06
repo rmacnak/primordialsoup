@@ -9,6 +9,8 @@
 
 #if defined(OS_FUCHSIA)
 #include <zircon/syscalls.h>
+#elif defined(OS_EMSCRIPTEN)
+#include <emscripten.h>
 #endif
 
 #include "vm/assert.h"
@@ -172,6 +174,17 @@ const bool kFailure = false;
   V(151, ZXVmo_setSize)                                                        \
   V(152, ZXVmo_read)                                                           \
   V(153, ZXVmo_write)                                                          \
+  V(154, JS_pushValue)                                                         \
+  V(155, JS_pushAlien)                                                         \
+  V(156, JS_pushExpat)                                                         \
+  V(157, JS_popValue)                                                          \
+  V(158, JS_peekAlien)                                                         \
+  V(159, JS_peekExpat)                                                         \
+  V(160, JS_performGet)                                                        \
+  V(161, JS_performSet)                                                        \
+  V(162, JS_performDelete)                                                     \
+  V(163, JS_performInvoke)                                                     \
+  V(164, JS_performNew)                                                        \
   V(200, quickReturnSelf)                                                      \
 
 
@@ -2959,6 +2972,332 @@ DEFINE_PRIMITIVE(ZXVmo_write) {
   zx_status_t status = zx_vmo_write(AsHandle(vmo), buffer->element_addr(0),
                                     offset->value(), buffer->Size());
   RETURN_SMI(status);
+#endif
+}
+
+#if defined(OS_EMSCRIPTEN)
+EM_JS(void, _JS_pushInteger, (int64_t value), {
+  var aliens = Module.aliens;
+  aliens.push(value);
+});
+EM_JS(void, _JS_pushFloat, (double value), {
+  var aliens = Module.aliens;
+  aliens.push(value);
+});
+EM_JS(void, _JS_pushString, (intptr_t addr, intptr_t size), {
+  var aliens = Module.aliens;
+  var value = UTF8ToString(addr, size);
+  aliens.push(value);
+});
+EM_JS(void, _JS_pushAlien, (intptr_t index), {
+  var aliens = Module.aliens;
+  aliens.push(aliens[index]);
+});
+EM_JS(void, _JS_pushExpat, (intptr_t index), {
+  var aliens = Module.aliens;
+  function expat() {
+    for (var i = 0; i < arguments.length; i++) {
+      aliens.push(arguments[i]);
+    }
+    Module._handle_signal(index, arguments.length, 0, 0);
+    return aliens.pop();
+  }
+  aliens.push(expat);
+});
+EM_JS(int, _JS_peekType, (), {
+  var aliens = Module.aliens;
+  var alien = aliens[aliens.length - 1];
+  if (null === alien) {
+    return -1;
+  }
+  if (false === alien) {
+    return -2;
+  }
+  if (true === alien) {
+    return -3;
+  }
+  if (typeof alien === "number") {
+    return Number.isInteger(alien) ? -4 : -5;
+  }
+  if (typeof alien === "string") {
+    return lengthBytesUTF8(alien);
+  }
+  return -6;
+});
+EM_JS(intptr_t, _JS_popInteger, (), {
+  var aliens = Module.aliens;
+  return aliens.pop();
+});
+EM_JS(double, _JS_popFloat, (), {
+  var aliens = Module.aliens;
+  return aliens.pop();
+});
+EM_JS(void, _JS_popString, (intptr_t addr, intptr_t size), {
+  var aliens = Module.aliens;
+  var string = aliens.pop();
+  // TODO(rmacnak): This will write a terminating NUL past the end of our
+  // String object.
+  stringToUTF8(string, addr, size + 1);
+});
+EM_JS(intptr_t, _JS_peekAlien, (), {
+  var aliens = Module.aliens;
+  return aliens.length - 1;
+});
+EM_JS(intptr_t, _JS_peekExpat, (), {
+  throw "Unimplemented";
+});
+EM_JS(bool, _JS_performGet, (), {
+  var aliens = Module.aliens;
+  var selector = aliens.pop();
+  var receiver = aliens.pop();
+  try {
+    var result = receiver[selector];
+    aliens.push(result);
+    return true;
+  } catch (exception) {
+    aliens.push(exception);
+    return false;
+  }
+});
+EM_JS(bool, _JS_performSet, (), {
+  var aliens = Module.aliens;
+  var argument = aliens.pop();
+  var selector = aliens.pop();
+  var receiver = aliens.pop();
+  try {
+    var result = receiver[selector] = argument;
+    aliens.push(result);
+    return true;
+  } catch (exception) {
+    aliens.push(exception);
+    return false;
+  }
+});
+EM_JS(bool, _JS_performDelete, (), {
+  var aliens = Module.aliens;
+  var selector = aliens.pop();
+  var receiver = aliens.pop();
+  try {
+    var result = delete receiver[selector];
+    aliens.push(result);
+    return true;
+  } catch (exception) {
+    aliens.push(exception);
+    return false;
+  }
+});
+EM_JS(bool, _JS_performInvoke, (intptr_t numArgs), {
+  var aliens = Module.aliens;
+  var arguments = new Array(numArgs);
+  for (var i = numArgs - 1; i >= 0; i--) {
+    arguments[i] = aliens.pop();
+  }
+  var selector = aliens.pop();
+  var receiver = aliens.pop();
+  if ((undefined === receiver) ||
+      (undefined === receiver[selector])) {
+    aliens.push("NoSuchMethod: " + selector);
+    return false;
+  }
+  try {
+    var result = receiver[selector].apply(receiver, arguments);
+    aliens.push(result);
+    return true;
+  } catch (exception) {
+    aliens.push(exception);
+    return false;
+  }
+});
+EM_JS(bool, _JS_performNew, (intptr_t numArgs), {
+  var aliens = Module.aliens;
+  var arguments = new Array(numArgs);
+  for (var i = numArgs - 1; i >= 0; i--) {
+    arguments[i] = aliens.pop();
+  }
+  var receiver = aliens.pop();
+  try {
+    var result = new (Function.prototype.bind.apply(receiver, arguments));
+    aliens.push(result);
+    return true;
+  } catch (exception) {
+    aliens.push(exception);
+    return false;
+  }
+});
+#endif  // defined(OS_EMSCRIPTEN)
+
+DEFINE_PRIMITIVE(JS_pushValue) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 1);
+  Object* object = I->Stack(0);
+  if (object->IsSmallInteger()) {
+    intptr_t value = static_cast<SmallInteger*>(object)->value();
+    _JS_pushInteger(value);
+    RETURN_SELF();
+  }
+  if (object->IsMediumInteger()) {
+    int64_t value = static_cast<MediumInteger*>(object)->value();
+    _JS_pushInteger(value);
+    RETURN_SELF();
+  }
+  if (object->IsFloat64()) {
+    double value = static_cast<Float64*>(object)->value();
+    _JS_pushFloat(value);
+    RETURN_SELF();
+  }
+  if (object->IsString()) {
+    intptr_t size = static_cast<String*>(object)->Size();
+    uint8_t* addr = static_cast<String*>(object)->element_addr(0);
+    _JS_pushString(reinterpret_cast<intptr_t>(addr), size);
+    RETURN_SELF();
+  }
+  if (object == I->nil_obj()) {
+    _JS_pushAlien(1);
+    RETURN_SELF();
+  }
+  if (object == I->false_obj()) {
+    _JS_pushAlien(2);
+    RETURN_SELF();
+  }
+  if (object == I->true_obj()) {
+    _JS_pushAlien(3);
+    RETURN_SELF();
+  }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_pushAlien) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(index, 0);
+  _JS_pushAlien(index);
+  RETURN_SELF();
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_pushExpat) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(index, 0);
+  _JS_pushExpat(index);
+  RETURN_SELF();
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_popValue) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  intptr_t type = _JS_peekType();
+  if (type == -1) {
+    RETURN(I->nil_obj());
+  } else if (type == -2) {
+    RETURN(I->false_obj());
+  } else if (type == -3) {
+    RETURN(I->true_obj());
+  } else if (type == -4) {
+    intptr_t value = _JS_popInteger();
+    RETURN_MINT(value);
+  } else if (type == -5) {
+    double value = _JS_popFloat();
+    RETURN_FLOAT(value);
+  } else if (type >= 0) {
+    intptr_t size = type;
+    String* result = H->AllocateString(size);  // SAFEPOINT
+    uint8_t* addr = result->element_addr(0);
+    _JS_popString(reinterpret_cast<intptr_t>(addr), size);
+    RETURN(result);
+  }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_peekAlien) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 0);
+  intptr_t index = _JS_peekAlien();
+  RETURN_SMI(index);
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_peekExpat) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 0);
+  intptr_t index = _JS_peekExpat();
+  RETURN_SMI(index);
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_performGet) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 0);
+  if (_JS_performGet()) {
+    RETURN_SELF();
+  }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_performSet) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 0);
+  if (_JS_performSet()) {
+    RETURN_SELF();
+  }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_performDelete) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 0);
+  if (_JS_performDelete()) {
+    RETURN_SELF();
+  }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_performInvoke) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(js_num_args, 0);
+  if (_JS_performInvoke(js_num_args)) {
+    RETURN_SELF();
+  }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_performNew) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(js_num_args, 0);
+  if (_JS_performNew(js_num_args)) {
+    RETURN_SELF();
+  }
+  return kFailure;
 #endif
 }
 

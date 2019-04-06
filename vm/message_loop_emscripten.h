@@ -30,9 +30,12 @@ class EmscriptenMessageLoop : public MessageLoop {
   intptr_t Run();
   void Interrupt();
 
-  int HandleOneMessage();
+  int HandleMessage();
+  int HandleSignal(int handle, int status, int signals, int count);
 
  private:
+  int ComputeTimeout();
+
   IsolateMessage* WaitMessage();
 
   IsolateMessage* head_;

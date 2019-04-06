@@ -5,15 +5,28 @@
 #include "vm/globals.h"
 #if defined(OS_EMSCRIPTEN)
 
+#include <emscripten.h>
+
 #include "vm/isolate.h"
 #include "vm/message_loop.h"
 #include "vm/os.h"
 #include "vm/port.h"
 #include "vm/primordial_soup.h"
 
+EM_JS(void, _JS_initializeAliens, (), {
+  var aliens = new Array();
+  aliens.push(undefined);  // 0
+  aliens.push(null);       // 1
+  aliens.push(false);      // 2
+  aliens.push(true);       // 3
+  aliens.push(window);     // 4
+  Module.aliens = aliens;
+});
+
 static psoup::Isolate* isolate;
 extern "C" void load_snapshot(void* snapshot, size_t snapshot_length) {
   PrimordialSoup_Startup();
+  _JS_initializeAliens();
 
   uint64_t seed = psoup::OS::CurrentMonotonicNanos();
   isolate = new psoup::Isolate(snapshot, snapshot_length, seed);
@@ -23,9 +36,14 @@ extern "C" void load_snapshot(void* snapshot, size_t snapshot_length) {
                                                          argc, argv));
 }
 
-extern "C" int handle_one_message() {
+extern "C" int handle_message() {
   return static_cast<psoup::EmscriptenMessageLoop*>(isolate->loop())
-      ->HandleOneMessage();
+      ->HandleMessage();
+}
+
+extern "C" int handle_signal(int handle, int status, int signals, int count) {
+  return static_cast<psoup::EmscriptenMessageLoop*>(isolate->loop())
+      ->HandleSignal(handle, status, signals, count);
 }
 
 #endif  // defined(OS_EMSCRIPTEN)
