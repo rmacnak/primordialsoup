@@ -1,20 +1,19 @@
 Newspeak3
 'NS2PrimordialSoup'
-class CollectionsForPrimordialSoup usingInternalKernel: ik = (|
-public Collection = ik Collection.
-|) (
-class Association = (|
-public key
-public value
-|) (
-) : (
-)
-public class List new: initialCapacity = Collection (|
-protected size_ ::= 0.
-protected data ::= Array new: initialCapacity.
-|) (
+class CollectionsForPrimordialSoup usingInternalKernel: ik = (
+	|
+	public Collection = ik Collection.
+	private ArgumentError = ik ArgumentError.
+	|
+) (
+public class List new: initialCapacity = Collection (
+	|
+	protected size_ ::= 0.
+	protected data ::= Array new: initialCapacity.
+    |
+) (
 public , other = (
-	| result = List new: self size + other size + 1. |
+	| result = List new: (self size + other size bitOr: 3). |
 	self do: [:element | result addLast: element].
 	other do: [:element | result addLast: element].
 	^result
@@ -26,10 +25,11 @@ public addAll: collection = (
 	collection do: [:element | self addLast: element].
 )
 public addFirst: element <E> ^<E> = (
-	| oldData newData |
+	| oldData capacity newData |
 	oldData:: data.
+	capacity:: oldData size.
 	size_ >= oldData size
-		ifTrue: [data:: newData:: Array new: (data size * 2 + 1)]
+		ifTrue: [data:: newData:: Array new: (capacity >> 1 + capacity bitOr: 7)]
 		ifFalse: [newData:: oldData].
 	newData replaceFrom: 2 to: 1 + size_ with: oldData startingAt: 1.
 	newData at: 1 put: element.
@@ -37,8 +37,9 @@ public addFirst: element <E> ^<E> = (
 	^element
 )
 public addLast: element <E> ^<E> = (
-	size_ >= data size ifTrue:
-		[data:: data copyWithSize: (data size * 2 + 1)].
+	| capacity = data size. |
+	size_ >= capacity ifTrue:
+		[data:: data copyWithSize: (capacity >> 1 + capacity bitOr: 7)].
 	size_:: size_ + 1.
 	data at: size_ put: element.
 	^element
@@ -47,7 +48,7 @@ public asArray ^<Array[E]> = (
 	^data copyWithSize: size_
 )
 public at: index <Integer> ^<E> = (
-	index > size_ ifTrue: [Error signal: 'Out of bounds'].
+	index > size_ ifTrue: [^(ArgumentError value: index) signal].
 	^data at: index
 )
 public at: index <Integer> put: value <E> ^<E> = (
@@ -85,7 +86,7 @@ protected newForCollectUsingAdd: capacity = (
 	^List new: capacity
 )
 public remove: element <E> ^<E> = (
-	^self remove: element ifAbsent: [missingElement]
+	^self remove: element ifAbsent: [(NotFound element: element) signal]
 )
 public remove: element <E> ifAbsent: onAbsent <X def> ^<E | X> = (
 	1 to: size_ do:
@@ -129,165 +130,158 @@ public removeLast ^<E> = (
 public size ^<Integer> = (
 	^size_
 )
-public sort: comparison <[:E :E | Boolean]> = (
-	(* :todo: Merge or quick sort. *)
-	1 to: size do:
-		[:i | | min ::= i. temp |
-		i + 1 to: size do:
-			[:j |
-			(comparison value: (self at: j) value: (self at: min))
-				ifTrue: [min:: j]].
-		temp:: self at: i.
-		self at: i put: (self at: min).
-		self at: min put: temp].
+public sort: lessOrEqual <[:E :E | Boolean]> = (
+	data sortFrom: 1 to: size_ by: lessOrEqual.
 )
 ) : (
 public new = (
-	^self new: 4 (* Even, since odd-sized arrays waste a slot on the heap. *)
+	^self new: 3
 )
 public withAll: collection = (
 	^(List new: collection size) addAll: collection; yourself
 )
 )
-public class Map initialCapacity: n = Collection (|
-protected size_ ::= 0.
-protected table ::= Array new: n.
-|) (
+public class Map initialCapacity: n = Collection (
+	|
+	protected size_ ::= 0.
+	protected table ::= Array new: n << 1.
+	|
+	1 to: table size by: 2 do: [:index | table at: index put: table].
+) (
 public at: key <K> ^<V> = (
-	^self at: key ifAbsent: [errorKeyNotFound: key].
+	^self at: key ifAbsent: [(NotFound element: key) signal]
 )
 public at: key <K> ifAbsent: onAbsent <X def> ^<K | X> = (
-	| entry |
-	entry:: table at: (scanFor: key).
-	nil = entry ifTrue: [^onAbsent value].
-	^entry value
+	| index |
+	index:: scanFor: key.
+	table = (table at: index) ifTrue: [^onAbsent value].
+	^table at: 1 + index
 )
 public at: key <K> ifAbsentPut: valueGenerator <[V]> ^<V> = (
-	| index entry |
+	| index |
 	index:: scanFor: key.
-	entry:: table at: index.
-	nil = entry ifTrue:
-		[entry:: Association new.
-		 entry key: key.
-		 entry value: valueGenerator value.
-		 self atNewIndex: index put: entry].
-	^entry value
+	table = (table at: index) ifTrue:
+		[ | value = valueGenerator value. |
+		 table at: index put: key.
+		 table at: 1 + index put: value.
+		 self incrementSize.
+		 ^value].
+	^table at: 1 + index
 )
 public at: key <K> put: value <V> ^<V> = (
-	| index entry |
+	| index |
 	index:: scanFor: key.
-	entry:: table at: index.
-	nil = entry
-		ifTrue:
-			[entry:: Association new.
-			 entry key: key.
-			 entry value: value.
-			 self atNewIndex: index put: entry]
-		ifFalse: [entry value: value].
+	table at: 1 + index put: value.
+	table = (table at: index) ifTrue:
+		[table at: index put: key.
+		 self incrementSize].
 	^value
-)
-atNewIndex: index put: entry = (
-	table at: index put: entry.
-	size_:: 1 + size_.
-	(table size * 3) < (size_ * 4) ifTrue: [grow].
 )
 public collect: transform <[:V | W]> ^<List[W]> = (
 	| result = List new: size_. |
-	1 to: table size do: [:index |
-		| entry = table at: index. |
-		nil = entry ifFalse: [result add: (transform value: entry value)]].
+	1 to: table size by: 2 do: [:index |
+		table = (table at: index) ifFalse:
+			[result add: (transform value: (table at: 1 + index))]].
 	^result
 )
 public do: action <[:V]> = (
-	table do: [:entry | nil = entry ifFalse: [action value: entry value]].
+	1 to: table size by: 2 do: [:index |
+		table = (table at: index) ifFalse:
+			[action value: (table at: 1 + index)]].
 )
 fixCollisionsAfter: start <Integer> = (
-	| index ::= start. entry |
-	[index:: index \\ table size + 1.
-	 entry:: table at: index.
-	 nil = entry] whileFalse:
-		[ | newIndex = self scanFor: entry key. |
+	| index ::= start. key |
+	[index:: index + 1 \\ table size + 1.
+	 key:: table at: index.
+	 table = key] whileFalse:
+		[ | newIndex = self scanFor: key. |
 		 newIndex = index ifFalse:
-			[table at: newIndex put: entry.
-			 table at: index put: nil]].
-)
-grow = (
-	| oldTable = table. |
-	table:: Array new: oldTable size << 1.
-	1 to: oldTable size do: [:index |
-		| entry = oldTable at: index. |
-		nil = entry ifFalse:
-			[table at: (scanForEmptySlotFor: entry key) put: entry]]
+			[table at: newIndex put: key.
+			 table at: 1 + newIndex put: (table at: 1 + index).
+			 table at: index put: table.
+			 table at: 1 + index put: nil]].
 )
 public includesKey: key <K> ^<Boolean> = (
-	| entry |
-	entry:: table at: (scanFor: key).
-	^(nil = entry) not
+	^(table = (table at: (scanFor: key))) not
+)
+incrementSize = (
+	| oldTable newTable |
+	size_:: 1 + size_.
+	(table size * 3) >= (size_ * 8) ifTrue: [^self]. (* 75% load factor *)
+
+	oldTable:: table.
+	table:: newTable:: Array new: oldTable size << 1.
+	1 to: newTable size by: 2 do:
+		[:newIndex | newTable at: newIndex put: newTable].
+	1 to: oldTable size by: 2 do: [:oldIndex |
+		| key = oldTable at: oldIndex. |
+		oldTable = key ifFalse:
+			[ | newIndex = scanForEmptySlotFor: key. |
+			newTable at: newIndex put: key.
+			newTable at: (1 + newIndex) put: (oldTable at: 1 + oldIndex)]].
 )
 public isEmpty ^<Boolean> = (
 	^0 = size_
 )
 public keys ^<Set[K]> = (
 	| result = Set new. |
-	1 to: table size do: [:index |
-		| entry = table at: index. |
-		nil = entry ifFalse: [result add: entry key]].
+	1 to: table size by: 2 do: [:index |
+		| key = table at: index. |
+		table = key ifFalse: [result add: key]].
 	^result
 )
 public keysAndValuesDo: action <[:K :V]> = (
-	table do:
-		[:entry | nil = entry ifFalse:
-			[action value: entry key value: entry value]].
+	1 to: table size by: 2 do: [:index |
+		| key = table at: index. |
+		table = key ifFalse:
+			[action value: key value: (table at: 1 + index)]].
 )
 public reject: predicate <[:V | Boolean]> ^<List[V]> = (
 	| result = List new: size_. |
-	1 to: table size do: [:index |
-		| entry = table at: index. |
-		nil = entry ifFalse:
-			[ | element = entry value. |
-			(predicate value: element) ifFalse:
-				[result add: element]]].
+	1 to: table size by: 2 do: [:index |
+		table = (table at: index) ifFalse:
+			[ | value = table at: 1 + index. |
+			(predicate value: value) ifFalse:
+				[result add: value]]].
 	^result
 )
 public removeKey: key <K> ^<V> = (
-	^self removeKey: key ifAbsent: [errorKeyNotFound: key]
+	^self removeKey: key ifAbsent: [(NotFound element: key) signal]
 )
 public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^<V | X> = (
-	| index entry oldValue |
+	| index oldValue |
 	index:: scanFor: key.
-	entry:: table at: index.
-	nil = entry ifTrue: [^onAbsent value].
-	table at: index put: nil.
+	table = (table at: index) ifTrue: [^onAbsent value].
+	table at: index put: table.
+	oldValue:: table at: 1 + index.
+	table at: 1 + index put: nil.
 	self fixCollisionsAfter: index.
 	size_:: size_ - 1.
-	^entry value
+	^oldValue
 )
 scanFor: key <K> ^<Integer> = (
 	| index start |
-	index:: start:: key hash \\ table size + 1.
-	[
-		| element |
-		(nil = (element:: table at: index) or: [key = element key])
-			ifTrue: [ ^index ].
-		(index:: index \\ table size + 1) = start] whileFalse.
+	index:: start:: (key hash bitOr: 1) \\ table size.
+	[ | element |
+	 table = (element:: table at: index) ifTrue: [^index].
+	 key = element ifTrue: [^index].
+	 (index:: index + 1 \\ table size + 1) = start] whileFalse.
 	self errorNoFreeSpace
 )
 scanForEmptySlotFor: key = (
 	| index start |
-	index:: start:: key hash \\ table size + 1.
-	[
-		nil = (table at: index) ifTrue: [ ^index ].
-		(index:: index \\ table size + 1) = start] whileFalse.
+	index:: start:: (key hash bitOr: 1) \\ table size.
+	[table = (table at: index) ifTrue: [^index].
+	 (index:: index + 1 \\ table size + 1) = start] whileFalse.
 	self errorNoFreeSpace
 )
 public select: predicate <[:V | Boolean]> ^<List[V]> = (
 	| result = List new: size_. |
-	1 to: table size do: [:index |
-		| entry = table at: index. |
-		nil = entry ifFalse:
-			[ | element = entry value. |
-			(predicate value: element) ifTrue:
-				[result add: element]]].
+	1 to: table size by: 2 do: [:index |
+		table = (table at: index) ifFalse:
+			[ | value = table at: 1 + index. |
+			(predicate value: value) ifTrue:
+				[result add: value]]].
 	^result
 )
 public size ^<Integer> = (
@@ -295,34 +289,44 @@ public size ^<Integer> = (
 )
 public values ^<List[V]> = (
 	| result = List new: size_. |
-	1 to: table size do: [:index |
-		| entry = table at: index. |
-		nil = entry ifFalse: [result add: entry value]].
+	1 to: table size by: 2 do: [:index |
+		table = (table at: index) ifFalse:
+			[result add: (table at: 1 + index)]].
 	^result
 )
 ) : (
 public new = (
-	^self initialCapacity: 6
+	^self initialCapacity: 4
 )
 )
-public class Set initialCapacity: n = Collection (|
-protected size_ ::= 0.
-protected table ::= Array new: n.
-|1 to: n do: [:index | table at: index put: table]) (
+public class NotFound element: e = Exception (
+	|
+	public element = e.
+	|
+) (
+public printString = (
+	^'NotFound: ', element printString
+)
+) : (
+)
+public class Set initialCapacity: n = Collection (
+	|
+	protected size_ ::= 0.
+	protected table ::= Array new: n.
+	|
+	1 to: n do: [:index | table at: index put: table].
+) (
 public add: element <E> ^<E> = (
 	| index entry |
 	index:: scanFor: element.
 	entry:: table at: index.
-	table = entry ifTrue: [self atNewIndex: index put: element].
+	table = entry ifTrue:
+		[table at: index put: element.
+		 incrementSize].
 	^element
 )
 public addAll: collection = (
 	collection do: [:element | self add: element].
-)
-atNewIndex: index put: entry = (
-	table at: index put: entry.
-	size_:: 1 + size_.
-	(table size * 3) < (size_ * 4) ifTrue: [grow].
 )
 public do: action <[:E]> = (
 	table do: [:entry | table = entry ifFalse: [action value: entry]].
@@ -337,15 +341,6 @@ fixCollisionsAfter: start <Integer> = (
 			[table at: newIndex put: element.
 			 table at: index put: table]].
 )
-grow = (
-	| oldTable = table. |
-	table:: Array new: oldTable size << 1.
-	1 to: table size do: [:index | table at: index put: table].
-	1 to: oldTable size do: [:index |
-		| entry = oldTable at: index. |
-		oldTable = entry ifFalse:
-			[table at: (scanForEmptySlotFor: entry) put: entry]]
-)
 public include: element <E> ^<E> = (
 	^self add: element
 )
@@ -354,12 +349,26 @@ public include: element <E> ifNew: onNew ^<E> = (
 	index:: scanFor: element.
 	entry:: table at: index.
 	table = entry ifTrue:
-		[self atNewIndex: index put: element.
+		[table at: index put: element.
+		 incrementSize.
 		 onNew value].
 	^element
 )
 public includes: element <E> ^<Boolean> = (
 	^(table = (table at: (scanFor: element))) not
+)
+incrementSize = (
+	| oldTable newTable |
+	size_:: 1 + size_.
+	(table size * 3) >= (size_ * 4) ifTrue: [^self]. (* 75% load factor *)
+
+	oldTable:: table.
+	table:: newTable:: Array new: oldTable size << 1.
+	1 to: newTable size do: [:index | newTable at: index put: newTable].
+	1 to: oldTable size do: [:index |
+		| entry = oldTable at: index. |
+		oldTable = entry ifFalse:
+			[table at: (scanForEmptySlotFor: entry) put: entry]]
 )
 public isEmpty ^<Boolean> = (
 	^0 = size_
@@ -368,7 +377,7 @@ public isKindOfSet ^<Boolean> = (
 	^true
 )
 public remove: element <E> ^<E> = (
-	^self remove: element ifAbsent: [missingElement: element].
+	^self remove: element ifAbsent: [(NotFound element: element) signal].
 )
 public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
 	| index entry |
@@ -416,7 +425,7 @@ public size ^<Integer> = (
 )
 ) : (
 public new = (
-	^self initialCapacity: 6
+	^self initialCapacity: 5
 )
 )
 public IdentityMap = (

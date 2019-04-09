@@ -1763,6 +1763,24 @@ public keysAndValuesDo: action <[:Integer :E]> = (
 public last ^<E> = (
 	^self at: self size
 )
+private merge: source into: destination start: start mid: mid stop: stop by: lessOrEqual = (
+	| leftCursor rightCursor |
+	leftCursor:: start.
+	rightCursor:: 1 + mid.
+	start to: stop do:
+		[:destCursor |
+		 leftCursor <= mid ifFalse:
+			[^destination replaceFrom: destCursor to: stop with: source startingAt: rightCursor].
+		 rightCursor <= stop ifFalse:
+			[^destination replaceFrom: destCursor to: stop with: source startingAt: leftCursor].
+		 (lessOrEqual value: (source at: leftCursor) value: (source at: rightCursor))
+			ifTrue:
+				[destination at: destCursor put: (source at: leftCursor).
+				 leftCursor:: 1 + leftCursor]
+			ifFalse:
+				[destination at: destCursor put: (source at: rightCursor).
+				 rightCursor:: 1 + rightCursor]].
+)
 public replaceFrom: start <Integer> to: stop <Integer> with: replacement <Array> startingAt: replacementStart <Integer> = (
 	(* :literalmessage: primitive: 80 *)
 	^ArgumentError new signal
@@ -1771,17 +1789,19 @@ public size ^<Integer> = (
 	(* :literalmessage: primitive: 41 *)
 	primitiveFailed
 )
-public sort: comparison <[:E :E | Boolean]> = (
-	(* :todo: Merge or quick sort. *)
-	1 to: size do:
-		[:i | | min ::= i. temp |
-		i + 1 to: size do:
-			[:j |
-			(comparison value: (self at: j) value: (self at: min))
-				ifTrue: [min:: j]].
-		temp:: self at: i.
-		self at: i put: (self at: min).
-		self at: min put: temp].
+public sort: lessOrEqual <[:E :E | Boolean]> = (
+	self sortFrom: 1 to: self size by: lessOrEqual.
+)
+private sort: source into: destination from: start to: stop by: lessOrEqual = (
+	| mid |
+	start >= stop ifTrue: [^self].
+	mid:: (start + stop) // 2.
+	self sort: destination into: source from: start to: mid by: lessOrEqual.
+	self sort: destination into: source from: 1 + mid to: stop by: lessOrEqual.
+	self merge: source into: destination start: start mid: mid stop: stop by: lessOrEqual.
+)
+public sortFrom: start to: stop by: lessOrEqual <[:E :E | Boolean]> = (
+	self sort: (self copyWithSize: stop - start + 1) into: self from: start to: stop by: lessOrEqual.
 )
 ) : (
 public new: size <Integer> ^<Array[E]> = (
