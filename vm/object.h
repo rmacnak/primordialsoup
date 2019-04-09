@@ -519,12 +519,6 @@ class Array : public HeapObject {
   void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
     StorePointer(&ptr()->elements_[index], value, barrier);
   }
-  Object** element_addr(intptr_t index) {
-    return &ptr()->elements_[index];
-  }
-  Object* const* element_addr(intptr_t index) const {
-    return &ptr()->elements_[index];
-  }
 
  private:
   Object** from() {

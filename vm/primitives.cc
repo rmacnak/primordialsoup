@@ -1444,9 +1444,18 @@ DEFINE_PRIMITIVE(Array_replaceFromToWithStartingAt) {
   }
 
   // Note replacement may be receiver.
-  memmove(receiver->element_addr(start - 1),
-          replacement->element_addr(replacementStart - 1),
-          count * sizeof(Object*));
+  if (replacementStart < start) {
+    for (intptr_t i = count - 1; i >= 0; i--) {
+      receiver->set_element(start - 1 + i,
+                            replacement->element(replacementStart - 1 + i));
+    }
+  } else {
+    for (intptr_t i = 0; i < count; i++) {
+      receiver->set_element(start - 1 + i,
+                            replacement->element(replacementStart - 1 + i));
+    }
+  }
+
   RETURN_SELF();
 }
 
