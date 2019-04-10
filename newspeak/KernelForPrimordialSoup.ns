@@ -94,12 +94,18 @@ public pop = (
 	^result
 )
 public printString ^<String> = (
-	| methodMixin receiverMixin |
-	closure isNil ifFalse: [^'[] in ', (definingActivationOf: closure) printString].
+	| methodMixin receiverMixin result |
+	nil = closure ifFalse:
+		[^'[] in ', (definingActivationOf: closure) printString].
 	methodMixin:: method mixin.
 	receiverMixin:: (mixinOf: (classOf: receiver)).
-	methodMixin = receiverMixin ifTrue: [^receiverMixin _name, ' ', method selector].
-	^receiverMixin _name, '(', methodMixin _name, ') ', method selector.
+	result:: receiverMixin _name.
+	methodMixin = receiverMixin ifFalse:
+		[result:: result, '(', methodMixin _name, ')'].
+	result:: result, ' ', method selector.
+	#doesNotUnderstand: = method selector ifTrue:
+		[result:: result, ' #', (tempAt: 1) selector].
+	^result
 )
 public push: value = (
 	| newDepth |
