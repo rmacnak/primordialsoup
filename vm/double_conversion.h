@@ -9,8 +9,14 @@
 
 namespace psoup {
 
-void DoubleToCString(double d, char* buffer, int buffer_size);
-bool CStringToDouble(const char* str, intptr_t length, double* result);
+int DoubleToCStringAsShortest(double d, char* buffer, int buffer_size);
+int DoubleToCStringAsFixed(double d, int fraction_digits,
+                           char* buffer, int buffer_size);
+int DoubleToCStringAsExponential(double d, int fraction_digits,
+                                 char* buffer, int buffer_size);
+int DoubleToCStringAsPrecision(double d, int precision,
+                               char* buffer, int buffer_size);
+bool CStringToDouble(const char* str, int length, double* result);
 
 }  // namespace psoup
 

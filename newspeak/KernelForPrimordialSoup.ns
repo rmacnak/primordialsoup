@@ -660,6 +660,18 @@ public addFromFraction: left = (
 public asFloat ^<Float> = (
 	^self
 )
+public asStringExponential: fractionDigits <Integer> ^<String> = (
+	(* :literalmessage: primitive: 109 *)
+	^(ArgumentError value: fractionDigits) signal
+)
+public asStringFixed: fractionDigits <Integer> ^<String> = (
+	(* :literalmessage: primitive: 108 *)
+	^(ArgumentError value: fractionDigits) signal
+)
+public asStringPrecision: precision <Integer> ^<String> = (
+	(* :literalmessage: primitive: 110 *)
+	^(ArgumentError value: precision) signal
+)
 public ceiling ^<Float> = (
 	(* :literalmessage: primitive: 22 *)
 	halt.

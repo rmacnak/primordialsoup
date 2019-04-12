@@ -133,7 +133,10 @@ const bool kFailure = false;
   V(104, flushCache)                                                           \
   V(105, collectGarbage)                                                       \
   V(107, MessageLoop_exit)                                                     \
-  V(111, Number_printString)                                                   \
+  V(108, Double_asStringFixed)                                                 \
+  V(109, Double_asStringExponential)                                           \
+  V(110, Double_asStringPrecision)                                             \
+  V(111, Number_asString)                                                      \
   V(113, Closure_ensure)                                                       \
   V(114, String_equals)                                                        \
   V(115, String_concat)                                                        \
@@ -267,6 +270,14 @@ const bool kFailure = false;
     name = static_cast<SmallInteger*>(I->Stack(index))->value();               \
   } else if (I->Stack(index)->IsMediumInteger()) {                             \
     name = static_cast<MediumInteger*>(I->Stack(index))->value();              \
+  } else {                                                                     \
+    return kFailure;                                                           \
+  }                                                                            \
+
+#define FLOAT_ARGUMENT(name, index)                                            \
+  double name;                                                                 \
+  if (I->Stack(index)->IsFloat64()) {                                          \
+    name = static_cast<Float64*>(I->Stack(index))->value();                    \
   } else {                                                                     \
     return kFailure;                                                           \
   }                                                                            \
@@ -2070,14 +2081,71 @@ DEFINE_PRIMITIVE(MessageLoop_exit) {
   return kFailure;
 }
 
+DEFINE_PRIMITIVE(Double_asStringFixed) {
+  ASSERT(num_args == 1);
+  FLOAT_ARGUMENT(value, 1);
+  SMI_ARGUMENT(fraction_digits, 0);
+  if (fraction_digits < 0 || fraction_digits > 20) {
+    return kFailure;
+  }
 
-DEFINE_PRIMITIVE(Number_printString) {
+  char buffer[64];
+  intptr_t length;
+  if (value < 1e21 && value > -1e21) {
+    length = DoubleToCStringAsFixed(value, fraction_digits,
+                                    buffer, sizeof(buffer));
+  } else {
+    length = DoubleToCStringAsShortest(value, buffer, sizeof(buffer));
+  }
+  ASSERT(length < 64);
+
+  String* result = H->AllocateString(length);  // SAFEPOINT
+  memcpy(result->element_addr(0), buffer, length);
+  RETURN(result);
+}
+
+DEFINE_PRIMITIVE(Double_asStringExponential) {
+  ASSERT(num_args == 1);
+  FLOAT_ARGUMENT(value, 1);
+  SMI_ARGUMENT(fraction_digits, 0);
+  if (fraction_digits < 0 || fraction_digits > 20) {
+    return kFailure;
+  }
+
+  char buffer[64];
+  intptr_t length = DoubleToCStringAsExponential(value, fraction_digits,
+                                                 buffer, sizeof(buffer));
+  ASSERT(length < 64);
+
+  String* result = H->AllocateString(length);  // SAFEPOINT
+  memcpy(result->element_addr(0), buffer, length);
+  RETURN(result);
+}
+
+DEFINE_PRIMITIVE(Double_asStringPrecision) {
+  ASSERT(num_args == 1);
+  FLOAT_ARGUMENT(value, 1);
+  SMI_ARGUMENT(precision, 0);
+  if (precision < 1 || precision > 21) {
+    return kFailure;
+  }
+
+  char buffer[64];
+  intptr_t length = DoubleToCStringAsPrecision(value, precision,
+                                               buffer, sizeof(buffer));
+  ASSERT(length < 64);
+
+  String* result = H->AllocateString(length);  // SAFEPOINT
+  memcpy(result->element_addr(0), buffer, length);
+  RETURN(result);
+}
+
+DEFINE_PRIMITIVE(Number_asString) {
   ASSERT(num_args == 0);
   Object* receiver = I->Stack(0);
 
   char buffer[64];
   intptr_t length = -1;
-
   if (receiver->IsSmallInteger()) {
     intptr_t value = static_cast<SmallInteger*>(receiver)->value();
     length = snprintf(buffer, sizeof(buffer), "%" Pd "", value);
@@ -2086,11 +2154,10 @@ DEFINE_PRIMITIVE(Number_printString) {
     length = snprintf(buffer, sizeof(buffer), "%" Pd64 "", value);
   } else if (receiver->IsFloat64()) {
     double value = static_cast<Float64*>(receiver)->value();
-    DoubleToCString(value, buffer, sizeof(buffer));
-    length = strlen(buffer);
+    length = DoubleToCStringAsShortest(value, buffer, sizeof(buffer));
   } else if (receiver->IsLargeInteger()) {
     LargeInteger* large = static_cast<LargeInteger*>(receiver);
-    String* result = LargeInteger::PrintString(large, H);
+    String* result = LargeInteger::PrintString(large, H);  // SAFEPOINT
     RETURN(result);
   } else {
     UNIMPLEMENTED();
