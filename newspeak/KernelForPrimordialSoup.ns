@@ -1391,9 +1391,6 @@ protected hash = (
 protected isNil = (
 	^super isNil
 )
-protected notNil = (
-	^super notNil
-)
 protected printString = (
 	^super printString
 )

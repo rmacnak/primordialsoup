@@ -6,11 +6,11 @@ class CollectionsForPrimordialSoup usingInternalKernel: ik = (
 	private ArgumentError = ik ArgumentError.
 	|
 ) (
-public class List new: initialCapacity = Collection (
+public class List new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
-	protected data ::= Array new: initialCapacity.
-    |
+	protected data ::= Array new: capacity.
+	|
 ) (
 public , other = (
 	| result = List new: (self size + other size bitOr: 3). |
@@ -21,7 +21,7 @@ public , other = (
 public add: element <E> ^<E> = (
 	^self addLast: element
 )
-public addAll: collection = (
+public addAll: collection <Collection[E]> = (
 	collection do: [:element | self addLast: element].
 )
 public addFirst: element <E> ^<E> = (
@@ -134,17 +134,17 @@ public sort: lessOrEqual <[:E :E | Boolean]> = (
 	data sortFrom: 1 to: size_ by: lessOrEqual.
 )
 ) : (
-public new = (
+public new ^<Array[E]> = (
 	^self new: 3
 )
-public withAll: collection = (
-	^(List new: collection size) addAll: collection; yourself
+public withAll: collection <Collection[E]> ^<List[E]> = (
+	^(self new: collection size) addAll: collection; yourself
 )
 )
-public class Map initialCapacity: n = Collection (
+public class Map new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
-	protected table ::= Array new: n << 1.
+	protected table ::= Array new: capacity << 1.
 	|
 	1 to: table size by: 2 do: [:index | table at: index put: table].
 ) (
@@ -295,8 +295,8 @@ public values ^<List[V]> = (
 	^result
 )
 ) : (
-public new = (
-	^self initialCapacity: 4
+public new ^<Map[E]> = (
+	^self new: 4
 )
 )
 public class NotFound element: e = Exception (
@@ -309,12 +309,12 @@ public printString = (
 )
 ) : (
 )
-public class Set initialCapacity: n = Collection (
+public class Set new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
-	protected table ::= Array new: n.
+	protected table ::= Array new: capacity.
 	|
-	1 to: n do: [:index | table at: index put: table].
+	1 to: capacity do: [:index | table at: index put: table].
 ) (
 public add: element <E> ^<E> = (
 	| index entry |
@@ -325,8 +325,19 @@ public add: element <E> ^<E> = (
 		 incrementSize].
 	^element
 )
-public addAll: collection = (
+public addAll: collection <Collection[E]> = (
 	collection do: [:element | self add: element].
+)
+public asArray ^<Array[E]> = (
+	| result cursor |
+	result:: Array new: size_.
+	cursor:: 1.
+	1 to: table size do: [:index |
+		| entry = table at: index. |
+		table = entry ifFalse:
+			[result at: cursor put: entry.
+			 cursor:: 1 + cursor]].
+	^result
 )
 public do: action <[:E]> = (
 	table do: [:entry | table = entry ifFalse: [action value: entry]].
@@ -344,7 +355,7 @@ fixCollisionsAfter: start <Integer> = (
 public include: element <E> ^<E> = (
 	^self add: element
 )
-public include: element <E> ifNew: onNew ^<E> = (
+public include: element <E> ifNew: onNew <[]> ^<E> = (
 	| index entry |
 	index:: scanFor: element.
 	entry:: table at: index.
@@ -375,6 +386,9 @@ public isEmpty ^<Boolean> = (
 )
 public isKindOfSet ^<Boolean> = (
 	^true
+)
+protected newForCollectUsingAdd: capacity = (
+	^Set new: capacity
 )
 public remove: element <E> ^<E> = (
 	^self remove: element ifAbsent: [(NotFound element: element) signal].
@@ -424,8 +438,11 @@ public size ^<Integer> = (
 	^size_
 )
 ) : (
-public new = (
-	^self initialCapacity: 5
+public new ^<Set[E]> = (
+	^self new: 5
+)
+public withAll: collection <Collection[E]> ^<Set[E]> = (
+	^(self new: collection size) addAll: collection; yourself
 )
 )
 public IdentityMap = (
