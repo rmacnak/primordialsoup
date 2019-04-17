@@ -187,7 +187,7 @@ public top = (
 	^self tempAt: self tempSize.
 )
 ) : (
-public new = (
+public new ^<Activation> = (
 	(* :literalmessage: primitive: 68 *)
 	halt.
 )
@@ -288,13 +288,13 @@ public new: size <Integer> ^<ByteArray> = (
 	(* :literalmessage: primitive: 46 *)
 	^(ArgumentError value: size) signal
 )
-public withAll: bytes <Array[Integer] | ByteArray> ^<String> = (
+public withAll: bytes <Collection[Integer] | ByteArray | String> ^<ByteArray> = (
 	(* :literalmessage: primitive: 122 *)
-	^self withAllAgain: bytes asArray
-)
-private withAllAgain: bytes <Array[Integer] | ByteArray> ^<String> = (
-	(* :literalmessage: primitive: 122 *)
-	^ArgumentError new signal
+	| result index |
+	result:: ByteArray new: bytes size.
+	index:: 1.
+	bytes do: [:element <E> | result at: index put: element. index:: 1 + index].
+	^result
 )
 )
 class CannotReturn result: r = Exception (|
@@ -314,10 +314,10 @@ protected basicNew = (
 	(* :literalmessage: primitive: 34 *)
 	halt.
 )
-public name = (
+public name ^<String> = (
 	^self nameS
 )
-public printString = (
+public printString ^<String> = (
 	^nameS
 )
 ) : (
@@ -327,14 +327,14 @@ public class ClassMixin = (
 
 Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)
 |
-public _instanceMixin
-public _methods (* Must be slot 2, known to the VM. *)
-public _enclosingMixin (* Must be slot 3, known to the VM. *)
+public _instanceMixin <InstanceMixin>
+public _methods <Array[Method]> (* Must be slot 2, known to the VM. *)
+public _enclosingMixin <InstanceMixin | nil> (* Must be slot 3, known to the VM. *)
 |) (
-public _name = (
+public _name ^<String> = (
 	^_instanceMixin _name, ' class'
 )
-public isMeta = (
+public isMeta ^<Boolean> = (
 	^true
 )
 ) : (
@@ -387,9 +387,6 @@ public printString ^<String> = (
 )
 public repeat = (
 	halt.
-
-	self value.
-	primRestart.
 )
 public value = (
 	(* :literalmessage: primitive: 90 *)
@@ -414,6 +411,11 @@ public value: arg1 value: arg2 value: arg3 = (
 public valueWithArguments: arguments = (
 	(* :literalmessage: primitive: 94 *)
 	self numArgs = arguments size ifFalse: [^numArgsError: arguments size].
+	^self valueWithArgumentsAgain: (Array withAll: arguments)
+)
+private valueWithArgumentsAgain: arguments = (
+	(* :literalmessage: primitive: 94 *)
+	self numArgs = arguments size ifFalse: [^numArgsError: arguments size].
 	halt.
 )
 public whileFalse = (
@@ -432,24 +434,24 @@ public whileTrue: action = (
 )
 public class Collection = () (
 public allSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
-	self do: [:each | (predicate value: each) ifFalse: [^false]].
+	self do: [:element <E> | (predicate value: element) ifFalse: [^false]].
 	^true
 )
 public anySatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
-	self do: [:each | (predicate value: each) ifTrue: [^true]].
+	self do: [:element <E> | (predicate value: element) ifTrue: [^true]].
 	^false
 )
-public collect: transform <[:E | F]> ^<MutableArrayList[F]> = (
-	| result <MutableArrayList[E]> |
+public collect: transform <[:E | F]> ^<List[F]> = (
+	| result <List[E]> |
 	result:: self newForCollectUsingAdd: size.
-	self do: [:element | result add: (transform value: element)].
+	self do: [:element <E> | result add: (transform value: element)].
 	^result
 )
 public detect: predicate <[:E | Boolean]> ^<E> = (
 	^self detect: predicate ifNone: [Error signal: 'No matching element detected']
 )
 public detect: predicate <[:E | Boolean]> ifNone: onNone <[X def]> ^<E | X> = (
-	self do: [:element | (predicate value: element) ifTrue: [^element]].
+	self do: [:element <E> | (predicate value: element) ifTrue: [^element]].
 	^onNone value
 )
 public do: action <[:E]> = (
@@ -459,10 +461,8 @@ public do: action <[:E]> separatedBy: betweenAction <[]> = (
 	| first <Boolean> ::= true. |
 	self do:
 		[:element <E> |
-		first
-			ifTrue: [first:: false]
-			ifFalse: [betweenAction value].
-			action value: element].
+		 first ifTrue: [first:: false] ifFalse: [betweenAction value].
+		 action value: element].
 )
 public includes: object <Object> ^<Boolean> = (
 	self do: [:element <E> | element = object ifTrue: [^true]].
@@ -481,7 +481,7 @@ public isEmpty ^<Boolean> = (
 	^true
 )
 public noneSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
-	self do: [:each | (predicate value: each) ifTrue: [^false]].
+	self do: [:element <E> | (predicate value: element) ifTrue: [^false]].
 	^true
 )
 public reduce: mergeFunction <[:(E | X) :E | X def]> ^<X> = (
@@ -499,15 +499,15 @@ public reduce: mergeFunction <[:(E | X) :E | X def]> ifEmpty: onEmpty <[Y def]> 
 		ifFalse: [runningValue]
 )
 public reject: predicate <[:E | Boolean]> ^<List[E]> = (
-	| result <MutableArrayList[E]> |
+	| result <List[E]> |
 	result:: self newForCollectUsingAdd: size.
-	self do: [:element | (predicate value: element) ifFalse: [result add: element]].
+	self do: [:element <E> | (predicate value: element) ifFalse: [result add: element]].
 	^result
 )
 public select: predicate <[:E | Boolean]> ^<List[E]> = (
-	| result <MutableArrayList[E]> |
+	| result <List[E]> |
 	result:: self newForCollectUsingAdd: size.
-	self do: [:element | (predicate value: element) ifTrue: [result add: element]].
+	self do: [:element <E> | (predicate value: element) ifTrue: [result add: element]].
 	^result
 )
 public size ^<Integer> = (
@@ -537,7 +537,7 @@ private invokeNextHandler = (
 	[nil = activation] whileFalse:
 		[activation method primitive = 142 ifTrue:
 			[returnToSimulationRoot: activation.
-			 UNREACHABLE].
+			 halt].
 		 activation method primitive = 116 ifTrue:
 			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
 				[(activation tempAt: 3) ifTrue:
@@ -545,7 +545,7 @@ private invokeNextHandler = (
 		 activation:: activation sender].
 
 	messageLoop unhandledException: self from: signalActivation sender.
-	UNREACHABLE.
+	halt.
 )
 private invokeOnDoHandler: handler <Activation> = (
 	| handlerResult |
@@ -568,9 +568,9 @@ private is: handlerExceptionClass <Any> interestedIn: signaledExceptionClass <Be
 public pass = (
 	nil = handlerActivation ifTrue: [^error].
 	invokeNextHandler.
-	UNREACHABLE.
+	halt.
 )
-public printString = (
+public printString ^<String> = (
 	nil = messageText ifTrue: [^super class name].
 	^super class name, ': ', messageText
 )
@@ -582,9 +582,9 @@ public resume: resumptionValue = (
 	^savedSignalActivation return: resumptionValue
 )
 public retry = (
-	halt.
+	halt. (* Needs test *)
 	handlerActivation restart.
-	UNREACHABLE.
+	halt.
 )
 public return: returnValue = (
 	| savedHandlerActivation = handlerActivation. |
@@ -601,15 +601,15 @@ private returnToSimulationRoot: simulationRoot <Activation> = (
 public signal = (
 	handlerActivation:: signalActivation:: currentActivation.
 	invokeNextHandler.
-	UNREACHABLE.
+	halt.
 )
-public signal: message = (
+public signal: message <String> = (
 	(* squeak compatibility for Minitest *)
 	messageText:: message.
 	^self signal
 )
 ) : (
-public signal: message = (
+public signal: message <String> = (
 	^(self new messageText: message) signal
 )
 )
@@ -1025,13 +1025,13 @@ public bitXor: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 18 *)
 	^(ArgumentError value: other) signal
 )
-public ceiling = (
+public ceiling ^<Integer> = (
 	^self
 )
 public divideFromFraction: left = (
 	^left numerator / (left denominator * self)
 )
-public floor = (
+public floor ^<Integer> = (
 	^self
 )
 public gcd: other <Integer> ^<Integer> = (
@@ -1061,7 +1061,7 @@ public multiplyFromFraction: left = (
 public raisedTo: exponent mod: modulus = (
 	halt.
 )
-public rounded = (
+public rounded ^<Integer> = (
 	^self
 )
 public subtractFromFraction: left = (
@@ -1125,10 +1125,10 @@ public sendTo: receiver = (
 ) : (
 )
 public class MessageNotUnderstood receiver: r message: m = Exception (|
-public receiver = r.
-public message = m.
+public receiver <Object> = r.
+public message <Message> = m.
 |) (
-public messageText = (
+public messageText ^<String> = (
 	(* squeak compatibility for Minitest *)
 	^self printString
 )
@@ -1140,10 +1140,10 @@ public printString ^<String> = (
 public class Metaclass = Behavior (|
 private thisClass <Class>
 |) (
-public name = (
+public name ^<String> = (
 	^thisClass name, ' class'
 )
-public printString = (
+public printString ^<String> = (
 	^thisClass printString, ' class'
 )
 ) : (
@@ -1163,16 +1163,16 @@ public accessModifier ^<Symbol> = (
 	2 = ac ifTrue: [^#private].
 	halt.
 )
-public isPrivate = (
+public isPrivate ^<Boolean> = (
 	^#private = accessModifier
 )
-public isProtected = (
+public isProtected ^<Boolean> = (
 	^#protected = accessModifier
 )
-public isPublic = (
+public isPublic ^<Boolean> = (
 	^#public = accessModifier
 )
-public isSynthetic = (
+public isSynthetic ^<Boolean> = (
 	^nil = source
 )
 public numArgs ^<Integer> = (
@@ -1256,26 +1256,26 @@ public // other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 5 *)
 	^(ArgumentError value: other) signal
 )
-public < other = (
+public < other <Number> ^<Boolean> = (
 	(* :literalmessage: primitive: 10 *)
 	other isFraction ifTrue: [^other >= self].
 	^(ArgumentError value: other) signal
 )
-public <= other = (
+public <= other <Number> ^<Boolean> = (
 	(* :literalmessage: primitive: 12 *)
 	other isFraction ifTrue: [^other > self].
 	^(ArgumentError value: other) signal
 )
-public = other = (
+public = other <Object> ^<Boolean> = (
 	(* :literalmessage: primitive: 9 *)
 	^(ArgumentError value: other) signal
 )
-public > other = (
+public > other <Number> ^<Boolean> = (
 	(* :literalmessage: primitive: 11 *)
 	other isFraction ifTrue: [^other <= self].
 	^(ArgumentError value: other) signal
 )
-public >= other = (
+public >= other <Number> ^<Boolean> = (
 	(* :literalmessage: primitive: 13 *)
 	other isFraction ifTrue: [^other < self].
 	^(ArgumentError value: other) signal
@@ -1285,15 +1285,15 @@ public \\ other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 6 *)
 	^(ArgumentError value: other) signal
 )
-public abs = (
+public abs ^<Number> = (
 	self < 0 ifTrue: [^self negated].
 	^self
 )
-public asFloat = (
+public asFloat ^<Float> = (
 	(* :literalmessage: primitive: 15 *)
 	halt.
 )
-public asInteger = (
+public asInteger ^<Integer> = (
 	(* :literalmessage: primitive: 14 *)
 	^(ArgumentError value: self) signal
 )
@@ -1340,7 +1340,7 @@ public negated ^<Number> = (
 public printString ^<String> = (
 	^self asString
 )
-public quo: other = (
+public quo: other <Number> ^<Number> = (
 	(* Answer the receiver divided by the argument, rounded to nearest integer toward zero. The remainder of this division is given by rem: *)
 	(* :literalmessage: primitive: 7 *)
 	^(ArgumentError value: other) signal
@@ -1348,7 +1348,7 @@ public quo: other = (
 public raisedTo: other = (
 	halt.
 )
-public rem: other = (
+public rem: other <Number> ^<Number> = (
 	(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
 	(* :literalmessage: primitive: 8 *)
 	^(ArgumentError value: other) signal
@@ -1362,22 +1362,19 @@ public sqrt ^<Float> = (
 public tan ^<Float> = (
 	^self asFloat tan
 )
-public to: stop by: step do: action = (
+public to: stop <Number> by: step <Number> do: action <[:Number]> = (
 	| current ::= self. |
 	[current <= stop] whileTrue: [action value. current:: step + current].
 
 	^nil (* To match the inlined version *)
 )
-public to: stop do: action = (
+public to: stop <Number> do: action <[:Number]> = (
 	| current ::= self. |
 	[current <= stop] whileTrue: [action value. current:: 1 + current].
 
 	^nil (* To match the inlined version *)
 )
 ) : (
-public parse: string <String> ^<Number> = (
-	halt.
-)
 )
 public class Proxy = (
 (* Proxy overrides all the public members of Object with protected ones. One can implement a total proxy by subclassing and implementing only #doesNotUnderstand:. *)
@@ -1432,7 +1429,7 @@ public , other <String> ^<String> = (
 	(* :literalmessage: primitive: 115 *)
 	^(ArgumentError value: other) signal
 )
-public = other = (
+public = other <Object> ^<Boolean> = (
 	(* :literalmessage: primitive: 114 *)
 	halt.
 )
@@ -1450,6 +1447,9 @@ public at: index <Integer> ^<Integer> = (
 public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
 	(* :literalmessage: primitive: 121 *)
 	^ArgumentError new signal
+)
+public do: action <[:Integer]> = (
+	1 to: self size do: [:index <Integer> | action value: (self at: index)].
 )
 public endsWith: suffix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 118 *)
@@ -1485,7 +1485,7 @@ public lastIndexOf: substring <ByteArray | String> startingAt: index <Integer> ^
 public out = (
 	print: self.
 )
-public printString = (
+public printString ^<String> = (
 	^'''', self, ''''
 )
 public size ^<Integer> = (
@@ -1501,13 +1501,13 @@ public with: byte <Integer> ^<String> = (
 	(* :literalmessage: primitive: 123 *)
 	^(ArgumentError value: byte) signal
 )
-public withAll: bytes <Array[Integer] | ByteArray> ^<String> = (
+public withAll: bytes <Collection[Integer] | ByteArray | String> ^<String> = (
 	(* :literalmessage: primitive: 124 *)
-	^self withAllAgain: bytes asArray
+	^self withAllAgain: (ByteArray withAll: bytes)
 )
-private withAllAgain: bytes <Array[Integer] | ByteArray> ^<String> = (
+private withAllAgain: bytes <ByteArray> ^<String> = (
 	(* :literalmessage: primitive: 124 *)
-	^ArgumentError new signal
+	halt
 )
 )
 public class StringBuilder = (|
@@ -1823,6 +1823,13 @@ public new: size <Integer> ^<Array[E]> = (
 	(* :literalmessage: primitive: 38 *)
 	^(ArgumentError value: size) signal
 )
+public withAll: collection <Collection[E]> ^<Array[E]> = (
+	| result index |
+	result:: Array new: collection size.
+	index:: 1.
+	collection do: [:element <E> | result at: index put: element. index:: 1 + index].
+	^result
+)
 )
 public class _Object = (
 (* Object is the root of the class hierarchy in the Newspeak programming language, and provides behavior common to all objects.
@@ -1892,7 +1899,7 @@ protected class ^<Behavior> = (
 	(* :literalmessage: primitive: 85 *)
 	halt.
 )
-protected doesNotUnderstand: message = (
+protected doesNotUnderstand: message <Message> = (
 	(0 = message arguments size and: [message selector startsWith: 'is']) ifTrue: [^false].
 
 	^(MessageNotUnderstood receiver: self message: message) signal

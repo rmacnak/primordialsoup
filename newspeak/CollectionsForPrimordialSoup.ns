@@ -177,11 +177,12 @@ public at: key <K> put: value <V> ^<V> = (
 		 self incrementSize].
 	^value
 )
-public collect: transform <[:V | W]> ^<List[W]> = (
-	| result = List new: size_. |
+public collect: transform <[:V | W]> ^<Map[K, W]> = (
+	| result = Map new: size_. |
 	1 to: table size by: 2 do: [:index |
-		table = (table at: index) ifFalse:
-			[result add: (transform value: (table at: 1 + index))]].
+		| key |
+		table = (key:: table at: index) ifFalse:
+			[result at: key put: (transform value: (table at: 1 + index))]].
 	^result
 )
 public do: action <[:V]> = (
@@ -236,13 +237,14 @@ public keysAndValuesDo: action <[:K :V]> = (
 		table = key ifFalse:
 			[action value: key value: (table at: 1 + index)]].
 )
-public reject: predicate <[:V | Boolean]> ^<List[V]> = (
-	| result = List new: size_. |
+public reject: predicate <[:V | Boolean]> ^<Map[K, V]> = (
+	| result = Map new: size_. |
 	1 to: table size by: 2 do: [:index |
-		table = (table at: index) ifFalse:
+		| key |
+		table = (key:: table at: index) ifFalse:
 			[ | value = table at: 1 + index. |
 			(predicate value: value) ifFalse:
-				[result add: value]]].
+				[result at: key put: value]]].
 	^result
 )
 public removeKey: key <K> ^<V> = (
@@ -275,13 +277,14 @@ scanForEmptySlotFor: key = (
 	 (index:: index + 1 \\ table size + 1) = start] whileFalse.
 	self errorNoFreeSpace
 )
-public select: predicate <[:V | Boolean]> ^<List[V]> = (
-	| result = List new: size_. |
+public select: predicate <[:V | Boolean]> ^<Map[K, V]> = (
+	| result = Map new: size_. |
 	1 to: table size by: 2 do: [:index |
-		table = (table at: index) ifFalse:
+		| key |
+		table = (key:: table at: index) ifFalse:
 			[ | value = table at: 1 + index. |
 			(predicate value: value) ifTrue:
-				[result add: value]]].
+				[result at: key put: value]]].
 	^result
 )
 public size ^<Integer> = (

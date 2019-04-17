@@ -1951,7 +1951,7 @@ private object: object executeMethod: method with: arguments = (
 	1 to: arguments size do:
 		[:index | activation tempAt: index put: (arguments at: index)].
 	jumpTo: activation.
-	UNREACHABLE.
+	halt.
 )
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
