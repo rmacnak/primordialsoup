@@ -47,6 +47,12 @@ public testJSString = (
 	(* String return value *)
 	assert: ((js global at: 'Math') toString) equals: '[object Math]'.
 )
+public testJSUndefined = (
+	assert: js undefined isUndefined.
+	deny: js global isUndefined.
+	assert: (js global at: 'DoesNotExist') isUndefined.
+	deny: (js global at: 'Object') isUndefined.
+)
 ) : (
 TEST_CONTEXT = ()
 )

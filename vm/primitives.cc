@@ -3117,7 +3117,13 @@ EM_JS(void, _JS_popString, (intptr_t addr, intptr_t size), {
 });
 EM_JS(intptr_t, _JS_peekAlien, (), {
   var aliens = Module.aliens;
-  return aliens.length - 1;
+  var lastIndex = aliens.length - 1;
+  if (undefined === aliens[lastIndex]) {
+    aliens.pop();
+    return 0;
+  } else {
+    return lastIndex;
+  }
 });
 EM_JS(intptr_t, _JS_peekExpat, (), {
   throw "Unimplemented";

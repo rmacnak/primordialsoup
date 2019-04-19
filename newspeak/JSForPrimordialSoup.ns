@@ -40,6 +40,9 @@ protected doesNotUnderstand: message = (
 public isClosure ^<Boolean> = (
 	^false
 )
+public isUndefined ^<Boolean> = (
+	^0 = index
+)
 public newWithArguments: arguments <Array> = (
 	rawPushAlien: self index.
 	1 to: arguments size do:
