@@ -144,7 +144,7 @@ public withAll: collection <Collection[E]> ^<List[E]> = (
 public class Map new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
-	protected table ::= Array new: capacity << 1.
+	protected table ::= Array new: (capacityFor: capacity).
 	|
 	1 to: table size by: 2 do: [:index | table at: index put: table].
 ) (
@@ -176,6 +176,13 @@ public at: key <K> put: value <V> ^<V> = (
 		[table at: index put: key.
 		 self incrementSize].
 	^value
+)
+private capacityFor: numElements <Integer> = (
+	numElements < 0 ifTrue: [^ArgumentError value: numElements].
+	(* + 1 for an empty slot to terminate probing *)
+	(* * 4 // 3 for 75% load factor *)
+	(* << 1 for flattened association *)
+	^numElements + 1 * 4 // 3 << 1
 )
 public collect: transform <[:V | W]> ^<Map[K, W]> = (
 	| result = Map new: size_. |
@@ -299,7 +306,7 @@ public values ^<List[V]> = (
 )
 ) : (
 public new ^<Map[E]> = (
-	^self new: 4
+	^self new: 3
 )
 )
 public class NotFound element: e = Exception (
@@ -315,9 +322,9 @@ public printString = (
 public class Set new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
-	protected table ::= Array new: capacity.
+	protected table ::= Array new: (capacityFor: capacity).
 	|
-	1 to: capacity do: [:index | table at: index put: table].
+	1 to: table size do: [:index | table at: index put: table].
 ) (
 public add: element <E> ^<E> = (
 	| index entry |
@@ -341,6 +348,12 @@ public asArray ^<Array[E]> = (
 			[result at: cursor put: entry.
 			 cursor:: 1 + cursor]].
 	^result
+)
+private capacityFor: numElements <Integer> = (
+	numElements < 0 ifTrue: [^ArgumentError value: numElements].
+	(* + 1 for an empty slot to terminate probing *)
+	(* * 4 // 3 for 75% load factor *)
+	^numElements + 1 * 4 // 3
 )
 public do: action <[:E]> = (
 	table do: [:entry | table = entry ifFalse: [action value: entry]].
@@ -442,7 +455,7 @@ public size ^<Integer> = (
 )
 ) : (
 public new ^<Set[E]> = (
-	^self new: 5
+	^self new: 2
 )
 public withAll: collection <Collection[E]> ^<Set[E]> = (
 	^(self new: collection size) addAll: collection; yourself

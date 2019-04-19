@@ -1712,11 +1712,6 @@ public , collection = (
 		[:index | newArray at: index + offset put: (collection at: index)].
 	^newArray
 )
-public allButFirst = (
-	| newArray = Array new: self size - 1. |
-	newArray replaceFrom: 2 to: self size with: self startingAt: 1.
-	^newArray
-)
 public asArray ^<Array[E]> = (
 	^self
 )
