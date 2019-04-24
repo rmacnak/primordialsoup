@@ -448,6 +448,7 @@ public enclosingClass ^<ClassDeclarationBuilder> = (
 
 	enclosingBuilder:: ClassDeclarationBuilder fromIntermediate: enclosingIR.
 	enclosingIR builder: enclosingBuilder.
+	enclosingBuilder instanceSide. (* Populate for incremental scope building. *)
 	^enclosingBuilder
 )
 public headerFromSource: newHeader <String> = (
