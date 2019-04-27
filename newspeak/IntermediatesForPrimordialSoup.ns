@@ -99,7 +99,7 @@ public compiledMethod ^<CompiledMethod> = (
 		ifTrue:
 			[method source: nil]
 		ifFalse:
-			[assert: [source isString] message: 'Missing source'.
+			[assert: [source isKindOfString] message: 'Missing source'.
 			 method source: source].
 
 	literals:: nil.

@@ -22,12 +22,12 @@ public testArrays = (
 	| before after |
 	before:: {}.
 	after:: roundTrip: before.
-	assert: after isArray.
+	assert: after isKindOfArray.
 	assert: after size equals: 0.
 
 	before:: {true. false. nil}.
 	after:: roundTrip: before.
-	assert: after isArray.
+	assert: after isKindOfArray.
 	assert: after size equals: 3.
 	assert: (after at: 1) equals: true.
 	assert: (after at: 2) equals: false.
@@ -36,7 +36,7 @@ public testArrays = (
 	before:: Array new: 1.
 	before at: 1 put: before.
 	after:: roundTrip: before.
-	assert: after isArray.
+	assert: after isKindOfArray.
 	assert: after size equals: 1.
 	assert: (after at: 1) equals: after.
 )

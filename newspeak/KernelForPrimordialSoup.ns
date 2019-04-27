@@ -211,7 +211,7 @@ private mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
 private classIndex <SmallInteger> (* Must be slot 5, known to the VM. *)
 private format <SmallInteger> (* Must be slot 6, known to the VM. *)
 |) (
-public isBehavior = (
+public isKindOfBehavior = (
 	^true
 )
 public mixinApply: superklass = (
@@ -258,11 +258,11 @@ public indexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Int
 	(* :literalmessage: primitive: 119 *)
 	^ArgumentError new signal
 )
-public isByteArray ^<Boolean> = (
-	^true
-)
 public isEmpty ^<Boolean> = (
 	^0 = self size
+)
+public isKindOfByteArray ^<Boolean> = (
+	^true
 )
 public lastIndexOf: substring <ByteArray | String> ^<Integer> = (
 	^self lastIndexOf: substring startingAt: 1 + self size
@@ -367,7 +367,7 @@ public ensure: onUnwind <[]> = (
 		onUnwind value].
 	^result
 )
-public isClosure ^<Boolean> = (
+public isKindOfClosure ^<Boolean> = (
 	^true
 )
 public numArgs ^<Integer> = (
@@ -473,11 +473,11 @@ public inject: initialValue <X> into: foldBlock <[:X def :E | X]> ^<X> = (
 	self do: [:element <E> | runningValue:: foldBlock value: runningValue value: element].
 	^runningValue
 )
-public isCollection ^<Boolean> = (
-	^true
-)
 public isEmpty ^<Boolean> = (
 	self do: [:ignore | ^false].
+	^true
+)
+public isKindOfCollection ^<Boolean> = (
 	^true
 )
 public noneSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
@@ -697,11 +697,11 @@ public hash ^<Integer> = (
 public isFinite ^<Boolean> = (
 	halt.
 )
-public isFloat ^<Boolean> = (
-	^true
-)
 public isInfinite ^<Boolean> = (
 	halt.
+)
+public isKindOfFloat ^<Boolean> = (
+	^true
 )
 public isNaN ^<Boolean> = (
 	^(self = self) not
@@ -747,67 +747,67 @@ public numerator <Integer> = num.
 public denominator <Integer> = denom.
 |) (
 public * other <Number> ^<Number> = (
-	other isFraction ifFalse: [^other multiplyFromFraction: self].
+	other isKindOfFraction ifFalse: [^other multiplyFromFraction: self].
 	^Fraction
 		numerator: numerator * other numerator
 		denominator: denominator * other denominator
 )
 public + other <Number> ^<Number> = (
-	other isFraction ifFalse: [^other addFromFraction: self].
+	other isKindOfFraction ifFalse: [^other addFromFraction: self].
 	^Fraction
 		numerator: (numerator * other denominator) + (other numerator * denominator)
 		denominator: denominator * other denominator
 )
 public - other <Number> ^<Number> = (
-	other isFraction ifFalse: [^other subtractFromFraction: self].
+	other isKindOfFraction ifFalse: [^other subtractFromFraction: self].
 	^Fraction
 		numerator: (numerator * other denominator) - (other numerator * denominator)
 		denominator: denominator * other denominator
 )
 public / other <Number> ^<Number> = (
-	other isFraction ifFalse: [^other divideFromFraction: self].
+	other isKindOfFraction ifFalse: [^other divideFromFraction: self].
 	^Fraction
 		numerator: numerator * other denominator
 		denominator: denominator * other numerator
 )
 public < other <Number> ^<Boolean> = (
-	other isFraction ifTrue:
-		[^(numerator * other denominator) < (other numerator * denominator)].
-	other isInteger ifTrue:
+	other isKindOfInteger ifTrue:
 		[^(numerator) < (other * denominator)].
-	other isFloat ifTrue:
+	other isKindOfFraction ifTrue:
+		[^(numerator * other denominator) < (other numerator * denominator)].
+	other isKindOfFloat ifTrue:
 		[^self asFloat < other].
 	^(ArgumentError value: other) signal
 )
 public <= other <Number> ^<Boolean> = (
-	other isFraction ifTrue:
-		[^(numerator * other denominator) <= (other numerator * denominator)].
-	other isInteger ifTrue:
+	other isKindOfInteger ifTrue:
 		[^(numerator) <= (other * denominator)].
-	other isFloat ifTrue:
+	other isKindOfFraction ifTrue:
+		[^(numerator * other denominator) <= (other numerator * denominator)].
+	other isKindOfFloat ifTrue:
 		[^self asFloat <= other].
 	^(ArgumentError value: other) signal
 )
 public = other ^<Boolean> = (
-	other isFraction ifFalse: [^false].
+	other isKindOfFraction ifFalse: [^false].
 	numerator = other numerator ifFalse: [^false].
 	^denominator = other denominator
 )
 public > other <Number> ^<Boolean> = (
-	other isFraction ifTrue:
-		[^(numerator * other denominator) > (other numerator * denominator)].
-	other isInteger ifTrue:
+	other isKindOfInteger ifTrue:
 		[^(numerator) > (other * denominator)].
-	other isFloat ifTrue:
+	other isKindOfFraction ifTrue:
+		[^(numerator * other denominator) > (other numerator * denominator)].
+	other isKindOfFloat ifTrue:
 		[^self asFloat > other].
 	^(ArgumentError value: other) signal
 )
 public >= other <Number> ^<Boolean> = (
-	other isFraction ifTrue:
-		[^(numerator * other denominator) >= (other numerator * denominator)].
-	other isInteger ifTrue:
+	other isKindOfInteger ifTrue:
 		[^(numerator) >= (other * denominator)].
-	other isFloat ifTrue:
+	other isKindOfFraction ifTrue:
+		[^(numerator * other denominator) >= (other numerator * denominator)].
+	other isKindOfFloat ifTrue:
 		[^self asFloat >= other].
 	^(ArgumentError value: other) signal
 )
@@ -820,13 +820,13 @@ public asFloat ^<Float> = (
 public asInteger ^<Integer> = (
 	^self truncated
 )
-public asString = (
+public asString ^<String> = (
 	^'(', numerator asString, '/', denominator asString, ')'
 )
 public ceiling ^<Integer> = (
 	^0 <= numerator
 		ifTrue: [1 + self truncated]
-		ifFalse: [self truncated].
+		ifFalse: [self truncated]
 )
 public divideFromNumber: left = (
 	^(left * denominator) / numerator
@@ -838,7 +838,7 @@ public hash ^<Integer> = (
 	(* :todo: This is a poor hash. *)
 	^numerator bitXor: denominator
 )
-public isFraction ^<Boolean> = (
+public isKindOfFraction ^<Boolean> = (
 	^true
 )
 public multiplyFromNumber: left = (
@@ -992,7 +992,7 @@ public & other <Integer> ^<Integer> = (
 )
 public / other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 4 *)
-	other isInteger ifFalse: [^other divideFromNumber: self].
+	other isKindOfInteger ifFalse: [^other divideFromNumber: self].
 	0 = other ifTrue: [^(ArgumentError value: other) signal].
 	^Fraction numerator: self denominator: other
 )
@@ -1028,6 +1028,9 @@ public bitXor: other <Integer> ^<Integer> = (
 public ceiling ^<Integer> = (
 	^self
 )
+public denominator ^<Integer> = (
+	^1
+)
 public divideFromFraction: left = (
 	^left numerator / (left denominator * self)
 )
@@ -1049,7 +1052,7 @@ public hash ^<Integer> = (
 public inverseMod: modulus <Integer> ^<Integer> = (
 	halt.
 )
-public isInteger ^<Boolean> = (
+public isKindOfFraction ^<Boolean> = (
 	^true
 )
 public isKindOfInteger ^<Boolean> = (
@@ -1057,6 +1060,9 @@ public isKindOfInteger ^<Boolean> = (
 )
 public multiplyFromFraction: left = (
 	^(left numerator * self) / left denominator
+)
+public numerator ^<Integer> = (
+	^self
 )
 public raisedTo: exponent mod: modulus = (
 	halt.
@@ -1258,12 +1264,12 @@ public // other <Number> ^<Number> = (
 )
 public < other <Number> ^<Boolean> = (
 	(* :literalmessage: primitive: 10 *)
-	other isFraction ifTrue: [^other >= self].
+	other isKindOfFraction ifTrue: [^other >= self].
 	^(ArgumentError value: other) signal
 )
 public <= other <Number> ^<Boolean> = (
 	(* :literalmessage: primitive: 12 *)
-	other isFraction ifTrue: [^other > self].
+	other isKindOfFraction ifTrue: [^other > self].
 	^(ArgumentError value: other) signal
 )
 public = other <Object> ^<Boolean> = (
@@ -1272,12 +1278,12 @@ public = other <Object> ^<Boolean> = (
 )
 public > other <Number> ^<Boolean> = (
 	(* :literalmessage: primitive: 11 *)
-	other isFraction ifTrue: [^other <= self].
+	other isKindOfFraction ifTrue: [^other <= self].
 	^(ArgumentError value: other) signal
 )
 public >= other <Number> ^<Boolean> = (
 	(* :literalmessage: primitive: 13 *)
-	other isFraction ifTrue: [^other < self].
+	other isKindOfFraction ifTrue: [^other < self].
 	^(ArgumentError value: other) signal
 )
 public \\ other <Number> ^<Number> = (
@@ -1311,13 +1317,13 @@ public exp ^<Float> = (
 	(*Answer e raised to the power of the receiver. *)
 	^self asFloat exp
 )
-public isFloat ^<Boolean> = (
+public isKindOfFloat ^<Boolean> = (
 	^false
 )
-public isInteger ^<Boolean> = (
+public isKindOfInteger ^<Boolean> = (
 	^false
 )
-public isNumber ^<Boolean> = (
+public isKindOfNumber ^<Boolean> = (
 	^true
 )
 public ln ^<Float> = (
@@ -1469,7 +1475,7 @@ public indexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Int
 	(* :literalmessage: primitive: 119 *)
 	^ArgumentError new signal
 )
-public isString ^<Boolean> = (
+public isKindOfString ^<Boolean> = (
 	^true
 )
 public last ^<Integer> = (
@@ -1761,11 +1767,11 @@ public indexOf: element <E> ^<Integer> = (
 	1 to: self size do: [:index | (self at: index) = element ifTrue: [^index]].
 	^0
 )
-public isArray ^<Boolean> = (
-	^true
-)
 public isEmpty ^<Boolean> = (
 	^0 = self size
+)
+public isKindOfArray ^<Boolean> = (
+	^true
 )
 public keysAndValuesDo: action <[:Integer :E]> = (
 	1 to: self size do: [:index | action value: index value: (self at: index)].
@@ -1882,7 +1888,7 @@ protected String = (
 )
 protected assert: blockOrBoolean message: message = (
 	#BOGUS.
-	blockOrBoolean isClosure
+	blockOrBoolean isKindOfClosure
 		ifTrue: [blockOrBoolean value ifFalse: [Exception new signal: message]]
 		ifFalse: [blockOrBoolean ifFalse: [Exception new signal: message]].
 )
@@ -1895,7 +1901,7 @@ protected class ^<Behavior> = (
 	halt.
 )
 protected doesNotUnderstand: message <Message> = (
-	(0 = message arguments size and: [message selector startsWith: 'is']) ifTrue: [^false].
+	(0 = message arguments size and: [message selector startsWith: 'isKindOf']) ifTrue: [^false].
 
 	^(MessageNotUnderstood receiver: self message: message) signal
 )
@@ -1963,7 +1969,7 @@ private classOf: object = (
 )
 private currentActivation ^<Activation> = (
 	(* :literalmessage: primitive: 133 *)
-	^halt
+	halt.
 )
 private currentMonotonicNanos = (
 	(* :literalmessage: primitive: 100 *)

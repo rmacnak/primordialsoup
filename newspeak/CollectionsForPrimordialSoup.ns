@@ -231,6 +231,9 @@ incrementSize = (
 public isEmpty ^<Boolean> = (
 	^0 = size_
 )
+public isKindOfMap ^<Boolean> = (
+	^true
+)
 public keys ^<Set[K]> = (
 	| result = Set new. |
 	1 to: table size by: 2 do: [:index |

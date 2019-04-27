@@ -530,7 +530,7 @@ private enqueuePortMessage: bytes port: portId = (
 )
 private enqueueStartupMessage: argvOrBytes = (
 	| args |
-	argvOrBytes isByteArray
+	argvOrBytes isKindOfByteArray
 		ifTrue:
 			[ | deserializer |
 			deserializer:: Deserializer new.
@@ -880,9 +880,9 @@ private isValueObject: object <Object> ^<Boolean> = (
 	nil = object ifTrue: [^true].
 	true = object ifTrue: [^true].
 	false = object ifTrue: [^true].
-	object isString ifTrue: [^true].
-	object isNumber ifTrue: [^true].
-	object isBehavior ifTrue: [^true (* ^isValueObject: object enclosingClass *)].
+	object isKindOfString ifTrue: [^true].
+	object isKindOfNumber ifTrue: [^true].
+	object isKindOfBehavior ifTrue: [^true (* ^isValueObject: object enclosingClass *)].
 	Promise = object ifTrue: [^true].
 	^false
 )

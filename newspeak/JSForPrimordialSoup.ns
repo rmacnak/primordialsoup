@@ -37,7 +37,7 @@ protected doesNotUnderstand: message = (
 		ifTrue: [self newWithArguments: message arguments]
 		ifFalse: [self perform: jsSelector withArguments: message arguments]
 )
-public isClosure ^<Boolean> = (
+public isKindOfClosure ^<Boolean> = (
 	^false
 )
 public isUndefined ^<Boolean> = (
@@ -103,7 +103,7 @@ private rawPopAgain = (
 )
 private rawPush: object = (
 	(* :literalmessage: primitive: 154 *)
-	object isClosure
+	object isKindOfClosure
 		ifTrue: [pushExpat: object]
 		ifFalse: [rawPushAlien: object index]
 )

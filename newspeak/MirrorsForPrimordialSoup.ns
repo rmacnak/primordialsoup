@@ -1940,20 +1940,6 @@ private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 70 *)
 	halt.
 )
-private object: object executeMethod: method with: arguments = (
-	| activation |
-	activation:: Activation new.
-	activation sender: currentActivation sender.
-	activation bci: 1.
-	activation method: method.
-	activation closure: nil.
-	activation receiver: object.
-	activation tempSize: arguments size + method numTemps.
-	1 to: arguments size do:
-		[:index | activation tempAt: index put: (arguments at: index)].
-	jumpTo: activation.
-	halt.
-)
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
 	^parsingX
