@@ -4,6 +4,7 @@ class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namesp
 (* TODO: These need to be real identity collections for schema changes. *)
 private IdentityMap = platform collections IdentityMap.
 
+private Collection = platform collections Collection.
 private List = platform collections List.
 private Map = platform collections Map.
 private WeakMap = platform kernel WeakMap.
@@ -596,6 +597,11 @@ private to: sb writeClassDeclaration: instanceMixin = (
 private class ClassHeaderBuilder fromIntermediate: ir = (|
 private intermediate <IntermediateClassDeclaration> = ir.
 |) (
+public classComment ^<String> = (
+	(* :questionable: *)
+	nil = source ifTrue: [^nil].
+	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
+)
 public name = (
 	^intermediate simpleName
 )
@@ -638,14 +644,33 @@ public name: newName <String> = (
 	intermediate initializers: newIR initializers.
 	intermediate instanceSide slots: newIR instanceSide slots.
 )
+public preamble ^<Symbol> = (
+	(* :questionable: *)
+	| headerAst |
+	nil = source ifTrue: [^nil].
+	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
+	^source copyFrom: headerAst start to: headerAst superConstructorCall end
+)
 public source ^<String> = (
 	^intermediate headerSource
 )
 ) : (
 )
 private class ClassHeaderMirror reflecting: mxn = (| mixin <InstanceMixin> = mxn. |) (
+public classComment ^<String> = (
+	(* :questionable: *)
+	nil = source ifTrue: [^nil].
+	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
+)
 public name = (
 	^mixin _name
+)
+public preamble ^<Symbol> = (
+	(* :questionable: *)
+	| headerAst |
+	nil = source ifTrue: [^nil].
+	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
+	^source copyFrom: headerAst start to: headerAst superConstructorCall end
 )
 public source ^<String> = (
 	^mixin _headerSource
@@ -731,7 +756,7 @@ public superclass ^<ClassMirror> = (
 )
 ) : (
 )
-private class LocalSlotMirror  name: n value: v = (
+private class LocalSlotMirror name: n value: v = (
 |
 public name <Symbol> = n.
 public value <ObjectMirror> = v.
@@ -782,21 +807,22 @@ public source ^<String> = (
 )
 ) : (
 )
-private class MirrorGroup wrapping: collection = (|
-mirrors = collection.
+private class MirrorGroup wrapping: collection = Collection (|
+	protected mirrors <Collection[E extends Mirror]> = collection.
 |) (
-public collect: blk <[:Mirror]> = (
-	^mirrors collect: blk
+public do: action <[:E]> = (
+	mirrors do: action
 )
-public do: blk <[:Mirror]> = (
-	mirrors do: blk
-)
-public includesMirrorNamed: name = (
+public includesMirrorNamed: name <String> ^<Boolean> = (
+	(* :questionable: *)
 	mirrors do: [:mirror | mirror name = name ifTrue: [^true]].
 	^false
 )
-public reject: blk <[:Mirror]> = (
-	^mirrors reject: blk
+protected newForCollectUsingAdd: capacity = (
+	^List new: capacity
+)
+public size ^<Integer> = (
+	^mirrors size
 )
 ) : (
 )
@@ -829,12 +855,20 @@ public slots = (
 )
 ) : (
 )
-private class MixinMirror reflecting: mxn = (|
-mixin <AbstractMixin> = mxn.
-|reflectees at: self put: mxn) (
+private class MixinMirror reflecting: mxn = (
+	|
+	mixin <AbstractMixin> = mxn.
+	|
+	reflectees at: self put: mxn.
+) (
 public = other ^<Boolean> = (
 	(mixin = (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfMixinMirror
+)
+public asBuilder ^<MixinBuilder> = (
+	^isMeta
+		ifTrue: [declaration asBuilder classSide]
+		ifFalse: [declaration asBuilder instanceSide]
 )
 public declaration ^<ClassDeclarationMirror> = (
 	^ClassDeclarationMirror reflecting:
@@ -860,14 +894,13 @@ public methods ^<Collection[MethodMirror]> = (
 		[:method |
 		method isSynthetic ifFalse:
 			[results add: (MethodMirror reflecting: method)]].
-	^MirrorGroup wrapping: results.
+	^MirrorGroup wrapping: results
 )
 public name ^<String> = (
 	^mixin _name
 )
 public nestedClasses ^<Collection[ClassDeclarationMirror]> = (
 	| results <Collection[ClassDeclarationMirror]> |
-	mixin isMeta ifTrue: [^MirrorGroup wrapping: {}].
 	results:: List new.
 	mixin _nestedMixins do:
 		[:nestedMixin <InstanceMixin> |
@@ -876,7 +909,6 @@ public nestedClasses ^<Collection[ClassDeclarationMirror]> = (
 )
 public slots ^<Collection[SlotDeclarationMirror]> = (
 	| results = List new. |
-	mixin isMeta ifTrue: [^MirrorGroup wrapping: {}].
 	mixin _slots do: [:slotDescriptor |
 		| slotName isMutable accessModifier |
 		slotName:: slotDescriptor at: 1.
@@ -888,11 +920,11 @@ public slots ^<Collection[SlotDeclarationMirror]> = (
 				isMutable: isMutable
 				accessModifier: accessModifier
 				mixin: self)]].
-	^MirrorGroup wrapping: results.
+	^MirrorGroup wrapping: results
 )
 ) : (
 )
-private class MutableMethodGroup fromIntermediate: ir = (|
+private class MutableMethodGroup fromIntermediate: ir = Collection (|
 private intermediate <IntermediateMixin> = ir.
 |) (
 public addFromSource: source <String> = (
@@ -920,13 +952,16 @@ public do: action = (
 			reflecting: intermediateMethod
 			in: intermediate builder)].
 )
+protected newForCollectUsingAdd: capacity = (
+	^List new: capacity
+)
 public removeMirrorNamed: name <Symbol> = (
 	intermediate methods removeAllSuchThat:
 		[:imethod | imethod isSynthetic not and: [imethod selector = name]].
 )
 ) : (
 )
-private class MutableNestedClassGroup fromIntermediate: ir = (|
+private class MutableNestedClassGroup fromIntermediate: ir = Collection (|
 private intermediate <IntermediateMixin> = ir.
 |) (
 public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
@@ -959,6 +994,9 @@ public do: action = (
 			].
 		action value: builder].
 )
+protected newForCollectUsingAdd: capacity = (
+	^List new: capacity
+)
 public removeMirrorNamed: name <Symbol> = (
 	| nestedIntermediate |
 	intermediate nestedClasses removeAllSuchThat:
@@ -966,7 +1004,7 @@ public removeMirrorNamed: name <Symbol> = (
 )
 ) : (
 )
-private class MutableSlotGroup fromIntermediate: ir = (|
+private class MutableSlotGroup fromIntermediate: ir = Collection (|
 private intermediate <IntermediateMixin> = ir.
 |) (
 public do: action = (
@@ -977,6 +1015,9 @@ public do: action = (
 			isMutable: intermediateSlot isMutable
 			accessModifier: intermediateSlot accessModifier
 			mixin: intermediate builder)].
+)
+protected newForCollectUsingAdd: capacity = (
+	^List new: capacity
 )
 ) : (
 )
@@ -1041,15 +1082,14 @@ public hash ^<Integer> = (
 	^(identityHashOf: reflectee) bitXor: class hash
 )
 private indexOfSlotNamed: name in: startCls = (
-	| cls index |
+	| cls slots |
 	cls:: startCls.
-	index:: 1.
 	[nil = cls] whileFalse:
-		[(mixinOf: cls) _slots do:
-			[:slotDescriptor |
-			(slotDescriptor at: 1) = name ifTrue: [^index].
-			index:: 1 + index].
-		cls:: (superclassOf: cls)].
+		[slots:: (mixinOf: cls) _slots.
+		 1 to: slots size do:
+			[:index | ((slots at: index) at: 1) = name ifTrue:
+				[^(formatOf: cls) - slots size + index]].
+		 cls:: (superclassOf: cls)].
 	^-1
 )
 public isKindOfObjectMirror ^<Boolean> = (
@@ -1891,6 +1931,9 @@ private elementsOf: old forwardIdentityToElementsOf: new = (
 )
 private enclosingObjectOf: behavior = (
 	^self slotOf: behavior at: 3
+)
+private formatOf: behavior = (
+	^self slotOf: behavior at: 6
 )
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)

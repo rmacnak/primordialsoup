@@ -334,6 +334,12 @@ public _enclosingMixin <InstanceMixin | nil> (* Must be slot 3, known to the VM.
 public _name ^<String> = (
 	^_instanceMixin _name, ' class'
 )
+public _nestedMixins ^<Array[InstanceMixin]> = (
+	^{}
+)
+public _slots ^<Array[{Symbol. Boolean. Symbol}]> = (
+	^{}
+)
 public isMeta ^<Boolean> = (
 	^true
 )
@@ -375,7 +381,8 @@ public numArgs ^<Integer> = (
 	halt.
 )
 private numArgsError: argsProvided = (
-	^ArgumentError new signal
+	(* :bogus: *)
+	^(ArgumentError value: self) signal
 )
 public on: exceptionClass <E class> do: catch <[:E]> = (
 	(* :literalmessage: primitive: 116 *)
@@ -1474,6 +1481,9 @@ public indexOf: substring <ByteArray | String> ^<Integer> = (
 public indexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 119 *)
 	^ArgumentError new signal
+)
+public isEmpty ^<Boolean> = (
+	^0 = self size
 )
 public isKindOfString ^<Boolean> = (
 	^true
