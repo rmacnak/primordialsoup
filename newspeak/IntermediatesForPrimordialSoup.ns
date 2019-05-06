@@ -54,8 +54,6 @@ public pragmas
 public psPrimitive ::= 0.
 public accessModifier <Symbol>
 
-public metadata = Map new.
-
 public category
 public isSynthetic ::= false.
 public builder
@@ -75,7 +73,7 @@ public byteAt: index <Integer> put: datum <Integer> = (
 )
 public compiledMethod ^<CompiledMethod> = (
 	| bc |
-	method isNil ifFalse: [^method].
+	nil = method ifFalse: [^method].
 
 	assert: [argCount <= maxLocals] message: ''.
 
@@ -97,10 +95,10 @@ public compiledMethod ^<CompiledMethod> = (
 
 	isSynthetic
 		ifTrue:
-			[method source: nil]
+			[method metadata: nil]
 		ifFalse:
 			[assert: [source isKindOfString] message: 'Missing source'.
-			 method source: source].
+			 method metadata: source].
 
 	literals:: nil.
 	bytes:: nil.

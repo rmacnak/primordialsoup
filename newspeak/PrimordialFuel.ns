@@ -470,7 +470,7 @@ public analyze: object = (
 	enqueue:: object receiver.
 	(* enqueue:: object numTemps
 	Cannot use back reference for allocation size. *)
-	1 to: object tempSize do: [:index | enqueue: (object tempAt: index)].
+	1 to: object size do: [:index | enqueue: (object tempAt: index)].
 )
 public writeEdges = (
 	(* Activation accessors are known to be side-effect free. *)
@@ -480,8 +480,8 @@ public writeEdges = (
 		writeRef: object method.
 		writeRef: object closure.
 		writeRef: object receiver.
-		stream uint16: object tempSize. (* !!!! *)
-		1 to: object tempSize do: [:index | writeRef: (object tempAt: index)]].
+		stream uint16: object size. (* !!!! *)
+		1 to: object size do: [:index | writeRef: (object tempAt: index)]].
 )
 public writeNodes = (
 	writeFormat: kActivationCid negated.

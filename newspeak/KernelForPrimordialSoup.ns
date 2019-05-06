@@ -28,11 +28,11 @@ private aboutToReturn: result through: firstUnwindActivation = (
 )
 public bci = (
 	(* :literalmessage: primitive: 57 *)
-	primitiveFailed.
+	halt.
 )
 public bci: value = (
 	(* :literalmessage: primitive: 58 *)
-	primitiveFailed
+	halt.
 )
 private cannotReturn: result = (
 	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer along the chain of senders. *)
@@ -40,11 +40,11 @@ private cannotReturn: result = (
 )
 public closure = (
 	(* :literalmessage: primitive: 61 *)
-	primitiveFailed
+	halt.
 )
 public closure: value = (
 	(* :literalmessage: primitive: 62 *)
-	primitiveFailed
+	halt.
 )
 public findNextUnwindContextUpTo: activation = (
 	(* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
@@ -67,6 +67,14 @@ public hasSender: context = (
 			s:: s sender].
 	^false
 )
+public home ^<Activation> = (
+	| a c |
+	a:: self.
+	[c:: a closure.
+	 nil = c] whileFalse:
+		[a:: definingActivationOf: c].
+	^a
+)
 public isDead ^<Boolean> = (
 	^nil = bci
 )
@@ -75,22 +83,28 @@ public isUnwindContext ^<Boolean> = (
 )
 public method = (
 	(* :literalmessage: primitive: 59 *)
-	primitiveFailed
+	halt.
 )
 public method: value = (
 	(* :literalmessage: primitive: 60 *)
-	primitiveFailed
+	halt.
 )
 private nonBooleanReceiver: nonBoolean = (
 	(* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
 	^(NonBooleanReceiver receiver: nonBoolean) signal
 )
+public outerContext ^<Activation> = (
+	(* Squeak compatibility for DebugMapper. *)
+	| c = closure. |
+	nil = c ifTrue: [^nil].
+	^definingActivationOf: c
+)
 public pop = (
 	|
-	depth = self tempSize.
+	depth = self size.
 	result = self tempAt: depth.
 	|
-	self tempSize: depth - 1.
+	self size: depth - 1.
 	^result
 )
 public printString ^<String> = (
@@ -109,17 +123,17 @@ public printString ^<String> = (
 )
 public push: value = (
 	| newDepth |
-	newDepth:: self tempSize + 1.
-	self tempSize: newDepth.
+	newDepth:: self size + 1.
+	self size: newDepth.
 	^self tempAt: newDepth put: value
 )
 public receiver = (
 	(* :literalmessage: primitive: 63 *)
-	primitiveFailed
+	halt.
 )
 public receiver: value = (
 	(* :literalmessage: primitive: 64 *)
-	primitiveFailed
+	halt.
 )
 public resume: value = (
 	| unwindActivation unwindBlock |
@@ -142,34 +156,34 @@ public return: value = (
 )
 public sender = (
 	(* :literalmessage: primitive: 55 *)
-	primitiveFailed
+	halt.
 )
 public sender: value = (
 	(* :literalmessage: primitive: 56 *)
-	primitiveFailed
+	halt.
+)
+public size = (
+	(* :literalmessage: primitive: 67 *)
+	halt.
+)
+public size: newDepth = (
+	(* :literalmessage: primitive: 140 *)
+	halt.
 )
 public tempAt: index = (
 	(* :literalmessage: primitive: 65 *)
-	primitiveFailed
+	^(ArgumentError value: index) signal
 )
 public tempAt: index put: value = (
 	(* :literalmessage: primitive: 66 *)
-	primitiveFailed
-)
-public tempSize = (
-	(* :literalmessage: primitive: 67 *)
-	primitiveFailed
-)
-public tempSize: newDepth = (
-	(* :literalmessage: primitive: 140 *)
-	primitiveFailed
+	^(ArgumentError value: index) signal
 )
 public terminate = (
 	(* Make myself unresumable. *)
 	sender:: nil.
 	bci:: nil.
 	(* Match the interpreter's behavior. Note this differs from Cog, which keeps the parameters. *)
-	tempSize:: 0.
+	size:: 0.
 )
 public terminateTo: previousContext = (
 	(* Terminate all the Contexts between me and previousContext, if previousContext is on my Context stack. Make previousContext my sender. *)
@@ -184,7 +198,7 @@ public terminateTo: previousContext = (
 	sender:: previousContext
 )
 public top = (
-	^self tempAt: self tempSize.
+	^self tempAt: self size
 )
 ) : (
 public new ^<Activation> = (
@@ -601,7 +615,9 @@ public return: returnValue = (
 	^savedHandlerActivation return: returnValue
 )
 private returnToSimulationRoot: simulationRoot <Activation> = (
-	(simulationRoot tempAt: 1) state: #broken.
+	(simulationRoot tempAt: 1)
+		state: #broken;
+		suspendedActivation: signalActivation sender.
 	currentActivation sender: simulationRoot.
 	^self
 )
@@ -1167,7 +1183,7 @@ public literals <Array> (* Must be slot 2, known to the VM. *)
 public bytecode <ByteArray> (* Must be slot 3, known to the VM. *)
 public mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
 public selector <Symbol> (* Must be slot 5, known to the VM. *)
-public source <String>
+public metadata <String>
 |) (
 public accessModifier ^<Symbol> = (
 	| ac = header >> 28. |
@@ -1186,7 +1202,7 @@ public isPublic ^<Boolean> = (
 	^#public = accessModifier
 )
 public isSynthetic ^<Boolean> = (
-	^nil = source
+	^nil = metadata
 )
 public numArgs ^<Integer> = (
 	^(header >> 0) bitAnd: 255
@@ -1196,6 +1212,14 @@ public numTemps ^<Integer> = (
 )
 public primitive ^<Integer> = (
 	^(header >> 16) bitAnd: 1023
+)
+public source = (
+	metadata isKindOfDebugInfo ifTrue: [^metadata source].
+	^metadata
+)
+public source: s = (
+	(* Can be removed after next bootstrap compiler update. *)
+	metadata: s
 )
 ) : (
 public headerForAccessModifier: am primitive: prim numArgs: numArgs = (

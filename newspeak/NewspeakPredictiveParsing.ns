@@ -62,6 +62,17 @@ public parseMethodDeclaration: input <String> = (
 )
 ) : (
 )
+class ParseError message: m position: p = Error (
+	|
+	message <String> = m.
+	position <Integer> = p.
+	|
+) (
+public printString = (
+	^'ParseError: ' , message , ' at position ' , position asString
+)
+) : (
+)
 public class Parser for: string = Scanner for: string (
 (* A recursive descent parser for Newspeak that looks up to 3 token ahead. *)
 |
@@ -86,7 +97,7 @@ defaultSuperclassClause = (
 			(MessageAST new send: #new with: {}; start: 1; end: 1); start: 1; end: 1
 )
 expected: expectedKind = (
-	^Error signal: 'Parse error: ', expectedKind, ' expected ', tokenStart printString
+	^(ParseError message: 'expected ' , expectedKind position: tokenStart) signal
 )
 public parseAccessModifierOpt = (
 	tokenKind = #identifier ifTrue:
@@ -612,11 +623,14 @@ public parseParameterDeclaration = (
 )
 public parseParenthesizedExpression = (
 	(* parenthesizedExpression = lparen, expression, rparen. *)
-	| result |
+	| start result |
 	tokenKind = #'(' ifFalse: [expected: '('].
+	start:: tokenStart.
 	advanceToken.
 	result:: parseExpression.
 	tokenKind = #')' ifFalse: [expected: ')'].
+	result start: start.
+	result end: tokenEnd.
 	advanceToken.
 	^result
 )
@@ -1046,7 +1060,7 @@ public advanceToken = (
 	byte = 123 ifTrue: [tokenKind:: #'{'. ^self].
 	byte = 125 ifTrue: [tokenKind:: #'}'. ^self].
 
-	scanError
+	scanError: 'Unknown token'.
 )
 private extendedDigitValue: byte = (
 	byte <= 57 ifTrue: [^byte - 48].
@@ -1134,7 +1148,7 @@ private scanCharacter = (
 	position:: position + 2.
 )
 private scanError: message = (
-	^Error signal: 'Parse error: ', message, ' ', position printString
+	^(ParseError message: message position: position) signal
 )
 private scanIdentifierOrKeyword = (
 	|
