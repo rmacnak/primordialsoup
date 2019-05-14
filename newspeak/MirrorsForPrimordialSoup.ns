@@ -402,15 +402,6 @@ public header <ClassHeaderBuilder> = ClassHeaderBuilder fromIntermediate: ir.
 public accessModifier ^<Symbol> = (
 	^intermediate accessModifier
 )
-private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> = (
-	newIntermediate instanceSide slots do:
-		[:slot <IntermediateSlotDeclaration> |
-		intermediate instanceSide
-			checkNameConflictsForSlot: slot name
-			mutable: slot isMutable].
-
-	intermediate classSide checkNameConflictsForFactory: newIntermediate factoryName.
-)
 public classSide ^<MixinBuilder> = (
 	| ir builder |
 	ir:: intermediate classSide.
@@ -446,30 +437,6 @@ public enclosingClass ^<ClassDeclarationBuilder> = (
 	enclosingIR builder: enclosingBuilder.
 	enclosingBuilder instanceSide. (* Populate for incremental scope building. *)
 	^enclosingBuilder
-)
-public headerFromSource: newHeader <String> = (
-	| prefix newIR |
-
-	(* only top-level classes can specify categories *)
-	prefix:: intermediate isTopLevel
-		ifTrue: [ 'Newspeak3 ''Category'' ' ]
-		ifFalse: [ '' ].
-
-	self enclosingClass. (* For side effect. *)
-	newIR:: compiler
-		compileClassHeader: (prefix, newHeader)
-		within: intermediate enclosingClass.
-
-	checkForHeaderConflicts: newIR.
-	assert: [intermediate simpleName = newIR simpleName] message: ''.
-
-	intermediate headerSource: newIR headerSource.
-	intermediate factoryName: newIR factoryName.
-	intermediate comment: newIR comment.
-	intermediate accessor: newIR accessor.
-	intermediate factory: newIR factory.
-	intermediate initializers: newIR initializers.
-	intermediate instanceSide slots: newIR instanceSide slots.
 )
 public install ^<ClassDeclarationMirror> = (
 	| installer outermost |
@@ -522,7 +489,16 @@ public fromUnitSource: source <String> ^<ClassDeclarationBuilder> = (
 	^builder
 )
 )
-private class ClassDeclarationMirror reflecting: mxn = (| mixin <InstanceMixin> = mxn. |) (
+private class ClassDeclarationMirror reflecting: mxn = (
+	|
+	mixin <InstanceMixin> = mxn.
+	|
+	reflectees at: self put: mxn.
+) (
+public = other ^<Boolean> = (
+	(mixin = (reflectees at: other)) ifFalse: [^false].
+	^other isKindOfClassDeclarationMirror
+)
 public accessModifier ^<Symbol> = (
 	^mixin _accessModifier
 )
@@ -552,11 +528,17 @@ public enclosingClass ^<ClassDeclarationMirror> = (
 	nil = em ifTrue: [^nil].
 	^ClassDeclarationMirror reflecting: em
 )
+public hash ^<Integer> = (
+	^mixin hash bitXor: class hash
+)
 public header ^<ClassHeaderMirror> = (
 	^ClassHeaderMirror reflecting: mixin
 )
 public instanceSide ^<MixinMirror> = (
 	^MixinMirror reflecting: mixin
+)
+public isKindOfClassDeclarationMirror ^<Boolean> = (
+	^true
 )
 public name = (
 	^mixin _name
@@ -592,6 +574,15 @@ private to: sb writeClassDeclaration: instanceMixin = (
 private class ClassHeaderBuilder fromIntermediate: ir = (|
 private intermediate <IntermediateClassDeclaration> = ir.
 |) (
+private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> = (
+	newIntermediate instanceSide slots do:
+		[:slot <IntermediateSlotDeclaration> |
+		intermediate instanceSide
+			checkNameConflictsForSlot: slot name
+			mutable: slot isMutable].
+
+	intermediate classSide checkNameConflictsForFactory: newIntermediate factoryName.
+)
 public classComment ^<String> = (
 	(* :questionable: *)
 	nil = source ifTrue: [^nil].
@@ -649,13 +640,52 @@ public preamble ^<Symbol> = (
 public source ^<String> = (
 	^intermediate headerSource
 )
+public source: newHeader <String> = (
+	| prefix newIR |
+
+	(* only top-level classes can specify categories *)
+	prefix:: intermediate isTopLevel
+		ifTrue: [ 'Newspeak3 ''Category'' ' ]
+		ifFalse: [ '' ].
+
+	intermediate builder enclosingClass. (* For side effect. *)
+	newIR:: compiler
+		compileClassHeader: (prefix, newHeader)
+		within: intermediate enclosingClass.
+
+	checkForHeaderConflicts: newIR.
+	assert: [intermediate simpleName = newIR simpleName] message: ''.
+
+	intermediate headerSource: newIR headerSource.
+	intermediate factoryName: newIR factoryName.
+	intermediate comment: newIR comment.
+	intermediate accessor: newIR accessor.
+	intermediate factory: newIR factory.
+	intermediate initializers: newIR initializers.
+	intermediate instanceSide slots: newIR instanceSide slots.
+)
 ) : (
 )
-private class ClassHeaderMirror reflecting: mxn = (| mixin <InstanceMixin> = mxn. |) (
+private class ClassHeaderMirror reflecting: mxn = (
+	|
+	mixin <InstanceMixin> = mxn.
+	|
+	reflectees at: self put: mxn.
+) (
+public = other ^<Boolean> = (
+	(mixin = (reflectees at: other)) ifFalse: [^false].
+	^other isKindOfClassHeaderMirror
+)
 public classComment ^<String> = (
 	(* :questionable: *)
 	nil = source ifTrue: [^nil].
 	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
+)
+public hash ^<Integer> = (
+	^mixin hash bitXor: class hash
+)
+public isKindOfClassHeaderMirror ^<Boolean> = (
+	^true
 )
 public name = (
 	^mixin _name
@@ -1154,8 +1184,9 @@ public activate: newMethod receiver: newReceiver arguments: arguments = (
 					^ordinarySend: selector numArgs: performArguments size]]].
 
 		result:: doPrimitive: primitive receiver: newReceiver arguments: arguments.
-		arguments = result ifFalse: [activation push: result. ^self].
-		('simulated primitive failed: ', newMethod selector) out].
+		arguments = result ifFalse:
+			[activation push: result.
+			 ^self]].
 
 	newActivation:: Activation new.
 	newActivation sender: activation.
@@ -1625,24 +1656,6 @@ superSend: selectorOffset numArgs: numArgs = (
 	methodMixinApplication:: findApplicationOf: activation method mixin startingAt: (classOf: messageReceiver).
 	^sendProtected: selector to: messageReceiver arguments: arguments startingAt: (superclassOf: methodMixinApplication)
 )
-public trace = (
-	| a ::= activation. |
-	'sim trace: ' out.
-	[nil = a] whileFalse:
-		[a out.
-		a:: a sender].
-)
-public traceLong = (
-	| a ::= activation. |
-	'sim trace long: ' out.
-	[nil = a] whileFalse:
-		['' out.
-		a out.
-		a bci out.
-		a receiver out.
-		1 to: a size do: [:i | (a tempAt: i) out].
-		a:: a sender].
-)
 ) : (
 public bciBefore: afterBci in: method = (
 	(* :todo: Also unwind any extension bytecodes.  *)
@@ -1665,6 +1678,9 @@ public isMutable = m.
 public accessModifier = a.
 public definingMixin = mxn.
 |) (
+public isKindOfSlotDeclarationMirror ^<Boolean> = (
+	^true
+)
 ) : (
 )
 private class Thread = (
