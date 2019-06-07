@@ -1,0 +1,163 @@
+Newspeak3
+'NS2PrimordialSoup'
+class WebCompiler packageUsing: manifest = (
+) (
+class Manifest forNamespace: ns = (
+	|
+	protected namespace = ns.
+	|
+) (
+protected doesNotUnderstand: message = (
+	^namespace at: message selector
+)
+) : (
+)
+class Packager usingPlatform: platform = (
+	|
+	private List = platform collections List.
+	private Map = platform collections Map.
+	private ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
+	private Snapshotter = platform victoryFuel Snapshotter.
+
+	protected namespace = Map new.
+	|
+) (
+assembleRuntime: runtimeName <String> application: appName <String> to: snapshotPath <String> = (
+	| runtimeConfig appConfig runtime accessedResources app bytes |
+	runtimeConfig:: (namespace at: runtimeName) at: 3.
+	appConfig:: (namespace at: appName) at: 3.
+
+	runtime:: runtimeConfig packageRuntimeUsing:
+		(RecordingManifest namespace: namespace accessedResources: List new).
+
+	accessedResources:: List new.
+	appConfig packageUsing:
+		(RecordingManifest namespace: namespace accessedResources: accessedResources).
+
+	app:: Preloader
+		resources: (Array withAll: accessedResources)
+		applicationConfiguration: appConfig.
+
+	bytes:: Snapshotter new snapshotApp: app withRuntime: runtime keepSource: true.
+	writeBytes: bytes toFileNamed: snapshotPath.
+)
+compileFile: filename = (
+	| source builder |
+	source:: readFileAsString: filename.
+	builder:: ClassDeclarationBuilder fromUnitSource: source.
+	^builder install applyToObject reflectee
+)
+loadResource: path <String> ^<Array> = (
+	| from |
+	from:: (path lastIndexOf: '/') + 1.
+
+    (path endsWith: '.ns') ifTrue:
+		[ | klass = compileFile: path. |
+		 ^{klass name. 'ns'. klass}].
+	(path endsWith: '.txt') ifTrue:
+		[ | name = path copyFrom: from to: path size - 4. |
+		 ^{name. 'txt'. readFileAsString: path}].
+	(path endsWith: '.png') ifTrue:
+		[ | name = path copyFrom: from to: path size - 4. |
+		 ^{name. 'png'. path}].
+	(path endsWith: '.js') ifTrue:
+		[ | name = path copyFrom: from to: path size - 3. |
+		 ^{name. 'js'. path}].
+	(path endsWith: '.css') ifTrue:
+		[ | name = path copyFrom: from to: path size - 4. |
+		 ^{name. 'css'. path}].
+
+	Error signal: 'Unknown resource type: ', path
+)
+public main: args = (
+	| index ::= 1. |
+
+	[((args at: index) indexOf: '.') > 0] whileTrue:
+		[ | resource |
+		 resource:: loadResource: (args at: index).
+		 namespace at: (resource at: 1) put: resource.
+		 index:: index + 1].
+
+	[(index + 2) <= args size] whileTrue:
+		[assembleRuntime: (args at: index) application: (args at: index + 1) to: (args at: index + 2).
+		 index:: index + 3].
+)
+readFileAsBytes: filename = (
+	(* :literalmessage: primitive: 130 *)
+	halt.
+)
+readFileAsString: filename = (
+	^String withAll: (readFileAsBytes: filename)
+)
+writeBytes: bytes toFileNamed: filename = (
+	(* :literalmessage: primitive: 128 *)
+	halt.
+)
+) : (
+)
+class Preloader resources: r applicationConfiguration: a = (
+	|
+	protected resources = r.
+	protected applicationConfiguration = a.
+	|
+) (
+public main: platform args: args = (
+	| namespace manifest |
+	namespace:: platform collections Map new.
+	resources do:
+		[:resource | | name type payload |
+		 name:: resource at: 1.
+		 type:: resource at: 2.
+		 payload:: resource at: 3.
+		 namespace
+			at: name
+			put: (unpackResourceType: type payload: payload platform: platform)].
+	manifest:: Manifest forNamespace: namespace.
+	^(applicationConfiguration packageUsing: manifest) main: platform args: args
+)
+unpackResourceType: type payload: payload platform: platform = (
+	'ns' = type ifTrue:
+		[^payload].
+	'txt' = type ifTrue:
+		[^payload].
+	'png' = type ifTrue:
+		[^(platform js global at: 'Image') new at: 'src' put: payload; yourself].
+	'js' = type ifTrue:
+		[ | document script |
+		document:: platform js global at: 'document'.
+		script:: document createElement: 'script'.
+		script at: 'type' put: 'text/javascript'.
+		script at: 'src' put: payload.
+		(document at: 'head') appendChild: script.
+		^script].
+	'css' = type ifTrue:
+		[ | document script |
+		document:: platform js global at: 'document'.
+		script:: document createElement: 'link'.
+		script at: 'rel' put: 'stylesheet'.
+		script at: 'href' put: payload.
+		(document at: 'head') appendChild: script.
+		^script].
+
+	^Error signal: 'Unknown resource type: ', type
+)
+) : (
+)
+class RecordingManifest namespace: ns accessedResources: list = (
+	|
+	protected namespace = ns.
+	protected accessedResources = list.
+	|
+) (
+protected doesNotUnderstand: message = (
+	| resource = namespace at: message selector. |
+	accessedResources add: resource.
+	^resource at: 3
+)
+) : (
+)
+public main: platform args: args = (
+	^(Packager usingPlatform: platform) main: args
+)
+) : (
+)

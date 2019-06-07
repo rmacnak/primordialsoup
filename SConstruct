@@ -273,6 +273,10 @@ def BuildSnapshots(outdir, host_vm):
   snapshots += [compilerout]
   cmd += ' RuntimeWithMirrorsForPrimordialSoup CompilerApp ' + compilerout
 
+  webcompilerout = os.path.join(outdir, 'WebCompiler.vfuel')
+  snapshots += [webcompilerout]
+  cmd += ' RuntimeWithMirrorsForPrimordialSoup WebCompiler ' + webcompilerout
+
   Command(target=snapshots, source=nssources, action=cmd)
   Requires(snapshots, host_vm)
   Depends(snapshots, compilersnapshot)
