@@ -105,7 +105,10 @@ public write: bytes <ByteArray> to: vmoOffset = (
 )
 ) : (
 public new: size = (
-	checkStatus: (rawNew: size options: 0 multipleReturn: multipleReturn).
+    ^self new: size options: 0
+)
+public new: size options: options = (
+	checkStatus: (rawNew: size options: options multipleReturn: multipleReturn).
 	^self handle: (multipleReturn at: 1)
 )
 private rawNew: size <Integer> options: options <Integer> multipleReturn: _ <Array> = (
@@ -163,6 +166,7 @@ public takeHandle ^<Integer> = (
 public CHANNEL_PEER_CLOSED = ( ^1 << 2 )
 public CHANNEL_READABLE = ( ^1 << 0 )
 public CHANNEL_WRITABLE = ( ^1 << 1 )
+public VMO_RESIZABLE = ( ^1 << 1 )
 public ERR_BAD_HANDLE = ( ^-11 )
 public ERR_OUT_OF_RANGE = ( ^-14 )
 public ERR_PEER_CLOSED = ( ^-24 )

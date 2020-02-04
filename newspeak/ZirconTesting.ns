@@ -86,7 +86,7 @@ public testChannelReadWriteErrors = (
 )
 public testChannelReadWriteHandles = (
 	| vmo pair a b bytes msg |
-	vmo:: VMO new: 42.
+	vmo:: VMO new: 42 options: zx VMO_RESIZABLE.
 	pair:: Channel new.
 	a:: pair at: 1.
 	b:: pair at: 2.

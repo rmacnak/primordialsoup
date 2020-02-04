@@ -21,7 +21,7 @@ void OS::Shutdown() {}
 
 
 int64_t OS::CurrentMonotonicNanos() {
-  return zx_clock_get(ZX_CLOCK_MONOTONIC);
+  return zx_clock_get_monotonic();
 }
 
 
@@ -86,7 +86,7 @@ void OS::Abort() {
 
 
 void OS::Exit(int code) {
-  UNIMPLEMENTED();
+  exit(code);
 }
 
 }  // namespace psoup

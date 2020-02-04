@@ -5,9 +5,6 @@
 #include "vm/globals.h"
 #if !defined(OS_EMSCRIPTEN)
 
-#if defined(OS_FUCHSIA)
-#include <lib/async-loop/cpp/loop.h>
-#endif
 #include <signal.h>
 
 #include "vm/os.h"
@@ -23,10 +20,6 @@ int main(int argc, const char** argv) {
     psoup::OS::PrintErr("Usage: %s <program.vfuel>\n", argv[0]);
     return -1;
   }
-
-#if defined(OS_FUCHSIA)
-  async::Loop loop(&kAsyncLoopConfigAttachToThread);
-#endif
 
   psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);
   PrimordialSoup_Startup();

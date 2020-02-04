@@ -17,12 +17,15 @@ namespace psoup {
 
 FuchsiaMessageLoop::FuchsiaMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
-      loop_(async_loop_from_dispatcher(async_get_default_dispatcher())),
+      loop_(),
       timer_(ZX_HANDLE_INVALID),
       timer_wait_(this),
       wakeup_(0) {
   zx_status_t status =
-      zx::timer::create(ZX_TIMER_SLACK_LATE, ZX_CLOCK_MONOTONIC, &timer_);
+      async_loop_create(&kAsyncLoopConfigNeverAttachToThread, &loop_);
+  ASSERT(status == ZX_OK);
+
+  status = zx::timer::create(ZX_TIMER_SLACK_LATE, ZX_CLOCK_MONOTONIC, &timer_);
   ASSERT(status == ZX_OK);
   timer_wait_.set_object(timer_.get());
   timer_wait_.set_trigger(ZX_TIMER_SIGNALED);
@@ -33,6 +36,7 @@ FuchsiaMessageLoop::FuchsiaMessageLoop(Isolate* isolate)
 FuchsiaMessageLoop::~FuchsiaMessageLoop() {
   zx_status_t status = timer_wait_.Cancel();
   ASSERT(status == ZX_OK);
+  async_loop_destroy(loop_);
 }
 
 intptr_t FuchsiaMessageLoop::AwaitSignal(intptr_t handle, intptr_t signals) {
