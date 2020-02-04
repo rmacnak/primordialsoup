@@ -313,9 +313,8 @@ void Interpreter::OrdinarySend(intptr_t selector_index,
 
 void Interpreter::OrdinarySend(String* selector,
                                intptr_t num_args) {
-  Object* receiver = Stack(num_args);
-
 #if LOOKUP_CACHE
+  Object* receiver = Stack(num_args);
   Method* target;
   if (lookup_cache_.LookupOrdinary(receiver->ClassId(), selector, &target)) {
     Activate(target, num_args);  // SAFEPOINT
@@ -371,9 +370,9 @@ Behavior* Interpreter::FindApplicationOf(AbstractMixin* mixin,
 void Interpreter::SuperSend(intptr_t selector_index,
                             intptr_t num_args) {
   String* selector = SelectorAt(selector_index);
-  Object* receiver = FrameReceiver(fp_);
 
 #if LOOKUP_CACHE
+  Object* receiver = FrameReceiver(fp_);
   Object* absent_receiver;
   Method* target;
   if (lookup_cache_.LookupNS(receiver->ClassId(),
@@ -411,9 +410,9 @@ void Interpreter::SuperSendMiss(String* selector,
 void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
                                        intptr_t num_args) {
   String* selector = SelectorAt(selector_index);
-  Object* method_receiver = FrameReceiver(fp_);
 
 #if LOOKUP_CACHE
+  Object* method_receiver = FrameReceiver(fp_);
   Object* absent_receiver;
   Method* target;
   if (lookup_cache_.LookupNS(method_receiver->ClassId(),
@@ -469,9 +468,9 @@ void Interpreter::OuterSend(intptr_t selector_index,
                             intptr_t num_args,
                             intptr_t depth) {
   String* selector = SelectorAt(selector_index);
-  Object* receiver = FrameReceiver(fp_);
 
 #if LOOKUP_CACHE
+  Object* receiver = FrameReceiver(fp_);
   Object* absent_receiver;
   Method* target;
   if (lookup_cache_.LookupNS(receiver->ClassId(),
@@ -510,9 +509,9 @@ void Interpreter::OuterSendMiss(String* selector,
 void Interpreter::SelfSend(intptr_t selector_index,
                            intptr_t num_args) {
   String* selector = SelectorAt(selector_index);
-  Object* receiver = FrameReceiver(fp_);
 
 #if LOOKUP_CACHE
+  Object* receiver = FrameReceiver(fp_);
   Object* absent_receiver;
   Method* target;
   if (lookup_cache_.LookupNS(receiver->ClassId(),
