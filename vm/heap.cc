@@ -9,16 +9,16 @@
 
 namespace psoup {
 
-class HeapPage {
+class Region {
  public:
-  static HeapPage* Allocate(intptr_t size) {
+  static Region* Allocate(intptr_t size) {
     VirtualMemory memory = VirtualMemory::Allocate(size,
                                                    VirtualMemory::kReadWrite,
                                                    "primordialsoup-heap");
-    HeapPage* page = reinterpret_cast<HeapPage*>(memory.base());
-    page->memory_ = memory;
-    page->object_end_ = page->object_start();
-    return page;
+    Region* region = reinterpret_cast<Region*>(memory.base());
+    region->memory_ = memory;
+    region->object_end_ = region->object_start();
+    return region;
   }
 
   void Free() { memory_.Free(); }
@@ -38,18 +38,18 @@ class HeapPage {
   uword size() const { return memory_.size(); }
   uword limit() const { return memory_.limit(); }
   uword object_start() const {
-    return reinterpret_cast<uword>(this) + AllocationSize(sizeof(HeapPage));
+    return reinterpret_cast<uword>(this) + AllocationSize(sizeof(Region));
   }
   uword object_end() const { return object_end_; }
   void set_object_end(uword value) { object_end_ = value; }
 
   size_t Size() const { return object_end() - object_start(); }
 
-  HeapPage* next() const { return next_; }
-  void set_next(HeapPage* next) { next_ = next; }
+  Region* next() const { return next_; }
+  void set_next(Region* next) { next_ = next; }
 
  private:
-  HeapPage* next_;
+  Region* next_;
   VirtualMemory memory_;
   uword object_end_;
 };
@@ -84,23 +84,23 @@ Heap::Heap() :
     to_(),
     from_(),
     next_semispace_capacity_(kInitialSemispaceCapacity),
-    pages_(NULL),
+    regions_(nullptr),
     freelist_(),
     old_size_(0),
     old_capacity_(0),
     old_limit_(0),
-    remembered_set_(NULL),
+    remembered_set_(nullptr),
     remembered_set_size_(0),
     remembered_set_capacity_(0),
-    class_table_(NULL),
+    class_table_(nullptr),
     class_table_size_(0),
     class_table_capacity_(0),
     class_table_free_(0),
-    interpreter_(NULL),
+    interpreter_(nullptr),
     handles_(),
     handles_size_(0),
-    ephemeron_list_(NULL),
-    weak_list_(NULL) {
+    ephemeron_list_(nullptr),
+    weak_list_(nullptr) {
   to_.Allocate(kInitialSemispaceCapacity);
   from_.Allocate(kInitialSemispaceCapacity);
   top_ = to_.object_start();
@@ -126,11 +126,11 @@ Heap::Heap() :
 Heap::~Heap() {
   to_.Free();
   from_.Free();
-  HeapPage* page = pages_;
-  while (page != NULL) {
-    HeapPage* next = page->next();
-    page->Free();
-    page = next;
+  Region* region = regions_;
+  while (region != nullptr) {
+    Region* next = region->next();
+    region->Free();
+    region = next;
   }
   delete[] remembered_set_;
   delete[] class_table_;
@@ -189,12 +189,12 @@ uword Heap::AllocateOldSmall(intptr_t size, GrowthPolicy growth) {
   ASSERT(size < kLargeAllocation);
   uword addr = freelist_.TryAllocate(size);
   if (addr == 0) {
-    HeapPage* page = AllocatePage(kPageSize, growth);
-    addr = page->TryAllocate(size);
-    intptr_t remaining = page->limit() - page->object_end();
+    Region* region = AllocateRegion(kRegionSize, growth);
+    addr = region->TryAllocate(size);
+    intptr_t remaining = region->limit() - region->object_end();
     if (remaining > 0) {
-      freelist_.EnqueueRange(page->object_end(), remaining);
-      page->set_object_end(page->limit());
+      freelist_.EnqueueRange(region->object_end(), remaining);
+      region->set_object_end(region->limit());
     }
   }
   if (addr == 0) {
@@ -209,9 +209,9 @@ uword Heap::AllocateOldSmall(intptr_t size, GrowthPolicy growth) {
 
 uword Heap::AllocateOldLarge(intptr_t size, GrowthPolicy growth) {
   ASSERT(size >= kLargeAllocation);
-  HeapPage* page = AllocatePage(size + AllocationSize(sizeof(HeapPage)),
+  Region* region = AllocateRegion(size + AllocationSize(sizeof(Region)),
                                 growth);
-  uword addr = page->TryAllocate(size);
+  uword addr = region->TryAllocate(size);
   if (addr == 0) {
     FATAL1("Failed to allocate %" Pd " bytes\n", size);
   }
@@ -224,20 +224,20 @@ uword Heap::AllocateOldLarge(intptr_t size, GrowthPolicy growth) {
 
 uword Heap::AllocateSnapshotSmall(intptr_t size) {
   ASSERT(size < kLargeAllocation);
-  HeapPage* page = pages_;
-  if (page == NULL) {
-    page = AllocatePage(kPageSize, kForceGrowth);
+  Region* region = regions_;
+  if (region == nullptr) {
+    region = AllocateRegion(kRegionSize, kForceGrowth);
   }
-  uword addr = page->TryAllocate(size);
+  uword addr = region->TryAllocate(size);
   if (addr == 0) {
-    intptr_t remaining = page->limit() - page->object_end();
+    intptr_t remaining = region->limit() - region->object_end();
     if (remaining > 0) {
-      freelist_.EnqueueRange(page->object_end(), remaining);
-      page->set_object_end(page->limit());
+      freelist_.EnqueueRange(region->object_end(), remaining);
+      region->set_object_end(region->limit());
     }
 
-    page = AllocatePage(kPageSize, kForceGrowth);
-    addr = page->TryAllocate(size);
+    region = AllocateRegion(kRegionSize, kForceGrowth);
+    addr = region->TryAllocate(size);
   }
   if (addr == 0) {
     FATAL1("Failed to allocate %" Pd " bytes\n", size);
@@ -252,16 +252,16 @@ uword Heap::AllocateSnapshotSmall(intptr_t size) {
 uword Heap::AllocateSnapshotLarge(intptr_t size) {
   ASSERT(size >= kLargeAllocation);
   uword addr;
-  HeapPage* page = HeapPage::Allocate(size + AllocationSize(sizeof(HeapPage)));
-  old_capacity_ += page->size();
-  // Keep the current page since it likely still has free space.
-  if (pages_ == NULL) {
-    pages_ = page;
+  Region* region = Region::Allocate(size + AllocationSize(sizeof(Region)));
+  old_capacity_ += region->size();
+  // Keep the current region since it likely still has free space.
+  if (regions_ == nullptr) {
+    regions_ = region;
   } else {
-    page->set_next(pages_->next());
-    pages_->set_next(page);
+    region->set_next(regions_->next());
+    regions_->set_next(region);
   }
-  addr = page->TryAllocate(size);
+  addr = region->TryAllocate(size);
   if (addr == 0) {
     FATAL1("Failed to allocate %" Pd " bytes\n", size);
   }
@@ -272,15 +272,15 @@ uword Heap::AllocateSnapshotLarge(intptr_t size) {
   return addr;
 }
 
-HeapPage* Heap::AllocatePage(intptr_t page_size, GrowthPolicy growth) {
-  if ((growth == kControlGrowth) && ((old_size_ + page_size) > old_limit_)) {
+Region* Heap::AllocateRegion(intptr_t region_size, GrowthPolicy growth) {
+  if ((growth == kControlGrowth) && ((old_size_ + region_size) > old_limit_)) {
     MarkSweep(kOldSpace);
   }
-  HeapPage* page = HeapPage::Allocate(page_size);
-  old_capacity_ += page->size();
-  page->set_next(pages_);
-  pages_ = page;
-  return page;
+  Region* region = Region::Allocate(region_size);
+  old_capacity_ += region->size();
+  region->set_next(regions_);
+  regions_ = region;
+  return region;
 }
 
 void Heap::GrowRememberedSet() {
@@ -781,30 +781,30 @@ void Heap::Sweep() {
     }
   }
 
-  HeapPage* prev = NULL;
-  HeapPage* page = pages_;
-  while (page != NULL) {
-    bool in_use = SweepPage(page);
+  Region* prev = nullptr;
+  Region* region = regions_;
+  while (region != nullptr) {
+    bool in_use = SweepRegion(region);
     if (in_use) {
-      prev = page;
-      page = page->next();
+      prev = region;
+      region = region->next();
     } else {
-      HeapPage* next = page->next();
-      if (prev == NULL) {
-        pages_ = next;
+      Region* next = region->next();
+      if (prev == nullptr) {
+        regions_ = next;
       } else {
         prev->set_next(next);
       }
-      old_capacity_ -= page->size();
-      page->Free();
-      page = next;
+      old_capacity_ -= region->size();
+      region->Free();
+      region = next;
     }
   }
 }
 
-bool Heap::SweepPage(HeapPage* page) {
-  uword scan = page->object_start();
-  uword end = page->object_end();
+bool Heap::SweepRegion(Region* region) {
+  uword scan = region->object_start();
+  uword end = region->object_end();
   while (scan < end) {
     HeapObject* obj = HeapObject::FromAddr(scan);
     if (obj->is_marked()) {
@@ -820,8 +820,8 @@ bool Heap::SweepPage(HeapPage* page) {
         free_scan += next->HeapSize();
       }
 
-      if ((scan == page->object_start()) && (free_scan == end)) {
-        // Note that HeapPage::Of relies on us releasing large pages instead of
+      if ((scan == region->object_start()) && (free_scan == end)) {
+        // Note that Region::Of relies on us releasing large regions instead of
         // adding them to the freelist.
         return false;  // Not in use.
       }
@@ -835,8 +835,8 @@ bool Heap::SweepPage(HeapPage* page) {
 
 void Heap::SetOldAllocationLimit() {
   old_limit_ = old_size_ + old_size_ / 2;
-  if (old_limit_ < old_size_ + 2 * kPageSize) {
-    old_limit_ = old_size_ + 2 * kPageSize;
+  if (old_limit_ < old_size_ + 2 * kRegionSize) {
+    old_limit_ = old_size_ + 2 * kRegionSize;
   }
   if (TRACE_GROWTH) {
     OS::PrintErr("Old %" Pd "kB size, %" Pd "kB capacity, %" Pd "kB limit\n",
@@ -857,12 +857,12 @@ static bool IsScavengeSurvivor(Object* obj) {
 
 void Heap::ScavengeEphemeronList() {
   Ephemeron* survivor = ephemeron_list_;
-  ephemeron_list_ = NULL;
+  ephemeron_list_ = nullptr;
 
-  while (survivor != NULL) {
+  while (survivor != nullptr) {
     ASSERT(survivor->IsEphemeron());
     Ephemeron* next = survivor->next();
-    survivor->set_next(NULL);
+    survivor->set_next(nullptr);
 
     if (IsScavengeSurvivor(survivor->key())) {
       ScavengePointer(survivor->key_ptr());
@@ -892,12 +892,12 @@ static bool IsMarkSweepSurvivor(Object* obj) {
 
 void Heap::MarkEphemeronList() {
   Ephemeron* survivor = ephemeron_list_;
-  ephemeron_list_ = NULL;
+  ephemeron_list_ = nullptr;
 
-  while (survivor != NULL) {
+  while (survivor != nullptr) {
     ASSERT(survivor->IsEphemeron());
     Ephemeron* next = survivor->next();
-    survivor->set_next(NULL);
+    survivor->set_next(nullptr);
 
     if (IsMarkSweepSurvivor(survivor->key())) {
       // TODO(rmacnak): These scavenges potentially add to the ephemeron list
@@ -927,9 +927,9 @@ void Heap::MarkEphemeronList() {
 void Heap::MournEphemeronList() {
   Object* nil = interpreter_->nil_obj();
   Ephemeron* survivor = ephemeron_list_;
-  ephemeron_list_ = NULL;
+  ephemeron_list_ = nullptr;
 
-  while (survivor != NULL) {
+  while (survivor != nullptr) {
     ASSERT(survivor->IsEphemeron());
 
     survivor->set_key(nil, kNoBarrier);
@@ -939,7 +939,7 @@ void Heap::MournEphemeronList() {
     survivor->set_finalizer(nil, kNoBarrier);
 
     Ephemeron* next = survivor->next();
-    survivor->set_next(NULL);
+    survivor->set_next(nullptr);
     survivor = next;
   }
 }
@@ -952,8 +952,8 @@ void Heap::AddToWeakList(WeakArray* survivor) {
 
 void Heap::MournWeakListScavenge() {
   WeakArray* survivor = weak_list_;
-  weak_list_ = NULL;
-  while (survivor != NULL) {
+  weak_list_ = nullptr;
+  while (survivor != nullptr) {
     ASSERT(survivor->IsWeakArray());
 
     Object** from;
@@ -969,16 +969,16 @@ void Heap::MournWeakListScavenge() {
     }
 
     WeakArray* next = survivor->next();
-    survivor->set_next(NULL);
+    survivor->set_next(nullptr);
     survivor = next;
   }
-  ASSERT(weak_list_ == NULL);
+  ASSERT(weak_list_ == nullptr);
 }
 
 void Heap::MournWeakListMarkSweep() {
   WeakArray* survivor = weak_list_;
-  weak_list_ = NULL;
-  while (survivor != NULL) {
+  weak_list_ = nullptr;
+  while (survivor != nullptr) {
     ASSERT(survivor->IsWeakArray());
 
     Object** from;
@@ -994,10 +994,10 @@ void Heap::MournWeakListMarkSweep() {
     }
 
     WeakArray* next = survivor->next();
-    survivor->set_next(NULL);
+    survivor->set_next(nullptr);
     survivor = next;
   }
-  ASSERT(weak_list_ == NULL);
+  ASSERT(weak_list_ == nullptr);
 }
 
 
@@ -1021,7 +1021,6 @@ void Heap::MournWeakPointerScavenge(Object** ptr) {
 
   *ptr = new_target;
 }
-
 
 void Heap::MournWeakPointerMarkSweep(Object** ptr) {
   Object* target = *ptr;
@@ -1158,9 +1157,9 @@ void Heap::ForwardHeap() {
   }
 
   remembered_set_size_ = 0;
-  for (HeapPage* page = pages_; page != NULL; page = page->next()) {
-    uword scan = page->object_start();
-    while (scan < page->object_end()) {
+  for (Region* region = regions_; region != nullptr; region = region->next()) {
+    uword scan = region->object_start();
+    while (scan < region->object_end()) {
       HeapObject* obj = HeapObject::FromAddr(scan);
       if (obj->cid() >= kFirstLegalCid) {
         ForwardClass(this, obj);
@@ -1247,9 +1246,9 @@ intptr_t Heap::CountInstances(intptr_t cid) {
     }
     scan += obj->HeapSize();
   }
-  for (HeapPage* page = pages_; page != NULL; page = page->next()) {
-    uword scan = page->object_start();
-    while (scan < page->object_end()) {
+  for (Region* region = regions_; region != nullptr; region = region->next()) {
+    uword scan = region->object_start();
+    while (scan < region->object_end()) {
       HeapObject* obj = HeapObject::FromAddr(scan);
       if (obj->cid() == cid) {
         instances++;
@@ -1271,9 +1270,9 @@ intptr_t Heap::CollectInstances(intptr_t cid, Array* array) {
     }
     scan += obj->HeapSize();
   }
-  for (HeapPage* page = pages_; page != NULL; page = page->next()) {
-    uword scan = page->object_start();
-    while (scan < page->object_end()) {
+  for (Region* region = regions_; region != nullptr; region = region->next()) {
+    uword scan = region->object_start();
+    while (scan < region->object_end()) {
       HeapObject* obj = HeapObject::FromAddr(scan);
       if (obj->cid() == cid) {
         array->set_element(instances, obj);
@@ -1288,7 +1287,7 @@ intptr_t Heap::CollectInstances(intptr_t cid, Array* array) {
 uword FreeList::TryAllocate(intptr_t size) {
   intptr_t index = IndexForSize(size);
   while (index < kSizeClasses) {
-    if (free_lists_[index] != NULL) {
+    if (free_lists_[index] != nullptr) {
       FreeListElement* element = Dequeue(index);
       SplitAndRequeue(element, size);
       return reinterpret_cast<uword>(element) - kHeapObjectTag;
@@ -1296,11 +1295,11 @@ uword FreeList::TryAllocate(intptr_t size) {
     index++;
   }
 
-  FreeListElement* prev = NULL;
+  FreeListElement* prev = nullptr;
   FreeListElement* element = free_lists_[kSizeClasses];
-  while (element != NULL) {
+  while (element != nullptr) {
     if (element->HeapSize() >= size) {
-      if (prev == NULL) {
+      if (prev == nullptr) {
         free_lists_[kSizeClasses] = element->next();
       } else {
         prev->set_next(element->next());
@@ -1328,10 +1327,10 @@ void FreeList::SplitAndRequeue(FreeListElement* element, intptr_t size) {
 
 FreeListElement* FreeList::Dequeue(intptr_t index) {
   FreeListElement* element = free_lists_[index];
-  if (element == NULL) {
-    return NULL;
+  if (element == nullptr) {
+    return nullptr;
   }
-  ASSERT((element->next() == NULL) || element->next()->IsFreeListElement());
+  ASSERT((element->next() == nullptr) || element->next()->IsFreeListElement());
   free_lists_[index] = element->next();
   return element;
 }

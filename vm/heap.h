@@ -14,8 +14,8 @@
 
 namespace psoup {
 
-class HeapPage;
 class Interpreter;
+class Region;
 
 // Note these values are never valid Object*.
 #if defined(ARCH_IS_32_BIT)
@@ -90,7 +90,7 @@ class FreeList {
   void EnqueueRange(uword address, intptr_t size);
   void Reset() {
     for (intptr_t i = 0; i <= kSizeClasses; i++) {
-      free_lists_[i] = NULL;
+      free_lists_[i] = nullptr;
     }
   }
 
@@ -108,7 +108,7 @@ class Heap {
   static const intptr_t kLargeAllocation = 32 * KB;
   static const size_t kInitialSemispaceCapacity = sizeof(uword) * MB / 8;
   static const size_t kMaxSemispaceCapacity = 2 * sizeof(uword) * MB;
-  static const size_t kPageSize = 256 * KB;
+  static const size_t kRegionSize = 256 * KB;
 
  public:
   enum Allocator { kNormal, kSnapshot };
@@ -134,7 +134,7 @@ class Heap {
       case kSnapshotTest: return "snapshot-test";
     }
     UNREACHABLE();
-    return NULL;
+    return nullptr;
   }
 
   Heap();
@@ -304,7 +304,7 @@ class Heap {
   }
 
   void InitializeInterpreter(Interpreter* interpreter) {
-    ASSERT(interpreter_ == NULL);
+    ASSERT(interpreter_ == nullptr);
     interpreter_ = interpreter;
   }
   void InitializeGrowthPolicy() {
@@ -338,7 +338,7 @@ class Heap {
   void MarkObject(Object* obj);
   void ProcessMarkStack();
   void Sweep();
-  bool SweepPage(HeapPage* page);
+  bool SweepRegion(Region* region);
   void SetOldAllocationLimit();
 
   // Ephemerons.
@@ -395,7 +395,7 @@ class Heap {
   uword AllocateSnapshotSmall(intptr_t size);
   uword AllocateSnapshotLarge(intptr_t size);
 
-  HeapPage* AllocatePage(intptr_t page_size, GrowthPolicy growth);
+  Region* AllocateRegion(intptr_t region_size, GrowthPolicy growth);
 
 #if defined(DEBUG)
   bool InFromSpace(HeapObject* obj) {
@@ -415,7 +415,7 @@ class Heap {
   size_t next_semispace_capacity_;
 
   // Old space.
-  HeapPage* pages_;
+  Region* regions_;
   FreeList freelist_;
   size_t old_size_;
   size_t old_capacity_;
