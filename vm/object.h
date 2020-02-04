@@ -257,7 +257,12 @@ class HeapObject : public Object {
 
  protected:
   template<typename type>
-  void StorePointer(type* addr, type value, Barrier barrier) {
+  type Load(type* addr, Barrier barrier = kBarrier) const {
+    return *addr;
+  }
+
+  template<typename type>
+  void Store(type* addr, type value, Barrier barrier) {
     *addr = value;
     if (barrier == kNoBarrier) {
       ASSERT(value->IsImmediateOrOldObject());
@@ -332,7 +337,7 @@ class FreeListElement : public HeapObject {
     return reinterpret_cast<FreeListElement*>(ptr()->header_hash_);
   }
   void set_next(FreeListElement* value) {
-    ASSERT((value == NULL) || value->IsHeapObject());  // Tagged.
+    ASSERT((value == nullptr) || value->IsHeapObject());  // Tagged.
     ptr()->header_hash_ = reinterpret_cast<intptr_t>(value);
   }
   intptr_t overflow_size() const {
@@ -487,11 +492,9 @@ class RegularObject : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(RegularObject);
 
  public:
-  Object* slot(intptr_t index) const {
-    return ptr()->slots_[index];
-  }
+  Object* slot(intptr_t index) const { return Load(&ptr()->slots_[index]); }
   void set_slot(intptr_t index, Object* value, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->slots_[index], value, barrier);
+    Store(&ptr()->slots_[index], value, barrier);
   }
 
  private:
@@ -509,15 +512,15 @@ class Array : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Array);
 
  public:
-  SmallInteger* size() const { return ptr()->size_; }
-  void set_size(SmallInteger* s) { StorePointer(&ptr()->size_, s, kNoBarrier); }
+  SmallInteger* size() const { return Load(&ptr()->size_, kNoBarrier); }
+  void set_size(SmallInteger* s) { Store(&ptr()->size_, s, kNoBarrier); }
   intptr_t Size() const { return size()->value(); }
 
   Object* element(intptr_t index) const {
-    return ptr()->elements_[index];
+    return Load(&ptr()->elements_[index]);
   }
   void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->elements_[index], value, barrier);
+    Store(&ptr()->elements_[index], value, barrier);
   }
 
  private:
@@ -535,19 +538,20 @@ class WeakArray : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(WeakArray);
 
  public:
-  SmallInteger* size() const { return ptr()->size_; }
-  void set_size(SmallInteger* s) { StorePointer(&ptr()->size_, s, kNoBarrier); }
+  SmallInteger* size() const { return Load(&ptr()->size_, kNoBarrier); }
+  void set_size(SmallInteger* s) { Store(&ptr()->size_, s, kNoBarrier); }
   intptr_t Size() const { return size()->value(); }
 
   // Only accessed by the GC. Bypasses barrier, including assertions.
   WeakArray* next() const { return ptr()->next_; }
   void set_next(WeakArray* value) { ptr()->next_ = value; }
 
-  Object* element(intptr_t index) const { return ptr()->elements_[index]; }
-  void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->elements_[index], value, barrier);
+  Object* element(intptr_t index) const {
+    return Load(&ptr()->elements_[index]);
   }
-
+  void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
+    Store(&ptr()->elements_[index], value, barrier);
+  }
 
  private:
   Object** from() {
@@ -565,22 +569,22 @@ class Ephemeron : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Ephemeron);
 
  public:
-  Object* key() const { return ptr()->key_; }
+  Object* key() const { return Load(&ptr()->key_); }
   Object** key_ptr() { return &ptr()->key_; }
   void set_key(Object* key, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->key_, key, barrier);
+    Store(&ptr()->key_, key, barrier);
   }
 
-  Object* value() const { return ptr()->value_; }
+  Object* value() const { return Load(&ptr()->value_); }
   Object** value_ptr() { return &ptr()->value_; }
   void set_value(Object* value, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->value_, value, barrier);
+    Store(&ptr()->value_, value, barrier);
   }
 
-  Object* finalizer() const { return ptr()->finalizer_; }
+  Object* finalizer() const { return Load(&ptr()->finalizer_); }
   Object** finalizer_ptr() { return &ptr()->finalizer_; }
   void set_finalizer(Object* finalizer, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->finalizer_, finalizer, barrier);
+    Store(&ptr()->finalizer_, finalizer, barrier);
   }
 
   // Only accessed by the GC. Bypasses barrier, including assertions.
@@ -604,8 +608,8 @@ class Bytes : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Bytes);
 
  public:
-  SmallInteger* size() const { return ptr()->size_; }
-  void set_size(SmallInteger* s) { StorePointer(&ptr()->size_, s, kNoBarrier); }
+  SmallInteger* size() const { return Load(&ptr()->size_, kNoBarrier); }
+  void set_size(SmallInteger* s) { Store(&ptr()->size_, s, kNoBarrier); }
   intptr_t Size() const { return size()->value(); }
 
   uint8_t element(intptr_t index) const {
@@ -646,38 +650,40 @@ class Activation : public HeapObject {
  public:
   static const intptr_t kMaxTemps = 35;
 
-  Activation* sender() const { return ptr()->sender_; }
+  Activation* sender() const { return Load(&ptr()->sender_); }
   void set_sender(Activation* s, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->sender_, s, barrier);
+    Store(&ptr()->sender_, s, barrier);
   }
 
-  SmallInteger* bci() const { return ptr()->bci_; }
-  void set_bci(SmallInteger* i) { StorePointer(&ptr()->bci_, i, kNoBarrier); }
+  SmallInteger* bci() const { return Load(&ptr()->bci_, kNoBarrier); }
+  void set_bci(SmallInteger* i) { Store(&ptr()->bci_, i, kNoBarrier); }
 
-  Method* method() const { return ptr()->method_; }
+  Method* method() const { return Load(&ptr()->method_); }
   void set_method(Method* m, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->method_, m, barrier);
+    Store(&ptr()->method_, m, barrier);
   }
 
-  Closure* closure() const { return ptr()->closure_; }
+  Closure* closure() const { return Load(&ptr()->closure_); }
   void set_closure(Closure* m, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->closure_, m, barrier);
+    Store(&ptr()->closure_, m, barrier);
   }
 
-  Object* receiver() const { return ptr()->receiver_; }
+  Object* receiver() const { return Load(&ptr()->receiver_); }
   void set_receiver(Object* o, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->receiver_, o, barrier);
+    Store(&ptr()->receiver_, o, barrier);
   }
 
-  SmallInteger* stack_depth() const { return ptr()->stack_depth_; }
+  SmallInteger* stack_depth() const {
+    return Load(&ptr()->stack_depth_, kNoBarrier);
+  }
   void set_stack_depth(SmallInteger* d) {
-    StorePointer(&ptr()->stack_depth_, d, kNoBarrier);
+    Store(&ptr()->stack_depth_, d, kNoBarrier);
   }
   intptr_t StackDepth() const { return stack_depth()->value(); }
 
-  Object* temp(intptr_t index) const { return ptr()->temps_[index]; }
+  Object* temp(intptr_t index) const { return Load(&ptr()->temps_[index]); }
   void set_temp(intptr_t index, Object* o, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->temps_[index], o, barrier);
+    Store(&ptr()->temps_[index], o, barrier);
   }
 
   void PopNAndPush(intptr_t drop_count, Object* value) {
@@ -723,32 +729,40 @@ class Closure : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Closure);
 
  public:
-  SmallInteger* num_copied() const { return ptr()->num_copied_; }
+  SmallInteger* num_copied() const {
+    return Load(&ptr()->num_copied_, kNoBarrier);
+  }
   void set_num_copied(SmallInteger* v) {
-    StorePointer(&ptr()->num_copied_, v, kNoBarrier);
+    Store(&ptr()->num_copied_, v, kNoBarrier);
   }
   intptr_t NumCopied() const { return num_copied()->value(); }
 
   Activation* defining_activation() const {
-    return ptr()->defining_activation_;
+    return Load(&ptr()->defining_activation_);
   }
   void set_defining_activation(Activation* a, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->defining_activation_, a, barrier);
+    Store(&ptr()->defining_activation_, a, barrier);
   }
 
-  SmallInteger* initial_bci() const { return ptr()->initial_bci_; }
+  SmallInteger* initial_bci() const {
+    return Load(&ptr()->initial_bci_, kNoBarrier);
+  }
   void set_initial_bci(SmallInteger* bci) {
-    StorePointer(&ptr()->initial_bci_, bci, kNoBarrier);
+    Store(&ptr()->initial_bci_, bci, kNoBarrier);
   }
 
-  SmallInteger* num_args() const { return ptr()->num_args_; }
+  SmallInteger* num_args() const {
+    return Load(&ptr()->num_args_, kNoBarrier);
+  }
   void set_num_args(SmallInteger* num) {
-    StorePointer(&ptr()->num_args_, num, kNoBarrier);
+    Store(&ptr()->num_args_, num, kNoBarrier);
   }
 
-  Object* copied(intptr_t index) const { return ptr()->copied_[index]; }
+  Object* copied(intptr_t index) const {
+    return Load(&ptr()->copied_[index]);
+  }
   void set_copied(intptr_t index, Object* o, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->copied_[index], o, barrier);
+    Store(&ptr()->copied_[index], o, barrier);
   }
 
  private:
@@ -769,15 +783,13 @@ class Behavior : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Behavior);
 
  public:
-  Behavior* superclass() const { return ptr()->superclass_; }
-  Array* methods() const { return ptr()->methods_; }
-  AbstractMixin* mixin() const { return ptr()->mixin_; }
-  Object* enclosing_object() const { return ptr()->enclosing_object_; }
-  SmallInteger* id() const { return ptr()->classid_; }
-  void set_id(SmallInteger* id) {
-    StorePointer(&ptr()->classid_, id, kNoBarrier);
-  }
-  SmallInteger* format() const { return ptr()->format_; }
+  Behavior* superclass() const { return Load(&ptr()->superclass_); }
+  Array* methods() const { return Load(&ptr()->methods_); }
+  AbstractMixin* mixin() const { return Load(&ptr()->mixin_); }
+  Object* enclosing_object() const { return Load(&ptr()->enclosing_object_); }
+  SmallInteger* id() const { return Load(&ptr()->classid_, kNoBarrier); }
+  void set_id(SmallInteger* id) { Store(&ptr()->classid_, id, kNoBarrier); }
+  SmallInteger* format() const { return Load(&ptr()->format_, kNoBarrier); }
 
  private:
   Behavior* superclass_;
@@ -792,8 +804,8 @@ class Class : public Behavior {
   HEAP_OBJECT_IMPLEMENTATION(Class);
 
  public:
-  String* name() const { return ptr()->name_; }
-  WeakArray* subclasses() const { return ptr()->subclasses_; }
+  String* name() const { return Load(&ptr()->name_); }
+  WeakArray* subclasses() const { return Load(&ptr()->subclasses_); }
 
  private:
   String* name_;
@@ -804,7 +816,7 @@ class Metaclass : public Behavior {
   HEAP_OBJECT_IMPLEMENTATION(Metaclass);
 
  public:
-  Class* this_class() const { return ptr()->this_class_; }
+  Class* this_class() const { return Load(&ptr()->this_class_); }
 
  private:
   Class* this_class_;
@@ -814,9 +826,11 @@ class AbstractMixin : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(AbstractMixin);
 
  public:
-  String* name() const { return ptr()->name_; }
-  Array* methods() const { return ptr()->methods_; }
-  AbstractMixin* enclosing_mixin() const { return ptr()->enclosing_mixin_; }
+  String* name() const { return Load(&ptr()->name_); }
+  Array* methods() const { return Load(&ptr()->methods_); }
+  AbstractMixin* enclosing_mixin() const {
+    return Load(&ptr()->enclosing_mixin_);
+  }
 
  private:
   String* name_;
@@ -828,12 +842,12 @@ class Method : public HeapObject {
   HEAP_OBJECT_IMPLEMENTATION(Method);
 
  public:
-  SmallInteger* header() const { return ptr()->header_; }
-  Array* literals() const { return ptr()->literals_; }
-  ByteArray* bytecode() const { return ptr()->bytecode_; }
-  AbstractMixin* mixin() const { return ptr()->mixin_; }
-  String* selector() const { return ptr()->selector_; }
-  Object* source() const { return ptr()->source_; }
+  SmallInteger* header() const { return Load(&ptr()->header_); }
+  Array* literals() const { return Load(&ptr()->literals_); }
+  ByteArray* bytecode() const { return Load(&ptr()->bytecode_); }
+  AbstractMixin* mixin() const { return Load(&ptr()->mixin_); }
+  String* selector() const { return Load(&ptr()->selector_); }
+  Object* source() const { return Load(&ptr()->source_); }
 
   bool IsPublic() const {
     uword am = header()->value() >> 28;
@@ -881,10 +895,10 @@ class Message : public HeapObject {
 
  public:
   void set_selector(String* selector, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->selector_, selector, barrier);
+    Store(&ptr()->selector_, selector, barrier);
   }
   void set_arguments(Array* arguments, Barrier barrier = kBarrier) {
-    StorePointer(&ptr()->arguments_, arguments, barrier);
+    Store(&ptr()->arguments_, arguments, barrier);
   }
 
  private:
