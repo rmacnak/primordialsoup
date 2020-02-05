@@ -1,4 +1,4 @@
-// Copyright (c) 2012, the Dart project authors.  Please see the AUTHORS file
+// Copyright (c) 2012, the Newspeak project authors. Please see the AUTHORS file
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
@@ -344,7 +344,7 @@ void ThreadPool::Worker::StartThread() {
     ASSERT(task_ != NULL);
   }
 #endif
-  int result = Thread::Start("Dart ThreadPool Worker", &Worker::Main,
+  int result = Thread::Start("PSoup ThreadPool Worker", &Worker::Main,
                              reinterpret_cast<uword>(this));
   if (result != 0) {
     FATAL1("Could not start worker thread: result = %d.", result);
