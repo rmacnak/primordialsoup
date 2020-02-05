@@ -118,11 +118,15 @@ private rawNew: size <Integer> options: options <Integer> multipleReturn: _ <Arr
 )
 public class ZirconException status: s = Exception (
 |
-public status = s.
+public status <Integer> = s.
 |
 ) (
 public printString ^<String> = (
-	^'ZirconException: ', status printString
+	^'ZirconException: ', (statusGetString: status), ', ', status printString
+)
+private statusGetString: status = (
+	(* :literalmessage: primitive: 165 *)
+	halt
 )
 ) : (
 )
@@ -171,6 +175,8 @@ public ERR_BAD_HANDLE = ( ^-11 )
 public ERR_OUT_OF_RANGE = ( ^-14 )
 public ERR_PEER_CLOSED = ( ^-24 )
 public ERR_SHOULD_WAIT = ( ^-22 )
+public ERR_UNAVAILABLE = ( ^-28 )
+public ERR_WRONG_TYPE = ( ^-12 )
 public HANDLE_INVALID = ( ^0 )
 public OK = ( ^0 )
 private checkStatus: status = (

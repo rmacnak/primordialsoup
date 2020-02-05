@@ -38,8 +38,8 @@ To target Fuchsia, clone this repository to `third_party/primordialsoup` in a Fu
 
 ```
 git clone https://github.com/rmacnak/primordialsoup.git third_party/primordialsoup
-fx set core.x64 --release --with-base garnet/packages:default,third_party/primordialsoup:packages
-fx full-build
+fx set core.x64 --release --with-base bundles:tools,third_party/primordialsoup:packages
+fx build
 ```
 
 To target WebAssembly, build with

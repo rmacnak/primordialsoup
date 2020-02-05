@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 
 #if defined(OS_FUCHSIA)
+#include <zircon/status.h>
 #include <zircon/syscalls.h>
 #elif defined(OS_EMSCRIPTEN)
 #include <emscripten.h>
@@ -188,6 +189,7 @@ const bool kFailure = false;
   V(162, JS_performDelete)                                                     \
   V(163, JS_performInvoke)                                                     \
   V(164, JS_performNew)                                                        \
+  V(165, ZXStatus_getString)                                                   \
   V(200, quickReturnSelf)                                                      \
 
 
@@ -2807,6 +2809,20 @@ static zx_handle_t AsHandle(SmallInteger* handle) {
   return static_cast<zx_handle_t>(handle->value());
 }
 #endif
+
+DEFINE_PRIMITIVE(ZXStatus_getString) {
+#if !defined(OS_FUCHSIA)
+  return kFailure;
+#else
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(status, 0);
+  const char* raw_string = zx_status_get_string(status);
+  intptr_t length = strlen(raw_string);
+  String* result = H->AllocateString(length);  // SAFEPOINT
+  memcpy(result->element_addr(0), raw_string, length);
+  RETURN(result);
+#endif
+}
 
 DEFINE_PRIMITIVE(ZXHandle_close) {
 #if !defined(OS_FUCHSIA)

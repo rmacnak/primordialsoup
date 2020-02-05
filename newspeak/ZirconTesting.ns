@@ -86,7 +86,7 @@ public testChannelReadWriteErrors = (
 )
 public testChannelReadWriteHandles = (
 	| vmo pair a b bytes msg |
-	vmo:: VMO new: 42 options: zx VMO_RESIZABLE.
+	vmo:: VMO new: 42.
 	pair:: Channel new.
 	a:: pair at: 1.
 	b:: pair at: 2.
@@ -200,7 +200,7 @@ public testVMOReadWrite = (
 )
 public testVMOSetSize = (
 	| vmo |
-	vmo:: VMO new: 0.
+	vmo:: VMO new: 0 options: zx VMO_RESIZABLE.
 	assert: vmo size equals: 0.
 
 	vmo size: 5000.
@@ -216,6 +216,11 @@ public testVMOSetSize = (
 	vmo close.
 
 	should: [vmo size: 0] failWithStatus: zx ERR_BAD_HANDLE.
+
+	vmo:: VMO new: 0 options: 0.
+	assert: vmo size equals: 0.
+	should: [vmo size: 0] failWithStatus: zx ERR_UNAVAILABLE.
+	vmo close.
 )
 ) : (
 TEST_CONTEXT = ()

@@ -365,7 +365,6 @@ void Deserializer::Deserialize() {
   }
 
   ObjectStore* os = static_cast<ObjectStore*>(ReadRef());
-  ASSERT(position() == snapshot_length_);
 
   heap_->RegisterClass(kSmiCid, os->SmallInteger());
   heap_->RegisterClass(kMintCid, os->MediumInteger());
