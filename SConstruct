@@ -115,6 +115,8 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-fstack-protector',
       '-fpic',
       '-fvisibility=hidden',
+      '-fdata-sections',
+      '-ffunction-sections',
     ]
     if sanitize == 'address':
       env['CCFLAGS'] += ['-fsanitize=address']
