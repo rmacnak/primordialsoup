@@ -36,6 +36,10 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
 
   if sanitize == 'address':
     configname += 'ASan'
+  elif sanitize == 'leak':
+    configname += 'LSan'
+  elif sanitize == 'memory':
+    configname += 'MSan'
   elif sanitize == 'thread':
     configname += 'TSan'
   elif sanitize == 'undefined':
@@ -324,7 +328,7 @@ def Main():
     raise Exception("Unknown machine: " + platform.machine())
 
   sanitize = ARGUMENTS.get('sanitize', None)
-  if sanitize not in ['address', 'thread', 'undefined', None]:
+  if sanitize not in ['address', 'leak', 'memory', 'thread', 'undefined', None]:
     raise Exception("Unknown sanitize option: " + sanitize)
 
   # Build a release host VM for building the snapshots. Don't use the santizers
