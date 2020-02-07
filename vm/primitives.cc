@@ -84,7 +84,7 @@ const bool kFailure = false;
   V(47, ByteArray_at)                                                          \
   V(48, ByteArray_atPut)                                                       \
   V(49, ByteArray_size)                                                        \
-  V(50, ByteArray_copyFromTo)                                                  \
+  V(50, Bytes_copyByteArrayFromTo)                                             \
   V(51, String_at)                                                             \
   V(53, String_size)                                                           \
   V(54, String_hash)                                                           \
@@ -146,7 +146,7 @@ const bool kFailure = false;
   V(118, Bytes_endsWith)                                                       \
   V(119, Bytes_indexOf)                                                        \
   V(120, Bytes_lastIndexOf)                                                    \
-  V(121, String_copyFromTo)                                                    \
+  V(121, Bytes_copyStringFromTo)                                               \
   V(122, ByteArray_class_withAll)                                              \
   V(123, String_class_with)                                                    \
   V(124, String_class_withAll)                                                 \
@@ -1352,7 +1352,7 @@ DEFINE_PRIMITIVE(ByteArray_size) {
 }
 
 
-DEFINE_PRIMITIVE(ByteArray_copyFromTo) {
+DEFINE_PRIMITIVE(Bytes_copyByteArrayFromTo) {
   ASSERT(num_args == 2);
 
   if (!I->Stack(1)->IsSmallInteger()) return kFailure;
@@ -1361,9 +1361,9 @@ DEFINE_PRIMITIVE(ByteArray_copyFromTo) {
   if (!I->Stack(0)->IsSmallInteger()) return kFailure;
   intptr_t stop = static_cast<SmallInteger*>(I->Stack(0))->value();
 
-  if (!I->Stack(2)->IsByteArray()) return kFailure;
+  if (!I->Stack(2)->IsBytes()) return kFailure;
 
-  ByteArray* bytes = static_cast<ByteArray*>(I->Stack(2));
+  Bytes* bytes = static_cast<Bytes*>(I->Stack(2));
   if ((start <= 0) || (stop > bytes->Size())) return kFailure;
 
   intptr_t subsize = stop - (start - 1);
@@ -1372,7 +1372,7 @@ DEFINE_PRIMITIVE(ByteArray_copyFromTo) {
   }
 
   ByteArray* result = H->AllocateByteArray(subsize);  // SAFEPOINT
-  bytes = static_cast<ByteArray*>(I->Stack(2));
+  bytes = static_cast<Bytes*>(I->Stack(2));
   memcpy(result->element_addr(0),
          bytes->element_addr(start - 1),
          subsize);
@@ -2374,7 +2374,7 @@ DEFINE_PRIMITIVE(Bytes_lastIndexOf) {
 }
 
 
-DEFINE_PRIMITIVE(String_copyFromTo) {
+DEFINE_PRIMITIVE(Bytes_copyStringFromTo) {
   ASSERT(num_args == 2);
 
   if (!I->Stack(1)->IsSmallInteger()) return kFailure;
@@ -2383,10 +2383,10 @@ DEFINE_PRIMITIVE(String_copyFromTo) {
   if (!I->Stack(0)->IsSmallInteger()) return kFailure;
   intptr_t stop = static_cast<SmallInteger*>(I->Stack(0))->value();
 
-  if (!I->Stack(2)->IsString()) return kFailure;
+  if (!I->Stack(2)->IsBytes()) return kFailure;
 
-  String* string = static_cast<String*>(I->Stack(2));
-  if ((start <= 0) || (stop > string->Size())) return kFailure;
+  Bytes* bytes = static_cast<Bytes*>(I->Stack(2));
+  if ((start <= 0) || (stop > bytes->Size())) return kFailure;
 
   intptr_t subsize = stop - (start - 1);
   if (subsize < 0) {
@@ -2394,9 +2394,9 @@ DEFINE_PRIMITIVE(String_copyFromTo) {
   }
 
   String* result = H->AllocateString(subsize);  // SAFEPOINT
-  string = static_cast<String*>(I->Stack(2));
+  bytes = static_cast<Bytes*>(I->Stack(2));
   memcpy(result->element_addr(0),
-         string->element_addr(start - 1),
+         bytes->element_addr(start - 1),
          subsize);
   RETURN(result);
 }

@@ -246,8 +246,16 @@ public at: index <Integer> put: value <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 48 *)
 	^(ArgumentError value: index) signal
 )
+public copyByteArrayFrom: start <Integer> to: stop <Integer> ^<String> = (
+	(* :literalmessage: primitive: 50 *)
+	^ArgumentError new signal
+)
 public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
 	(* :literalmessage: primitive: 50 *)
+	^ArgumentError new signal
+)
+public copyStringFrom: start <Integer> to: stop <Integer> ^<String> = (
+	(* :literalmessage: primitive: 121 *)
 	^ArgumentError new signal
 )
 public copyWithSize: newSize <Integer> ^<ByteArray> = (
@@ -255,8 +263,7 @@ public copyWithSize: newSize <Integer> ^<ByteArray> = (
 	newArray = ByteArray new: newSize.
 	overlap = size < newSize ifTrue: [size] ifFalse: [newSize].
 	|
-	newArray replaceFrom: 1 to: overlap with: self startingAt: 1.
-	^newArray
+	^newArray replaceFrom: 1 to: overlap with: self startingAt: 1
 )
 public do: action <[:Integer]> = (
 	1 to: self size do: [:index <Integer> | action value: (self at: index)].
@@ -1481,7 +1488,15 @@ public at: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 51 *)
 	^(ArgumentError value: index) signal
 )
+public copyByteArrayFrom: start <Integer> to: stop <Integer> ^<String> = (
+	(* :literalmessage: primitive: 50 *)
+	^ArgumentError new signal
+)
 public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
+	(* :literalmessage: primitive: 121 *)
+	^ArgumentError new signal
+)
+public copyStringFrom: start <Integer> to: stop <Integer> ^<String> = (
 	(* :literalmessage: primitive: 121 *)
 	^ArgumentError new signal
 )
@@ -1550,24 +1565,55 @@ private withAllAgain: bytes <ByteArray> ^<String> = (
 	halt
 )
 )
-public class StringBuilder = (|
-protected running ::= ''.
+public class StringBuilder new: capacity <Integer> = (|
+protected size_ ::= 0.
+protected data ::= ByteArray new: capacity.
 |) (
-public add: string = (
-	running:: running, string.
-	^string
+public add: bytes <ByteArray | String> = (
+	|
+	capacity = data size.
+	newSize = size_ + bytes size.
+	|
+	newSize > capacity ifTrue:
+		[data:: data copyWithSize: ((capacity >> 1 + capacity) max: newSize)].
+	data replaceFrom: 1 + size_ to: newSize with: bytes startingAt: 1.
+	size_:: newSize.
+	^bytes
 )
-public asString = (
-	^running
+public addByte: byte <Integer> = (
+	|
+	capacity = data size.
+	newSize = size_ + 1.
+	|
+	newSize > capacity ifTrue:
+		[data:: data copyWithSize: (capacity >> 1 + capacity bitOr: 7)].
+	data at: newSize put: byte.
+	size_:: newSize.
+	^byte
 )
-public size = (
-	^running size
+public asByteArray ^<ByteArray> = (
+	^data copyFrom: 1 to: size_
+)
+public asString ^<String> = (
+	^data copyStringFrom: 1 to: size_
+)
+public isEmpty ^<Boolean> = (
+	^0 = size_
+)
+public isKindOfStringBuilder ^<Boolean> = (
+	^true
+)
+public size ^<Integer> = (
+	^size_
 )
 public writeln: line = (
-	add: line.
-	add: (String with: 10).
+	self add: line.
+	self addByte: 10. (* Line-feed *)
 )
 ) : (
+public new ^<StringBuilder> = (
+	^self new: 8
+)
 )
 public class True _cannotInstantiate = Boolean () (
 public & alternative <Boolean> ^<Boolean> = (
@@ -1788,8 +1834,7 @@ public copyWithSize: newSize <Integer> ^<Array[E]> = (
 	newArray = Array new: newSize.
 	overlap = size < newSize ifTrue: [size] ifFalse: [newSize].
 	|
-	newArray replaceFrom: 1 to: overlap with: self startingAt: 1.
-	^newArray
+	^newArray replaceFrom: 1 to: overlap with: self startingAt: 1
 )
 public do: action <[:E]> = (
 	1 to: self size do: [:index | action value: (self at: index)].

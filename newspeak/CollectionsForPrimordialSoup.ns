@@ -52,7 +52,7 @@ public at: index <Integer> ^<E> = (
 	^data at: index
 )
 public at: index <Integer> put: value <E> ^<E> = (
-	index > size_ ifTrue: [Error signal: 'Out of bounds'].
+	index > size_ ifTrue: [^(ArgumentError value: index) signal].
 	^data at: index put: value
 )
 public do: action <[:E]> = (
@@ -134,7 +134,7 @@ public sort: lessOrEqual <[:E :E | Boolean]> = (
 	data sortFrom: 1 to: size_ by: lessOrEqual.
 )
 ) : (
-public new ^<Array[E]> = (
+public new ^<List[E]> = (
 	^self new: 3
 )
 public withAll: collection <Collection[E]> ^<List[E]> = (
@@ -308,7 +308,7 @@ public values ^<List[V]> = (
 	^result
 )
 ) : (
-public new ^<Map[E]> = (
+public new ^<Map[K, V]> = (
 	^self new: 3
 )
 )
