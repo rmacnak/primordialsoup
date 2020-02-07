@@ -15,6 +15,7 @@ testConfigs = {
 	manifest ActivationMirrorTestingConfiguration packageTestsUsing: manifest.
 	manifest ZirconTestingConfiguration packageTestsUsing: manifest.
 	manifest JSTestingConfiguration packageTestsUsing: manifest.
+	manifest JSONTestingConfiguration packageTestsUsing: manifest.
 	(* manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest. *)
 }.
 Promise
