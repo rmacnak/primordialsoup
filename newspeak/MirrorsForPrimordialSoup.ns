@@ -1485,17 +1485,20 @@ nonLocalReturn: result = (
 	(* ('sim: ', activation printString) out. *)
 )
 ordinarySend: selector numArgs: numArgs = (
-	| arguments messageReceiver lookupClass targetMethod |
+	| arguments messageReceiver receiverClass lookupClass targetMethod |
 	arguments:: Array new: numArgs.
 	numArgs to: 1 by: -1 do: [:i | arguments at: i put: activation pop].
 	messageReceiver:: activation pop.
-	lookupClass:: classOf: messageReceiver.
+	lookupClass:: receiverClass:: classOf: messageReceiver.
 	[nil = lookupClass] whileFalse:
 		[targetMethod:: behavior: lookupClass methodAt: selector.
-		(((nil = targetMethod) not) and: [targetMethod isPublic])
-			ifTrue: [^activate: targetMethod receiver: messageReceiver arguments: arguments].
-		lookupClass:: superclassOf: lookupClass].
-	^sendDnu: selector to: messageReceiver arguments: arguments.
+		 nil = targetMethod ifFalse:
+			[targetMethod isPublic ifTrue:
+				[^activate: targetMethod receiver: messageReceiver arguments: arguments].
+			 targetMethod isProtected ifTrue:
+				[^sendDnu: selector to: messageReceiver arguments: arguments startingAt: receiverClass]].
+		 lookupClass:: superclassOf: lookupClass].
+	^sendDnu: selector to: messageReceiver arguments: arguments startingAt: receiverClass
 )
 outerSend: selectorOffset numArgs: numArgs depth: depth = (
 	| selector arguments receiver targetMixin count mixinApplication |
@@ -1611,9 +1614,9 @@ selfSend: selectorOffset numArgs: numArgs = (
 	numArgs to: 1 by: -1 do: [:i | arguments at: i put: activation pop].
 	^sendLexical: selector to: activation receiver arguments: arguments wrt: activation method mixin
 )
-sendDnu: selector to: messageReceiver arguments: arguments = (
+sendDnu: selector to: messageReceiver arguments: arguments startingAt: mixinApp = (
 	| lookupClass message dnuMethod |
-	lookupClass:: classOf: messageReceiver.
+	lookupClass:: mixinApp.
 	message:: Message selector: selector arguments: arguments.
 	[nil = lookupClass] whileFalse:
 		[dnuMethod:: behavior: lookupClass methodAt: #doesNotUnderstand:.
@@ -1623,22 +1626,25 @@ sendDnu: selector to: messageReceiver arguments: arguments = (
 	error: 'Recursive doesNotUnderstand:'
 )
 sendLexical: selector to: messageReceiver arguments: arguments wrt: mixin = (
-	| mixinApplication targetMethod |
-	mixinApplication:: findApplicationOf: mixin startingAt: (classOf: messageReceiver).
+	| receiverClass mixinApplication targetMethod |
+	receiverClass:: classOf: messageReceiver.
+	mixinApplication:: findApplicationOf: mixin startingAt: receiverClass.
 	targetMethod:: behavior: mixinApplication methodAt: selector.
-	((nil = targetMethod) not and: [targetMethod isPrivate]) ifTrue:
-		[^activate: targetMethod receiver: messageReceiver arguments: arguments].
-	^sendProtected: selector to: messageReceiver arguments: arguments startingAt: (classOf: messageReceiver)
+	nil = targetMethod ifFalse:
+		[targetMethod isPrivate ifTrue:
+			[^activate: targetMethod receiver: messageReceiver arguments: arguments]].
+	^sendProtected: selector to: messageReceiver arguments: arguments startingAt: receiverClass
 )
 sendProtected: selector to: messageReceiver arguments: arguments startingAt: mixinApp = (
 	| lookupClass targetMethod |
 	lookupClass:: mixinApp.
 	[nil = lookupClass] whileFalse:
 		[targetMethod:: behavior: lookupClass methodAt: selector.
-		(((nil = targetMethod) not) and: [targetMethod isPrivate not])
-			ifTrue: [^activate: targetMethod receiver: messageReceiver arguments: arguments].
+		 nil = targetMethod ifFalse:
+			[targetMethod isPrivate ifFalse:
+				[^activate: targetMethod receiver: messageReceiver arguments: arguments]].
 		lookupClass:: superclassOf: lookupClass].
-	^sendDnu: selector to: messageReceiver arguments: arguments.
+	^sendDnu: selector to: messageReceiver arguments: arguments startingAt: mixinApp
 )
 storeIntoRemoteTemp: offset inVector: vectorOffset = (
 	| vector = activation tempAt: 1 + vectorOffset. |
