@@ -4,7 +4,7 @@ class JSON usingPlatform: platform = (|
 private ArgumentError = platform kernel ArgumentError.
 private StringBuilder = platform kernel StringBuilder.
 private List = platform collections List.
-private Map = platform collections Map.
+private OrderedMap = platform collections OrderedMap.
 |) (
 class Decoder on: b = (|
 protected string <ByteArray | String> = b.
@@ -87,7 +87,7 @@ parseMap = (
 	byte:: string at: position.
 	16r7B = byte ifFalse: [^error: 'map expected'].
 	position:: 1 + position.
-	result:: Map new.
+	result:: OrderedMap new.
 
 	skipWhitespace.
 	byte:: string at: position.
@@ -271,8 +271,11 @@ protected writeMap: map = (
 	builder add: '{'.
 	map keysAndValuesDo:
 		[:key :value |
-		 first ifFalse: [builder add: ','. first:: false].
-		 writeString: key. builder add: ':'. writeValue: value].
+		 first ifFalse: [builder add: ','].
+		 first:: false.
+		 writeString: key.
+		 builder add: ':'.
+		 writeValue: value].
 	builder add: '}'.
 )
 writeString: string = (

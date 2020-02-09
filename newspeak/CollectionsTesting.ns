@@ -6,6 +6,8 @@ private TestContext = m TestContext.
 private List = c List.
 private Map = c Map.
 private Set = c Set.
+private OrderedMap = c OrderedMap.
+private OrderedSet = c OrderedSet.
 |) (
 public class CollectionTests = TestContext () (
 public testArrayList = (
@@ -144,7 +146,9 @@ public testIsKindOfList = (
 	deny: (Array new: 0) isKindOfList.
 	assert: List new isKindOfList.
 	deny: Map new isKindOfList.
+	deny: OrderedMap new isKindOfList.
 	deny: Set new isKindOfList.
+	deny: OrderedSet new isKindOfList.
 	deny: nil isKindOfList.
 	deny: false isKindOfList.
 	deny: true isKindOfList.
@@ -681,7 +685,9 @@ public testIsKindOfMap = (
 	deny: (Array new: 0) isKindOfMap.
 	deny: List new isKindOfMap.
 	assert: Map new isKindOfMap.
+	assert: OrderedMap new isKindOfMap.
 	deny: Set new isKindOfMap.
+	deny: OrderedSet new isKindOfMap.
 	deny: nil isKindOfMap.
 	deny: false isKindOfMap.
 	deny: true isKindOfMap.
@@ -764,7 +770,7 @@ public testMapNilKey = (
 
 	assert: (map removeKey: nil) equals: 'pear'.
 	assert: map size equals: 8.
-	deny: (map includes: nil).
+	deny: (map includesKey: nil).
 	assert: (map at: nil put: 'pineapple') equals: 'pineapple'.
 	assert: map size equals: 9.
 	assert: (map includesKey: nil).
@@ -825,11 +831,380 @@ public testMapSelfKey = (
 
 	assert: (map removeKey: map) equals: 'pear'.
 	assert: map size equals: 8.
-	deny: (map includes: map).
+	deny: (map includesKey: map).
 	assert: (map at: map put: 'pineapple') equals: 'pineapple'.
 	assert: map size equals: 9.
 	assert: (map includesKey: map).
 	assert: (map at: map) equals: 'pineapple'.
+)
+) : (
+TEST_CONTEXT = ()
+)
+public class OrderedMapTests = TestContext () (
+public testIsKindOfOrderedMap = (
+	deny: {} isKindOfOrderedMap.
+	deny: (Array new: 0) isKindOfOrderedMap.
+	deny: List new isKindOfOrderedMap.
+	deny: Map new isKindOfOrderedMap.
+	assert: OrderedMap new isKindOfOrderedMap.
+	deny: Set new isKindOfOrderedMap.
+	deny: OrderedSet new isKindOfOrderedMap.
+	deny: nil isKindOfOrderedMap.
+	deny: false isKindOfOrderedMap.
+	deny: true isKindOfOrderedMap.
+	deny: 0 isKindOfOrderedMap.
+)
+public testOrderedMapCollect = (
+	| map result |
+	map:: OrderedMap new.
+	map at: 'red' put: 'rouge'.
+	map at: 'green' put: 'vert'.
+	map at: 'blue' put: 'bleu'.
+
+	result:: map collect: [:each | each size].
+	assert: result size equals: 3.
+	assert: (result at: 'red') equals: 5.
+	assert: (result at: 'green') equals: 4.
+	assert: (result at: 'blue') equals: 4.
+)
+public testOrderedMapIsEmpty = (
+	| map |
+	assert: (OrderedMap new: 0) isEmpty.
+	assert: (OrderedMap new: 16) isEmpty.
+
+	map:: OrderedMap new.
+	assert: map isEmpty.
+	map at: #key put: #value.
+	deny: map isEmpty.
+	map removeKey: #key.
+	assert: map isEmpty.
+)
+public testOrderedMapLowCapacity = (
+	(* Regression test against naively taking the capacity hint, which can break the invariant of having at least one free slot. *)
+	0 to: 3 do:
+		[:capacityHint | | map |
+		 map:: OrderedMap new: capacityHint.
+		 map at: 'roses' put: 'red'.
+		 map at: 'violets' put: 'blue'.
+		 assert: map size equals: 2.
+		 assert: (map at: 'roses') equals: 'red'.
+		 assert: (map at: 'violets') equals: 'blue'].
+)
+public testOrderedMapNew = (
+	assert: (OrderedMap new) size equals: 0.
+	assert: (OrderedMap new: 0) size equals: 0.
+	assert: (OrderedMap new: 16) size equals: 0.
+
+	should: [OrderedMap new: -1] signal: Error.
+	should: [OrderedMap new: '10'] signal: Error.
+	should: [OrderedMap new: nil] signal: Error.
+)
+public testOrderedMapNilKey = (
+	| map = OrderedMap new. |
+	assert: (map at: nil put: 'pear') equals: 'pear'.
+	assert: map size equals: 1.
+	assert: (map includesKey: nil).
+	assert: (map at: nil) equals: 'pear'.
+
+	(* Try to trigger growth/rehashing. *)
+	assert: (map at: 1 put: 'apricot') equals: 'apricot'.
+	assert: (map at: 2 put: 'cherry') equals: 'cherry'.
+	assert: (map at: 3 put: 'mango') equals: 'mango'.
+	assert: (map at: 4 put: 'nectarine') equals: 'nectarine'.
+	assert: (map at: 5 put: 'lemon') equals: 'lemon'.
+	assert: (map at: 6 put: 'lime') equals: 'lime'.
+	assert: (map at: 7 put: 'peach') equals: 'peach'.
+	assert: (map at: 8 put: 'plum') equals: 'plum'.
+
+	assert: map size equals: 9.
+	assert: (map includesKey: nil).
+	assert: (map at: nil) equals: 'pear'.
+
+	assert: (map at: 1) equals: 'apricot'.
+	assert: (map at: 2) equals: 'cherry'.
+	assert: (map at: 3) equals: 'mango'.
+	assert: (map at: 4) equals: 'nectarine'.
+	assert: (map at: 5) equals: 'lemon'.
+	assert: (map at: 6) equals: 'lime'.
+	assert: (map at: 7) equals: 'peach'.
+	assert: (map at: 8) equals: 'plum'.
+
+	assert: (map removeKey: nil) equals: 'pear'.
+	assert: map size equals: 8.
+	deny: (map includesKey: nil).
+	assert: (map at: nil put: 'pineapple') equals: 'pineapple'.
+	assert: map size equals: 9.
+	assert: (map includesKey: nil).
+	assert: (map at: nil) equals: 'pineapple'.
+)
+public testOrderedMapReject = (
+	| map result |
+	map:: OrderedMap new.
+	map at: 'red' put: 'rouge'.
+	map at: 'green' put: 'vert'.
+	map at: 'blue' put: 'bleu'.
+
+	result:: map reject: [:each | each size > 4].
+	assert: result size equals: 2.
+	assert: (result at: 'green') equals: 'vert'.
+	assert: (result at: 'blue') equals: 'bleu'.
+)
+public testOrderedMapSelect = (
+	| map result |
+	map:: OrderedMap new.
+	map at: 'red' put: 'rouge'.
+	map at: 'green' put: 'vert'.
+	map at: 'blue' put: 'bleu'.
+
+	result:: map select: [:each | each size > 4].
+	assert: result size equals: 1.
+	assert: (result at: 'red') equals: 'rouge'.
+)
+public testOrderedMapSelfKey = (
+	| map = OrderedMap new. |
+	assert: (map at: map put: 'pear') equals: 'pear'.
+	assert: map size equals: 1.
+	assert: (map includesKey: map).
+	assert: (map at: map) equals: 'pear'.
+
+	(* Try to trigger growth/rehashing. *)
+	assert: (map at: 1 put: 'apricot') equals: 'apricot'.
+	assert: (map at: 2 put: 'cherry') equals: 'cherry'.
+	assert: (map at: 3 put: 'mango') equals: 'mango'.
+	assert: (map at: 4 put: 'nectarine') equals: 'nectarine'.
+	assert: (map at: 5 put: 'lemon') equals: 'lemon'.
+	assert: (map at: 6 put: 'lime') equals: 'lime'.
+	assert: (map at: 7 put: 'peach') equals: 'peach'.
+	assert: (map at: 8 put: 'plum') equals: 'plum'.
+
+	assert: map size equals: 9.
+	assert: (map includesKey: map).
+	assert: (map at: map) equals: 'pear'.
+
+	assert: (map at: 1) equals: 'apricot'.
+	assert: (map at: 2) equals: 'cherry'.
+	assert: (map at: 3) equals: 'mango'.
+	assert: (map at: 4) equals: 'nectarine'.
+	assert: (map at: 5) equals: 'lemon'.
+	assert: (map at: 6) equals: 'lime'.
+	assert: (map at: 7) equals: 'peach'.
+	assert: (map at: 8) equals: 'plum'.
+
+	assert: (map removeKey: map) equals: 'pear'.
+	assert: map size equals: 8.
+	deny: (map includesKey: map).
+	assert: (map at: map put: 'pineapple') equals: 'pineapple'.
+	assert: map size equals: 9.
+	assert: (map includesKey: map).
+	assert: (map at: map) equals: 'pineapple'.
+)
+) : (
+TEST_CONTEXT = ()
+)
+public class OrderedSetTests = TestContext () (
+public testIsKindOfOrderedSet = (
+	deny: {} isKindOfOrderedSet.
+	deny: (Array new: 0) isKindOfOrderedSet.
+	deny: List new isKindOfOrderedSet.
+	deny: Map new isKindOfOrderedSet.
+	deny: OrderedMap new isKindOfOrderedSet.
+	deny: Set new isKindOfOrderedSet.
+	assert: OrderedSet new isKindOfOrderedSet.
+	deny: nil isKindOfOrderedSet.
+	deny: false isKindOfOrderedSet.
+	deny: true isKindOfOrderedSet.
+	deny: 0 isKindOfOrderedSet.
+)
+public testOrderedSetAsArray = (
+	| set array |
+
+	set:: OrderedSet new.
+	set add: 10.
+	array:: set asArray.
+	assert: array isKindOfArray.
+	assert: array size equals: 1.
+	assert: (array at: 1) equals: 10.
+
+	array at: 1 put: 20.
+	assert: (set includes: 10).
+	deny: (set includes: 20).
+
+	set:: OrderedSet new.
+	set add: 30.
+	set add: 40.
+	set add: 50.
+	array:: set asArray.
+	assert: array isKindOfArray.
+	assert: array size equals: 3.
+	array sort: [:a :b | a <= b].
+	assert: (array at: 1) equals: 30.
+	assert: (array at: 2) equals: 40.
+	assert: (array at: 3) equals: 50.
+)
+public testOrderedSetEnumeration = (
+	| set evens odds sum |
+	set:: OrderedSet withAll: {1. 2. 3. 4. 5. 6. 7. 8. 9}.
+
+	evens:: set select: [:e | e \\ 2 = 0].
+	assert: evens size equals: 4.
+
+	odds:: set reject: [:e | e \\ 2 = 0].
+	assert: odds size equals: 5.
+
+	sum:: set inject: 0 into: [:a :b | a + b].
+	assert: sum equals: 45.
+
+	sum:: set reduce: [:a :b | a + b] ifEmpty: [fail].
+	assert: sum equals: 45.
+
+	sum:: set reduce: [:a :b | a + b].
+	assert: sum equals: 45.
+
+	assert: (set anySatisfy: [:e | e > 0]).
+	assert: (set allSatisfy: [:e | e > 0]).
+	deny: (set noneSatisfy: [:e | e > 0]).
+
+	deny: (set anySatisfy: [:e | e < 0]).
+	deny: (set allSatisfy: [:e | e < 0]).
+	assert: (set noneSatisfy: [:e | e < 0]).
+
+	assert: (set detect: [:e | e > 5]) equals: 6.
+	assert: (set detect: [:e | e > 55] ifNone: ['None']) equals: 'None'.
+)
+public testOrderedSetIsEmpty = (
+	| set |
+	assert: (OrderedSet new: 0) isEmpty.
+	assert: (OrderedSet new: 16) isEmpty.
+
+	set:: OrderedSet new.
+	assert: set isEmpty.
+	set add: #element.
+	deny: set isEmpty.
+	set remove: #element.
+	assert: set isEmpty.
+)
+public testOrderedSetLowCapacity = (
+	(* Regression test against naively taking the capacity hint, which can break the invariant of having at least one free slot. *)
+	0 to: 3 do:
+		[:capacityHint | | set |
+		 set:: OrderedSet new: capacityHint.
+		 set add: 'roses'.
+		 set add: 'violets'.
+		 assert: set size equals: 2.
+		 assert: (set includes: 'roses').
+		 assert: (set includes: 'violets')].
+)
+public testOrderedSetNew = (
+	assert: (OrderedSet new) size equals: 0.
+	assert: (OrderedSet new: 16) size equals: 0.
+
+	should: [OrderedSet new: -1] signal: Error.
+	should: [OrderedSet new: '10'] signal: Error.
+	should: [OrderedSet new: nil] signal: Error.
+)
+public testOrderedSetNilElement = (
+	| set = OrderedSet new. |
+	assert: (set add: nil) equals: nil.
+	assert: set size equals: 1.
+	assert: (set includes: nil).
+
+	(* Try to trigger growth/rehashing. *)
+	assert: (set add: 'apricot') equals: 'apricot'.
+	assert: (set add: 'cherry') equals: 'cherry'.
+	assert: (set add: 'mango') equals: 'mango'.
+	assert: (set add: 'nectarine') equals: 'nectarine'.
+	assert: (set add: 'lemon') equals: 'lemon'.
+	assert: (set add: 'lime') equals: 'lime'.
+	assert: (set add: 'peach') equals: 'peach'.
+	assert: (set add: 'plum') equals: 'plum'.
+
+	assert: set size equals: 9.
+	assert: (set includes: nil).
+	assert: (set includes: 'apricot').
+	assert: (set includes: 'cherry').
+	assert: (set includes: 'mango').
+	assert: (set includes: 'nectarine').
+	assert: (set includes: 'lemon').
+	assert: (set includes: 'lime').
+	assert: (set includes: 'peach').
+	assert: (set includes: 'plum').
+
+	assert: (set remove: nil) equals: nil.
+	assert: set size equals: 8.
+	deny: (set includes: nil).
+	assert: (set add: nil) equals: nil.
+	assert: set size equals: 9.
+	assert: (set includes: nil).
+)
+public testOrderedSetSelfElement = (
+	| set = OrderedSet new. |
+	assert: (set add: self) equals: self.
+	assert: set size equals: 1.
+	assert: (set includes: self).
+
+	(* Try to trigger growth/rehashing. *)
+	assert: (set add: 'apricot') equals: 'apricot'.
+	assert: (set add: 'cherry') equals: 'cherry'.
+	assert: (set add: 'mango') equals: 'mango'.
+	assert: (set add: 'nectarine') equals: 'nectarine'.
+	assert: (set add: 'lemon') equals: 'lemon'.
+	assert: (set add: 'lime') equals: 'lime'.
+	assert: (set add: 'peach') equals: 'peach'.
+	assert: (set add: 'plum') equals: 'plum'.
+
+	assert: set size equals: 9.
+	assert: (set includes: self).
+	assert: (set includes: 'apricot').
+	assert: (set includes: 'cherry').
+	assert: (set includes: 'mango').
+	assert: (set includes: 'nectarine').
+	assert: (set includes: 'lemon').
+	assert: (set includes: 'lime').
+	assert: (set includes: 'peach').
+	assert: (set includes: 'plum').
+
+	assert: (set remove: self) equals: self.
+	assert: set size equals: 8.
+	deny: (set includes: self).
+	assert: (set add: self) equals: self.
+	assert: set size equals: 9.
+	assert: (set includes: self).
+)
+public testOrderedSetWithAll = (
+	| array bytearray list result |
+	array:: Array new: 2.
+	array at: 1 put: 'A'.
+	array at: 2 put: 'B'.
+	result:: OrderedSet withAll: array.
+	assert: result size equals: 2.
+	assert: (result includes: 'A').
+	assert: (result includes: 'B').
+
+	bytearray:: ByteArray new: 2.
+	bytearray at: 1 put: 67.
+	bytearray at: 2 put: 68.
+	result:: OrderedSet withAll: bytearray.
+	assert: result size equals: 2.
+	assert: (result includes: 67).
+	assert: (result includes: 68).
+
+	result:: OrderedSet withAll: 'EF'.
+	assert: result size equals: 2.
+	assert: (result includes: 69).
+	assert: (result includes: 70).
+
+	list:: List new.
+	list add: 'G'.
+	list add: 'H'.
+	result:: OrderedSet withAll: list.
+	assert: result size equals: 2.
+	assert: (result includes: 'G').
+	assert: (result includes: 'H').
+
+	should: [OrderedSet withAll: -1] signal: Error.
+	should: [OrderedSet withAll: 16r110000] signal: Error.
+	should: [OrderedSet withAll: nil] signal: Error.
+	should: [OrderedSet withAll: 122 asFloat] signal: Error.
 )
 ) : (
 TEST_CONTEXT = ()
@@ -840,7 +1215,9 @@ public testIsKindOfSet = (
 	deny: (Array new: 0) isKindOfSet.
 	deny: List new isKindOfSet.
 	deny: Map new isKindOfSet.
+	deny: OrderedMap new isKindOfSet.
 	assert: Set new isKindOfSet.
+	assert: OrderedSet new isKindOfSet.
 	deny: nil isKindOfSet.
 	deny: false isKindOfSet.
 	deny: true isKindOfSet.

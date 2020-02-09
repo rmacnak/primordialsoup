@@ -3,19 +3,19 @@ Newspeak3
 class JSONTesting usingPlatform: platform minitest: minitest json: json_ = (|
 private TestContext = minitest TestContext.
 private json = json_.
-private Map = platform collections Map.
+private OrderedMap = platform collections OrderedMap.
 |) (
 public class DecoderTests = TestContext (
 ) (
-assertMap: actualMap equals: expectedMap = (
+assertOrderedMap: actualMap equals: expectedMap = (
 	assert: actualMap size = expectedMap size descriptionBlock:
 		['Map equality assertion failed; expected: ',
 		 expectedMap printString,
 		 ', was: ',
 		 actualMap printString].
 
-	expectedMap keysAndValuesDo:
-		[:key :value | assert: value equals: (actualMap at: key)].
+	assertList: actualMap keys asArray equals: expectedMap keys asArray.
+	assertList: actualMap values equals: expectedMap values.
 )
 parse: input = (
 	^json decode: input
@@ -98,15 +98,15 @@ public testDecodeList = (
 	equals: {true. false. nil. 1. 1.5. 'x'}.
 )
 public testDecodeMap = (
-	assertMap: (parse: '{}') equals: {}.
-	assertMap: (parse: ' {}') equals: {}.
-	assertMap: (parse: ' { }') equals: {}.
-	assertMap: (parse: '{"x":1}') equals: (Map new at: 'x' put: 1; yourself).
-	assertMap: (parse: '{ "x" : 1 }') equals: (Map new at: 'x' put: 1; yourself).
-	assertMap: (parse: '{"x":1,"y":2}') equals: (Map new at: 'x' put: 1; at: 'y' put: 2; yourself).
-	assertMap: (parse: '{ "x" : 1 , "y" : 2 }') equals: (Map new at: 'x' put: 1; at: 'y' put: 2; yourself).
-	assertMap: (parse: '{"x":1,"y":2,"z":3}') equals: (Map new at: 'x' put: 1; at: 'y' put: 2; at: 'z' put: 3; yourself).
-	assertMap: (parse: '{ "x" : 1 , "y" : 2 , "z" : 3 }') equals: (Map new at: 'x' put: 1; at: 'y' put: 2; at: 'z' put: 3; yourself).
+	assertOrderedMap: (parse: '{}') equals: OrderedMap new.
+	assertOrderedMap: (parse: ' {}') equals: OrderedMap new.
+	assertOrderedMap: (parse: ' { }') equals: OrderedMap new.
+	assertOrderedMap: (parse: '{"x":1}') equals: (OrderedMap new at: 'x' put: 1; yourself).
+	assertOrderedMap: (parse: '{ "x" : 1 }') equals: (OrderedMap new at: 'x' put: 1; yourself).
+	assertOrderedMap: (parse: '{"x":1,"y":2}') equals: (OrderedMap new at: 'x' put: 1; at: 'y' put: 2; yourself).
+	assertOrderedMap: (parse: '{ "x" : 1 , "y" : 2 }') equals: (OrderedMap new at: 'x' put: 1; at: 'y' put: 2; yourself).
+	assertOrderedMap: (parse: '{"x":1,"y":2,"z":3}') equals: (OrderedMap new at: 'x' put: 1; at: 'y' put: 2; at: 'z' put: 3; yourself).
+	assertOrderedMap: (parse: '{ "x" : 1 , "y" : 2 , "z" : 3 }') equals: (OrderedMap new at: 'x' put: 1; at: 'y' put: 2; at: 'z' put: 3; yourself).
 	reject: '{'.
 	reject: '{,}'.
 	reject: '{"x":1,}'.
@@ -169,15 +169,14 @@ public testEncodeList = (
 	assert: (encode: {nil. nil. nil}) equals: '[null,null,null]'.
 )
 public testEncodeMap = (
-	assert: (encode: (Map new)) equals: '{}'.
-	assert: (encode: (Map new at: 'x' put: 1; yourself)) equals: '{"x":1}'.
+	assert: (encode: (OrderedMap new)) equals: '{}'.
+	assert: (encode: (OrderedMap new at: 'x' put: 1; yourself)) equals: '{"x":1}'.
 
-	(* This is only true for an ordered implementation of Map.
-	assert: (encode: (Map new at: 'x' put: 1; at: 'y' put: 2; yourself)) equals: '{"x":1,"y":2}'.
-	assert: (encode: (Map new at: 'x' put: 1; at: 'y' put: 2; at: 'z' put: 3; yourself)) equals: '{"x":1,"y":2,"z":3}'. *)
+	assert: (encode: (OrderedMap new at: 'x' put: 1; at: 'y' put: 2; yourself)) equals: '{"x":1,"y":2}'.
+	assert: (encode: (OrderedMap new at: 'x' put: 1; at: 'y' put: 2; at: 'z' put: 3; yourself)) equals: '{"x":1,"y":2,"z":3}'.
 
-	should: [encode: (Map new at: 'x' put: Object new; yourself)] signal: Error.
-	should: [encode: (Map new at: true put: 'x'; yourself)] signal: Error.
+	should: [encode: (OrderedMap new at: 'x' put: Object new; yourself)] signal: Error.
+	should: [encode: (OrderedMap new at: true put: 'x'; yourself)] signal: Error.
 )
 public testEncodeNull = (
 	assert: (encode: nil) equals: 'null'.
