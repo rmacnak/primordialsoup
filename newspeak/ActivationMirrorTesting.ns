@@ -10,6 +10,10 @@ private Map = p collections Map.
 private TestContext = m TestContext.
 |) (
 public class ActivationTests = TestBase () (
+public activationRestartMethod: list = (
+	list add: 1984.
+	^10
+)
 add: x to: y = (
 	| z |
 	z:: x + y.
@@ -195,6 +199,26 @@ public testActivationEvaluateWithScope = (
 	assert: eval isFulfilled.
 	assert: eval result reflectee equals: 17.
 )
+public testActivationIsUncontinuable = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [1984].
+	assertThread: thread atMethod: #testActivationIsUncontinuable snippet: '1984'. (* Push 1984 *)
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+	deny: activation isUncontinuable.
+
+	activation stepOver.
+
+	assertThread: thread atMethod: #testActivationIsUncontinuable snippet: '1984'. (* Return top *)
+	assert: thread isSuspended.
+	deny: activation isUncontinuable.
+
+	activation stepOver.
+
+	assert: thread isFulfilled.
+	assert: thread result equals: (ObjectMirror reflecting: 1984).
+	assert: activation isUncontinuable.
+)
 public testActivationLocals = (
 	| closure thread activation locals |
 	closure:: [add: 3 to: 4].
@@ -304,6 +328,83 @@ public testActivationLocalsLiveHome = (
 	thread stepInto. (* Return top *)
 
 	assert: thread isFulfilled.
+)
+public testActivationRestartClosure = (
+	| list thread activation |
+	list:: List new.
+	thread:: ActivationMirror invokeSuspended: [list add: 1984. 10].
+
+	assertThread: thread atMethod: #testActivationRestartClosure snippet: 'list'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #testActivationRestartClosure snippet: '1984'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #testActivationRestartClosure snippet: 'add: 1984'.
+	assertList: list equals: {}.
+	thread suspendedActivation stepOver.
+	assertList: list equals: {1984}.
+
+	thread suspendedActivation restart.
+	assertThread: thread atMethod: #testActivationRestartClosure snippet: 'list'.
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result equals: (ObjectMirror reflecting: 10).
+	assert: thread suspendedActivation equals: nil.
+	assertList: list equals: {1984. 1984}.
+)
+public testActivationRestartMethod = (
+	| list thread activation |
+	list:: List new.
+	thread:: ActivationMirror invokeSuspended: [activationRestartMethod: list].
+
+	assertThread: thread atMethod: #testActivationRestartMethod snippet: 'list'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #testActivationRestartMethod snippet: 'activationRestartMethod: list'.
+	thread suspendedActivation stepInto.
+	assertThread: thread atMethod: #activationRestartMethod: snippet: 'list'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #activationRestartMethod: snippet: '1984'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #activationRestartMethod: snippet: 'add: 1984'.
+	assertList: list equals: {}.
+	thread suspendedActivation stepOver.
+	assertList: list equals: {1984}.
+
+	thread suspendedActivation restart.
+	assertThread: thread atMethod: #activationRestartMethod: snippet: 'list'.
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result equals: (ObjectMirror reflecting: 10).
+	assert: thread suspendedActivation equals: nil.
+	assertList: list equals: {1984. 1984}.
+)
+public testActivationReturn = (
+	| list thread activation |
+	list:: List new.
+	thread:: ActivationMirror invokeSuspended: [list add: (add: 3 to: 4)].
+
+	assertThread: thread atMethod: #testActivationReturn snippet: 'list'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #testActivationReturn snippet: '3'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #testActivationReturn snippet: '4'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #testActivationReturn snippet: 'add: 3 to: 4'.
+	thread suspendedActivation stepInto.
+	assertThread: thread atMethod: #add:to: snippet: 'x'.
+	(* Return to another activation. *)
+	thread suspendedActivation return: (ObjectMirror reflecting: 1984).
+	assertThread: thread atMethod: #testActivationReturn snippet: 'add: (add: 3 to: 4)'.
+	thread suspendedActivation stepOver.
+	assertList: list equals: {1984}.
+	assertThread: thread atMethod: #testActivationReturn snippet: 'list add: (add: 3 to: 4)'.
+	(* Return to complete thread. *)
+	thread suspendedActivation return: (ObjectMirror reflecting: 42).
+
+	assert: thread isFulfilled.
+	assert: thread result equals: (ObjectMirror reflecting: 42).
+	assert: thread suspendedActivation equals: nil.
 )
 public testActivationSourceRange = (
 	| closure thread activation |
@@ -513,6 +614,49 @@ public testActivationStepThroughNLRSkipsGoal = (
 	thread resume.
 	assert: thread isFulfilled.
 	assert: thread result equals: (ObjectMirror reflecting: 2).
+	assert: thread suspendedActivation equals: nil.
+)
+public testActivationStepUncontinuable = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: '3'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: '4'.
+	thread suspendedActivation stepOver.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
+	thread suspendedActivation stepInto.
+	assertThread: thread atMethod: #add:to: snippet: 'x'.
+
+	activation:: thread suspendedActivation.
+
+	thread suspendedActivation stepOut.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
+
+	assert: activation isUncontinuable.
+
+	should: [activation stepInto] signal: Error.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
+	assert: thread isSuspended.
+	should: [activation stepOver] signal: Error.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
+	assert: thread isSuspended.
+	should: [activation stepThrough] signal: Error.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
+	assert: thread isSuspended.
+	should: [activation stepOut] signal: Error.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
+	assert: thread isSuspended.
+	should: [activation restart] signal: Error.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
+	assert: thread isSuspended.
+	should: [activation return: (ObjectMirror reflecting: 1984)] signal: Error.
+	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
+	assert: thread isSuspended.
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result equals: (ObjectMirror reflecting: 7).
 	assert: thread suspendedActivation equals: nil.
 )
 public testBrokenThreadAtSenderOfSignal = (

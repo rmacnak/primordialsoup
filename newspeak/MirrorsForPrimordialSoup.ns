@@ -102,11 +102,22 @@ public hash ^<Integer> = (
 public isKindOfActivationMirror ^<Boolean> = (
 	^true
 )
+public isUncontinuable ^<Boolean> = (
+	^reflectee isDead
+)
 public method ^<MethorMirror> = (
 	^MethodMirror reflecting: reflectee method
 )
 public receiver ^<ObjectMirror> = (
 	^ObjectMirror reflecting: reflectee receiver
+)
+public restart ^<ThreadMirror> = (
+	thread restart: reflectee.
+	^ThreadMirror reflecting: thread
+)
+public return: result <ObjectMirror> ^<ThreadMirror> = (
+	thread return: (reflectees at: result) from: reflectee.
+	^ThreadMirror reflecting: thread
 )
 public sender ^<ActivationMirror> = (
 	| rawSender = reflectee sender. |
@@ -131,7 +142,7 @@ public sourceRange ^<Interval> = (
 	^computeDebugInfo bciSourceMapping at: effectiveBCI ifAbsent: [nil]
 )
 public stepInto ^<ThreadMirror> = (
-	thread stepInto.
+	thread stepInto: reflectee.
 	^ThreadMirror reflecting: thread
 )
 public stepOut ^<ThreadMirror> = (
@@ -1708,11 +1719,10 @@ private createSimulationRoot = (
 )
 private findBottom: top <Activation> = (
 	| bottom ::= top. |
-	[nil = bottom sender or: [bottom sender method primitive = 142]] whileFalse:
-		[bottom:: bottom sender].
+	[isBottom: bottom] whileFalse: [bottom:: bottom sender].
 	^bottom
 )
-has: top reachedOrSkipped: goal = (
+private has: top reachedOrSkipped: goal = (
 	| a ::= top. |
 	a = goal ifTrue: [^true]. (* reached *)
 	[nil = a]
@@ -1721,7 +1731,7 @@ has: top reachedOrSkipped: goal = (
 			 a:: a sender].
 	^true (* skipped *)
 )
-has: top reachedOrSkippedHome: goal = (
+private has: top reachedOrSkippedHome: goal = (
 	| a ::= top. |
 	a home = goal ifTrue: [^true]. (* reached *)
 	[nil = a]
@@ -1730,9 +1740,35 @@ has: top reachedOrSkippedHome: goal = (
 			 a:: a sender].
 	^true (* skipped *)
 )
+private hasSender: activation = (
+	| s ::= suspendedActivation. |
+	[nil = s] whileFalse: [s = activation ifTrue: [^true]. s:: s sender].
+	^false
+)
+private isBottom: activation <Activation> ^<Boolean> = (
+	nil = activation sender ifTrue: [^true].
+	^142 = activation sender method primitive
+)
 private jumpTo: activation = (
 	(* :literalmessage: primitive: 95 *)
 	halt.
+)
+public restart: activation = (
+	| closure |
+	(hasSender: activation) ifFalse:
+		[^Error signal: 'Activation is not in thread'].
+	unwindTo: activation.
+	closure:: activation closure.
+	nil = closure
+		ifTrue:
+			[activation bci: 1.
+			 activation size: activation method numArgs.
+			 activation method numTemps timesRepeat: [activation push: nil]]
+		ifFalse:
+			[activation bci: (initialBCIOf: closure).
+			 activation size: closure numArgs.
+			 1 to: (numCopiedOf: closure) do: [:index | activation push: (copiedOf: closure at: index)]].
+	state: #running.
 )
 public resume = (
 	(* :literalmessage: primitive: 142 *)
@@ -1758,6 +1794,22 @@ public resume = (
 public resumeSlowly = (
 	stepUntil: [:top | false].
 )
+public return: returnValue from: activation = (
+	(hasSender: activation) ifFalse:
+		[^Error signal: 'Activation is not in thread'].
+
+	(isBottom: activation) ifTrue:
+		[unwindTo: activation.
+		 suspendedActivation terminate.
+		 suspendedActivation:: nil.
+		 result:: returnValue.
+		 state:: #fulfilled.
+		 ^self].
+
+	unwindTo: activation sender.
+	suspendedActivation push: returnValue.
+	state: #running.
+)
 private simulatorRoot = (
 	(* :literalmessage: primitive: 142 *)
 	halt.
@@ -1772,19 +1824,28 @@ private simulatorRootMethod = (
 public stepInto = (
 	stepUntil: [:top | true].
 )
+public stepInto: activation = (
+	(hasSender: activation) ifFalse:
+		[^Error signal: 'Activation is not in thread'].
+	stepUntil: [:top | true].
+)
 public stepOut: activation = (
 	| goal = activation sender. |
-	nil = goal ifTrue:
-		[^resume].
-	142 = goal method primitive ifTrue:
+	(hasSender: activation) ifFalse:
+		[^Error signal: 'Activation is not in thread'].
+	(isBottom: activation) ifTrue:
 		[^resume].
 	stepUntil: [:top | has: top reachedOrSkipped: goal].
 )
 public stepOver: activation = (
+	(hasSender: activation) ifFalse:
+		[^Error signal: 'Activation is not in thread'].
 	stepUntil: [:top | has: top reachedOrSkipped: activation].
 )
 public stepThrough: activation = (
 	| goal = activation home. |
+	(hasSender: activation) ifFalse:
+		[^Error signal: 'Activation is not in thread'].
 	stepUntil: [:top | has: top reachedOrSkippedHome: goal].
 )
 private stepUntil: predicate <[:Activation | Boolean]> = (
@@ -1813,6 +1874,21 @@ private stepUntil: predicate <[:Activation | Boolean]> = (
 
 	state: #fulfilled.
 	result: simulator activation pop.
+)
+private unwindTo: activation = (
+	| unwind sender |
+	unwind:: suspendedActivation.
+	[unwind = activation] whileFalse:
+		[unwind isUnwindContext ifTrue:
+			[^Error signal: 'Unwind-protect unimplemented'].
+		 unwind:: unwind sender].
+
+	unwind:: suspendedActivation.
+	[unwind = activation] whileFalse:
+		[sender:: unwind sender.
+		 unwind terminate.
+		 unwind:: sender].
+	suspendedActivation:: activation.
 )
 ) : (
 )
