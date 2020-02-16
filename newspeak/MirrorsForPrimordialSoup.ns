@@ -112,7 +112,11 @@ public receiver ^<ObjectMirror> = (
 	^ObjectMirror reflecting: reflectee receiver
 )
 public restart ^<ThreadMirror> = (
-	thread restart: reflectee.
+	thread restart: reflectee withLookup: false.
+	^ThreadMirror reflecting: thread
+)
+public restartWithLookup ^<ThreadMirror> = (
+	thread restart: reflectee withLookup: true.
 	^ThreadMirror reflecting: thread
 )
 public return: result <ObjectMirror> ^<ThreadMirror> = (
@@ -1235,7 +1239,7 @@ behavior: behavior hasSelector: selector = (
 	(methodsOf: behavior) do: [:method | method selector = selector ifTrue: [^true]].
 	^false
 )
-behavior: behavior methodAt: selector = (
+public behavior: behavior methodAt: selector = (
 	(methodsOf: behavior) do: [:method | method selector = selector ifTrue: [^method]].
 	^nil
 )
@@ -1294,7 +1298,7 @@ private doPrimitive: index <Integer> receiver: receiver <Object> arguments: argu
 dup = (
 	activation push: activation top.
 )
-findApplicationOf: mixin startingAt: startingBehavior = (
+public findApplicationOf: mixin startingAt: startingBehavior = (
 	| behavior ::= startingBehavior. |
 	[nil = behavior] whileFalse:
 		[mixin = (mixinOf: behavior) ifTrue: [^behavior].
@@ -1753,22 +1757,42 @@ private jumpTo: activation = (
 	(* :literalmessage: primitive: 95 *)
 	halt.
 )
-public restart: activation = (
-	| closure |
+private lookupNewMethod: activation = (
+	| simulator oldMethod methodClass newMethod |
+	simulator:: Simulator new.
+	oldMethod:: activation method.
+	methodClass:: simulator findApplicationOf: oldMethod mixin startingAt: (classOf: activation receiver).
+	newMethod:: simulator behavior: methodClass methodAt: oldMethod selector.
+	nil = newMethod ifTrue: [^oldMethod].
+	^newMethod
+)
+public restart: activation withLookup: doLookup = (
+	| closure newMethod |
 	(hasSender: activation) ifFalse:
 		[^Error signal: 'Activation is not in thread'].
+	doLookup ifTrue:
+		[nil = activation closure ifFalse:
+			[^Error signal: 'Cannot lookup closure activations']].
 	unwindTo: activation.
+	newMethod:: doLookup
+		ifTrue: [lookupNewMethod: activation]
+		ifFalse: [activation method].
+	restart: activation withMethod: newMethod.
+	state: #suspended.
+)
+private restart: activation withMethod: newMethod = (
+	| closure |
 	closure:: activation closure.
+	activation method: newMethod.
 	nil = closure
 		ifTrue:
 			[activation bci: 1.
-			 activation size: activation method numArgs.
-			 activation method numTemps timesRepeat: [activation push: nil]]
+			 activation size: newMethod numArgs.
+			 newMethod numTemps timesRepeat: [activation push: nil]]
 		ifFalse:
 			[activation bci: (initialBCIOf: closure).
 			 activation size: closure numArgs.
 			 1 to: (numCopiedOf: closure) do: [:index | activation push: (copiedOf: closure at: index)]].
-	state: #running.
 )
 public resume = (
 	(* :literalmessage: primitive: 142 *)

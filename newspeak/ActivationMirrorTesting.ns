@@ -5,12 +5,13 @@ private ClassDeclarationBuilder = p mirrors ClassDeclarationBuilder.
 private ObjectMirror = p mirrors ObjectMirror.
 private ActivationMirror = p mirrors ActivationMirror.
 private Message = p kernel Message.
+private StringBuilder = p kernel StringBuilder.
 private List = p collections List.
 private Map = p collections Map.
 private TestContext = m TestContext.
 |) (
 public class ActivationTests = TestBase () (
-public activationRestartMethod: list = (
+activationRestartMethod: list = (
 	list add: 1984.
 	^10
 )
@@ -51,6 +52,39 @@ deadHomeWithLocals: a = (
 	c:: 3. (* Copied *)
 	d:: 4. (* Indirect *)
 	^[d:: d + c]
+)
+describeActivation: activation = (
+	| sb = StringBuilder new. |
+	describeActivation: activation to: sb.
+	^sb asString
+)
+describeActivation: activation to: sb = (
+	| enclosing methodMixin receiverMixin source range |
+	enclosing:: activation enclosingActivation.
+	[nil = enclosing] whileFalse:
+		[sb add: '[] in '.
+		 enclosing:: enclosing enclosingActivation].
+	receiverMixin:: activation receiver getClass mixin.
+	sb add: receiverMixin name.
+	methodMixin:: activation method definingMixin.
+	methodMixin = receiverMixin ifFalse:
+		[sb add: '(', methodMixin name, ')'].
+	sb add: ' '.
+	sb add: activation method name.
+	sb add: ' '.
+
+	activation isUncontinuable ifTrue:
+		[sb add: '<uncontinuable>'. ^self].
+
+	source:: activation method source.
+	nil = source ifTrue:
+		[sb add: '<no source>'. ^self].
+	range:: activation sourceRange.
+	nil = range ifTrue:
+		[sb add: '<no source range for this bytecode>'. ^self].
+	sb add: '<'.
+	sb add: (source copyFrom: range start to: range stop).
+	sb add: '>'.
 )
 liveHomeWithLocals: a = (
 	| b c d |
@@ -352,6 +386,25 @@ public testActivationRestartClosure = (
 	assert: thread suspendedActivation equals: nil.
 	assertList: list equals: {1984. 1984}.
 )
+public testActivationRestartClosureWithLookup = (
+	| list thread activation |
+	list:: List new.
+	thread:: ActivationMirror invokeSuspended: [list add: 1984. 10].
+	assert: thread isSuspended.
+	assert: (describeActivation: thread suspendedActivation)
+	equals: '[] in ActivationTests testActivationRestartClosureWithLookup <list>'.
+
+	should: [activation restartWithLookup] signal: Error.
+	assert: thread isSuspended.
+	assert: (describeActivation: thread suspendedActivation)
+	equals: '[] in ActivationTests testActivationRestartClosureWithLookup <list>'.
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result equals: (ObjectMirror reflecting: 10).
+	assert: thread suspendedActivation equals: nil.
+	assertList: list equals: {1984}.
+)
 public testActivationRestartMethod = (
 	| list thread activation |
 	list:: List new.
@@ -377,6 +430,57 @@ public testActivationRestartMethod = (
 	assert: thread isFulfilled.
 	assert: thread result equals: (ObjectMirror reflecting: 10).
 	assert: thread suspendedActivation equals: nil.
+	assertList: list equals: {1984. 1984}.
+)
+public testActivationRestartMethodWithLookup = (
+	| builder klass instance list thread activation |
+	builder:: ClassDeclarationBuilder fromSource: 'class Foo = ()(
+		public foo: list = ( ^self bar )
+		public bar = ( ^Exception new signal )
+		public baz = ( ^Exception new signal )
+	)'.
+	klass:: builder install applyToObject reflectee.
+	instance:: klass new.
+
+	list:: List new.
+	thread:: (ActivationMirror invokeSuspended: [instance foo: list]) resume.
+	assert: thread isBroken.
+	activation:: thread suspendedActivation sender.
+	assert: (describeActivation: activation) equals: 'Foo foo: <bar>'.
+
+	(* Note the new method has a different number of temporaries than the old method. *)
+	builder instanceSide methods addFromSource:
+		'public foo: list = (
+			| temp1 temp2 |
+			temp1:: self baz.
+			temp2:: self baz.
+			list add: temp1.
+			list add: temp2.
+			^temp1 + temp2
+		)'.
+	builder install.
+	activation restartWithLookup.
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+	assert: (describeActivation: activation) equals: 'Foo foo: <baz>'.
+
+	thread resume.
+	assert: thread isBroken.
+	activation:: thread suspendedActivation.
+	assert: (describeActivation: activation) equals: 'Foo baz <^Exception new signal>'.
+
+	builder instanceSide methods addFromSource:
+		'public baz = ( ^1984 )'.
+	builder install.
+	activation restartWithLookup.
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+	assert: (describeActivation: activation) equals: 'Foo baz <1984>'.
+	assertList: list equals: {}.
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result reflectee equals: 3968.
 	assertList: list equals: {1984. 1984}.
 )
 public testActivationReturn = (
