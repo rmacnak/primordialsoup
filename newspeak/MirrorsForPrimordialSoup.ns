@@ -108,6 +108,19 @@ public isUncontinuable ^<Boolean> = (
 public method ^<MethorMirror> = (
 	^MethodMirror reflecting: reflectee method
 )
+public operands ^<List[ObjectMirror]> = (
+	(* todo: Should these simply appear in `slots` as slots with an empty or nil name? *)
+	(* 'stack'? 'expression stack'? 'operand stack'? *)
+	| closure numTemps result |
+	closure:: reflectee closure.
+	nil = closure
+		ifTrue: [numTemps:: reflectee method numTemps]
+		ifFalse: [numTemps:: closure numArgs + (numCopiedOf: closure)].
+	result:: List new.
+	numTemps + 1 to: reflectee size do:
+		[:index | result add: (ObjectMirror reflecting: (reflectee tempAt: index))].
+	^result
+)
 public receiver ^<ObjectMirror> = (
 	^ObjectMirror reflecting: reflectee receiver
 )
@@ -1210,7 +1223,7 @@ public activate: newMethod receiver: newReceiver arguments: arguments = (
 	newActivation closure: nil.
 	newActivation receiver: newReceiver.
 
-	newActivation size: arguments size + newMethod numTemps.
+	newActivation size: newMethod numTemps.
 	1 to: arguments size do:
 		[:index | newActivation tempAt: index put: (arguments at: index)].
 
@@ -1788,11 +1801,12 @@ private restart: activation withMethod: newMethod = (
 		ifTrue:
 			[activation bci: 1.
 			 activation size: newMethod numArgs.
-			 newMethod numTemps timesRepeat: [activation push: nil]]
+			 activation size: newMethod numTemps]
 		ifFalse:
 			[activation bci: (initialBCIOf: closure).
 			 activation size: closure numArgs.
-			 1 to: (numCopiedOf: closure) do: [:index | activation push: (copiedOf: closure at: index)]].
+			 1 to: (numCopiedOf: closure) do:
+				[:index | activation push: (copiedOf: closure at: index)]].
 )
 public resume = (
 	(* :literalmessage: primitive: 142 *)

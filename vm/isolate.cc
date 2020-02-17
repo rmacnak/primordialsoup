@@ -206,7 +206,7 @@ void Isolate::Activate(Object* message, Object* port) {
   new_activation->Push(port);
 
   intptr_t num_temps = method->NumTemps();
-  for (intptr_t i = 0; i < num_temps; i++) {
+  for (intptr_t i = 2; i < num_temps; i++) {
     new_activation->Push(nil);
   }
 
@@ -244,7 +244,7 @@ void Isolate::ActivateSignal(intptr_t handle,
   new_activation->Push(SmallInteger::New(count));
 
   intptr_t num_temps = method->NumTemps();
-  for (intptr_t i = 0; i < num_temps; i++) {
+  for (intptr_t i = 4; i < num_temps; i++) {
     new_activation->Push(nil);
   }
 

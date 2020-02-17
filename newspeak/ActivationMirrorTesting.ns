@@ -20,6 +20,9 @@ add: x to: y = (
 	z:: x + y.
 	^z
 )
+assertOperandsOf: activation haveValues: values = (
+	assertList: (activation operands collect: [:ea | ea reflectee]) equals: values.
+)
 assertSlotsOf: activation haveNamesAndValues: pairs = (
 	| slots success |
 	slots:: activation slots.
@@ -361,6 +364,60 @@ public testActivationLocalsLiveHome = (
 	thread stepInto. (* Return top *)
 	thread stepInto. (* Return top *)
 
+	assert: thread isFulfilled.
+)
+public testActivationOperandsClosure = (
+	| three four thread activation |
+	three:: 3.
+	four:: 4.
+	thread:: ActivationMirror invokeSuspended: [three + four].
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+	'a' out. assertOperandsOf: activation haveValues: {}.
+
+	thread stepInto. (* Push three *)
+	'a' out. assertOperandsOf: activation haveValues: {3}.
+
+	thread stepInto. (* Push four *)
+	'a' out. assertOperandsOf: activation haveValues: {3. 4}.
+
+	thread stepInto. (* Send + *)
+	'a' out. assertOperandsOf: activation haveValues: {7}.
+
+	thread stepInto. (* Return top *)
+	'a' out. assertOperandsOf: activation haveValues: {}.
+	assert: thread isFulfilled.
+)
+public testActivationOperandsMethod = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+
+	thread stepInto. (* Push 3 *)
+	thread stepInto. (* Push 4 *)
+	thread stepInto. (* Send add:to: *)
+	activation:: thread suspendedActivation.
+	assertOperandsOf: activation haveValues: {}.
+
+	thread stepInto. (* Send x *)
+	assertOperandsOf: activation haveValues: {3}.
+
+	thread stepInto. (* Send y *)
+	assertOperandsOf: activation haveValues: {3. 4}.
+
+	thread stepInto. (* Send + y *)
+	assertOperandsOf: activation haveValues: {7}.
+
+	thread stepInto. (* Send z: *)
+	assertOperandsOf: activation haveValues: {}.
+
+	thread stepInto. (* Send z *)
+	assertOperandsOf: activation haveValues: {7}.
+
+	thread stepInto. (* Return top *)
+	assertOperandsOf: activation haveValues: {}.
+
+	thread stepInto. (* Return top *)
 	assert: thread isFulfilled.
 )
 public testActivationRestartClosure = (

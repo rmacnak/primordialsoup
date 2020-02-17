@@ -823,7 +823,7 @@ void Interpreter::Activate(Method* method, intptr_t num_args) {
 
   ip_ = method->IP(SmallInteger::New(1));
   intptr_t num_temps = method->NumTemps();
-  for (intptr_t i = 0; i < num_temps; i++) {
+  for (intptr_t i = num_args; i < num_temps; i++) {
     Push(nil);
   }
 
