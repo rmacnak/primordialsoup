@@ -373,19 +373,19 @@ public testActivationOperandsClosure = (
 	thread:: ActivationMirror invokeSuspended: [three + four].
 	assert: thread isSuspended.
 	activation:: thread suspendedActivation.
-	'a' out. assertOperandsOf: activation haveValues: {}.
+	assertOperandsOf: activation haveValues: {}.
 
 	thread stepInto. (* Push three *)
-	'a' out. assertOperandsOf: activation haveValues: {3}.
+	assertOperandsOf: activation haveValues: {3}.
 
 	thread stepInto. (* Push four *)
-	'a' out. assertOperandsOf: activation haveValues: {3. 4}.
+	assertOperandsOf: activation haveValues: {3. 4}.
 
 	thread stepInto. (* Send + *)
-	'a' out. assertOperandsOf: activation haveValues: {7}.
+	assertOperandsOf: activation haveValues: {7}.
 
 	thread stepInto. (* Return top *)
-	'a' out. assertOperandsOf: activation haveValues: {}.
+	assertOperandsOf: activation haveValues: {}.
 	assert: thread isFulfilled.
 )
 public testActivationOperandsMethod = (
@@ -890,6 +890,46 @@ public testEvaluateActivationLocals = (
 	locals:: activation slots.
 	assert: (locals at: 1) name equals: 'seven'.
 	assert: (locals at: 1) value reflectee equals: 7.
+)
+public testExceptionDuringResumeSlowly = (
+	| exception thread |
+	exception:: Exception new.
+	thread:: ActivationMirror invokeSuspended: [exception signal].
+	assert: thread isSuspended.
+	assertThread: thread atMethod: #testExceptionDuringResumeSlowly snippet: 'exception'.
+
+	thread resumeSlowly.
+	assert: thread isBroken.
+	assert: thread result reflectee equals: exception.
+	assertThread: thread atMethod: #testExceptionDuringResumeSlowly snippet: 'exception signal'.
+)
+public testExceptionDuringStepOut = (
+	| exception thread |
+	exception:: Exception new.
+	thread:: ActivationMirror invokeSuspended: [exception signal].
+	assert: thread isSuspended.
+	assertThread: thread atMethod: #testExceptionDuringStepOut snippet: 'exception'.
+
+	thread suspendedActivation stepOut.
+	assert: thread isBroken.
+	assert: thread result reflectee equals: exception.
+	assertThread: thread atMethod: #testExceptionDuringStepOut snippet: 'exception signal'.
+)
+public testExceptionDuringStepOver = (
+	| exception thread |
+	exception:: Exception new.
+	thread:: ActivationMirror invokeSuspended: [exception signal].
+	assert: thread isSuspended.
+	assertThread: thread atMethod: #testExceptionDuringStepOver snippet: 'exception'.
+
+	thread suspendedActivation stepOver.
+	assert: thread isSuspended.
+	assertThread: thread atMethod: #testExceptionDuringStepOver snippet: 'signal'.
+
+	thread suspendedActivation stepOver.
+	assert: thread isBroken.
+	assert: thread result reflectee equals: exception.
+	assertThread: thread atMethod: #testExceptionDuringStepOver snippet: 'exception signal'.
 )
 public testQuickResumeReturnAcrossBoundry = (
 	assert: quickResumeReturnAcrossBoundry equals: 'expected return'

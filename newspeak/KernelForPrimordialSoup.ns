@@ -22,8 +22,6 @@ numTemps <SmallInteger>
 ) (
 private aboutToReturn: result through: firstUnwindActivation = (
 	(* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
-	| home ::= self. |
-	[nil = home closure] whileFalse: [home:: definingActivationOf: home closure].
 	^home return: result
 )
 public bci = (
@@ -593,6 +591,10 @@ private is: handlerExceptionClass <Any> interestedIn: signaledExceptionClass <Be
 		cls:: (superclassOf: cls)].
 	^false
 )
+private jumpTo: activation = (
+	(* :literalmessage: primitive: 95 *)
+	halt.
+)
 public pass = (
 	nil = handlerActivation ifTrue: [^error].
 	invokeNextHandler.
@@ -625,8 +627,16 @@ private returnToSimulationRoot: simulationRoot <Activation> = (
 	(simulationRoot tempAt: 1)
 		state: #broken;
 		suspendedActivation: signalActivation sender.
-	currentActivation sender: simulationRoot.
-	^self
+
+	(* Note the following alternative doesn't work. Slow stepping will stop
+	   after the sender is changed, because it leaves the stepping goal off
+       the chain, and overwrite the suspened activation, because we didn't stop
+	   at the simulation root.
+		currentActivation sender: simulationRoot.
+		^self *)
+
+	simulationRoot push: self.
+	jumpTo: simulationRoot.
 )
 public signal = (
 	handlerActivation:: signalActivation:: currentActivation.
