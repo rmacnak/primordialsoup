@@ -834,9 +834,9 @@ public serialize: root = (
 
 	^stream stealBytes
 )
-public snapshotApp: app withRuntime: runtime = (
+public snapshotApp: app withRuntime: runtime keepSource: s = (
 	| newPlatform newKernel methods objectStore |
-	keepSource:: (classOf: app) name = 'TestRunner'.
+	keepSource:: s.
 	newKernel:: runtime InternalKernel new.
 	newPlatform:: runtime Platform internalKernel: newKernel.
 	objectStore:: newKernel

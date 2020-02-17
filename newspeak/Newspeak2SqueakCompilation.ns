@@ -1012,6 +1012,7 @@ public conditionalNode: node <IfAST> = (
 	(* cond. branch(L1). then. L1: *)
 
 	self applyForValueTo: node condition.
+	addDebugInfo: node.
 	cgen jumpIf: node ifTrue not by: 0. (* jump to else (but needs patching) *)
 	ifPos: cgen bci. (* remember patch address *)
 

@@ -1711,6 +1711,10 @@ public out = (
 public printString ^<String> = (
 	^'''', self, ''''
 )
+public runeAt: index = (
+	(* :bogus: *)
+	^self at: index
+)
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 53 *)
 	halt.
@@ -1720,6 +1724,14 @@ public startsWith: prefix <ByteArray | String> ^<Boolean> = (
 	^(ArgumentError value: prefix) signal
 )
 ) : (
+public fromRune: rune = (
+	(* :bogus: *)
+	^self with: rune
+)
+public fromRunes: runes = (
+	(* :bogus: *)
+	^self withAll: runes
+)
 public with: byte <Integer> ^<String> = (
 	(* :literalmessage: primitive: 123 *)
 	^(ArgumentError value: byte) signal

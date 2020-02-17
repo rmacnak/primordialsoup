@@ -6,7 +6,6 @@ class CommandLineCompiler usingPlatform: platform = (
 |
 	private List = platform collections List.
 	private Map = platform collections Map.
-	private Stopwatch = platform kernel Stopwatch.
 	private ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
 	private Port = platform actors Port.
 	private Snapshotter = platform victoryFuel Snapshotter.
@@ -27,9 +26,6 @@ compileFile: filename = (
 	builder:: ClassDeclarationBuilder fromUnitSource: source.
 	^builder install applyToObject reflectee.
 )
-decodeUtf8: bytes = (
-	^String withAll: bytes
-)
 public main: args = (
 	(args at: 1) = 'child'
 		ifTrue: [childMain: args]
@@ -42,12 +38,9 @@ parentMain: args = (
 	port = Port new.
 	numJobs = 4.
 	workLists
-	stopwatch
 	index ::= 1.
 	outstanding ::= 0.
 	|
-
-	stopwatch:: Stopwatch new start.
 
 	workLists:: Array new: numJobs.
 	1 to: numJobs do: [:i | workLists at: i put: List new].
@@ -68,7 +61,6 @@ parentMain: args = (
 		outstanding:: outstanding - 1.
 		outstanding = 0 ifTrue:
 			[port close.
-			 (* ('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out. *)
 
 			 [(index + 2) <= args size] whileTrue:
 				[ | runtimeName appName snapshotName runtime app fuel bytes |
@@ -76,24 +68,22 @@ parentMain: args = (
 				appName:: args at: index + 1.
 				snapshotName:: args at: index + 2.
 				index:: index + 3.
-				(* ('Runtime configuration: ', runtimeName) out.
-				('Application configuration: ', appName) out. *)
 
 				runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.
 				app:: (namespace at: appName) packageUsing: manifest.
 
-				stopwatch:: Stopwatch new start.
-				bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
-				writeBytes: bytes toFileNamed: snapshotName.
-
-				(* ('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out *)]]].
+				bytes:: Snapshotter new
+					snapshotApp: app
+					withRuntime: runtime
+					keepSource: (appName = 'TestRunner').
+				writeBytes: bytes toFileNamed: snapshotName]]].
 )
 readFileAsBytes: filename = (
 	(* :literalmessage: primitive: 130 *)
 	halt.
 )
 readFileAsString: filename = (
-	^decodeUtf8: (readFileAsBytes: filename)
+	^String withAll: (readFileAsBytes: filename)
 )
 writeBytes: bytes toFileNamed: filename = (
 	(* :literalmessage: primitive: 128 *)

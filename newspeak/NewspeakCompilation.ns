@@ -666,21 +666,22 @@ processImplicitReceiverSend: msg <MessageAST> binding: binding <ClassEntry | Slo
 processInlineableConditional: node <NormalSendAST> = (
 	|
 	receiver = node receiver apply: self.
-	selector = node message selector.
-	numArgs = node message arguments size.
+	message = node message.
+	selector = message selector.
+	numArgs = message arguments size.
 	arg1 = numArgs > 0 ifTrue:
-		[(rewriteInlinedBlockNode: (node message arguments at: 1) forValue: valueExpected) body].
+		[(rewriteInlinedBlockNode: (message arguments at: 1) forValue: valueExpected) body].
 	arg2 = numArgs > 1 ifTrue:
-		[(rewriteInlinedBlockNode: (node message arguments at: 2) forValue: valueExpected) body].
+		[(rewriteInlinedBlockNode: (message arguments at: 2) forValue: valueExpected) body].
 	|
 	selector = #ifTrue:
-		ifTrue: [^ConditionalAST if: receiver is: true then: arg1 forValue: valueExpected].
+		ifTrue: [^(ConditionalAST if: receiver is: true then: arg1 forValue: valueExpected) copyPositionFrom: message].
 	selector = #ifFalse:
-		ifTrue: [^ConditionalAST if: receiver is: false then: arg1 forValue: valueExpected].
+		ifTrue: [^(ConditionalAST if: receiver is: false then: arg1 forValue: valueExpected) copyPositionFrom: message].
 	selector = #ifTrue:ifFalse:
-		ifTrue: [^ConditionalAST if: receiver is: true then: arg1 else: arg2].
+		ifTrue: [^(ConditionalAST if: receiver is: true then: arg1 else: arg2) copyPositionFrom: message].
 	selector = #ifFalse:ifTrue:
-		ifTrue: [^ConditionalAST if: receiver is: false then: arg1 else: arg2].
+		ifTrue: [^(ConditionalAST if: receiver is: false then: arg1 else: arg2) copyPositionFrom: message].
 	assert: [false] message: 'Unknown conditional selector'
 )
 processInlineableLoop: node <NormalSendAST> ^<LoopAST> = (
