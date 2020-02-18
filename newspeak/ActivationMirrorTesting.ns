@@ -951,6 +951,61 @@ public testQuickResumeUnhandledException = (
 	assert: activation method name equals: #testQuickResumeUnhandledException.
 	assert: activation sender equals: nil.
 )
+public testThreadTerminateBroken = (
+	| thread |
+	thread:: (ActivationMirror invokeSuspended: [Exception new signal]) resume.
+	assert: thread isBroken.
+	assertThread: thread atMethod: #testThreadTerminateBroken snippet: 'Exception new signal'.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+)
+public testThreadTerminateFulfilled = (
+	| thread |
+	thread:: (ActivationMirror invokeSuspended: [add: 3 to: 4]) resume.
+	assert: thread isFulfilled.
+	assert: thread result reflectee equals: 7.
+	assert: thread suspendedActivation equals: nil.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+)
+public testThreadTerminateSuspended = (
+	| thread activation1 activation2 |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+	assertThread: thread atMethod: #testThreadTerminateSuspended snippet: '3'.
+	activation1:: thread suspendedActivation.
+
+	thread stepInto. (* Push 3 *)
+	thread stepInto. (* Push 4 *)
+	thread stepInto. (* Send add:to: *)
+	assertThread: thread atMethod: #add:to: snippet: 'x'.
+	activation2:: thread suspendedActivation.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+	assert: activation1 isUncontinuable.
+	assert: activation2 isUncontinuable.
+)
+public testThreadTerminateTerminated = (
+	| thread |
+	thread:: (ActivationMirror invokeSuspended: [add: 3 to: 4]) terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+)
 ) : (
 TEST_CONTEXT = ()
 )

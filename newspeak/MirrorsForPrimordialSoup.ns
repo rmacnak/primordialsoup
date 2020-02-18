@@ -1913,6 +1913,13 @@ private stepUntil: predicate <[:Activation | Boolean]> = (
 	state: #fulfilled.
 	result: simulator activation pop.
 )
+public terminate = (
+	nil = suspendedActivation ifFalse:
+		[unwindTo: (findBottom: suspendedActivation) sender.
+		 suspendedActivation: nil].
+	state: #terminated.
+	result: nil.
+)
 private unwindTo: activation = (
 	| unwind sender |
 	unwind:: suspendedActivation.
@@ -1940,13 +1947,13 @@ public isFulfilled ^<Boolean> = (
 	^thread state = #fulfilled
 )
 public isRunning ^<Boolean> = (
-	halt.
+	^thread state = #running
 )
 public isSuspended ^<Boolean> = (
 	^thread state = #suspended
 )
 public isTerminated ^<Boolean> = (
-	halt.
+	^thread state = #terminated
 )
 public result ^<ObjectMirror | nil> = (
 	thread state = #fulfilled ifTrue: [^ObjectMirror reflecting: thread result].
@@ -1967,7 +1974,7 @@ public suspendedActivation ^<ActivationMirror | nil> = (
 	^ActivationMirror reflecting: thread suspendedActivation thread: thread
 )
 public terminate ^<ThreadMirror> = (
-	halt.
+	thread terminate.
 )
 ) : (
 )
@@ -2090,7 +2097,7 @@ private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Ob
 )
 private currentActivation ^<Activation> = (
 	(* :literalmessage: primitive: 133 *)
-	^halt
+	halt.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
