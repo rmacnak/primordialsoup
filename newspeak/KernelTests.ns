@@ -317,6 +317,17 @@ public testIsKindOfArray = (
 TEST_CONTEXT = ()
 )
 public class BehaviorTests = TestContext () (
+class Module superclass: s = (
+|
+	Superclass = s.
+|
+) (
+public class Subclass = Superclass (
+) (
+) : (
+)
+) : (
+)
 public testBehaviorBasicNew = (
 	should: [Object basicNew] signal: MessageNotUnderstood.
 
@@ -344,6 +355,31 @@ public testBehaviorName = (
 	assert: Object name equals: 'Object'.
 	assert: Object name equals: 'KernelForImplementation`Object'. *)
 )
+public testClassCannotSubclassArray = (
+	| module |
+	module:: Module superclass: Array.
+	should: [module Subclass] signal: Exception.
+)
+public testClassCannotSubclassByteArray = (
+	| module |
+	module:: Module superclass: ByteArray.
+	should: [module Subclass] signal: Exception.
+)
+public testClassCannotSubclassMetaclass = (
+	| module |
+	module:: Module superclass: self class class.
+	should: [module Subclass] signal: Exception.
+)
+public testClassCannotSubclassNil = (
+	| module |
+	module:: Module superclass: nil.
+	should: [module Subclass] signal: Exception.
+)
+public testClassCannotSubclassString = (
+	| module |
+	module:: Module superclass: String.
+	should: [module Subclass] signal: Exception.
+)
 public testIsKindOfBehavior = (
 	assert: Object isKindOfBehavior.
 	deny: nil isKindOfBehavior.
@@ -353,6 +389,9 @@ public testIsKindOfBehavior = (
 )
 ) : (
 TEST_CONTEXT = ()
+public class = (
+	^super class
+)
 )
 public class BooleanTests = TestContext () (
 public testBooleanAsString = (

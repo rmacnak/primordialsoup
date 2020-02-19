@@ -1056,7 +1056,10 @@ public _primaryFactorySelector <Symbol>
 public _headerSource <String>
 |) (
 public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Object> = (
-	| newMetaclass <Metaclass> newClass <Class> |
+	| cid newMetaclass <Metaclass> newClass <Class> |
+	(isValidSuperclass: superclass) ifFalse:
+		[^(ArgumentError value: superclass) signal].
+
 	newMetaclass:: Metaclass new.
 	superclassOf: newMetaclass put: Class.
 	methodsOf: newMetaclass put: _classMixin _methods. (* Do we need a copy? *)
@@ -1091,6 +1094,16 @@ public at: nestedMixinName = (
 )
 public isMeta ^<Boolean> = (
 	^false
+)
+private isValidSuperclass: object = (
+	| cls cid |
+	cls:: classOf: object.
+	Metaclass = cls ifTrue: [^false (* [object] is a metaclass *)].
+	cls:: classOf: cls.
+	Metaclass = cls ifFalse: [^false (* [object] is an instance *)].
+	cid:: slotOf: object at: 5.
+	nil = cid ifTrue: [^true].
+	^(cid between: 3 and: 13) not
 )
 private methodsWithAccessorsAtOffset: offset <Integer> ^<MethodDictionary> = (
 	| newMethods <MethodDictionary> methodIndex |
