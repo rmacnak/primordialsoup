@@ -910,6 +910,135 @@ public numerator: numerator <Integer> denominator: denominator <Integer> ^<Fract
 	^Fraction reducedNumerator: numer denominator: denom
 )
 )
+public class IdentityMap new: capacity = (
+|
+table ::= Array new: capacity.
+public size ::= 0.
+|
+1 to: table size do: [:index | table at: index put: table]
+) (
+public at: key = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
+	 table = entry] whileFalse:
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	noSuchKey
+)
+public at: key ifAbsent: onAbsent = (
+	| mask index entry value |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
+	 table = entry] whileFalse:
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	^onAbsent value
+)
+public at: key ifAbsentPut: valueGen = (
+	| mask index entry value |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
+	 table = entry] whileFalse:
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	value:: valueGen value.
+	table at: index put: key.
+	table at: index + 1 put: value.
+	size:: size + 1.
+	(size) > (table size * 3 / 8) ifTrue: [self grow].
+	^value
+)
+public at: key ifAbsentPutVal: value = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^false].
+	 table = entry] whileFalse:
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	table at: index put: key.
+	table at: index + 1 put: value.
+	size:: size + 1.
+	(size) > (table size * 3 / 8) ifTrue: [self grow].
+	^true
+)
+public at: key put: value = (
+	(at: key ifAbsentPutVal: value) ifFalse: [duplicateKey].
+	^value
+)
+public at: key putReplace: value = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1 put: value].
+	 table = entry] whileFalse:
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	noSuchKey
+)
+public atOrItself: key = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
+	 table = entry] whileFalse:
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	^key
+)
+grow = (
+	| oldTable newSize mask newTable |
+	oldTable:: table.
+	newSize:: oldTable size * 2.
+	mask:: newSize - 2.
+	newTable:: Array new: newSize.
+	1 to: newSize do: [:index | newTable at: index put: newTable].
+
+	1 to: oldTable size by: 2 do: [:oldIndex |
+		| key |
+		key:: oldTable at: oldIndex.
+		oldTable = key ifFalse:
+			[ | value newIndex |
+			 value:: oldTable at: oldIndex + 1.
+			 newIndex:: ((identityHashOf: key) bitAnd: mask) + 1.
+			 [newTable = (newTable at: newIndex)] whileFalse:
+				[newIndex:: (newIndex + 2 bitAnd: mask) + 1].
+			 newTable at: newIndex put: key.
+			 newTable at: newIndex + 1 put: value]].
+	table:: newTable.
+)
+public includesKey: key = (
+	| mask index entry |
+	mask:: table size - 2.
+	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	[entry:: table at: index.
+	 (is: entry identicalTo: key) ifTrue: [^true].
+	 table = entry] whileFalse:
+		[index:: ((index + 2) bitAnd: mask) + 1].
+
+	^false
+)
+public keysAndValuesDo: action <[:K :V]> = (
+	1 to: table size by: 2 do: [:index |
+		| key = table at: index. |
+		table = key ifFalse:
+			[action value: key value: (table at: 1 + index)]].
+)
+) : (
+public new = (
+	^self new: 32
+)
+)
 public class InstanceMixin = (
 (* An instance-side mixin is the difference between a (non-meta) class and its superclass: a set of additional methods, slots and nested class declarations. Instance-side mixins always have a paired class-side mixin.
 

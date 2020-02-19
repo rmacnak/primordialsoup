@@ -2,6 +2,7 @@ Newspeak3
 'NS2PrimordialSoup'
 class PrimordialFuel usingPlatform: p internalKernel: k = (|
 private List = p collections List.
+private IdentityMap = k IdentityMap.
 
 (* Classes which require special handling. *)
 private SmallInteger = k SmallInteger.
@@ -262,115 +263,6 @@ readRef = (
 registerRef: object = (
 	refs at: nextRefIndex put: object.
 	nextRefIndex:: 1 + nextRefIndex.
-)
-) : (
-)
-class IdentityMap new: capacity = (
-|
-table ::= Array new: capacity.
-public size ::= 0.
-|
-1 to: table size do: [:index | table at: index put: table]
-) (
-public at: key = (
-	| mask index entry |
-	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
-	[entry:: table at: index.
-	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
-	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
-
-	noSuchKey
-)
-public at: key ifAbsent: onAbsent = (
-	| mask index entry value |
-	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
-	[entry:: table at: index.
-	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
-	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
-
-	^onAbsent value
-)
-public at: key ifAbsentPut: valueGen = (
-	| mask index entry value |
-	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
-	[entry:: table at: index.
-	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
-	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
-
-	value:: valueGen value.
-	table at: index put: key.
-	table at: index + 1 put: value.
-	size:: size + 1.
-	(size) > (table size * 3 / 8) ifTrue: [self grow].
-	^value
-)
-public at: key ifAbsentPutVal: value = (
-	| mask index entry |
-	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
-	[entry:: table at: index.
-	 (is: entry identicalTo: key) ifTrue: [^false].
-	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
-
-	table at: index put: key.
-	table at: index + 1 put: value.
-	size:: size + 1.
-	(size) > (table size * 3 / 8) ifTrue: [self grow].
-	^true
-)
-public at: key put: value = (
-	(at: key ifAbsentPutVal: value) ifFalse: [duplicateKey].
-	^value
-)
-public at: key putReplace: value = (
-	| mask index entry |
-	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
-	[entry:: table at: index.
-	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1 put: value].
-	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
-
-	noSuchKey
-)
-public atOrItself: key = (
-	| mask index entry |
-	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
-	[entry:: table at: index.
-	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
-	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
-
-	^key
-)
-grow = (
-	| oldTable newSize mask newTable |
-	oldTable:: table.
-	newSize:: oldTable size * 2.
-	mask:: newSize - 2.
-	newTable:: Array new: newSize.
-	1 to: newSize do: [:index | newTable at: index put: newTable].
-
-	1 to: oldTable size by: 2 do: [:oldIndex |
-		| key |
-		key:: oldTable at: oldIndex.
-		oldTable = key ifFalse:
-			[ | value newIndex |
-			 value:: oldTable at: oldIndex + 1.
-			 newIndex:: ((identityHashOf: key) bitAnd: mask) + 1.
-			 [newTable = (newTable at: newIndex)] whileFalse:
-				[newIndex:: (newIndex + 2 bitAnd: mask) + 1].
-			 newTable at: newIndex put: key.
-			 newTable at: newIndex + 1 put: value]].
-	table:: newTable.
 )
 ) : (
 )
@@ -1083,16 +975,8 @@ private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
 	halt.
 )
-private identityHashOf: a = (
-	(* :literalmessage: primitive: 87 *)
-	halt.
-)
 private initialBCIOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 73 *)
-	halt.
-)
-private is: a identicalTo: b = (
-	(* :literalmessage: primitive: 86 *)
 	halt.
 )
 private isCanonical: object = (

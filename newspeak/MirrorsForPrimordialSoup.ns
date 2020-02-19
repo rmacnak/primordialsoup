@@ -1,14 +1,12 @@
 Newspeak3
 'NS2PrimordialSoup'
 class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns = (|
-(* TODO: These need to be real identity collections for schema changes. *)
-private IdentityMap = platform collections IdentityMap.
-
 private Collection = platform collections Collection.
 private List = platform collections List.
 private Map = platform collections Map.
 private WeakMap = platform kernel WeakMap.
 private StringBuilder = platform kernel StringBuilder.
+private IdentityMap = ik IdentityMap.
 private InstanceMixin = ik InstanceMixin.
 private ClassMixin = ik ClassMixin.
 private Metaclass = ik Metaclass.

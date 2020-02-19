@@ -873,6 +873,35 @@ public testNewSlotSeenInSubclass = (
 	assert: instance oldSlot equals: 43.
 	assert: instance newSlot equals: 47.
 )
+public testShapeChangeWithHostileEquals = (
+	|
+	klass <Class>
+	instance1 <Object>
+	instance2 <Object>
+	builder <ClassDeclarationBuilder>
+	|
+	klass:: classFromSource: 'class Class slot: s = ( | public slot = s. |)(
+		public = other ^<Boolean> = ( ^Error signal: ''Should not be called'' )
+		public hash ^<Integer> = ( ^Error signal: ''Should not be called'' )
+	) : (
+		public = other ^<Boolean> = ( ^Error signal: ''Should not be called'' )
+		public hash ^<Integer> = ( ^Error signal: ''Should not be called'' )
+	)'.
+	instance1:: klass slot: 1.
+	instance2:: klass slot: 2.
+	assert: instance1 slot equals: 1.
+	assert: instance2 slot equals: 2.
+
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	builder header source: 'class Class slot: s = ( | public slot = s. public newSlot |)'.
+	builder install.
+	instance1:: klass slot: 1.
+	instance2:: klass slot: 2.
+	assert: instance1 slot equals: 1.
+	assert: instance2 slot equals: 2.
+	assert: instance1 newSlot equals: nil.
+	assert: instance2 newSlot equals: nil.
+)
 ) : (
 TEST_CONTEXT = ()
 )
