@@ -1809,8 +1809,17 @@ private restart: activation withMethod: newMethod = (
 				[:index | activation push: (copiedOf: closure at: index)]].
 )
 public resume = (
+	(* The state check is in a separate method because we don't want a method marked as a simulation root to be on the stack when the exception is signaled. *)
+	nil = suspendedActivation ifTrue:
+		[^Error signal: 'Nothing to resume'].
+	^resumeImpl
+)
+private resumeImpl = (
 	(* :literalmessage: primitive: 142 *)
 	| threadAtTemp1 bottom top jumpResult |
+	nil = suspendedActivation ifTrue:
+		[^Error signal: 'Nothing to resume'].
+
 	threadAtTemp1:: self. (* Known to exception signaling machinery. *)
 
 	top:: suspendedActivation.
@@ -1860,6 +1869,8 @@ private simulatorRootMethod = (
 	halt.
 )
 public stepInto = (
+	nil = suspendedActivation ifTrue:
+		[^Error signal: 'Nothing to resume'].
 	stepUntil: [:top | true].
 )
 public stepInto: activation = (
@@ -1914,9 +1925,10 @@ private stepUntil: predicate <[:Activation | Boolean]> = (
 	result: simulator activation pop.
 )
 public terminate = (
-	nil = suspendedActivation ifFalse:
-		[unwindTo: (findBottom: suspendedActivation) sender.
-		 suspendedActivation: nil].
+	nil = suspendedActivation ifTrue:
+		[^Error signal: 'Nothing to terminate'].
+	unwindTo: (findBottom: suspendedActivation) sender.
+	suspendedActivation: nil.
 	state: #terminated.
 	result: nil.
 )

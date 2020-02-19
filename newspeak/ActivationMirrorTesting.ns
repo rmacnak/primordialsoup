@@ -540,6 +540,22 @@ public testActivationRestartMethodWithLookup = (
 	assert: thread result reflectee equals: 3968.
 	assertList: list equals: {1984. 1984}.
 )
+public testActivationRestartTerminated = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+
+	should: [activation restart] signal: Exception.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+)
 public testActivationReturn = (
 	| list thread activation |
 	list:: List new.
@@ -565,6 +581,22 @@ public testActivationReturn = (
 
 	assert: thread isFulfilled.
 	assert: thread result equals: (ObjectMirror reflecting: 42).
+	assert: thread suspendedActivation equals: nil.
+)
+public testActivationReturnTerminated = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+
+	should: [activation return: (ObjectMirror reflecting: 1984)] signal: Exception.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
 	assert: thread suspendedActivation equals: nil.
 )
 public testActivationSourceRange = (
@@ -629,6 +661,22 @@ public testActivationStepInto = (
 	assert: thread result equals: (ObjectMirror reflecting: 7).
 	assertList: (stackOf: thread) equals: {}.
 )
+public testActivationStepIntoTerminated = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+
+	should: [activation stepInto] signal: Exception.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+)
 public testActivationStepOut = (
 	| thread activation |
 	thread:: ActivationMirror invokeSuspended: seventySeven.
@@ -684,6 +732,22 @@ public testActivationStepOutNLRSkipsGoal = (
 	assert: thread result equals: (ObjectMirror reflecting: 2).
 	assert: thread suspendedActivation equals: nil.
 )
+public testActivationStepOutTerminated = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+
+	should: [activation stepOut] signal: Exception.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+)
 public testActivationStepOver = (
 	| thread activation |
 	thread:: ActivationMirror invokeSuspended: seventySeven.
@@ -733,6 +797,22 @@ public testActivationStepOverNLRSkipsGoal = (
 	assert: thread result equals: (ObjectMirror reflecting: 2).
 	assert: thread suspendedActivation equals: nil.
 )
+public testActivationStepOverTerminated = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+
+	should: [activation stepOver] signal: Exception.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+)
 public testActivationStepThrough = (
 	| thread activation |
 	thread:: ActivationMirror invokeSuspended: [nlr1].
@@ -775,6 +855,22 @@ public testActivationStepThroughNLRSkipsGoal = (
 	thread resume.
 	assert: thread isFulfilled.
 	assert: thread result equals: (ObjectMirror reflecting: 2).
+	assert: thread suspendedActivation equals: nil.
+)
+public testActivationStepThroughTerminated = (
+	| thread activation |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+	activation:: thread suspendedActivation.
+
+	thread terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+
+	should: [activation stepThrough] signal: Exception.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
 	assert: thread suspendedActivation equals: nil.
 )
 public testActivationStepUncontinuable = (
@@ -951,6 +1047,54 @@ public testQuickResumeUnhandledException = (
 	assert: activation method name equals: #testQuickResumeUnhandledException.
 	assert: activation sender equals: nil.
 )
+public testThreadResumeBroken = (
+	| exception thread |
+	exception:: Exception new.
+	thread:: (ActivationMirror invokeSuspended: [exception signal]) resume.
+	assert: thread isBroken.
+	assertThread: thread atMethod: #testThreadResumeBroken snippet: 'exception signal'.
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result reflectee equals: exception.
+	assert: thread suspendedActivation equals: nil.
+)
+public testThreadResumeFulfilled = (
+	| thread |
+	thread:: (ActivationMirror invokeSuspended: [add: 3 to: 4]) resume.
+	assert: thread isFulfilled.
+	assert: thread result reflectee equals: 7.
+	assert: thread suspendedActivation equals: nil.
+
+	should: [thread resume] signal: Exception.
+	assert: thread isFulfilled.
+	assert: thread result reflectee equals: 7.
+	assert: thread suspendedActivation equals: nil.
+)
+public testThreadResumeSuspended = (
+	| thread activation1 activation2 |
+	thread:: ActivationMirror invokeSuspended: [add: 3 to: 4].
+	assert: thread isSuspended.
+	assertThread: thread atMethod: #testThreadResumeSuspended snippet: '3'.
+	activation1:: thread suspendedActivation.
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result reflectee equals: 7.
+	assert: thread suspendedActivation equals: nil.
+)
+public testThreadResumeTerminated = (
+	| thread |
+	thread:: (ActivationMirror invokeSuspended: [add: 3 to: 4]) terminate.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+
+	should: [thread resume] signal: Exception.
+	assert: thread isTerminated.
+	assert: thread result equals: nil.
+	assert: thread suspendedActivation equals: nil.
+)
 public testThreadTerminateBroken = (
 	| thread |
 	thread:: (ActivationMirror invokeSuspended: [Exception new signal]) resume.
@@ -969,9 +1113,9 @@ public testThreadTerminateFulfilled = (
 	assert: thread result reflectee equals: 7.
 	assert: thread suspendedActivation equals: nil.
 
-	thread terminate.
-	assert: thread isTerminated.
-	assert: thread result equals: nil.
+	should: [thread terminate] signal: Exception.
+	assert: thread isFulfilled.
+	assert: thread result reflectee equals: 7.
 	assert: thread suspendedActivation equals: nil.
 )
 public testThreadTerminateSuspended = (
@@ -1001,7 +1145,7 @@ public testThreadTerminateTerminated = (
 	assert: thread result equals: nil.
 	assert: thread suspendedActivation equals: nil.
 
-	thread terminate.
+	should: [thread terminate] signal: Exception.
 	assert: thread isTerminated.
 	assert: thread result equals: nil.
 	assert: thread suspendedActivation equals: nil.
