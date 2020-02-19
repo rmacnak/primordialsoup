@@ -2423,7 +2423,7 @@ public testLargeAllocation = (
 public testMarkStackOverflow = (
 	| tree prev |
 	32 timesRepeat:
-		[tree:: Array new: 16 * 1024.
+		[tree:: Array new: 4096.
 		 tree at: tree size put: prev.
 		 prev:: tree.
 		 1 to: tree size - 1 do:
@@ -2435,7 +2435,7 @@ public testMarkStackOverflow = (
 	prev:: nil.
 
 	32 timesRepeat:
-		[tree:: Array new: 16 * 1024.
+		[tree:: Array new: 4096.
 		 tree at: 1 put: prev.
 		 prev:: tree.
 		 2 to: tree size do:
@@ -2446,7 +2446,7 @@ public testMarkStackOverflow = (
 )
 public testRememberedSetOverflow = (
 	| cells new |
-	cells:: Array new: 128 * 1024.
+	cells:: Array new: 4096.
 	1 to: cells size do:
 		[:index | cells at: index put: (Array new: 1).
 		 (* Mix in garbage to avoid new-space growth while tenuring the cells. *)
