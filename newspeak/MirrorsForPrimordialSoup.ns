@@ -340,10 +340,11 @@ private processExistingClass: oldClass <Class> = (
 
 	newClass:: newMixin
 		apply: newSuperclass
+		format: (nil = newSuperclass ifTrue: [0] ifFalse: [formatOf: newSuperclass])
 		withName: newMixin _name
 		enclosingObject: oldEnclosingObject.
 
-	updateMixinsAndClasses at: oldClass put: newClass.
+	updateMixinsAndClasses at: oldClass putReplace: newClass.
 	updateMixinsAndClasses at: (classOf: oldClass) put: (classOf: newClass).
 )
 private processExistingClasses = (
@@ -409,7 +410,12 @@ private setup = (
 )
 private sortClass: app <Class> = (
 	| classes depth subclasses |
-	nil = app ifTrue: [^self]. (* InstanceMixin>>applications and Class>>subclasses are weak. *)
+
+	(* InstanceMixin>>applications and Class>>subclasses are weak. *)
+	nil = app ifTrue: [^self].
+
+	(* We might see classes more than once because they appear both as an application of a changed mixin, and as a subclasses of a changed class. *)
+	(updateMixinsAndClasses at: app ifAbsentPutVal: nil) ifFalse: [^self].
 
 	depth:: depthFor: app.
 	classes:: existingClasses at: depth ifAbsentPut: [List new].

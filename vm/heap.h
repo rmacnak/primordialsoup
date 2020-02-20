@@ -307,9 +307,7 @@ class Heap {
     ASSERT(interpreter_ == nullptr);
     interpreter_ = interpreter;
   }
-  void InitializeGrowthPolicy() {
-    SetOldAllocationLimit();
-  }
+  void InitializeAfterSnapshot();
 
   Interpreter* interpreter() const { return interpreter_; }
 
@@ -357,11 +355,12 @@ class Heap {
   // Weak class table.
   void MournClassTableScavenge();
   void MournClassTableMarkSweep();
+  void MournClassTableForwarded();
 
   // Become.
+  void ForwardClassIds();
   void ForwardRoots();
   void ForwardHeap();
-  void ForwardClassTable();
 
   uword TryAllocateNew(intptr_t size) {
     uword result = top_;

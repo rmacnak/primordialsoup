@@ -378,8 +378,8 @@ void Deserializer::Deserialize() {
   heap_->RegisterClass(kActivationCid, os->Activation());
   heap_->RegisterClass(kClosureCid, os->Closure());
 
-  heap_->InitializeGrowthPolicy();
   heap_->interpreter()->InitializeRoot(os);
+  heap_->InitializeAfterSnapshot();
 
   int64_t stop = OS::CurrentMonotonicNanos();
   intptr_t time = stop - start;

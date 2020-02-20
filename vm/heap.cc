@@ -421,10 +421,7 @@ static void ForwardClass(Heap* heap, HeapObject* object) {
         reinterpret_cast<ForwardingCorpse*>(old_class)->target());
     ASSERT(!new_class->IsForwardingCorpse());
     new_class->AssertCouldBeBehavior();
-    if (new_class->id() == heap->interpreter()->nil_obj()) {
-      ASSERT(old_class->id()->IsSmallInteger());
-      new_class->set_id(old_class->id());
-    }
+    ASSERT(new_class->id()->IsSmallInteger());
     object->set_cid(new_class->id()->value());
   }
 }
@@ -1071,6 +1068,18 @@ void Heap::MournClassTableMarkSweep() {
   }
 }
 
+void Heap::MournClassTableForwarded() {
+  for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
+    Behavior* old_class = static_cast<Behavior*>(class_table_[i]);
+    if (!old_class->IsForwardingCorpse()) {
+      continue;
+    }
+
+    class_table_[i] = SmallInteger::New(class_table_free_);
+    class_table_free_ = i;
+  }
+}
+
 bool Heap::BecomeForward(Array* old, Array* neu) {
   if (old->Size() != neu->Size()) {
     return false;
@@ -1114,9 +1123,10 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
     corpse->set_target(forwardee);
   }
 
+  ForwardClassIds();
   ForwardRoots();
-  ForwardHeap();  // Using old class table.
-  ForwardClassTable();
+  ForwardHeap();  // With forwarded class ids.
+  MournClassTableForwarded();
 
   interpreter_->GCEpilogue();
 
@@ -1179,11 +1189,17 @@ void Heap::ForwardHeap() {
   }
 }
 
-void Heap::ForwardClassTable() {
+void Heap::ForwardClassIds() {
+  // For forwarded classes, use the cid of the old class. For most classes, we
+  // could use the cid of the new class or a newlly allocated cid (provided all
+  // the instances are updated). But for the classes whose representation is
+  // defined by the VM we need to keep the fixed cids (e.g., kSmiCid), so we may
+  // as well treat them all the same way.
   Object* nil = interpreter_->nil_obj();
-
-  for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
-    Behavior* old_class = static_cast<Behavior*>(class_table_[i]);
+  for (intptr_t old_cid = kFirstLegalCid;
+       old_cid < class_table_size_;
+       old_cid++) {
+    Behavior* old_class = static_cast<Behavior*>(class_table_[old_cid]);
     if (!old_class->IsForwardingCorpse()) {
       continue;
     }
@@ -1192,18 +1208,15 @@ void Heap::ForwardClassTable() {
         reinterpret_cast<ForwardingCorpse*>(old_class)->target());
     ASSERT(!new_class->IsForwardingCorpse());
 
-    ASSERT(old_class->id()->IsSmallInteger());
-    ASSERT(new_class->id()->IsSmallInteger() ||
-           new_class->id() == nil);
-    if (old_class->id() == new_class->id()) {
-      class_table_[i] = new_class;
-    } else {
-      // new_class is not registered or registered with a different cid.
-      // Instances of old_class (if any) have already had their headers updated
-      // to the new cid, so release the old_class's cid.
-      class_table_[i] = SmallInteger::New(class_table_free_);
-      class_table_free_ = i;
+    if (new_class->id() != nil) {
+      ASSERT(new_class->id()->IsSmallInteger());
+      // Arrange for instances with new_cid to be migrated to i.
+      intptr_t new_cid = new_class->id()->value();
+      class_table_[new_cid] = old_class;
     }
+
+    new_class->set_id(SmallInteger::New(old_cid));
+    class_table_[old_cid] = new_class;
   }
 }
 
@@ -1234,6 +1247,25 @@ intptr_t Heap::AllocateClassId() {
   class_table_[cid] = reinterpret_cast<Object*>(kUninitializedWord);
 #endif
   return cid;
+}
+
+void Heap::InitializeAfterSnapshot() {
+  // Classes are registered before they are known to have been initialized, so
+  // we have to delay setting the ids in the class objects or risk them being
+  // overwritten. After all snapshot objects have been initialized, we can
+  // correct the ids in the classes.
+  for (intptr_t cid = kFirstLegalCid; cid < class_table_size_; cid++) {
+    Behavior* cls = static_cast<Behavior*>(class_table_[cid]);
+    cls->AssertCouldBeBehavior();
+    if (cls->id() == interpreter_->nil_obj()) {
+      cls->set_id(SmallInteger::New(cid));
+    } else {
+      ASSERT(cls->id() == SmallInteger::New(cid) ||
+             cls->id() == SmallInteger::New(kEphemeronCid));
+    }
+  }
+
+  SetOldAllocationLimit();
 }
 
 intptr_t Heap::CountInstances(intptr_t cid) {

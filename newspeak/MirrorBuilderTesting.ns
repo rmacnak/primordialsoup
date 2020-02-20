@@ -79,6 +79,42 @@ public testAccessModifiersFromSource = (
 	assert: (in: builder instanceSide methods findMirrorNamed: #methodC) accessModifier equals: #private.
 	assert: (in: builder instanceSide methods findMirrorNamed: #methodD) accessModifier equals: #protected.
 )
+public testChangeObject = (
+	(* Object is an edge case for Primordial Soup (has nil superclass) and Newspeak-on-Squeak (has a Smalltalk superclass. *)
+	|
+	instance
+	builder <ClassDeclarationBuilder>
+	|
+	instance:: Object new.
+	should: [instance foo] signal: MessageNotUnderstood.
+
+	builder:: (ObjectMirror reflecting: instance) getClass mixin declaration asBuilder.
+	builder instanceSide methods addFromSource: 'public foo = (^1984)'.
+	builder install.
+	assert: instance foo equals: 1984.
+
+	builder instanceSide methods removeMirrorNamed: #foo.
+	builder install.
+	should: [instance foo] signal: MessageNotUnderstood.
+)
+public testChangeSmallInteger = (
+	(* SmallInteger is an edge case for Primordial Soup because it has a fixed CID. *)
+	|
+	instance
+	builder <ClassDeclarationBuilder>
+	|
+	instance:: 0.
+	should: [instance foo] signal: MessageNotUnderstood.
+
+	builder:: (ObjectMirror reflecting: instance) getClass mixin declaration asBuilder.
+	builder instanceSide methods addFromSource: 'public foo = (^1984)'.
+	builder install.
+	assert: instance foo equals: 1984.
+
+	builder instanceSide methods removeMirrorNamed: #foo.
+	builder install.
+	should: [instance foo] signal: MessageNotUnderstood.
+)
 public testClassDeclAddMethod = (
 	(* add a new method *)
 	|
