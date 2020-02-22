@@ -32,7 +32,11 @@ public at: key put: value = (
 	^rawPop
 )
 protected doesNotUnderstand: message = (
-	| jsSelector = asJSSelector: message selector. |
+	| jsSelector |
+	0 = message arguments size ifTrue:
+		[(message selector startsWith: 'isKindOf') ifTrue:
+			[^false]].
+	jsSelector:: asJSSelector: message selector.
 	^#new = jsSelector
 		ifTrue: [self newWithArguments: message arguments]
 		ifFalse: [self perform: jsSelector withArguments: message arguments]
@@ -59,6 +63,7 @@ public perform: selector <String> withArguments: arguments <Array> = (
 	^rawPop
 )
 public printString ^<String> = (
+	self isUndefined ifTrue: [^'undefined']. (* undefined.toString() throws in JS *)
 	^self perform: #toString withArguments: {}
 )
 private pushExpat: closure = (

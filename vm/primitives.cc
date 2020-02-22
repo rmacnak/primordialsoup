@@ -1170,7 +1170,7 @@ DEFINE_PRIMITIVE(Behavior_basicNew) {
 DEFINE_PRIMITIVE(Object_instVarAt) {
   ASSERT(num_args == 2);  // Always a mirror primitive.
   RegularObject* object = static_cast<RegularObject*>(I->Stack(1));
-  if (!object->IsRegularObject()) {
+  if (!object->IsRegularObject() && !object->IsEphemeron()) {
     return kFailure;
   }
   SMI_ARGUMENT(index, 0);
@@ -1184,7 +1184,7 @@ DEFINE_PRIMITIVE(Object_instVarAt) {
 DEFINE_PRIMITIVE(Object_instVarAtPut) {
   ASSERT(num_args == 3);  // Always a mirror primitive.
   RegularObject* object = static_cast<RegularObject*>(I->Stack(2));
-  if (!object->IsRegularObject()) {
+  if (!object->IsRegularObject() && !object->IsEphemeron()) {
     return kFailure;
   }
   SMI_ARGUMENT(index, 1);
