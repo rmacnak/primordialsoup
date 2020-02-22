@@ -1236,8 +1236,24 @@ intptr_t Heap::AllocateClassId() {
       class_table_free_ =
           static_cast<SmallInteger*>(class_table_[cid])->value();
     } else {
-      FATAL("Class table growth unimplemented");
-      cid = -1;
+      class_table_capacity_ += (class_table_capacity_ >> 1);
+      if (TRACE_GROWTH) {
+        OS::PrintErr("Growing class table to %" Pd "\n",
+                     class_table_capacity_);
+      }
+      Object** old_class_table = class_table_;
+      class_table_ = new Object*[class_table_capacity_];
+      for (intptr_t i = 0; i < class_table_size_; i++) {
+        class_table_[i] = old_class_table[i];
+      }
+#if defined(DEBUG)
+      for (intptr_t i = class_table_size_; i < class_table_capacity_; i++) {
+        class_table_[i] = reinterpret_cast<Object*>(kUnallocatedWord);
+      }
+#endif
+      delete[] old_class_table;
+      cid = class_table_size_;
+      class_table_size_++;
     }
   } else {
     cid = class_table_size_;
