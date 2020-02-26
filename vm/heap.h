@@ -311,7 +311,8 @@ class Heap {
 
   Interpreter* interpreter() const { return interpreter_; }
 
-  void DropHandles() { handles_size_ = 0; }
+  intptr_t handles() const { return handles_size_; }
+  void set_handles(intptr_t value) { handles_size_ = value; }
 
  private:
   void GrowRememberedSet();

@@ -28,6 +28,9 @@ class Interpreter {
 
   void Enter();
   void Exit();
+  void ActivateDispatch(Method* method, intptr_t num_args);
+  void ReturnFromDispatch();
+
   void Perform(String* selector, intptr_t num_args);
   Method* MethodAt(Behavior* cls, String* selector);
   void ActivateClosure(intptr_t num_args);
@@ -78,7 +81,7 @@ class Interpreter {
     *sp_ = value;
   }
   Object* Stack(intptr_t depth) {
-    ASSERT(StackDepth() >= depth);
+    ASSERT((fp_ == 0) || (StackDepth() >= depth));
     return sp_[depth];
   }
   void StackPut(intptr_t depth, Object* value) {
@@ -103,6 +106,8 @@ class Interpreter {
     false_ = object_store->false_obj();
     true_ = object_store->true_obj();
     object_store_ = object_store;
+    // Becomes the sender of the dispatch activation.
+    ip_ = reinterpret_cast<const uint8_t*>(nil_);
   }
 
  private:

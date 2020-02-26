@@ -2694,6 +2694,7 @@ DEFINE_PRIMITIVE(MessageLoop_finish) {
   ASSERT(num_args == 1);
   MINT_ARGUMENT(new_wakeup, 0);
   I->isolate()->loop()->MessageEpilogue(new_wakeup);
+  I->ReturnFromDispatch();
   I->Exit();
   UNREACHABLE();
   return kFailure;

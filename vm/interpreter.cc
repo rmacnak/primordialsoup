@@ -1091,7 +1091,9 @@ void Interpreter::MethodReturn(Object* result) {
 
 
 void Interpreter::Enter() {
-  ASSERT(environment_ == NULL);
+  intptr_t saved_handles = H->handles();
+  jmp_buf* saved_environment = environment_;
+
   jmp_buf environment;
   environment_ = &environment;
 
@@ -1100,10 +1102,8 @@ void Interpreter::Enter() {
     UNREACHABLE();
   }
 
-  environment_ = NULL;
-
-  // The longjmp skipped the HandleScope destructors.
-  H->DropHandles();
+  environment_ = saved_environment;
+  H->set_handles(saved_handles);
 }
 
 
@@ -1112,6 +1112,29 @@ void Interpreter::Exit() {
   longjmp(*environment_, 1);
 }
 
+void Interpreter::ActivateDispatch(Method* method, intptr_t num_args) {
+  ASSERT(method->Primitive() == 0);
+  Interpreter::Activate(method, num_args);
+}
+
+void Interpreter::ReturnFromDispatch() {
+  Object** saved_fp = FrameSavedFP(fp_);
+  if (saved_fp == 0) {
+    // Base frame.
+    Activation* sender = FrameBaseSender(fp_);
+    if (sender != nil) {
+      ip_ = 0;
+      sp_ = FrameSavedSP(fp_);
+      fp_ = saved_fp;
+      CreateBaseFrame(sender);
+      return;
+    }
+  }
+
+  ip_ = FrameSavedIP(fp_);
+  sp_ = FrameSavedSP(fp_);
+  fp_ = saved_fp;
+}
 
 void Interpreter::PrintStack() {
   Activation* top = FlushAllFrames();  // SAFEPOINT

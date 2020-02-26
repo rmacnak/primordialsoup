@@ -186,31 +186,10 @@ void Isolate::Activate(Object* message, Object* port) {
   String* selector = interpreter_->object_store()->dispatch_message();
   Method* method = interpreter_->MethodAt(cls, selector);
 
-  HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
-  HandleScope h2(heap_, reinterpret_cast<Object**>(&port));
-  HandleScope h3(heap_, reinterpret_cast<Object**>(&message_loop));
-  HandleScope h4(heap_, reinterpret_cast<Object**>(&method));
-
-  Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
-
-  Object* nil = interpreter_->nil_obj();
-  new_activation->set_sender(static_cast<Activation*>(nil), kNoBarrier);
-  new_activation->set_bci(SmallInteger::New(1));
-  new_activation->set_method(method);
-  new_activation->set_closure(static_cast<Closure*>(nil), kNoBarrier);
-  new_activation->set_receiver(message_loop);
-  new_activation->set_stack_depth(SmallInteger::New(0));
-
-  ASSERT(method->NumArgs() == 2);
-  new_activation->Push(message);
-  new_activation->Push(port);
-
-  intptr_t num_temps = method->NumTemps();
-  for (intptr_t i = 2; i < num_temps; i++) {
-    new_activation->Push(nil);
-  }
-
-  interpreter_->SetCurrentActivation(new_activation);  // SAFEPOINT
+  interpreter_->Push(message_loop);
+  interpreter_->Push(message);
+  interpreter_->Push(port);
+  interpreter_->ActivateDispatch(method, 2);  // SAFEPOINT
 }
 
 
@@ -224,31 +203,12 @@ void Isolate::ActivateSignal(intptr_t handle,
   String* selector = interpreter_->object_store()->dispatch_signal();
   Method* method = interpreter_->MethodAt(cls, selector);
 
-  HandleScope h1(heap_, reinterpret_cast<Object**>(&message_loop));
-  HandleScope h2(heap_, reinterpret_cast<Object**>(&method));
-
-  Activation* new_activation = heap_->AllocateActivation();  // SAFEPOINT
-
-  Object* nil = interpreter_->nil_obj();
-  new_activation->set_sender(static_cast<Activation*>(nil), kNoBarrier);
-  new_activation->set_bci(SmallInteger::New(1));
-  new_activation->set_method(method);
-  new_activation->set_closure(static_cast<Closure*>(nil), kNoBarrier);
-  new_activation->set_receiver(message_loop);
-  new_activation->set_stack_depth(SmallInteger::New(0));
-
-  ASSERT(method->NumArgs() == 4);
-  new_activation->Push(SmallInteger::New(handle));
-  new_activation->Push(SmallInteger::New(status));
-  new_activation->Push(SmallInteger::New(signals));
-  new_activation->Push(SmallInteger::New(count));
-
-  intptr_t num_temps = method->NumTemps();
-  for (intptr_t i = 4; i < num_temps; i++) {
-    new_activation->Push(nil);
-  }
-
-  interpreter_->SetCurrentActivation(new_activation);  // SAFEPOINT
+  interpreter_->Push(message_loop);
+  interpreter_->Push(SmallInteger::New(handle));
+  interpreter_->Push(SmallInteger::New(status));
+  interpreter_->Push(SmallInteger::New(signals));
+  interpreter_->Push(SmallInteger::New(count));
+  interpreter_->ActivateDispatch(method, 4);  // SAFEPOINT
 }
 
 
