@@ -7,10 +7,10 @@
 namespace psoup {
 
 void LookupCache::InsertOrdinary(intptr_t cid,
-                                 String* selector,
-                                 Method* target) {
+                                 String selector,
+                                 Method target) {
   intptr_t hash = cid
-      ^ (reinterpret_cast<intptr_t>(selector) >> kObjectAlignmentLog2);
+      ^ (static_cast<intptr_t>(selector) >> kObjectAlignmentLog2);
 
   intptr_t probe1 = hash & kMask;
   entries_[probe1].ordinary_cid = cid;
@@ -25,14 +25,14 @@ void LookupCache::InsertOrdinary(intptr_t cid,
 
 
 void LookupCache::InsertNS(intptr_t cid,
-                           String* selector,
-                           Method* caller,
+                           String selector,
+                           Method caller,
                            intptr_t rule,
-                           Object* absent_receiver,
-                           Method* target) {
+                           Object absent_receiver,
+                           Method target) {
   intptr_t hash = cid
-      ^ (reinterpret_cast<intptr_t>(selector) >> kObjectAlignmentLog2)
-      ^ (reinterpret_cast<intptr_t>(caller) >> kObjectAlignmentLog2);
+      ^ (static_cast<intptr_t>(selector) >> kObjectAlignmentLog2)
+      ^ (static_cast<intptr_t>(caller) >> kObjectAlignmentLog2);
   intptr_t cid_and_rule = (cid << 16) | rule;
 
   intptr_t probe1 = hash & kMask;

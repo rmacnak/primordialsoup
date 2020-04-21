@@ -215,45 +215,45 @@ const bool kFailure = false;
   (left->IsFloat64() || right->IsFloat64())                                    \
 
 #define SMI_VALUE(integer)                                                     \
-  static_cast<SmallInteger*>(integer)->value()                                 \
+  static_cast<SmallInteger>(integer)->value()                                  \
 
 #define MINT_VALUE(integer)                                                    \
   (integer->IsSmallInteger()                                                   \
-     ? static_cast<SmallInteger*>(integer)->value()                            \
-     : static_cast<MediumInteger*>(integer)->value())                          \
+     ? static_cast<SmallInteger>(integer)->value()                             \
+     : static_cast<MediumInteger>(integer)->value())                           \
 
 #define LINT_VALUES                                                            \
-  LargeInteger* large_left;                                                    \
-  LargeInteger* large_right;                                                   \
+  LargeInteger large_left;                                                     \
+  LargeInteger large_right;                                                    \
   {                                                                            \
-    HandleScope h1(H, reinterpret_cast<Object**>(&right));                     \
+    HandleScope h1(H, reinterpret_cast<Object*>(&right));                      \
     large_left = LargeInteger::Expand(left, H);                                \
-    HandleScope h2(H, reinterpret_cast<Object**>(&large_left));                \
+    HandleScope h2(H, reinterpret_cast<Object*>(&large_left));                 \
     large_right = LargeInteger::Expand(right, H);                              \
   }                                                                            \
 
 #define FLOAT_VALUE(raw_float, number)                                         \
   if (number->IsSmallInteger()) {                                              \
-    raw_float = static_cast<SmallInteger*>(number)->value();                   \
+    raw_float = static_cast<SmallInteger>(number)->value();                    \
   } else if (number->IsMediumInteger()) {                                      \
-    raw_float = static_cast<MediumInteger*>(number)->value();                  \
+    raw_float = static_cast<MediumInteger>(number)->value();                   \
   } else if (number->IsFloat64()) {                                            \
-    raw_float = static_cast<Float64*>(number)->value();                        \
+    raw_float = static_cast<Float64>(number)->value();                         \
   } else if (number->IsLargeInteger()) {                                       \
-    raw_float = LargeInteger::AsDouble(static_cast<LargeInteger*>(number));    \
+    raw_float = LargeInteger::AsDouble(static_cast<LargeInteger>(number));     \
   } else {                                                                     \
     return kFailure;                                                           \
   }                                                                            \
 
 #define FLOAT_VALUE_OR_FALSE(raw_float, number)                                \
   if (number->IsSmallInteger()) {                                              \
-    raw_float = static_cast<SmallInteger*>(number)->value();                   \
+    raw_float = static_cast<SmallInteger>(number)->value();                    \
   } else if (number->IsMediumInteger()) {                                      \
-    raw_float = static_cast<MediumInteger*>(number)->value();                  \
+    raw_float = static_cast<MediumInteger>(number)->value();                   \
   } else if (number->IsFloat64()) {                                            \
-    raw_float = static_cast<Float64*>(number)->value();                        \
+    raw_float = static_cast<Float64>(number)->value();                         \
   } else if (number->IsLargeInteger()) {                                       \
-    raw_float = LargeInteger::AsDouble(static_cast<LargeInteger*>(number));    \
+    raw_float = LargeInteger::AsDouble(static_cast<LargeInteger>(number));     \
   } else {                                                                     \
     RETURN_BOOL(false);                                                        \
   }                                                                            \
@@ -261,7 +261,7 @@ const bool kFailure = false;
 #define SMI_ARGUMENT(name, index)                                              \
   intptr_t name;                                                               \
   if (I->Stack(index)->IsSmallInteger()) {                                     \
-    name = static_cast<SmallInteger*>(I->Stack(index))->value();               \
+    name = static_cast<SmallInteger>(I->Stack(index))->value();                \
   } else {                                                                     \
     return kFailure;                                                           \
   }                                                                            \
@@ -269,9 +269,9 @@ const bool kFailure = false;
 #define MINT_ARGUMENT(name, index)                                             \
   int64_t name;                                                                \
   if (I->Stack(index)->IsSmallInteger()) {                                     \
-    name = static_cast<SmallInteger*>(I->Stack(index))->value();               \
+    name = static_cast<SmallInteger>(I->Stack(index))->value();                \
   } else if (I->Stack(index)->IsMediumInteger()) {                             \
-    name = static_cast<MediumInteger*>(I->Stack(index))->value();              \
+    name = static_cast<MediumInteger>(I->Stack(index))->value();               \
   } else {                                                                     \
     return kFailure;                                                           \
   }                                                                            \
@@ -279,7 +279,7 @@ const bool kFailure = false;
 #define FLOAT_ARGUMENT(name, index)                                            \
   double name;                                                                 \
   if (I->Stack(index)->IsFloat64()) {                                          \
-    name = static_cast<Float64*>(I->Stack(index))->value();                    \
+    name = static_cast<Float64>(I->Stack(index))->value();                     \
   } else {                                                                     \
     return kFailure;                                                           \
   }                                                                            \
@@ -300,7 +300,7 @@ const bool kFailure = false;
   if (SmallInteger::IsSmiValue(raw_integer)) {                                 \
     RETURN(SmallInteger::New(raw_integer));                                    \
   } else {                                                                     \
-    MediumInteger* result = H->AllocateMediumInteger();                        \
+    MediumInteger result = H->AllocateMediumInteger();                         \
     result->set_value(raw_integer);                                            \
     RETURN(result);                                                            \
   }                                                                            \
@@ -309,7 +309,7 @@ const bool kFailure = false;
   RETURN(LargeInteger::Reduce(large_integer, H));                              \
 
 #define RETURN_FLOAT(raw_float)                                                \
-  Float64* result = H->AllocateFloat64();                                      \
+  Float64 result = H->AllocateFloat64();                                       \
   result->set_value(raw_float);                                                \
   RETURN(result);                                                              \
 
@@ -324,8 +324,8 @@ DEFINE_PRIMITIVE(Unimplemented) {
 
 
 DEFINE_PRIMITIVE(Number_add) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -346,7 +346,7 @@ DEFINE_PRIMITIVE(Number_add) {
 
   if (IS_LINT_OP(left, right)) {
     LINT_VALUES;
-    LargeInteger* large_result = LargeInteger::Add(large_left, large_right, H);
+    LargeInteger large_result = LargeInteger::Add(large_left, large_right, H);
     RETURN_LINT(large_result);
   }
 
@@ -363,8 +363,8 @@ DEFINE_PRIMITIVE(Number_add) {
 
 
 DEFINE_PRIMITIVE(Number_subtract) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -385,7 +385,7 @@ DEFINE_PRIMITIVE(Number_subtract) {
 
   if (IS_LINT_OP(left, right)) {
     LINT_VALUES;
-    LargeInteger* large_result =
+    LargeInteger large_result =
         LargeInteger::Subtract(large_left, large_right, H);
     RETURN_LINT(large_result);
   }
@@ -403,8 +403,8 @@ DEFINE_PRIMITIVE(Number_subtract) {
 
 
 DEFINE_PRIMITIVE(Number_multiply) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
 #if defined(ARCH_IS_32_BIT)
     int64_t raw_left = SMI_VALUE(left);
@@ -438,7 +438,7 @@ DEFINE_PRIMITIVE(Number_multiply) {
 
   if (IS_LINT_OP(left, right)) {
     LINT_VALUES;
-    LargeInteger* large_result =
+    LargeInteger large_result =
         LargeInteger::Multiply(large_left, large_right, H);
     RETURN_LINT(large_result);
   }
@@ -456,8 +456,8 @@ DEFINE_PRIMITIVE(Number_multiply) {
 
 
 DEFINE_PRIMITIVE(Number_divide) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -493,11 +493,11 @@ DEFINE_PRIMITIVE(Number_divide) {
     if (large_right->size() == 0) {
       return kFailure;  // Division by zero.
     }
-    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kExact,
-                                                      LargeInteger::kQuoitent,
-                                                      large_left,
-                                                      large_right, H);
-    if (large_result == NULL) {
+    LargeInteger large_result = LargeInteger::Divide(LargeInteger::kExact,
+                                                     LargeInteger::kQuoitent,
+                                                     large_left,
+                                                     large_right, H);
+    if (large_result == nullptr) {
       return kFailure;  // Inexact division.
     }
     RETURN_LINT(large_result);
@@ -516,8 +516,8 @@ DEFINE_PRIMITIVE(Number_divide) {
 
 
 DEFINE_PRIMITIVE(Number_div) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -547,10 +547,10 @@ DEFINE_PRIMITIVE(Number_div) {
     if (large_right->size() == 0) {
       return kFailure;  // Division by zero.
     }
-    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kFloored,
-                                                      LargeInteger::kQuoitent,
-                                                      large_left,
-                                                      large_right, H);
+    LargeInteger large_result = LargeInteger::Divide(LargeInteger::kFloored,
+                                                     LargeInteger::kQuoitent,
+                                                     large_left,
+                                                     large_right, H);
     RETURN_LINT(large_result);
   }
 
@@ -571,8 +571,8 @@ DEFINE_PRIMITIVE(Number_div) {
 
 
 DEFINE_PRIMITIVE(Number_mod) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -602,10 +602,10 @@ DEFINE_PRIMITIVE(Number_mod) {
     if (large_right->size() == 0) {
       return kFailure;  // Division by zero.
     }
-    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kFloored,
-                                                      LargeInteger::kRemainder,
-                                                      large_left,
-                                                      large_right, H);
+    LargeInteger large_result = LargeInteger::Divide(LargeInteger::kFloored,
+                                                     LargeInteger::kRemainder,
+                                                     large_left,
+                                                     large_right, H);
     RETURN_LINT(large_result);
   }
 
@@ -614,8 +614,8 @@ DEFINE_PRIMITIVE(Number_mod) {
 
 
 DEFINE_PRIMITIVE(Number_quo) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -645,10 +645,10 @@ DEFINE_PRIMITIVE(Number_quo) {
     if (large_right->size() == 0) {
       return kFailure;  // Division by zero.
     }
-    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kTruncated,
-                                                      LargeInteger::kQuoitent,
-                                                      large_left,
-                                                      large_right, H);
+    LargeInteger large_result = LargeInteger::Divide(LargeInteger::kTruncated,
+                                                     LargeInteger::kQuoitent,
+                                                     large_left,
+                                                     large_right, H);
     RETURN_LINT(large_result);
   }
 
@@ -657,8 +657,8 @@ DEFINE_PRIMITIVE(Number_quo) {
 
 
 DEFINE_PRIMITIVE(Number_rem) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -688,10 +688,10 @@ DEFINE_PRIMITIVE(Number_rem) {
     if (large_right->size() == 0) {
       return kFailure;  // Division by zero.
     }
-    LargeInteger* large_result = LargeInteger::Divide(LargeInteger::kTruncated,
-                                                      LargeInteger::kRemainder,
-                                                      large_left,
-                                                      large_right, H);
+    LargeInteger large_result = LargeInteger::Divide(LargeInteger::kTruncated,
+                                                     LargeInteger::kRemainder,
+                                                     large_left,
+                                                     large_right, H);
     RETURN_LINT(large_result);
   }
 
@@ -700,8 +700,8 @@ DEFINE_PRIMITIVE(Number_rem) {
 
 
 DEFINE_PRIMITIVE(Number_equal) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -731,8 +731,8 @@ DEFINE_PRIMITIVE(Number_equal) {
 
 
 DEFINE_PRIMITIVE(Number_less) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -762,8 +762,8 @@ DEFINE_PRIMITIVE(Number_less) {
 
 
 DEFINE_PRIMITIVE(Number_greater) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -793,8 +793,8 @@ DEFINE_PRIMITIVE(Number_greater) {
 
 
 DEFINE_PRIMITIVE(Number_lessOrEqual) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -824,8 +824,8 @@ DEFINE_PRIMITIVE(Number_lessOrEqual) {
 
 
 DEFINE_PRIMITIVE(Number_greaterOrEqual) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -856,10 +856,10 @@ DEFINE_PRIMITIVE(Number_greaterOrEqual) {
 
 DEFINE_PRIMITIVE(Number_asInteger) {
   ASSERT(num_args == 0);
-  Object* receiver = I->Stack(0);
+  Object receiver = I->Stack(0);
   if (receiver->IsFloat64()) {
-    double raw_receiver = static_cast<Float64*>(receiver)->value();
-    Object* result;
+    double raw_receiver = static_cast<Float64>(receiver)->value();
+    Object result;
     if (LargeInteger::FromDouble(raw_receiver, &result, H)) {
       RETURN(result);
     } else {
@@ -873,17 +873,17 @@ DEFINE_PRIMITIVE(Number_asInteger) {
 
 DEFINE_PRIMITIVE(Number_asDouble) {
   ASSERT(num_args == 0);
-  Object* receiver = I->Stack(0);
+  Object receiver = I->Stack(0);
   if (receiver->IsSmallInteger()) {
-    intptr_t raw_receiver = static_cast<SmallInteger*>(receiver)->value();
+    intptr_t raw_receiver = static_cast<SmallInteger>(receiver)->value();
     RETURN_FLOAT(static_cast<double>(raw_receiver));
   }
   if (receiver->IsMediumInteger()) {
-    int64_t raw_receiver = static_cast<MediumInteger*>(receiver)->value();
+    int64_t raw_receiver = static_cast<MediumInteger>(receiver)->value();
     RETURN_FLOAT(static_cast<double>(raw_receiver));
   }
   if (receiver->IsLargeInteger()) {
-    RETURN_FLOAT(LargeInteger::AsDouble(static_cast<LargeInteger*>(receiver)));
+    RETURN_FLOAT(LargeInteger::AsDouble(static_cast<LargeInteger>(receiver)));
   }
   UNIMPLEMENTED();
   return kFailure;
@@ -891,8 +891,8 @@ DEFINE_PRIMITIVE(Number_asDouble) {
 
 
 DEFINE_PRIMITIVE(Integer_bitAnd) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -909,7 +909,7 @@ DEFINE_PRIMITIVE(Integer_bitAnd) {
 
   if (IS_LINT_OP(left, right)) {
     LINT_VALUES;
-    LargeInteger* large_result = LargeInteger::And(large_left, large_right, H);
+    LargeInteger large_result = LargeInteger::And(large_left, large_right, H);
     RETURN_LINT(large_result);
   }
 
@@ -918,8 +918,8 @@ DEFINE_PRIMITIVE(Integer_bitAnd) {
 
 
 DEFINE_PRIMITIVE(Integer_bitOr) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -936,7 +936,7 @@ DEFINE_PRIMITIVE(Integer_bitOr) {
 
   if (IS_LINT_OP(left, right)) {
     LINT_VALUES;
-    LargeInteger* large_result = LargeInteger::Or(large_left, large_right, H);
+    LargeInteger large_result = LargeInteger::Or(large_left, large_right, H);
     RETURN_LINT(large_result);
   }
 
@@ -945,8 +945,8 @@ DEFINE_PRIMITIVE(Integer_bitOr) {
 
 
 DEFINE_PRIMITIVE(Integer_bitXor) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -963,7 +963,7 @@ DEFINE_PRIMITIVE(Integer_bitXor) {
 
   if (IS_LINT_OP(left, right)) {
     LINT_VALUES;
-    LargeInteger* large_result = LargeInteger::Xor(large_left, large_right, H);
+    LargeInteger large_result = LargeInteger::Xor(large_left, large_right, H);
     RETURN_LINT(large_result);
   }
 
@@ -972,8 +972,8 @@ DEFINE_PRIMITIVE(Integer_bitXor) {
 
 
 DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -1002,10 +1002,10 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
   }
 
   if (IS_LINT_OP(left, right)) {
-    LargeInteger* large_left = LargeInteger::Expand(left, H);
+    LargeInteger large_left = LargeInteger::Expand(left, H);
     right = I->Stack(0);
     if (right->IsLargeInteger()) {
-      if (static_cast<LargeInteger*>(right)->negative()) {
+      if (static_cast<LargeInteger>(right)->negative()) {
         return kFailure;
       }
       OUT_OF_MEMORY();
@@ -1021,7 +1021,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
     if (raw_right < 0) {
       return kFailure;
     }
-    LargeInteger* large_result =
+    LargeInteger large_result =
         LargeInteger::ShiftLeft(large_left, raw_right, H);
     RETURN_LINT(large_result);
   }
@@ -1031,8 +1031,8 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
 
 
 DEFINE_PRIMITIVE(Integer_bitShiftRight) {
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
     intptr_t raw_left = SMI_VALUE(left);
     intptr_t raw_right = SMI_VALUE(right);
@@ -1060,10 +1060,10 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
   }
 
   if (IS_LINT_OP(left, right)) {
-    LargeInteger* large_left = LargeInteger::Expand(left, H);
+    LargeInteger large_left = LargeInteger::Expand(left, H);
     right = I->Stack(0);
     if (right->IsLargeInteger()) {
-      if (static_cast<LargeInteger*>(right)->negative()) {
+      if (static_cast<LargeInteger>(right)->negative()) {
         return kFailure;
       }
       // Shift leaves only sign bit.
@@ -1089,7 +1089,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
       RETURN_SMI(raw_result);
     }
 
-    LargeInteger* large_result =
+    LargeInteger large_result =
         LargeInteger::ShiftRight(large_left, raw_right, H);
     RETURN_LINT(large_result);
   }
@@ -1100,7 +1100,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
 
 #define FLOAT_FUNCTION_1(func)                                  \
   ASSERT(num_args == 0);                                        \
-  Float64* rcvr = static_cast<Float64*>(I->Stack(0));           \
+  Float64 rcvr = static_cast<Float64>(I->Stack(0));             \
   if (!rcvr->IsFloat64()) {                                     \
     return kFailure;                                            \
   }                                                             \
@@ -1109,8 +1109,8 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
 
 #define FLOAT_FUNCTION_2(func)                                  \
   ASSERT(num_args == 1);                                        \
-  Float64* rcvr = static_cast<Float64*>(I->Stack(1));           \
-  Float64* arg = static_cast<Float64*>(I->Stack(0));            \
+  Float64 rcvr = static_cast<Float64>(I->Stack(1));             \
+  Float64 arg = static_cast<Float64>(I->Stack(0));              \
   if (!rcvr->IsFloat64()) {                                     \
     return kFailure;                                            \
   }                                                             \
@@ -1140,25 +1140,25 @@ DEFINE_PRIMITIVE(Double_pow) { FLOAT_FUNCTION_2(pow); }
 DEFINE_PRIMITIVE(Behavior_basicNew) {
   ASSERT((num_args == 0) || (num_args == 1));
 
-  Behavior* behavior = static_cast<Behavior*>(I->Stack(0));
+  Behavior behavior = static_cast<Behavior>(I->Stack(0));
   ASSERT(behavior->IsRegularObject());
   behavior->AssertCouldBeBehavior();
-  SmallInteger* id = behavior->id();
+  SmallInteger id = behavior->id();
   if (id == nil) {
     id = SmallInteger::New(H->AllocateClassId());  // SAFEPOINT
-    behavior = static_cast<Behavior*>(I->Stack(0));
+    behavior = static_cast<Behavior>(I->Stack(0));
     behavior->set_id(id);
     H->RegisterClass(id->value(), behavior);
   }
   ASSERT(id->IsSmallInteger());
   ASSERT(H->ClassAt(id->value()) == behavior);
-  SmallInteger* format = behavior->format();
+  SmallInteger format = behavior->format();
   ASSERT(format->IsSmallInteger());
   intptr_t num_slots = format->value();
   ASSERT(num_slots >= 0);
   ASSERT(num_slots < 255);
 
-  RegularObject* new_instance = H->AllocateRegularObject(id->value(),
+  RegularObject new_instance = H->AllocateRegularObject(id->value(),
                                                          num_slots);
   for (intptr_t i = 0; i < num_slots; i++) {
     new_instance->set_slot(i, nil, kNoBarrier);
@@ -1169,7 +1169,7 @@ DEFINE_PRIMITIVE(Behavior_basicNew) {
 
 DEFINE_PRIMITIVE(Object_instVarAt) {
   ASSERT(num_args == 2);  // Always a mirror primitive.
-  RegularObject* object = static_cast<RegularObject*>(I->Stack(1));
+  RegularObject object = static_cast<RegularObject>(I->Stack(1));
   if (!object->IsRegularObject() && !object->IsEphemeron()) {
     return kFailure;
   }
@@ -1183,7 +1183,7 @@ DEFINE_PRIMITIVE(Object_instVarAt) {
 
 DEFINE_PRIMITIVE(Object_instVarAtPut) {
   ASSERT(num_args == 3);  // Always a mirror primitive.
-  RegularObject* object = static_cast<RegularObject*>(I->Stack(2));
+  RegularObject object = static_cast<RegularObject>(I->Stack(2));
   if (!object->IsRegularObject() && !object->IsEphemeron()) {
     return kFailure;
   }
@@ -1191,7 +1191,7 @@ DEFINE_PRIMITIVE(Object_instVarAtPut) {
   if ((index <= 0) || (index > object->Klass(H)->format()->value())) {
     return kFailure;
   }
-  Object* value = I->Stack(0);
+  Object value = I->Stack(0);
   object->set_slot(index - 1, value);
   RETURN(value);
 }
@@ -1206,7 +1206,7 @@ DEFINE_PRIMITIVE(Array_class_new) {
   if (length < 0) {
     return kFailure;
   }
-  Array* result = H->AllocateArray(length);  // SAFEPOINT
+  Array result = H->AllocateArray(length);  // SAFEPOINT
   for (intptr_t i = 0; i < length; i++) {
     result->set_element(i, nil, kNoBarrier);
   }
@@ -1216,7 +1216,7 @@ DEFINE_PRIMITIVE(Array_class_new) {
 
 DEFINE_PRIMITIVE(Array_at) {
   ASSERT(num_args == 1);
-  Array* array = static_cast<Array*>(I->Stack(1));
+  Array array = static_cast<Array>(I->Stack(1));
   ASSERT(array->IsArray());
   SMI_ARGUMENT(index, 0);
   index--;
@@ -1229,14 +1229,14 @@ DEFINE_PRIMITIVE(Array_at) {
 
 DEFINE_PRIMITIVE(Array_atPut) {
   ASSERT(num_args == 2);
-  Array* array = static_cast<Array*>(I->Stack(2));
+  Array array = static_cast<Array>(I->Stack(2));
   ASSERT(array->IsArray());
   SMI_ARGUMENT(index, 1);
   index--;
   if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
-  Object* value = I->Stack(0);
+  Object value = I->Stack(0);
   array->set_element(index, value);
   RETURN(value);
 }
@@ -1244,7 +1244,7 @@ DEFINE_PRIMITIVE(Array_atPut) {
 
 DEFINE_PRIMITIVE(Array_size) {
   ASSERT(num_args == 0);
-  Array* array = static_cast<Array*>(I->Stack(0));
+  Array array = static_cast<Array>(I->Stack(0));
   ASSERT(array->IsArray());
   RETURN(array->size());
 }
@@ -1256,7 +1256,7 @@ DEFINE_PRIMITIVE(WeakArray_class_new) {
   if (length < 0) {
     return kFailure;
   }
-  WeakArray* result = H->AllocateWeakArray(length);  // SAFEPOINT
+  WeakArray result = H->AllocateWeakArray(length);  // SAFEPOINT
   for (intptr_t i = 0; i < length; i++) {
     result->set_element(i, nil, kNoBarrier);
   }
@@ -1266,7 +1266,7 @@ DEFINE_PRIMITIVE(WeakArray_class_new) {
 
 DEFINE_PRIMITIVE(WeakArray_at) {
   ASSERT(num_args == 1);
-  WeakArray* array = static_cast<WeakArray*>(I->Stack(1));
+  WeakArray array = static_cast<WeakArray>(I->Stack(1));
   ASSERT(array->IsWeakArray());
   SMI_ARGUMENT(index, 0);
   index--;
@@ -1279,14 +1279,14 @@ DEFINE_PRIMITIVE(WeakArray_at) {
 
 DEFINE_PRIMITIVE(WeakArray_atPut) {
   ASSERT(num_args == 2);
-  WeakArray* array = static_cast<WeakArray*>(I->Stack(2));
+  WeakArray array = static_cast<WeakArray>(I->Stack(2));
   ASSERT(array->IsWeakArray());
   SMI_ARGUMENT(index, 1);
   index--;
   if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
-  Object* value = I->Stack(0);
+  Object value = I->Stack(0);
   array->set_element(index, value);
   RETURN(value);
 }
@@ -1294,7 +1294,7 @@ DEFINE_PRIMITIVE(WeakArray_atPut) {
 
 DEFINE_PRIMITIVE(WeakArray_size) {
   ASSERT(num_args == 0);
-  WeakArray* array = static_cast<WeakArray*>(I->Stack(0));
+  WeakArray array = static_cast<WeakArray>(I->Stack(0));
   ASSERT(array->IsWeakArray());
   RETURN(array->size());
 }
@@ -1306,7 +1306,7 @@ DEFINE_PRIMITIVE(ByteArray_class_new) {
   if (length < 0) {
     return kFailure;
   }
-  ByteArray* result = H->AllocateByteArray(length);  // SAFEPOINT
+  ByteArray result = H->AllocateByteArray(length);  // SAFEPOINT
   memset(result->element_addr(0), 0, length);
   RETURN(result);
 }
@@ -1314,7 +1314,7 @@ DEFINE_PRIMITIVE(ByteArray_class_new) {
 
 DEFINE_PRIMITIVE(ByteArray_at) {
   ASSERT(num_args == 1);
-  ByteArray* array = static_cast<ByteArray*>(I->Stack(1));
+  ByteArray array = static_cast<ByteArray>(I->Stack(1));
   ASSERT(array->IsByteArray());
   SMI_ARGUMENT(index, 0);
   index--;
@@ -1328,7 +1328,7 @@ DEFINE_PRIMITIVE(ByteArray_at) {
 
 DEFINE_PRIMITIVE(ByteArray_atPut) {
   ASSERT(num_args == 2);
-  ByteArray* array = static_cast<ByteArray*>(I->Stack(2));
+  ByteArray array = static_cast<ByteArray>(I->Stack(2));
   ASSERT(array->IsByteArray());
   SMI_ARGUMENT(index, 1);
   index--;
@@ -1346,7 +1346,7 @@ DEFINE_PRIMITIVE(ByteArray_atPut) {
 
 DEFINE_PRIMITIVE(ByteArray_size) {
   ASSERT(num_args == 0);
-  ByteArray* array = static_cast<ByteArray*>(I->Stack(0));
+  ByteArray array = static_cast<ByteArray>(I->Stack(0));
   ASSERT(array->IsByteArray());
   RETURN(array->size());
 }
@@ -1356,14 +1356,14 @@ DEFINE_PRIMITIVE(Bytes_copyByteArrayFromTo) {
   ASSERT(num_args == 2);
 
   if (!I->Stack(1)->IsSmallInteger()) return kFailure;
-  intptr_t start = static_cast<SmallInteger*>(I->Stack(1))->value();
+  intptr_t start = static_cast<SmallInteger>(I->Stack(1))->value();
 
   if (!I->Stack(0)->IsSmallInteger()) return kFailure;
-  intptr_t stop = static_cast<SmallInteger*>(I->Stack(0))->value();
+  intptr_t stop = static_cast<SmallInteger>(I->Stack(0))->value();
 
   if (!I->Stack(2)->IsBytes()) return kFailure;
 
-  Bytes* bytes = static_cast<Bytes*>(I->Stack(2));
+  Bytes bytes = static_cast<Bytes>(I->Stack(2));
   if ((start <= 0) || (stop > bytes->Size())) return kFailure;
 
   intptr_t subsize = stop - (start - 1);
@@ -1371,8 +1371,8 @@ DEFINE_PRIMITIVE(Bytes_copyByteArrayFromTo) {
     return kFailure;
   }
 
-  ByteArray* result = H->AllocateByteArray(subsize);  // SAFEPOINT
-  bytes = static_cast<Bytes*>(I->Stack(2));
+  ByteArray result = H->AllocateByteArray(subsize);  // SAFEPOINT
+  bytes = static_cast<Bytes>(I->Stack(2));
   memcpy(result->element_addr(0),
          bytes->element_addr(start - 1),
          subsize);
@@ -1382,13 +1382,13 @@ DEFINE_PRIMITIVE(Bytes_copyByteArrayFromTo) {
 
 DEFINE_PRIMITIVE(ByteArray_replaceFromToWithStartingAt) {
   ASSERT(num_args == 4);
-  ByteArray* receiver = static_cast<ByteArray*>(I->Stack(4));
+  ByteArray receiver = static_cast<ByteArray>(I->Stack(4));
   if (!receiver->IsByteArray()) {
     UNREACHABLE();
   }
   SMI_ARGUMENT(start, 3);
   SMI_ARGUMENT(stop, 2);
-  Bytes* replacement = static_cast<Bytes*>(I->Stack(1));
+  Bytes replacement = static_cast<Bytes>(I->Stack(1));
   if (!replacement->IsBytes()) {
     return kFailure;
   }
@@ -1424,13 +1424,13 @@ DEFINE_PRIMITIVE(ByteArray_replaceFromToWithStartingAt) {
 
 DEFINE_PRIMITIVE(Array_replaceFromToWithStartingAt) {
   ASSERT(num_args == 4);
-  Array* receiver = static_cast<Array*>(I->Stack(4));
+  Array receiver = static_cast<Array>(I->Stack(4));
   if (!receiver->IsArray()) {
     UNREACHABLE();
   }
   SMI_ARGUMENT(start, 3);
   SMI_ARGUMENT(stop, 2);
-  Array* replacement = static_cast<Array*>(I->Stack(1));
+  Array replacement = static_cast<Array>(I->Stack(1));
   if (!replacement->IsArray()) {
     return kFailure;
   }
@@ -1474,7 +1474,7 @@ DEFINE_PRIMITIVE(Array_replaceFromToWithStartingAt) {
 
 DEFINE_PRIMITIVE(String_at) {
   ASSERT(num_args == 1);
-  String* string = static_cast<String*>(I->Stack(1));
+  String string = static_cast<String>(I->Stack(1));
   ASSERT(string->IsString());
   SMI_ARGUMENT(index, 0);
   index--;
@@ -1488,7 +1488,7 @@ DEFINE_PRIMITIVE(String_at) {
 
 DEFINE_PRIMITIVE(String_size) {
   ASSERT(num_args == 0);
-  String* string = static_cast<String*>(I->Stack(0));
+  String string = static_cast<String>(I->Stack(0));
   ASSERT(string->IsString());
   RETURN(string->size());
 }
@@ -1496,16 +1496,16 @@ DEFINE_PRIMITIVE(String_size) {
 
 DEFINE_PRIMITIVE(String_hash) {
   ASSERT(num_args == 0);
-  String* string = static_cast<String*>(I->Stack(0));
+  String string = static_cast<String>(I->Stack(0));
   ASSERT(string->IsString());
-  SmallInteger* hash = string->EnsureHash(I->isolate());
+  SmallInteger hash = string->EnsureHash(I->isolate());
   RETURN(hash);
 }
 
 
 DEFINE_PRIMITIVE(Activation_sender) {
   ASSERT(num_args == 0);
-  Activation* activation = static_cast<Activation*>(I->Stack(0));
+  Activation activation = static_cast<Activation>(I->Stack(0));
   ASSERT(activation->IsActivation());
   RETURN(I->ActivationSender(activation));  // SAFEPOINT
 }
@@ -1513,9 +1513,9 @@ DEFINE_PRIMITIVE(Activation_sender) {
 
 DEFINE_PRIMITIVE(Activation_senderPut) {
   ASSERT(num_args == 1);
-  Activation* activation = static_cast<Activation*>(I->Stack(1));
+  Activation activation = static_cast<Activation>(I->Stack(1));
   ASSERT(activation->IsActivation());
-  Activation* new_sender = static_cast<Activation*>(I->Stack(0));
+  Activation new_sender = static_cast<Activation>(I->Stack(0));
   if (!new_sender->IsActivation() && (new_sender != nil)) {
     return kFailure;
   }
@@ -1526,7 +1526,7 @@ DEFINE_PRIMITIVE(Activation_senderPut) {
 
 DEFINE_PRIMITIVE(Activation_bci) {
   ASSERT(num_args == 0);
-  Activation* activation = static_cast<Activation*>(I->Stack(0));
+  Activation activation = static_cast<Activation>(I->Stack(0));
   ASSERT(activation->IsActivation());
   RETURN(I->ActivationBCI(activation));
 }
@@ -1534,9 +1534,9 @@ DEFINE_PRIMITIVE(Activation_bci) {
 
 DEFINE_PRIMITIVE(Activation_bciPut) {
   ASSERT(num_args == 1);
-  Activation* activation = static_cast<Activation*>(I->Stack(1));
+  Activation activation = static_cast<Activation>(I->Stack(1));
   ASSERT(activation->IsActivation());
-  SmallInteger* new_bci = static_cast<SmallInteger*>(I->Stack(0));
+  SmallInteger new_bci = static_cast<SmallInteger>(I->Stack(0));
   if (!new_bci->IsSmallInteger() && (new_bci != nil)) {
     return kFailure;
   }
@@ -1547,7 +1547,7 @@ DEFINE_PRIMITIVE(Activation_bciPut) {
 
 DEFINE_PRIMITIVE(Activation_method) {
   ASSERT(num_args == 0);
-  Activation* activation = static_cast<Activation*>(I->Stack(0));
+  Activation activation = static_cast<Activation>(I->Stack(0));
   ASSERT(activation->IsActivation());
   // No frame state to sync.
   RETURN(activation->method());
@@ -1556,9 +1556,9 @@ DEFINE_PRIMITIVE(Activation_method) {
 
 DEFINE_PRIMITIVE(Activation_methodPut) {
   ASSERT(num_args == 1);
-  Activation* activation = static_cast<Activation*>(I->Stack(1));
+  Activation activation = static_cast<Activation>(I->Stack(1));
   ASSERT(activation->IsActivation());
-  Method* new_method = static_cast<Method*>(I->Stack(0));
+  Method new_method = static_cast<Method>(I->Stack(0));
   I->ActivationMethodPut(activation, new_method);  // SAFEPOINT
   RETURN_SELF();
 }
@@ -1566,7 +1566,7 @@ DEFINE_PRIMITIVE(Activation_methodPut) {
 
 DEFINE_PRIMITIVE(Activation_closure) {
   ASSERT(num_args == 0);
-  Activation* activation = static_cast<Activation*>(I->Stack(0));
+  Activation activation = static_cast<Activation>(I->Stack(0));
   ASSERT(activation->IsActivation());
   // No frame state to sync.
   RETURN(activation->closure());
@@ -1575,9 +1575,9 @@ DEFINE_PRIMITIVE(Activation_closure) {
 
 DEFINE_PRIMITIVE(Activation_closurePut) {
   ASSERT(num_args == 1);
-  Activation* activation = static_cast<Activation*>(I->Stack(1));
+  Activation activation = static_cast<Activation>(I->Stack(1));
   ASSERT(activation->IsActivation());
-  Closure* new_closure = static_cast<Closure*>(I->Stack(0));
+  Closure new_closure = static_cast<Closure>(I->Stack(0));
   if (!new_closure->IsClosure() && (new_closure != nil)) {
     return kFailure;
   }
@@ -1588,7 +1588,7 @@ DEFINE_PRIMITIVE(Activation_closurePut) {
 
 DEFINE_PRIMITIVE(Activation_receiver) {
   ASSERT(num_args == 0);
-  Activation* activation = static_cast<Activation*>(I->Stack(0));
+  Activation activation = static_cast<Activation>(I->Stack(0));
   ASSERT(activation->IsActivation());
   // No frame state to sync.
   RETURN(activation->receiver());
@@ -1597,9 +1597,9 @@ DEFINE_PRIMITIVE(Activation_receiver) {
 
 DEFINE_PRIMITIVE(Activation_receiverPut) {
   ASSERT(num_args == 1);
-  Activation* activation = static_cast<Activation*>(I->Stack(1));
+  Activation activation = static_cast<Activation>(I->Stack(1));
   ASSERT(activation->IsActivation());
-  Object* new_receiver = I->Stack(0);
+  Object new_receiver = I->Stack(0);
   I->ActivationReceiverPut(activation, new_receiver);  // SAFEPOINT
   RETURN_SELF();
 }
@@ -1607,7 +1607,7 @@ DEFINE_PRIMITIVE(Activation_receiverPut) {
 
 DEFINE_PRIMITIVE(Activation_tempAt) {
   ASSERT(num_args == 1);
-  Activation* activation = static_cast<Activation*>(I->Stack(1));
+  Activation activation = static_cast<Activation>(I->Stack(1));
   ASSERT(activation->IsActivation());
   SMI_ARGUMENT(index, 0);
   index--;
@@ -1620,10 +1620,10 @@ DEFINE_PRIMITIVE(Activation_tempAt) {
 
 DEFINE_PRIMITIVE(Activation_tempAtPut) {
   ASSERT(num_args == 2);
-  Activation* activation = static_cast<Activation*>(I->Stack(2));
+  Activation activation = static_cast<Activation>(I->Stack(2));
   ASSERT(activation->IsActivation());
   SMI_ARGUMENT(index, 1);
-  Object* value = I->Stack(0);
+  Object value = I->Stack(0);
   index--;
   if ((index < 0) || (index >= I->ActivationTempSize(activation))) {
     return kFailure;
@@ -1636,7 +1636,7 @@ DEFINE_PRIMITIVE(Activation_tempAtPut) {
 
 DEFINE_PRIMITIVE(Activation_tempSize) {
   ASSERT(num_args == 0);
-  Activation* activation = static_cast<Activation*>(I->Stack(0));
+  Activation activation = static_cast<Activation>(I->Stack(0));
   ASSERT(activation->IsActivation());
   RETURN_SMI(I->ActivationTempSize(activation));
 }
@@ -1644,10 +1644,10 @@ DEFINE_PRIMITIVE(Activation_tempSize) {
 
 DEFINE_PRIMITIVE(Activation_tempSizePut) {
   ASSERT(num_args == 1);
-  Activation* activation = static_cast<Activation*>(I->Stack(1));
+  Activation activation = static_cast<Activation>(I->Stack(1));
   ASSERT(activation->IsActivation());
   SMI_ARGUMENT(new_size, 0);
-  if ((new_size < 0) || (new_size > Activation::kMaxTemps)) {
+  if ((new_size < 0) || (new_size > kMaxTemps)) {
     return kFailure;
   }
   I->ActivationTempSizePut(activation, new_size);  // SAFEPOINT
@@ -1657,11 +1657,11 @@ DEFINE_PRIMITIVE(Activation_tempSizePut) {
 
 DEFINE_PRIMITIVE(Activation_class_new) {
   ASSERT(num_args == 0);
-  Activation* result = H->AllocateActivation();  // SAFEPOINT
-  result->set_sender(static_cast<Activation*>(nil), kNoBarrier);
-  result->set_bci(static_cast<SmallInteger*>(nil));
-  result->set_method(static_cast<Method*>(nil), kNoBarrier);
-  result->set_closure(static_cast<Closure*>(nil), kNoBarrier);
+  Activation result = H->AllocateActivation();  // SAFEPOINT
+  result->set_sender(static_cast<Activation>(nil), kNoBarrier);
+  result->set_bci(static_cast<SmallInteger>(nil));
+  result->set_method(static_cast<Method>(nil), kNoBarrier);
+  result->set_closure(static_cast<Closure>(nil), kNoBarrier);
   result->set_receiver(nil, kNoBarrier);
   result->set_stack_depth(SmallInteger::New(0));
   RETURN(result);
@@ -1670,10 +1670,10 @@ DEFINE_PRIMITIVE(Activation_class_new) {
 
 DEFINE_PRIMITIVE(Closure_class_new) {
   ASSERT(num_args == 4);
-  Activation* defining_activation = static_cast<Activation*>(I->Stack(3));
-  SmallInteger* initial_bci = static_cast<SmallInteger*>(I->Stack(2));
-  SmallInteger* closure_num_args = static_cast<SmallInteger*>(I->Stack(1));
-  SmallInteger* num_copied = static_cast<SmallInteger*>(I->Stack(0));
+  Activation defining_activation = static_cast<Activation>(I->Stack(3));
+  SmallInteger initial_bci = static_cast<SmallInteger>(I->Stack(2));
+  SmallInteger closure_num_args = static_cast<SmallInteger>(I->Stack(1));
+  SmallInteger num_copied = static_cast<SmallInteger>(I->Stack(0));
   if (!defining_activation->IsActivation()) {
     return kFailure;
   }
@@ -1690,11 +1690,11 @@ DEFINE_PRIMITIVE(Closure_class_new) {
     return kFailure;
   }
 
-  Closure* result = H->AllocateClosure(num_copied->value());  // SAFEPOINT
-  defining_activation = static_cast<Activation*>(I->Stack(3));
-  initial_bci = static_cast<SmallInteger*>(I->Stack(2));
-  closure_num_args = static_cast<SmallInteger*>(I->Stack(1));
-  num_copied = static_cast<SmallInteger*>(I->Stack(0));
+  Closure result = H->AllocateClosure(num_copied->value());  // SAFEPOINT
+  defining_activation = static_cast<Activation>(I->Stack(3));
+  initial_bci = static_cast<SmallInteger>(I->Stack(2));
+  closure_num_args = static_cast<SmallInteger>(I->Stack(1));
+  num_copied = static_cast<SmallInteger>(I->Stack(0));
 
   result->set_defining_activation(defining_activation);
   result->set_initial_bci(initial_bci);
@@ -1709,7 +1709,7 @@ DEFINE_PRIMITIVE(Closure_class_new) {
 
 DEFINE_PRIMITIVE(Closure_numCopied) {
   ASSERT(num_args == 1);
-  Closure* subject = static_cast<Closure*>(I->Stack(0));
+  Closure subject = static_cast<Closure>(I->Stack(0));
   if (!subject->IsClosure()) {
     UNIMPLEMENTED();
   }
@@ -1719,7 +1719,7 @@ DEFINE_PRIMITIVE(Closure_numCopied) {
 
 DEFINE_PRIMITIVE(Closure_definingActivation) {
   ASSERT(num_args == 0 || num_args == 1);
-  Closure* subject = static_cast<Closure*>(I->Stack(0));
+  Closure subject = static_cast<Closure>(I->Stack(0));
   if (!subject->IsClosure()) {
     UNIMPLEMENTED();
   }
@@ -1735,7 +1735,7 @@ DEFINE_PRIMITIVE(Closure_definingActivationPut) {
 
 DEFINE_PRIMITIVE(Closure_initialBci) {
   ASSERT(num_args == 1);
-  Closure* subject = static_cast<Closure*>(I->Stack(0));
+  Closure subject = static_cast<Closure>(I->Stack(0));
   if (!subject->IsClosure()) {
     UNIMPLEMENTED();
   }
@@ -1748,7 +1748,7 @@ DEFINE_PRIMITIVE(Closure_initialBciPut) { UNIMPLEMENTED(); return kSuccess; }
 
 DEFINE_PRIMITIVE(Closure_numArgs) {
   ASSERT(num_args == 0);
-  Closure* rcvr = static_cast<Closure*>(I->Stack(0));
+  Closure rcvr = static_cast<Closure>(I->Stack(0));
   if (!rcvr->IsClosure()) {
     UNREACHABLE();
     return kFailure;
@@ -1762,8 +1762,8 @@ DEFINE_PRIMITIVE(Closure_numArgsPut) { UNIMPLEMENTED(); return kSuccess; }
 
 DEFINE_PRIMITIVE(Closure_copiedAt) {
   ASSERT(num_args == 2);
-  Closure* receiver = static_cast<Closure*>(I->Stack(1));
-  SmallInteger* index = static_cast<SmallInteger*>(I->Stack(0));
+  Closure receiver = static_cast<Closure>(I->Stack(1));
+  SmallInteger index = static_cast<SmallInteger>(I->Stack(0));
   if (!receiver->IsClosure()) {
     return kFailure;
   }
@@ -1776,16 +1776,16 @@ DEFINE_PRIMITIVE(Closure_copiedAt) {
   if (index->value() > receiver->NumCopied()) {
     return kFailure;
   }
-  Object* value = receiver->copied(index->value() - 1);
+  Object value = receiver->copied(index->value() - 1);
   RETURN(value);
 }
 
 
 DEFINE_PRIMITIVE(Closure_copiedAtPut) {
   ASSERT(num_args == 3);
-  Closure* receiver = static_cast<Closure*>(I->Stack(2));
-  SmallInteger* index = static_cast<SmallInteger*>(I->Stack(1));
-  Object* value = I->Stack(0);
+  Closure receiver = static_cast<Closure>(I->Stack(2));
+  SmallInteger index = static_cast<SmallInteger>(I->Stack(1));
+  Object value = I->Stack(0);
   if (!receiver->IsClosure()) {
     return kFailure;
   }
@@ -1805,45 +1805,45 @@ DEFINE_PRIMITIVE(Closure_copiedAtPut) {
 
 DEFINE_PRIMITIVE(Object_class) {
   ASSERT((num_args == 0) || (num_args == 1));
-  Object* subject = I->Stack(0);
+  Object subject = I->Stack(0);
   RETURN(subject->Klass(H));
 }
 
 
 DEFINE_PRIMITIVE(Object_identical) {
   ASSERT(num_args == 1 || num_args == 2);
-  Object* left = I->Stack(1);
-  Object* right = I->Stack(0);
+  Object left = I->Stack(1);
+  Object right = I->Stack(0);
   RETURN_BOOL(left == right);
 }
 
 
 DEFINE_PRIMITIVE(Object_identityHash) {
   ASSERT(num_args == 0 || num_args == 1);
-  Object* receiver = I->Stack(0);
+  Object receiver = I->Stack(0);
   intptr_t hash;
   if (receiver->IsSmallInteger()) {
-    hash = static_cast<SmallInteger*>(receiver)->value();
+    hash = static_cast<SmallInteger>(receiver)->value();
     if (hash == 0) {
       hash = 1;
     }
   } else if (receiver->IsMediumInteger()) {
-    hash = static_cast<MediumInteger*>(receiver)->value();
+    hash = static_cast<MediumInteger>(receiver)->value();
     hash &= SmallInteger::kMaxValue;
     if (hash == 0) {
       hash = 1;
     }
   } else if (receiver->IsString()) {
-    static_cast<String*>(receiver)->EnsureHash(I->isolate());
-    hash = static_cast<String*>(receiver)->header_hash();
+    static_cast<String>(receiver)->EnsureHash(I->isolate());
+    hash = static_cast<String>(receiver)->header_hash();
   } else {
-    hash = static_cast<HeapObject*>(receiver)->header_hash();
+    hash = static_cast<HeapObject>(receiver)->header_hash();
     if (hash == 0) {
       hash = I->isolate()->random().NextUInt64() & SmallInteger::kMaxValue;
       if (hash == 0) {
         hash = 1;
       }
-      static_cast<HeapObject*>(receiver)->set_header_hash(hash);
+      static_cast<HeapObject>(receiver)->set_header_hash(hash);
     }
   }
   RETURN_SMI(hash);
@@ -1853,9 +1853,9 @@ DEFINE_PRIMITIVE(Object_identityHash) {
 DEFINE_PRIMITIVE(Object_performWithAll) {
   ASSERT(num_args == 3);
 
-  Object* receiver = I->Stack(2);
-  String* selector = static_cast<String*>(I->Stack(1));
-  Array* arguments = static_cast<Array*>(I->Stack(0));
+  Object receiver = I->Stack(2);
+  String selector = static_cast<String>(I->Stack(1));
+  Array arguments = static_cast<Array>(I->Stack(0));
 
   if (!selector->IsString() ||
       !selector->is_canonical() ||
@@ -1879,7 +1879,7 @@ DEFINE_PRIMITIVE(Object_performWithAll) {
 
 DEFINE_PRIMITIVE(Closure_value0) {
   ASSERT(num_args == 0);
-  Closure* closure = static_cast<Closure*>(I->Stack(num_args));
+  Closure closure = static_cast<Closure>(I->Stack(num_args));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != SmallInteger::New(0)) {
     return kFailure;
@@ -1892,7 +1892,7 @@ DEFINE_PRIMITIVE(Closure_value0) {
 
 DEFINE_PRIMITIVE(Closure_value1) {
   ASSERT(num_args == 1);
-  Closure* closure = static_cast<Closure*>(I->Stack(num_args));
+  Closure closure = static_cast<Closure>(I->Stack(num_args));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != SmallInteger::New(1)) {
     return kFailure;
@@ -1905,7 +1905,7 @@ DEFINE_PRIMITIVE(Closure_value1) {
 
 DEFINE_PRIMITIVE(Closure_value2) {
   ASSERT(num_args == 2);
-  Closure* closure = static_cast<Closure*>(I->Stack(num_args));
+  Closure closure = static_cast<Closure>(I->Stack(num_args));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != SmallInteger::New(2)) {
     return kFailure;
@@ -1918,7 +1918,7 @@ DEFINE_PRIMITIVE(Closure_value2) {
 
 DEFINE_PRIMITIVE(Closure_value3) {
   ASSERT(num_args == 3);
-  Closure* closure = static_cast<Closure*>(I->Stack(num_args));
+  Closure closure = static_cast<Closure>(I->Stack(num_args));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != SmallInteger::New(3)) {
     return kFailure;
@@ -1931,9 +1931,9 @@ DEFINE_PRIMITIVE(Closure_value3) {
 
 DEFINE_PRIMITIVE(Closure_valueArray) {
   ASSERT(num_args == 1);
-  Closure* closure = static_cast<Closure*>(I->Stack(1));
+  Closure closure = static_cast<Closure>(I->Stack(1));
   ASSERT(closure->IsClosure());
-  Array* args = static_cast<Array*>(I->Stack(0));
+  Array args = static_cast<Array>(I->Stack(0));
   if (!args->IsArray() || args->size() != closure->num_args()) {
     return kFailure;
   }
@@ -1951,7 +1951,7 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
 
 DEFINE_PRIMITIVE(Activation_jump) {
   ASSERT(num_args == 1);
-  Activation* target = static_cast<Activation*>(I->Stack(0));
+  Activation target = static_cast<Activation>(I->Stack(0));
   if (!target->IsActivation() ||
       !target->bci()->IsSmallInteger()) {
     return kFailure;
@@ -1965,13 +1965,13 @@ DEFINE_PRIMITIVE(Activation_jump) {
 
 DEFINE_PRIMITIVE(Behavior_allInstances) {
   ASSERT(num_args == 1);
-  Behavior* cls = static_cast<Behavior*>(I->Stack(0));
+  Behavior cls = static_cast<Behavior>(I->Stack(0));
   if (!cls->IsRegularObject()) {
     UNREACHABLE();
   }
   if (cls->id() == nil) {
     // Class not yet registered: no instance has been allocated.
-    Array* result = H->AllocateArray(0);  // SAFEPOINT
+    Array result = H->AllocateArray(0);  // SAFEPOINT
     RETURN(result);
   }
 
@@ -1984,7 +1984,7 @@ DEFINE_PRIMITIVE(Behavior_allInstances) {
   if (cid == kArrayCid) {
     num_instances++;
   }
-  Array* result = H->AllocateArray(num_instances);  // SAFEPOINT
+  Array result = H->AllocateArray(num_instances);  // SAFEPOINT
   result->set_size(SmallInteger::New(num_instances));
   intptr_t num_instances2 = H->CollectInstances(cid, result);
 
@@ -1999,8 +1999,8 @@ DEFINE_PRIMITIVE(Behavior_allInstances) {
 
 DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
   ASSERT(num_args == 2);
-  Array* left = static_cast<Array*>(I->Stack(1));
-  Array* right = static_cast<Array*>(I->Stack(0));
+  Array left = static_cast<Array>(I->Stack(1));
+  Array right = static_cast<Array>(I->Stack(0));
   if (left->IsArray() && right->IsArray()) {
     if (H->BecomeForward(left, right)) {
       RETURN_SELF();
@@ -2013,7 +2013,7 @@ DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
 DEFINE_PRIMITIVE(Platform_operatingSystem) {
   const char* name = OS::Name();
   intptr_t length = strlen(name);
-  String* result = H->AllocateString(length);  // SAFEPOINT
+  String result = H->AllocateString(length);  // SAFEPOINT
   memcpy(result->element_addr(0), name, length);
   RETURN(result);
 }
@@ -2033,9 +2033,9 @@ DEFINE_PRIMITIVE(print) {
   ASSERT(num_args == 1);
   ASSERT(I->StackDepth() >= 2);
 
-  Object* message = I->Stack(0);
+  Object message = I->Stack(0);
   if (message->IsString()) {
-    String* string = static_cast<String*>(message);
+    String string = static_cast<String>(message);
     const char* cstr =
         reinterpret_cast<const char*>(string->element_addr(0));
     OS::Print("%.*s\n", static_cast<int>(string->Size()), cstr);
@@ -2073,7 +2073,7 @@ DEFINE_PRIMITIVE(collectGarbage) {
 
 DEFINE_PRIMITIVE(MessageLoop_exit) {
   ASSERT(num_args == 1);
-  SmallInteger* exit_code = static_cast<SmallInteger*>(I->Stack(0));
+  SmallInteger exit_code = static_cast<SmallInteger>(I->Stack(0));
   if (!exit_code->IsSmallInteger()) {
     return kFailure;
   }
@@ -2101,7 +2101,7 @@ DEFINE_PRIMITIVE(Double_asStringFixed) {
   }
   ASSERT(length < 64);
 
-  String* result = H->AllocateString(length);  // SAFEPOINT
+  String result = H->AllocateString(length);  // SAFEPOINT
   memcpy(result->element_addr(0), buffer, length);
   RETURN(result);
 }
@@ -2119,7 +2119,7 @@ DEFINE_PRIMITIVE(Double_asStringExponential) {
                                                  buffer, sizeof(buffer));
   ASSERT(length < 64);
 
-  String* result = H->AllocateString(length);  // SAFEPOINT
+  String result = H->AllocateString(length);  // SAFEPOINT
   memcpy(result->element_addr(0), buffer, length);
   RETURN(result);
 }
@@ -2137,36 +2137,36 @@ DEFINE_PRIMITIVE(Double_asStringPrecision) {
                                                buffer, sizeof(buffer));
   ASSERT(length < 64);
 
-  String* result = H->AllocateString(length);  // SAFEPOINT
+  String result = H->AllocateString(length);  // SAFEPOINT
   memcpy(result->element_addr(0), buffer, length);
   RETURN(result);
 }
 
 DEFINE_PRIMITIVE(Number_asString) {
   ASSERT(num_args == 0);
-  Object* receiver = I->Stack(0);
+  Object receiver = I->Stack(0);
 
   char buffer[64];
   intptr_t length = -1;
   if (receiver->IsSmallInteger()) {
-    intptr_t value = static_cast<SmallInteger*>(receiver)->value();
+    intptr_t value = static_cast<SmallInteger>(receiver)->value();
     length = snprintf(buffer, sizeof(buffer), "%" Pd "", value);
   } else if (receiver->IsMediumInteger()) {
-    int64_t value = static_cast<MediumInteger*>(receiver)->value();
+    int64_t value = static_cast<MediumInteger>(receiver)->value();
     length = snprintf(buffer, sizeof(buffer), "%" Pd64 "", value);
   } else if (receiver->IsFloat64()) {
-    double value = static_cast<Float64*>(receiver)->value();
+    double value = static_cast<Float64>(receiver)->value();
     length = DoubleToCStringAsShortest(value, buffer, sizeof(buffer));
   } else if (receiver->IsLargeInteger()) {
-    LargeInteger* large = static_cast<LargeInteger*>(receiver);
-    String* result = LargeInteger::PrintString(large, H);  // SAFEPOINT
+    LargeInteger large = static_cast<LargeInteger>(receiver);
+    String result = LargeInteger::PrintString(large, H);  // SAFEPOINT
     RETURN(result);
   } else {
     UNIMPLEMENTED();
   }
   ASSERT(length < 64);
 
-  String* result = H->AllocateString(length);  // SAFEPOINT
+  String result = H->AllocateString(length);  // SAFEPOINT
   memcpy(result->element_addr(0), buffer, length);
 
   RETURN(result);
@@ -2182,8 +2182,8 @@ DEFINE_PRIMITIVE(Closure_ensure) {
 DEFINE_PRIMITIVE(String_equals) {
   ASSERT(num_args == 1);
 
-  String* left = static_cast<String*>(I->Stack(1));
-  String* right = static_cast<String*>(I->Stack(0));
+  String left = static_cast<String>(I->Stack(1));
+  String right = static_cast<String>(I->Stack(0));
   if (left == right) {
     RETURN_BOOL(true);
     return kSuccess;
@@ -2209,17 +2209,17 @@ DEFINE_PRIMITIVE(String_equals) {
 
 DEFINE_PRIMITIVE(String_concat) {
   ASSERT(num_args == 1);
-  String* a = static_cast<String*>(I->Stack(1));
-  String* b = static_cast<String*>(I->Stack(0));
+  String a = static_cast<String>(I->Stack(1));
+  String b = static_cast<String>(I->Stack(0));
   if (!a->IsString() || !b->IsString()) {
     return kFailure;
   }
   intptr_t a_length = a->Size();
   intptr_t b_length = b->Size();
-  String* result =
+  String result =
       H->AllocateString(a_length + b_length);  // SAFEPOINT
-  a = static_cast<String*>(I->Stack(1));
-  b = static_cast<String*>(I->Stack(0));
+  a = static_cast<String>(I->Stack(1));
+  b = static_cast<String>(I->Stack(0));
   memcpy(result->element_addr(0), a->element_addr(0), a_length);
   memcpy(result->element_addr(a_length), b->element_addr(0), b_length);
   RETURN(result);
@@ -2234,8 +2234,8 @@ DEFINE_PRIMITIVE(Closure_onDo) {
 
 DEFINE_PRIMITIVE(Bytes_startsWith) {
   ASSERT(num_args == 1);
-  Bytes* string = static_cast<Bytes*>(I->Stack(1));
-  Bytes* prefix = static_cast<Bytes*>(I->Stack(0));
+  Bytes string = static_cast<Bytes>(I->Stack(1));
+  Bytes prefix = static_cast<Bytes>(I->Stack(0));
   if (!string->IsBytes() || !prefix->IsBytes()) {
     return kFailure;
   }
@@ -2256,8 +2256,8 @@ DEFINE_PRIMITIVE(Bytes_startsWith) {
 
 DEFINE_PRIMITIVE(Bytes_endsWith) {
   ASSERT(num_args == 1);
-  Bytes* string = static_cast<Bytes*>(I->Stack(1));
-  Bytes* suffix = static_cast<Bytes*>(I->Stack(0));
+  Bytes string = static_cast<Bytes>(I->Stack(1));
+  Bytes suffix = static_cast<Bytes>(I->Stack(0));
   if (!string->IsBytes() || !suffix->IsBytes()) {
     return kFailure;
   }
@@ -2281,9 +2281,9 @@ DEFINE_PRIMITIVE(Bytes_endsWith) {
 DEFINE_PRIMITIVE(Bytes_indexOf) {
   ASSERT(num_args == 2);
 
-  Bytes* string = static_cast<Bytes*>(I->Stack(2));
-  Bytes* substring = static_cast<Bytes*>(I->Stack(1));
-  SmallInteger* start = static_cast<SmallInteger*>(I->Stack(0));
+  Bytes string = static_cast<Bytes>(I->Stack(2));
+  Bytes substring = static_cast<Bytes>(I->Stack(1));
+  SmallInteger start = static_cast<SmallInteger>(I->Stack(0));
   if (!(string->IsBytes())) {
     UNREACHABLE();
     return kFailure;
@@ -2328,9 +2328,9 @@ DEFINE_PRIMITIVE(Bytes_indexOf) {
 DEFINE_PRIMITIVE(Bytes_lastIndexOf) {
   ASSERT(num_args == 2);
 
-  Bytes* string = static_cast<Bytes*>(I->Stack(2));
-  Bytes* substring = static_cast<Bytes*>(I->Stack(1));
-  SmallInteger* start = static_cast<SmallInteger*>(I->Stack(0));
+  Bytes string = static_cast<Bytes>(I->Stack(2));
+  Bytes substring = static_cast<Bytes>(I->Stack(1));
+  SmallInteger start = static_cast<SmallInteger>(I->Stack(0));
   if (!(string->IsBytes())) {
     UNREACHABLE();
     return kFailure;
@@ -2378,14 +2378,14 @@ DEFINE_PRIMITIVE(Bytes_copyStringFromTo) {
   ASSERT(num_args == 2);
 
   if (!I->Stack(1)->IsSmallInteger()) return kFailure;
-  intptr_t start = static_cast<SmallInteger*>(I->Stack(1))->value();
+  intptr_t start = static_cast<SmallInteger>(I->Stack(1))->value();
 
   if (!I->Stack(0)->IsSmallInteger()) return kFailure;
-  intptr_t stop = static_cast<SmallInteger*>(I->Stack(0))->value();
+  intptr_t stop = static_cast<SmallInteger>(I->Stack(0))->value();
 
   if (!I->Stack(2)->IsBytes()) return kFailure;
 
-  Bytes* bytes = static_cast<Bytes*>(I->Stack(2));
+  Bytes bytes = static_cast<Bytes>(I->Stack(2));
   if ((start <= 0) || (stop > bytes->Size())) return kFailure;
 
   intptr_t subsize = stop - (start - 1);
@@ -2393,8 +2393,8 @@ DEFINE_PRIMITIVE(Bytes_copyStringFromTo) {
     return kFailure;
   }
 
-  String* result = H->AllocateString(subsize);  // SAFEPOINT
-  bytes = static_cast<Bytes*>(I->Stack(2));
+  String result = H->AllocateString(subsize);  // SAFEPOINT
+  bytes = static_cast<Bytes>(I->Stack(2));
   memcpy(result->element_addr(0),
          bytes->element_addr(start - 1),
          subsize);
@@ -2408,7 +2408,7 @@ DEFINE_PRIMITIVE(String_class_with) {
   if ((byte < 0) || (byte > 255)) {
     return kFailure;
   }
-  String* result = H->AllocateString(1);  // SAFEPOINT
+  String result = H->AllocateString(1);  // SAFEPOINT
   result->set_element(0, byte);
   RETURN(result);
 }
@@ -2418,20 +2418,20 @@ DEFINE_PRIMITIVE(String_class_withAll) {
   ASSERT(num_args == 1);
 
   if (I->Stack(0)->IsBytes()) {
-    intptr_t length = static_cast<Bytes*>(I->Stack(0))->Size();
-    String* result = H->AllocateString(length);  // SAFEPOINT
-    Bytes* bytes = static_cast<Bytes*>(I->Stack(0));
+    intptr_t length = static_cast<Bytes>(I->Stack(0))->Size();
+    String result = H->AllocateString(length);  // SAFEPOINT
+    Bytes bytes = static_cast<Bytes>(I->Stack(0));
     memcpy(result->element_addr(0), bytes->element_addr(0), length);
     RETURN(result);
   } else if (I->Stack(0)->IsArray()) {
-    Array* bytes = static_cast<Array*>(I->Stack(0));
+    Array bytes = static_cast<Array>(I->Stack(0));
     if (!bytes->IsArray()) {
       return kFailure;
     }
 
     intptr_t length = bytes->Size();
     for (intptr_t i = 0; i < length; i++) {
-      SmallInteger* byte = static_cast<SmallInteger*>(bytes->element(i));
+      SmallInteger byte = static_cast<SmallInteger>(bytes->element(i));
       if (!byte->IsSmallInteger()) {
         return kFailure;
       }
@@ -2441,11 +2441,11 @@ DEFINE_PRIMITIVE(String_class_withAll) {
       }
     }
 
-    String* result = H->AllocateString(length);  // SAFEPOINT
-    bytes = static_cast<Array*>(I->Stack(0));
+    String result = H->AllocateString(length);  // SAFEPOINT
+    bytes = static_cast<Array>(I->Stack(0));
 
     for (intptr_t i = 0; i < length; i++) {
-      SmallInteger* byte = static_cast<SmallInteger*>(bytes->element(i));
+      SmallInteger byte = static_cast<SmallInteger>(bytes->element(i));
       intptr_t raw_byte = byte->value();
       result->set_element(i, raw_byte);
     }
@@ -2460,20 +2460,20 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
   ASSERT(num_args == 1);
 
   if (I->Stack(0)->IsBytes()) {
-    intptr_t length = static_cast<Bytes*>(I->Stack(0))->Size();
-    String* result = H->AllocateString(length);  // SAFEPOINT
-    Bytes* bytes = static_cast<Bytes*>(I->Stack(0));
+    intptr_t length = static_cast<Bytes>(I->Stack(0))->Size();
+    String result = H->AllocateString(length);  // SAFEPOINT
+    Bytes bytes = static_cast<Bytes>(I->Stack(0));
     memcpy(result->element_addr(0), bytes->element_addr(0), length);
     RETURN(result);
   } else if (I->Stack(0)->IsArray()) {
-    Array* bytes = static_cast<Array*>(I->Stack(0));
+    Array bytes = static_cast<Array>(I->Stack(0));
     if (!bytes->IsArray()) {
       return kFailure;
     }
 
     intptr_t length = bytes->Size();
     for (intptr_t i = 0; i < length; i++) {
-      SmallInteger* byte = static_cast<SmallInteger*>(bytes->element(i));
+      SmallInteger byte = static_cast<SmallInteger>(bytes->element(i));
       if (!byte->IsSmallInteger()) {
         return kFailure;
       }
@@ -2483,11 +2483,11 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
       }
     }
 
-    String* result = H->AllocateString(length);  // SAFEPOINT
-    bytes = static_cast<Array*>(I->Stack(0));
+    String result = H->AllocateString(length);  // SAFEPOINT
+    bytes = static_cast<Array>(I->Stack(0));
 
     for (intptr_t i = 0; i < length; i++) {
-      SmallInteger* byte = static_cast<SmallInteger*>(bytes->element(i));
+      SmallInteger byte = static_cast<SmallInteger>(bytes->element(i));
       intptr_t raw_byte = byte->value();
       result->set_element(i, raw_byte);
     }
@@ -2500,9 +2500,9 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
 
 DEFINE_PRIMITIVE(Object_isCanonical) {
   ASSERT(num_args == 1);
-  Object* object = I->Stack(0);
+  Object object = I->Stack(0);
   if (object->IsHeapObject()) {
-    RETURN_BOOL(static_cast<HeapObject*>(object)->is_canonical());
+    RETURN_BOOL(static_cast<HeapObject>(object)->is_canonical());
   } else {
     RETURN_BOOL(true);
   }
@@ -2511,9 +2511,9 @@ DEFINE_PRIMITIVE(Object_isCanonical) {
 
 DEFINE_PRIMITIVE(Object_markCanonical) {
   ASSERT(num_args == 1);
-  Object* object = I->Stack(0);
+  Object object = I->Stack(0);
   if (object->IsHeapObject()) {
-    static_cast<HeapObject*>(object)->set_is_canonical(true);
+    static_cast<HeapObject>(object)->set_is_canonical(true);
   } else {
     // Nop.
   }
@@ -2523,8 +2523,8 @@ DEFINE_PRIMITIVE(Object_markCanonical) {
 
 DEFINE_PRIMITIVE(writeBytesToFile) {
   ASSERT(num_args == 2);
-  ByteArray* content = static_cast<ByteArray*>(I->Stack(1));
-  String* filename = static_cast<String*>(I->Stack(0));
+  ByteArray content = static_cast<ByteArray>(I->Stack(1));
+  String filename = static_cast<String>(I->Stack(0));
   if (!content->IsByteArray() || !filename->IsString()) {
     return kFailure;
   }
@@ -2557,7 +2557,7 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
 
 DEFINE_PRIMITIVE(readFileAsBytes) {
   ASSERT(num_args == 1);
-  String* filename = static_cast<String*>(I->Stack(0));
+  String filename = static_cast<String>(I->Stack(0));
   if (!filename->IsString()) {
     return kFailure;
   }
@@ -2575,7 +2575,7 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   }
   size_t length = st.st_size;
 
-  ByteArray* result = H->AllocateByteArray(length);  // SAFEPOINT
+  ByteArray result = H->AllocateByteArray(length);  // SAFEPOINT
   size_t start = 0;
   size_t remaining = length;
   while (remaining > 0) {
@@ -2596,7 +2596,7 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
 
 DEFINE_PRIMITIVE(Double_class_parse) {
   ASSERT(num_args == 1);
-  String* string = static_cast<String*>(I->Stack(0));
+  String string = static_cast<String>(I->Stack(0));
   if (!string->IsString()) {
     return kFailure;
   }
@@ -2618,18 +2618,18 @@ DEFINE_PRIMITIVE(currentActivation) {
 
 DEFINE_PRIMITIVE(Behavior_adoptInstance) {
   ASSERT(num_args == 2);
-  Behavior* new_cls = static_cast<Behavior*>(I->Stack(1));
-  HeapObject* instance = static_cast<HeapObject*>(I->Stack(0));
-  Behavior* old_cls = instance->Klass(H);
+  Behavior new_cls = static_cast<Behavior>(I->Stack(1));
+  HeapObject instance = static_cast<HeapObject>(I->Stack(0));
+  Behavior old_cls = instance->Klass(H);
 
   ASSERT(old_cls->cid() >= kFirstRegularObjectCid);
   ASSERT(old_cls->format() == new_cls->format());
 
-  SmallInteger* id = new_cls->id();
+  SmallInteger id = new_cls->id();
   if (id == nil) {
     id = SmallInteger::New(H->AllocateClassId());  // SAFEPOINT
-    new_cls = static_cast<Behavior*>(I->Stack(1));
-    instance = static_cast<HeapObject*>(I->Stack(0));
+    new_cls = static_cast<Behavior>(I->Stack(1));
+    instance = static_cast<HeapObject>(I->Stack(0));
     new_cls->set_id(id);
     H->RegisterClass(id->value(), new_cls);
   }
@@ -2657,7 +2657,7 @@ DEFINE_PRIMITIVE(closePort) {
 
 DEFINE_PRIMITIVE(spawn) {
   ASSERT(num_args == 1);
-  ByteArray* message = static_cast<ByteArray*>(I->Stack(0));
+  ByteArray message = static_cast<ByteArray>(I->Stack(0));
   if (message->IsByteArray()) {
     intptr_t length = message->Size();
     uint8_t* data = reinterpret_cast<uint8_t*>(malloc(length));
@@ -2675,7 +2675,7 @@ DEFINE_PRIMITIVE(spawn) {
 DEFINE_PRIMITIVE(send) {
   ASSERT(num_args == 2);
   MINT_ARGUMENT(port, 1);
-  ByteArray* data = static_cast<ByteArray*>(I->Stack(0));
+  ByteArray data = static_cast<ByteArray>(I->Stack(0));
   if (!data->IsByteArray()) {
     return kFailure;
   }
@@ -2703,9 +2703,9 @@ DEFINE_PRIMITIVE(MessageLoop_finish) {
 
 DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
   ASSERT(num_args == 3);
-  SmallInteger* primitive_index = static_cast<SmallInteger*>(I->Stack(2));
-  Object* receiver = I->Stack(1);
-  Array* arguments = static_cast<Array*>(I->Stack(0));
+  SmallInteger primitive_index = static_cast<SmallInteger>(I->Stack(2));
+  Object receiver = I->Stack(1);
+  Array arguments = static_cast<Array>(I->Stack(0));
 
   if (!primitive_index->IsSmallInteger()) {
     return kFailure;
@@ -2735,15 +2735,15 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
     intptr_t offset = index & 255;
     ASSERT(callee_num_args == 0);
     ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
-    Object* value = static_cast<RegularObject*>(receiver)->slot(offset);
+    Object value = static_cast<RegularObject>(receiver)->slot(offset);
     RETURN(value);
   } else if ((index & 512) != 0) {
     // Setter
     intptr_t offset = index & 255;
     ASSERT(callee_num_args == 1);
-    Object* value = arguments->element(0);
+    Object value = arguments->element(0);
     ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
-    static_cast<RegularObject*>(receiver)->set_slot(offset, value);
+    static_cast<RegularObject>(receiver)->set_slot(offset, value);
     RETURN(receiver);
   }
 
@@ -2768,14 +2768,14 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
 
   if (callee_success) {
     ASSERT(I->StackDepth() == incoming_depth + 1);
-    Object* result = I->Stack(0);
+    Object result = I->Stack(0);
     I->PopNAndPush(num_args + 1 + 1, result);
     return kSuccess;
   } else {
     I->Drop(callee_num_args + 1);
     ASSERT(I->StackDepth() == incoming_depth);
 
-    Object* failure_token = I->Stack(0);  // Arguments array
+    Object failure_token = I->Stack(0);  // Arguments array
     ASSERT(failure_token->IsArray());
     I->PopNAndPush(num_args + 1, failure_token);
     return kSuccess;
@@ -2806,7 +2806,7 @@ DEFINE_PRIMITIVE(MessageLoop_cancelSignalWait) {
 }
 
 #if defined(OS_FUCHSIA)
-static zx_handle_t AsHandle(SmallInteger* handle) {
+static zx_handle_t AsHandle(SmallInteger handle) {
   return static_cast<zx_handle_t>(handle->value());
 }
 #endif
@@ -2819,7 +2819,7 @@ DEFINE_PRIMITIVE(ZXStatus_getString) {
   SMI_ARGUMENT(status, 0);
   const char* raw_string = zx_status_get_string(status);
   intptr_t length = strlen(raw_string);
-  String* result = H->AllocateString(length);  // SAFEPOINT
+  String result = H->AllocateString(length);  // SAFEPOINT
   memcpy(result->element_addr(0), raw_string, length);
   RETURN(result);
 #endif
@@ -2830,7 +2830,7 @@ DEFINE_PRIMITIVE(ZXHandle_close) {
   return kFailure;
 #else
   ASSERT(num_args == 1);
-  SmallInteger* handle = static_cast<SmallInteger*>(I->Stack(0));
+  SmallInteger handle = static_cast<SmallInteger>(I->Stack(0));
   if (!handle->IsSmallInteger()) {
     return kFailure;
   }
@@ -2844,11 +2844,11 @@ DEFINE_PRIMITIVE(ZXChannel_create) {
   return kFailure;
 #else
   ASSERT(num_args == 2);
-  SmallInteger* options = static_cast<SmallInteger*>(I->Stack(1));
+  SmallInteger options = static_cast<SmallInteger>(I->Stack(1));
   if (!options->IsSmallInteger() || options->value() < 0) {
     return kFailure;
   }
-  Array* multiple_return = static_cast<Array*>(I->Stack(0));
+  Array multiple_return = static_cast<Array>(I->Stack(0));
   if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
     return kFailure;
   }
@@ -2866,11 +2866,11 @@ DEFINE_PRIMITIVE(ZXChannel_read) {
   return kFailure;
 #else
   ASSERT(num_args == 2);
-  SmallInteger* channel = static_cast<SmallInteger*>(I->Stack(1));
+  SmallInteger channel = static_cast<SmallInteger>(I->Stack(1));
   if (!channel->IsSmallInteger()) {
     return kFailure;
   }
-  Array* multiple_return = static_cast<Array*>(I->Stack(0));
+  Array multiple_return = static_cast<Array>(I->Stack(0));
   if (!multiple_return->IsArray() || (multiple_return->Size() < 2)) {
     return kFailure;
   }
@@ -2883,10 +2883,10 @@ DEFINE_PRIMITIVE(ZXChannel_read) {
     RETURN_SMI(status);
   }
 
-  HandleScope h1(H, reinterpret_cast<Object**>(&multiple_return));
-  ByteArray* bytes = H->AllocateByteArray(actual_bytes);
-  HandleScope h2(H, reinterpret_cast<Object**>(&bytes));
-  Array* handles = H->AllocateArray(actual_handles);
+  HandleScope h1(H, reinterpret_cast<Object*>(&multiple_return));
+  ByteArray bytes = H->AllocateByteArray(actual_bytes);
+  HandleScope h2(H, reinterpret_cast<Object*>(&bytes));
+  Array handles = H->AllocateArray(actual_handles);
 
   zx_handle_t raw_handles[ZX_CHANNEL_MAX_MSG_HANDLES];
 
@@ -2912,19 +2912,19 @@ DEFINE_PRIMITIVE(ZXChannel_write) {
   return kFailure;
 #else
   ASSERT(num_args == 4);
-  SmallInteger* channel = static_cast<SmallInteger*>(I->Stack(3));
+  SmallInteger channel = static_cast<SmallInteger>(I->Stack(3));
   if (!channel->IsSmallInteger()) {
     return kFailure;
   }
-  ByteArray* bytes = static_cast<ByteArray*>(I->Stack(2));
+  ByteArray bytes = static_cast<ByteArray>(I->Stack(2));
   if (!bytes->IsByteArray()) {
     return kFailure;
   }
-  Array* handles = static_cast<Array*>(I->Stack(1));
+  Array handles = static_cast<Array>(I->Stack(1));
   if (!handles->IsArray()) {
     return kFailure;
   }
-  Array* multiple_return = static_cast<Array*>(I->Stack(0));
+  Array multiple_return = static_cast<Array>(I->Stack(0));
   if (!multiple_return->IsArray() || (multiple_return->Size() < 2)) {
     return kFailure;
   }
@@ -2936,7 +2936,7 @@ DEFINE_PRIMITIVE(ZXChannel_write) {
     if (!handles->element(i)->IsSmallInteger()) {
       return kFailure;
     }
-    raw_handles[i] = static_cast<SmallInteger*>(handles->element(i))->value();
+    raw_handles[i] = static_cast<SmallInteger>(handles->element(i))->value();
   }
   zx_status_t status = zx_channel_write(AsHandle(channel), 0,
                                         bytes->element_addr(0), bytes->Size(),
@@ -2950,15 +2950,15 @@ DEFINE_PRIMITIVE(ZXVmo_create) {
   return kFailure;
 #else
   ASSERT(num_args == 3);
-  SmallInteger* size = static_cast<SmallInteger*>(I->Stack(2));
+  SmallInteger size = static_cast<SmallInteger>(I->Stack(2));
   if (!size->IsSmallInteger() || size->value() < 0) {
     return kFailure;
   }
-  SmallInteger* options = static_cast<SmallInteger*>(I->Stack(1));
+  SmallInteger options = static_cast<SmallInteger>(I->Stack(1));
   if (!options->IsSmallInteger()) {
     return kFailure;
   }
-  Array* multiple_return = static_cast<Array*>(I->Stack(0));
+  Array multiple_return = static_cast<Array>(I->Stack(0));
   if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
     return kFailure;
   }
@@ -2974,11 +2974,11 @@ DEFINE_PRIMITIVE(ZXVmo_getSize) {
   return kFailure;
 #else
   ASSERT(num_args == 2);
-  SmallInteger* vmo = static_cast<SmallInteger*>(I->Stack(1));
+  SmallInteger vmo = static_cast<SmallInteger>(I->Stack(1));
   if (!vmo->IsSmallInteger()) {
     return kFailure;
   }
-  Array* multiple_return = static_cast<Array*>(I->Stack(0));
+  Array multiple_return = static_cast<Array>(I->Stack(0));
   if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
     return kFailure;
   }
@@ -2994,15 +2994,15 @@ DEFINE_PRIMITIVE(ZXVmo_setSize) {
   return kFailure;
 #else
   ASSERT(num_args == 3);
-  SmallInteger* vmo = static_cast<SmallInteger*>(I->Stack(2));
+  SmallInteger vmo = static_cast<SmallInteger>(I->Stack(2));
   if (!vmo->IsSmallInteger()) {
     return kFailure;
   }
-  SmallInteger* size = static_cast<SmallInteger*>(I->Stack(1));
+  SmallInteger size = static_cast<SmallInteger>(I->Stack(1));
   if (!size->IsSmallInteger() || size->value() < 0) {
     return kFailure;
   }
-  Array* multiple_return = static_cast<Array*>(I->Stack(0));
+  Array multiple_return = static_cast<Array>(I->Stack(0));
   if (!multiple_return->IsArray() || (multiple_return->Size() < 2)) {
     return kFailure;
   }
@@ -3016,24 +3016,24 @@ DEFINE_PRIMITIVE(ZXVmo_read) {
   return kFailure;
 #else
   ASSERT(num_args == 4);
-  SmallInteger* vmo = static_cast<SmallInteger*>(I->Stack(3));
+  SmallInteger vmo = static_cast<SmallInteger>(I->Stack(3));
   if (!vmo->IsSmallInteger()) {
     return kFailure;
   }
-  SmallInteger* size = static_cast<SmallInteger*>(I->Stack(2));
+  SmallInteger size = static_cast<SmallInteger>(I->Stack(2));
   if (!size->IsSmallInteger() || size->value() < 0) {
     return kFailure;
   }
-  SmallInteger* offset = static_cast<SmallInteger*>(I->Stack(1));
+  SmallInteger offset = static_cast<SmallInteger>(I->Stack(1));
   if (!offset->IsSmallInteger() || offset->value() < 0) {
     return kFailure;
   }
-  Array* multiple_return = static_cast<Array*>(I->Stack(0));
+  Array multiple_return = static_cast<Array>(I->Stack(0));
   if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
     return kFailure;
   }
-  HandleScope h1(H, reinterpret_cast<Object**>(&multiple_return));
-  ByteArray* buffer = H->AllocateByteArray(size->value());  // SAFEPOINT
+  HandleScope h1(H, reinterpret_cast<Object*>(&multiple_return));
+  ByteArray buffer = H->AllocateByteArray(size->value());  // SAFEPOINT
   zx_status_t status = zx_vmo_read(AsHandle(vmo), buffer->element_addr(0),
                                    offset->value(), size->value());
   multiple_return->set_element(0, buffer);
@@ -3046,19 +3046,19 @@ DEFINE_PRIMITIVE(ZXVmo_write) {
   return kFailure;
 #else
   ASSERT(num_args == 4);
-  SmallInteger* vmo = static_cast<SmallInteger*>(I->Stack(3));
+  SmallInteger vmo = static_cast<SmallInteger>(I->Stack(3));
   if (!vmo->IsSmallInteger()) {
     return kFailure;
   }
-  ByteArray* buffer = static_cast<ByteArray*>(I->Stack(2));
+  ByteArray buffer = static_cast<ByteArray>(I->Stack(2));
   if (!buffer->IsByteArray()) {
     return kFailure;
   }
-  SmallInteger* offset = static_cast<SmallInteger*>(I->Stack(1));
+  SmallInteger offset = static_cast<SmallInteger>(I->Stack(1));
   if (!offset->IsSmallInteger() || offset->value() < 0) {
     return kFailure;
   }
-  Array* multiple_return = static_cast<Array*>(I->Stack(0));
+  Array multiple_return = static_cast<Array>(I->Stack(0));
   if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
     return kFailure;
   }
@@ -3230,14 +3230,14 @@ DEFINE_PRIMITIVE(JS_pushValue) {
   return kFailure;
 #else
   ASSERT(num_args == 1);
-  Object* object = I->Stack(0);
+  Object object = I->Stack(0);
   if (object->IsSmallInteger()) {
-    intptr_t value = static_cast<SmallInteger*>(object)->value();
+    intptr_t value = static_cast<SmallInteger>(object)->value();
     _JS_pushInteger(value);
     RETURN_SELF();
   }
   if (object->IsMediumInteger()) {
-    int64_t value = static_cast<MediumInteger*>(object)->value();
+    int64_t value = static_cast<MediumInteger>(object)->value();
     _JS_pushInteger(value);
     RETURN_SELF();
   }
@@ -3247,8 +3247,8 @@ DEFINE_PRIMITIVE(JS_pushValue) {
     RETURN_SELF();
   }
   if (object->IsString()) {
-    intptr_t size = static_cast<String*>(object)->Size();
-    uint8_t* addr = static_cast<String*>(object)->element_addr(0);
+    intptr_t size = static_cast<String>(object)->Size();
+    uint8_t* addr = static_cast<String>(object)->element_addr(0);
     _JS_pushString(reinterpret_cast<intptr_t>(addr), size);
     RETURN_SELF();
   }
@@ -3309,7 +3309,7 @@ DEFINE_PRIMITIVE(JS_popValue) {
     RETURN_FLOAT(value);
   } else if (type >= 0) {
     intptr_t size = type;
-    String* result = H->AllocateString(size);  // SAFEPOINT
+    String result = H->AllocateString(size);  // SAFEPOINT
     uint8_t* addr = result->element_addr(0);
     _JS_popString(reinterpret_cast<intptr_t>(addr), size);
     RETURN(result);

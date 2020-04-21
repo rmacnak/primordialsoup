@@ -36,18 +36,18 @@ class RegularObjectCluster : public Cluster {
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      Object* object = h->AllocateRegularObject(cid_, format_, Heap::kSnapshot);
+      Object object = h->AllocateRegularObject(cid_, format_, Heap::kSnapshot);
       d->RegisterRef(object);
     }
     ASSERT(d->next_ref() == ref_stop_);
   }
 
   void ReadEdges(Deserializer* d, Heap* h) {
-    Object* cls = d->ReadRef();
-    h->RegisterClass(cid_, static_cast<Behavior*>(cls));
+    Object cls = d->ReadRef();
+    h->RegisterClass(cid_, static_cast<Behavior>(cls));
 
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
-      RegularObject* object = static_cast<RegularObject*>(d->Ref(i));
+      RegularObject object = static_cast<RegularObject>(d->Ref(i));
       for (intptr_t j = 0; j < format_; j++) {
         object->set_slot(j, d->ReadRef(), kNoBarrier);
       }
@@ -70,7 +70,7 @@ class ByteArrayCluster : public Cluster {
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
       intptr_t size = d->ReadUnsigned();
-      ByteArray* object = h->AllocateByteArray(size, Heap::kSnapshot);
+      ByteArray object = h->AllocateByteArray(size, Heap::kSnapshot);
       for (intptr_t j = 0; j < size; j++) {
         object->set_element(j, d->ReadUint8());
       }
@@ -99,7 +99,7 @@ class StringCluster : public Cluster {
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
       intptr_t size = d->ReadUnsigned();
-      String* object = h->AllocateString(size, Heap::kSnapshot);
+      String object = h->AllocateString(size, Heap::kSnapshot);
       ASSERT(!object->is_canonical());
       object->set_is_canonical(is_canonical);
       for (intptr_t j = 0; j < size; j++) {
@@ -124,7 +124,7 @@ class ArrayCluster : public Cluster {
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
       intptr_t size = d->ReadUnsigned();
-      Array* object = h->AllocateArray(size, Heap::kSnapshot);
+      Array object = h->AllocateArray(size, Heap::kSnapshot);
       d->RegisterRef(object);
     }
     ASSERT(d->next_ref() == ref_stop_);
@@ -132,7 +132,7 @@ class ArrayCluster : public Cluster {
 
   void ReadEdges(Deserializer* d, Heap* h) {
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
-      Array* object = Array::Cast(d->Ref(i));
+      Array object = Array::Cast(d->Ref(i));
       intptr_t size = object->Size();
       for (intptr_t j = 0; j < size; j++) {
         object->set_element(j, d->ReadRef(), kNoBarrier);
@@ -152,7 +152,7 @@ class WeakArrayCluster : public Cluster {
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
       intptr_t size = d->ReadUnsigned();
-      WeakArray* object = h->AllocateWeakArray(size, Heap::kSnapshot);
+      WeakArray object = h->AllocateWeakArray(size, Heap::kSnapshot);
       d->RegisterRef(object);
     }
     ASSERT(d->next_ref() == ref_stop_);
@@ -160,7 +160,7 @@ class WeakArrayCluster : public Cluster {
 
   void ReadEdges(Deserializer* d, Heap* h) {
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
-      WeakArray* object = WeakArray::Cast(d->Ref(i));
+      WeakArray object = WeakArray::Cast(d->Ref(i));
       intptr_t size = object->Size();
       for (intptr_t j = 0; j < size; j++) {
         object->set_element(j, d->ReadRef(), kNoBarrier);
@@ -180,7 +180,7 @@ class ClosureCluster : public Cluster {
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
       intptr_t size = d->ReadUint16();
-      Closure* object = h->AllocateClosure(size, Heap::kSnapshot);
+      Closure object = h->AllocateClosure(size, Heap::kSnapshot);
       d->RegisterRef(object);
     }
     ASSERT(d->next_ref() == ref_stop_);
@@ -188,12 +188,12 @@ class ClosureCluster : public Cluster {
 
   void ReadEdges(Deserializer* d, Heap* h) {
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
-      Closure* object = Closure::Cast(d->Ref(i));
+      Closure object = Closure::Cast(d->Ref(i));
 
       object->set_defining_activation(Activation::Cast(d->ReadRef()),
                                       kNoBarrier);
-      object->set_initial_bci(static_cast<SmallInteger*>(d->ReadRef()));
-      object->set_num_args(static_cast<SmallInteger*>(d->ReadRef()));
+      object->set_initial_bci(static_cast<SmallInteger>(d->ReadRef()));
+      object->set_num_args(static_cast<SmallInteger>(d->ReadRef()));
 
       intptr_t size = object->NumCopied();
       for (intptr_t j = 0; j < size; j++) {
@@ -214,7 +214,7 @@ class ActivationCluster : public Cluster {
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      Activation* object = h->AllocateActivation(Heap::kSnapshot);
+      Activation object = h->AllocateActivation(Heap::kSnapshot);
       d->RegisterRef(object);
     }
     ASSERT(d->next_ref() == ref_stop_);
@@ -222,22 +222,22 @@ class ActivationCluster : public Cluster {
 
   void ReadEdges(Deserializer* d, Heap* h) {
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
-      Activation* object = Activation::Cast(d->Ref(i));
+      Activation object = Activation::Cast(d->Ref(i));
 
       object->set_sender(Activation::Cast(d->ReadRef()), kNoBarrier);
-      object->set_bci(static_cast<SmallInteger*>(d->ReadRef()));
+      object->set_bci(static_cast<SmallInteger>(d->ReadRef()));
       object->set_method(Method::Cast(d->ReadRef()), kNoBarrier);
       object->set_closure(Closure::Cast(d->ReadRef()), kNoBarrier);
       object->set_receiver(d->ReadRef(), kNoBarrier);
 
       intptr_t size = d->ReadUint16();
-      ASSERT(size < Activation::kMaxTemps);
+      ASSERT(size < kMaxTemps);
       object->set_stack_depth(SmallInteger::New(size));
 
       for (intptr_t j = 0; j < size; j++) {
         object->set_temp(j, d->ReadRef(), kNoBarrier);
       }
-      for (intptr_t j = size; j < Activation::kMaxTemps; j++) {
+      for (intptr_t j = size; j < kMaxTemps; j++) {
         object->set_temp(j, SmallInteger::New(0), kNoBarrier);
       }
     }
@@ -256,11 +256,11 @@ class SmallIntegerCluster : public Cluster {
     for (intptr_t i = 0; i < num_objects; i++) {
       int64_t value = d->ReadInt64();
       if (SmallInteger::IsSmiValue(value)) {
-        SmallInteger* object = SmallInteger::New(value);
+        SmallInteger object = SmallInteger::New(value);
         ASSERT(object->IsSmallInteger());
         d->RegisterRef(object);
       } else {
-        MediumInteger* object = h->AllocateMediumInteger(Heap::kSnapshot);
+        MediumInteger object = h->AllocateMediumInteger(Heap::kSnapshot);
         object->set_value(value);
         d->RegisterRef(object);
       }
@@ -274,7 +274,7 @@ class SmallIntegerCluster : public Cluster {
       intptr_t digits = (bytes + (sizeof(digit_t) - 1)) / sizeof(digit_t);
       intptr_t full_digits = bytes / sizeof(digit_t);
 
-      LargeInteger* object = h->AllocateLargeInteger(digits, Heap::kSnapshot);
+      LargeInteger object = h->AllocateLargeInteger(digits, Heap::kSnapshot);
       object->set_negative(negative);
       object->set_size(digits);
 
@@ -351,7 +351,7 @@ void Deserializer::Deserialize() {
   clusters_ = new Cluster*[num_clusters_];
 
   intptr_t num_nodes = ReadUint32();
-  refs_ = new Object*[num_nodes + 1];  // Refs are 1-origin.
+  refs_ = new Object[num_nodes + 1];  // Refs are 1-origin.
   next_ref_ = 1;
 
   for (intptr_t i = 0; i < num_clusters_; i++) {
@@ -364,7 +364,7 @@ void Deserializer::Deserialize() {
     clusters_[i]->ReadEdges(this, heap_);
   }
 
-  ObjectStore* os = static_cast<ObjectStore*>(ReadRef());
+  ObjectStore os = static_cast<ObjectStore>(ReadRef());
 
   heap_->RegisterClass(kSmiCid, os->SmallInteger());
   heap_->RegisterClass(kMintCid, os->MediumInteger());

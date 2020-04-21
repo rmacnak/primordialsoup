@@ -25,10 +25,10 @@ class LookupCache {
 
   INLINE
   bool LookupOrdinary(intptr_t cid,
-                      String* selector,
-                      Method** target) {
+                      String selector,
+                      Method* target) {
     intptr_t hash = cid
-        ^ (reinterpret_cast<intptr_t>(selector) >> kObjectAlignmentLog2);
+        ^ (static_cast<intptr_t>(selector) >> kObjectAlignmentLog2);
 
     intptr_t probe1 = hash & kMask;
     if (entries_[probe1].ordinary_cid == cid &&
@@ -48,19 +48,19 @@ class LookupCache {
   }
 
   void InsertOrdinary(intptr_t cid,
-                      String* selector,
-                      Method* target);
+                      String selector,
+                      Method target);
 
   INLINE
   bool LookupNS(intptr_t cid,
-                String* selector,
-                Method* caller,
+                String selector,
+                Method caller,
                 intptr_t rule,
-                Object** absent_receiver,
-                Method** target) {
+                Object* absent_receiver,
+                Method* target) {
     intptr_t hash = cid
-        ^ (reinterpret_cast<intptr_t>(selector) >> kObjectAlignmentLog2)
-        ^ (reinterpret_cast<intptr_t>(caller) >> kObjectAlignmentLog2);
+        ^ (static_cast<intptr_t>(selector) >> kObjectAlignmentLog2)
+        ^ (static_cast<intptr_t>(caller) >> kObjectAlignmentLog2);
     intptr_t cid_and_rule = (cid << 16) | rule;
 
     intptr_t probe1 = hash & kMask;
@@ -85,25 +85,25 @@ class LookupCache {
   }
 
   void InsertNS(intptr_t cid,
-                String* selector,
-                Method* caller,
+                String selector,
+                Method caller,
                 intptr_t rule,
-                Object* absent_receiver,
-                Method* target);
+                Object absent_receiver,
+                Method target);
 
   void Clear();
 
  private:
   struct Entry {
     intptr_t ordinary_cid;
-    String* ordinary_selector;
-    Method* ordinary_target;
+    String ordinary_selector;
+    Method ordinary_target;
 
     intptr_t ns_cid_and_rule;
-    String* ns_selector;
-    Method* ns_caller;
-    Object* ns_absent_receiver;
-    Method* ns_target;
+    String ns_selector;
+    Method ns_caller;
+    Object ns_absent_receiver;
+    Method ns_target;
   };
 
   static const intptr_t kSize = 512;

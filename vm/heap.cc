@@ -58,23 +58,23 @@ class MarkStack {
  public:
   void Init(uword limit) {
     top_ = &stack_[0];
-    end_ = reinterpret_cast<HeapObject**>(limit);
+    end_ = reinterpret_cast<HeapObject*>(limit);
   }
 
   bool IsEmpty() const { return top_ == &stack_[0]; }
-  void Push(HeapObject* obj) {
+  void Push(HeapObject obj) {
     if (top_ == end_) {
       FATAL("Mark stack overflow");
     } else {
       *top_++ = obj;
     }
   }
-  HeapObject* Pop() { return *--top_; }
+  HeapObject Pop() { return *--top_; }
 
  private:
-  HeapObject** top_;
-  HeapObject** end_;
-  HeapObject* stack_[];
+  HeapObject* top_;
+  HeapObject* end_;
+  HeapObject stack_[];
 };
 
 Heap::Heap() :
@@ -107,17 +107,17 @@ Heap::Heap() :
   end_ = to_.limit();
 
   remembered_set_capacity_ = 1024;
-  remembered_set_ = new HeapObject*[remembered_set_capacity_];
+  remembered_set_ = new HeapObject[remembered_set_capacity_];
 
   // Class table.
   class_table_capacity_ = 1024;
-  class_table_ = new Object*[class_table_capacity_];
+  class_table_ = new Object[class_table_capacity_];
 #if defined(DEBUG)
   for (intptr_t i = 0; i < kFirstRegularObjectCid; i++) {
-    class_table_[i] = reinterpret_cast<Object*>(kUninitializedWord);
+    class_table_[i] = static_cast<Object>(kUninitializedWord);
   }
   for (intptr_t i = kFirstRegularObjectCid; i < class_table_capacity_; i++) {
-    class_table_[i] = reinterpret_cast<Object*>(kUnallocatedWord);
+    class_table_[i] = static_cast<Object>(kUnallocatedWord);
   }
 #endif
   class_table_size_ = kFirstRegularObjectCid;
@@ -136,24 +136,24 @@ Heap::~Heap() {
   delete[] class_table_;
 }
 
-Message* Heap::AllocateMessage() {
-  Behavior* behavior = interpreter_->object_store()->Message();
+Message Heap::AllocateMessage() {
+  Behavior behavior = interpreter_->object_store()->Message();
   ASSERT(behavior->IsRegularObject());
   behavior->AssertCouldBeBehavior();
-  SmallInteger* id = behavior->id();
+  SmallInteger id = behavior->id();
   if (id == interpreter_->nil_obj()) {
     id = SmallInteger::New(AllocateClassId());  // SAFEPOINT
     behavior = interpreter_->object_store()->Message();
     RegisterClass(id->value(), behavior);
   }
   ASSERT(id->IsSmallInteger());
-  SmallInteger* format = behavior->format();
+  SmallInteger format = behavior->format();
   ASSERT(format->IsSmallInteger());
   intptr_t num_slots = format->value();
   ASSERT(num_slots == 2);
-  Object* new_instance = AllocateRegularObject(id->value(),
+  Object new_instance = AllocateRegularObject(id->value(),
                                                num_slots);
-  return static_cast<Message*>(new_instance);
+  return static_cast<Message>(new_instance);
 }
 
 uword Heap::AllocateNew(intptr_t size) {
@@ -291,8 +291,8 @@ void Heap::GrowRememberedSet() {
     OS::PrintErr("Growing remembered set to %" Pd "\n",
                  remembered_set_capacity_);
   }
-  HeapObject** old_remembered_set = remembered_set_;
-  remembered_set_ = new HeapObject*[remembered_set_capacity_];
+  HeapObject* old_remembered_set = remembered_set_;
+  remembered_set_ = new HeapObject[remembered_set_capacity_];
   for (intptr_t i = 0; i < remembered_set_size_; i++) {
     remembered_set_[i] = old_remembered_set[i];
   }
@@ -312,8 +312,8 @@ void Heap::ShrinkRememberedSet() {
     OS::PrintErr("Shrinking remembered set to %" Pd "\n",
                  remembered_set_capacity_);
   }
-  HeapObject** old_remembered_set = remembered_set_;
-  remembered_set_ = new HeapObject*[remembered_set_capacity_];
+  HeapObject* old_remembered_set = remembered_set_;
+  remembered_set_ = new HeapObject[remembered_set_capacity_];
   for (intptr_t i = 0; i < remembered_set_size_; i++) {
     remembered_set_[i] = old_remembered_set[i];
   }
@@ -413,12 +413,12 @@ void Heap::FlipSpaces() {
   ASSERT((top_ & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
 }
 
-static void ForwardClass(Heap* heap, HeapObject* object) {
+static void ForwardClass(Heap* heap, HeapObject object) {
   ASSERT(object->IsHeapObject());
-  Behavior* old_class = heap->ClassAt(object->cid());
+  Behavior old_class = heap->ClassAt(object->cid());
   if (old_class->IsForwardingCorpse()) {
-    Behavior* new_class = static_cast<Behavior*>(
-        reinterpret_cast<ForwardingCorpse*>(old_class)->target());
+    Behavior new_class = static_cast<Behavior>(
+        static_cast<ForwardingCorpse>(old_class)->target());
     ASSERT(!new_class->IsForwardingCorpse());
     new_class->AssertCouldBeBehavior();
     ASSERT(new_class->id()->IsSmallInteger());
@@ -426,10 +426,10 @@ static void ForwardClass(Heap* heap, HeapObject* object) {
   }
 }
 
-static void ForwardPointer(Object** ptr) {
-  Object* old_target = *ptr;
+static void ForwardPointer(Object* ptr) {
+  Object old_target = *ptr;
   if (old_target->IsForwardingCorpse()) {
-    Object* new_target = static_cast<ForwardingCorpse*>(old_target)->target();
+    Object new_target = static_cast<ForwardingCorpse>(old_target)->target();
     ASSERT(!new_target->IsForwardingCorpse());
     *ptr = new_target;
   }
@@ -441,7 +441,7 @@ void Heap::ScavengeRoots() {
   remembered_set_size_ = 0;
 
   for (intptr_t i = 0; i < saved_remembered_set_size; i++) {
-    HeapObject* obj = remembered_set_[i];
+    HeapObject obj = remembered_set_[i];
     ASSERT(obj->IsOldObject());
     ASSERT(obj->is_remembered());
     obj->set_is_remembered(false);
@@ -452,32 +452,32 @@ void Heap::ScavengeRoots() {
     ScavengePointer(handles_[i]);
   }
 
-  Object** from;
-  Object** to;
+  Object* from;
+  Object* to;
   interpreter_->RootPointers(&from, &to);
-  for (Object** ptr = from; ptr <= to; ptr++) {
+  for (Object* ptr = from; ptr <= to; ptr++) {
     ScavengePointer(ptr);
   }
   interpreter_->StackPointers(&from, &to);
-  for (Object** ptr = from; ptr <= to; ptr++) {
+  for (Object* ptr = from; ptr <= to; ptr++) {
     ScavengePointer(ptr);
   }
 }
 
 uword Heap::ScavengeToSpace(uword scan) {
   while (scan < top_) {
-    HeapObject* obj = HeapObject::FromAddr(scan);
+    HeapObject obj = HeapObject::FromAddr(scan);
     intptr_t cid = obj->cid();
     ScavengeClass(cid);
     if (cid == kWeakArrayCid) {
-      AddToWeakList(static_cast<WeakArray*>(obj));
+      AddToWeakList(static_cast<WeakArray>(obj));
     } else if (cid == kEphemeronCid) {
-      AddToEphemeronList(static_cast<Ephemeron*>(obj));
+      AddToEphemeronList(static_cast<Ephemeron>(obj));
     } else {
-      Object** from;
-      Object** to;
+      Object* from;
+      Object* to;
       obj->Pointers(&from, &to);
-      for (Object** ptr = from; ptr <= to; ptr++) {
+      for (Object* ptr = from; ptr <= to; ptr++) {
         ScavengePointer(ptr);
       }
     }
@@ -509,42 +509,42 @@ bool Heap::IsTenureStackEmpty() {
 
 void Heap::ProcessTenureStack() {
   while (!IsTenureStackEmpty()) {
-    HeapObject* obj = HeapObject::FromAddr(PopTenureStack());
+    HeapObject obj = HeapObject::FromAddr(PopTenureStack());
     ScavengeOldObject(obj);
   }
 }
 
-static bool IsForwarded(HeapObject* obj) {
+static bool IsForwarded(HeapObject obj) {
   uword header = *reinterpret_cast<uword*>(obj->Addr());
   return header & (1 << kMarkBit);
 }
 
-static HeapObject* ForwardingTarget(HeapObject* obj) {
+static HeapObject ForwardingTarget(HeapObject obj) {
   ASSERT(IsForwarded(obj));
   uword header = *reinterpret_cast<uword*>(obj->Addr());
   // Mark bit and tag bit are conveniently in the same place.
   ASSERT((header & kSmiTagMask) == kHeapObjectTag);
-  return reinterpret_cast<HeapObject*>(header);
+  return static_cast<HeapObject>(header);
 }
 
-static void SetForwarded(HeapObject* old_obj, HeapObject* new_obj) {
+static void SetForwarded(HeapObject old_obj, HeapObject new_obj) {
   ASSERT(old_obj->IsNewObject());
   ASSERT(!IsForwarded(old_obj));
-  uword header = reinterpret_cast<uword>(new_obj);
+  uword header = static_cast<uword>(new_obj);
   // Mark bit and tag bit are conveniently in the same place.
   ASSERT((header & kSmiTagMask) == kHeapObjectTag);
   *reinterpret_cast<uword*>(old_obj->Addr()) = header;
 }
 
-void Heap::ScavengePointer(Object** ptr) {
-  HeapObject* old_target = static_cast<HeapObject*>(*ptr);
+void Heap::ScavengePointer(Object* ptr) {
+  HeapObject old_target = static_cast<HeapObject>(*ptr);
   if (old_target->IsImmediateOrOldObject()) {
     return;
   }
 
   DEBUG_ASSERT(InFromSpace(old_target));
 
-  HeapObject* new_target;
+  HeapObject new_target;
   if (IsForwarded(old_target)) {
     new_target = ForwardingTarget(old_target);
   } else {
@@ -571,18 +571,18 @@ void Heap::ScavengePointer(Object** ptr) {
   *ptr = new_target;
 }
 
-void Heap::ScavengeOldObject(HeapObject* obj) {
+void Heap::ScavengeOldObject(HeapObject obj) {
   intptr_t cid = obj->cid();
   ScavengeClass(cid);
   if (cid == kWeakArrayCid) {
-    AddToWeakList(static_cast<WeakArray*>(obj));
+    AddToWeakList(static_cast<WeakArray>(obj));
   } else if (cid == kEphemeronCid) {
-    AddToEphemeronList(static_cast<Ephemeron*>(obj));
+    AddToEphemeronList(static_cast<Ephemeron>(obj));
   } else {
-    Object** from;
-    Object** to;
+    Object* from;
+    Object* to;
     obj->Pointers(&from, &to);
-    for (Object** ptr = from; ptr <= to; ptr++) {
+    for (Object* ptr = from; ptr <= to; ptr++) {
       ScavengePointer(ptr);
       if ((*ptr)->IsNewObject() && !obj->is_remembered()) {
         AddToRememberedSet(obj);
@@ -595,7 +595,7 @@ void Heap::ScavengeClass(intptr_t cid) {
   ASSERT(cid < class_table_size_);
   // This is very similar to ScavengePointer.
 
-  HeapObject* old_target = static_cast<HeapObject*>(class_table_[cid]);
+  HeapObject old_target = static_cast<HeapObject>(class_table_[cid]);
   if (old_target->IsImmediateOrOldObject()) {
     return;
   }
@@ -621,7 +621,7 @@ void Heap::ScavengeClass(intptr_t cid) {
   memcpy(reinterpret_cast<void*>(new_target_addr),
          reinterpret_cast<void*>(old_target->Addr()),
          size);
-  HeapObject* new_target = HeapObject::FromAddr(new_target_addr);
+  HeapObject new_target = HeapObject::FromAddr(new_target_addr);
   SetForwarded(old_target, new_target);
 }
 
@@ -687,22 +687,22 @@ void Heap::MarkRoots() {
     MarkObject(*handles_[i]);
   }
 
-  Object** from;
-  Object** to;
+  Object* from;
+  Object* to;
   interpreter_->RootPointers(&from, &to);
-  for (Object** ptr = from; ptr <= to; ptr++) {
+  for (Object* ptr = from; ptr <= to; ptr++) {
     MarkObject(*ptr);
   }
   interpreter_->StackPointers(&from, &to);
-  for (Object** ptr = from; ptr <= to; ptr++) {
+  for (Object* ptr = from; ptr <= to; ptr++) {
     MarkObject(*ptr);
   }
 }
 
-void Heap::MarkObject(Object* obj) {
+void Heap::MarkObject(Object obj) {
   if (obj->IsImmediateObject()) return;
 
-  HeapObject* heap_obj = static_cast<HeapObject*>(obj);
+  HeapObject heap_obj = static_cast<HeapObject>(obj);
   if (heap_obj->is_marked()) return;
 
   heap_obj->set_is_marked(true);
@@ -714,7 +714,7 @@ void Heap::MarkObject(Object* obj) {
 void Heap::ProcessMarkStack() {
   MarkStack* mark_stack = reinterpret_cast<MarkStack*>(from_.base());
   while (!mark_stack->IsEmpty()) {
-    HeapObject* obj = mark_stack->Pop();
+    HeapObject obj = mark_stack->Pop();
     ASSERT(obj->is_marked());
     ASSERT(!obj->is_remembered());
 
@@ -726,16 +726,16 @@ void Heap::ProcessMarkStack() {
     MarkObject(ClassAt(cid));
 
     if (cid == kWeakArrayCid) {
-      AddToWeakList(static_cast<WeakArray*>(obj));
+      AddToWeakList(static_cast<WeakArray>(obj));
     } else if (cid == kEphemeronCid) {
-      AddToEphemeronList(static_cast<Ephemeron*>(obj));
+      AddToEphemeronList(static_cast<Ephemeron>(obj));
     } else {
-      Object** from;
-      Object** to;
+      Object* from;
+      Object* to;
       obj->Pointers(&from, &to);
       bool has_new_target = ClassAt(cid)->IsNewObject();
-      for (Object** ptr = from; ptr <= to; ptr++) {
-        Object* target = *ptr;
+      for (Object* ptr = from; ptr <= to; ptr++) {
+        Object target = *ptr;
         has_new_target |= target->IsNewObject();
         MarkObject(target);
       }
@@ -751,22 +751,22 @@ void Heap::Sweep() {
 
   uword scan = to_.object_start();
   while (scan < top_) {
-    HeapObject* obj = HeapObject::FromAddr(scan);
+    HeapObject obj = HeapObject::FromAddr(scan);
     if (obj->is_marked()) {
       obj->set_is_marked(false);
       scan += obj->HeapSize();
     } else {
       uword free_scan = scan + obj->HeapSize();
       while (free_scan < top_) {
-        HeapObject* next = HeapObject::FromAddr(free_scan);
+        HeapObject next = HeapObject::FromAddr(free_scan);
         if (next->is_marked()) break;
         free_scan += next->HeapSize();
       }
 
       intptr_t size = free_scan - scan;
-      HeapObject* object =
+      HeapObject object =
           HeapObject::Initialize(scan, kFreeListElementCid, size);
-      FreeListElement* element = static_cast<FreeListElement*>(object);
+      FreeListElement element = static_cast<FreeListElement>(object);
       if (element->heap_size() == 0) {
         ASSERT(size > kObjectAlignment);
         element->set_overflow_size(size);
@@ -803,7 +803,7 @@ bool Heap::SweepRegion(Region* region) {
   uword scan = region->object_start();
   uword end = region->object_end();
   while (scan < end) {
-    HeapObject* obj = HeapObject::FromAddr(scan);
+    HeapObject obj = HeapObject::FromAddr(scan);
     if (obj->is_marked()) {
       obj->set_is_marked(false);
       intptr_t size = obj->HeapSize();
@@ -812,7 +812,7 @@ bool Heap::SweepRegion(Region* region) {
     } else {
       uword free_scan = scan + obj->HeapSize();
       while (free_scan < end) {
-        HeapObject* next = HeapObject::FromAddr(free_scan);
+        HeapObject next = HeapObject::FromAddr(free_scan);
         if (next->is_marked()) break;
         free_scan += next->HeapSize();
       }
@@ -841,24 +841,24 @@ void Heap::SetOldAllocationLimit() {
   }
 }
 
-void Heap::AddToEphemeronList(Ephemeron* survivor) {
+void Heap::AddToEphemeronList(Ephemeron survivor) {
   DEBUG_ASSERT(survivor->IsOldObject() || InToSpace(survivor));
   survivor->set_next(ephemeron_list_);
   ephemeron_list_ = survivor;
 }
 
-static bool IsScavengeSurvivor(Object* obj) {
+static bool IsScavengeSurvivor(Object obj) {
   return obj->IsImmediateOrOldObject() ||
-      IsForwarded(static_cast<HeapObject*>(obj));
+      IsForwarded(static_cast<HeapObject>(obj));
 }
 
 void Heap::ScavengeEphemeronList() {
-  Ephemeron* survivor = ephemeron_list_;
+  Ephemeron survivor = ephemeron_list_;
   ephemeron_list_ = nullptr;
 
   while (survivor != nullptr) {
     ASSERT(survivor->IsEphemeron());
-    Ephemeron* next = survivor->next();
+    Ephemeron next = survivor->next();
     survivor->set_next(nullptr);
 
     if (IsScavengeSurvivor(survivor->key())) {
@@ -883,17 +883,17 @@ void Heap::ScavengeEphemeronList() {
   }
 }
 
-static bool IsMarkSweepSurvivor(Object* obj) {
-  return obj->IsImmediateObject() || static_cast<HeapObject*>(obj)->is_marked();
+static bool IsMarkSweepSurvivor(Object obj) {
+  return obj->IsImmediateObject() || static_cast<HeapObject>(obj)->is_marked();
 }
 
 void Heap::MarkEphemeronList() {
-  Ephemeron* survivor = ephemeron_list_;
+  Ephemeron survivor = ephemeron_list_;
   ephemeron_list_ = nullptr;
 
   while (survivor != nullptr) {
     ASSERT(survivor->IsEphemeron());
-    Ephemeron* next = survivor->next();
+    Ephemeron next = survivor->next();
     survivor->set_next(nullptr);
 
     if (IsMarkSweepSurvivor(survivor->key())) {
@@ -922,8 +922,8 @@ void Heap::MarkEphemeronList() {
 }
 
 void Heap::MournEphemeronList() {
-  Object* nil = interpreter_->nil_obj();
-  Ephemeron* survivor = ephemeron_list_;
+  Object nil = interpreter_->nil_obj();
+  Ephemeron survivor = ephemeron_list_;
   ephemeron_list_ = nullptr;
 
   while (survivor != nullptr) {
@@ -935,28 +935,28 @@ void Heap::MournEphemeronList() {
     // to process.
     survivor->set_finalizer(nil, kNoBarrier);
 
-    Ephemeron* next = survivor->next();
+    Ephemeron next = survivor->next();
     survivor->set_next(nullptr);
     survivor = next;
   }
 }
 
-void Heap::AddToWeakList(WeakArray* survivor) {
+void Heap::AddToWeakList(WeakArray survivor) {
   DEBUG_ASSERT(survivor->IsOldObject() || InToSpace(survivor));
   survivor->set_next(weak_list_);
   weak_list_ = survivor;
 }
 
 void Heap::MournWeakListScavenge() {
-  WeakArray* survivor = weak_list_;
+  WeakArray survivor = weak_list_;
   weak_list_ = nullptr;
   while (survivor != nullptr) {
     ASSERT(survivor->IsWeakArray());
 
-    Object** from;
-    Object** to;
+    Object* from;
+    Object* to;
     survivor->Pointers(&from, &to);
-    for (Object** ptr = from; ptr <= to; ptr++) {
+    for (Object* ptr = from; ptr <= to; ptr++) {
       MournWeakPointerScavenge(ptr);
       if (survivor->IsOldObject() &&
           (*ptr)->IsNewObject() &&
@@ -965,7 +965,7 @@ void Heap::MournWeakListScavenge() {
       }
     }
 
-    WeakArray* next = survivor->next();
+    WeakArray next = survivor->next();
     survivor->set_next(nullptr);
     survivor = next;
   }
@@ -973,15 +973,15 @@ void Heap::MournWeakListScavenge() {
 }
 
 void Heap::MournWeakListMarkSweep() {
-  WeakArray* survivor = weak_list_;
+  WeakArray survivor = weak_list_;
   weak_list_ = nullptr;
   while (survivor != nullptr) {
     ASSERT(survivor->IsWeakArray());
 
-    Object** from;
-    Object** to;
+    Object* from;
+    Object* to;
     survivor->Pointers(&from, &to);
-    for (Object** ptr = from; ptr <= to; ptr++) {
+    for (Object* ptr = from; ptr <= to; ptr++) {
       MournWeakPointerMarkSweep(ptr);
       if (survivor->IsOldObject() &&
           (*ptr)->IsNewObject() &&
@@ -990,7 +990,7 @@ void Heap::MournWeakListMarkSweep() {
       }
     }
 
-    WeakArray* next = survivor->next();
+    WeakArray next = survivor->next();
     survivor->set_next(nullptr);
     survivor = next;
   }
@@ -998,20 +998,20 @@ void Heap::MournWeakListMarkSweep() {
 }
 
 
-void Heap::MournWeakPointerScavenge(Object** ptr) {
-  HeapObject* old_target = static_cast<HeapObject*>(*ptr);
+void Heap::MournWeakPointerScavenge(Object* ptr) {
+  HeapObject old_target = static_cast<HeapObject>(*ptr);
   if (old_target->IsImmediateOrOldObject()) {
     return;
   }
 
   DEBUG_ASSERT(InFromSpace(old_target));
 
-  HeapObject* new_target;
+  HeapObject new_target;
   if (IsForwarded(old_target)) {
     new_target = ForwardingTarget(old_target);
   } else {
     // The object store and nil have already been scavenged.
-    new_target = static_cast<HeapObject*>(interpreter_->nil_obj());
+    new_target = static_cast<HeapObject>(interpreter_->nil_obj());
   }
 
   DEBUG_ASSERT(new_target->IsOldObject() || InToSpace(new_target));
@@ -1019,8 +1019,8 @@ void Heap::MournWeakPointerScavenge(Object** ptr) {
   *ptr = new_target;
 }
 
-void Heap::MournWeakPointerMarkSweep(Object** ptr) {
-  Object* target = *ptr;
+void Heap::MournWeakPointerMarkSweep(Object* ptr) {
+  Object target = *ptr;
 
   if (IsMarkSweepSurvivor(target)) {
     // Target is still alive.
@@ -1033,9 +1033,9 @@ void Heap::MournWeakPointerMarkSweep(Object** ptr) {
 
 void Heap::MournClassTableScavenge() {
   for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
-    Object** ptr = &class_table_[i];
+    Object* ptr = &class_table_[i];
 
-    HeapObject* old_target = static_cast<HeapObject*>(*ptr);
+    HeapObject old_target = static_cast<HeapObject>(*ptr);
     if (old_target->IsImmediateOrOldObject()) {
       continue;
     }
@@ -1043,7 +1043,7 @@ void Heap::MournClassTableScavenge() {
     DEBUG_ASSERT(InFromSpace(old_target));
 
     if (IsForwarded(old_target)) {
-      HeapObject* new_target = ForwardingTarget(old_target);
+      HeapObject new_target = ForwardingTarget(old_target);
       DEBUG_ASSERT(new_target->IsOldObject() || InToSpace(new_target));
       *ptr = new_target;
     } else {
@@ -1055,9 +1055,9 @@ void Heap::MournClassTableScavenge() {
 
 void Heap::MournClassTableMarkSweep() {
   for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
-    Object** ptr = &class_table_[i];
+    Object* ptr = &class_table_[i];
 
-    Object* target = *ptr;
+    Object target = *ptr;
 
     if (IsMarkSweepSurvivor(target)) {
       continue;
@@ -1070,7 +1070,7 @@ void Heap::MournClassTableMarkSweep() {
 
 void Heap::MournClassTableForwarded() {
   for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
-    Behavior* old_class = static_cast<Behavior*>(class_table_[i]);
+    Behavior old_class = static_cast<Behavior>(class_table_[i]);
     if (!old_class->IsForwardingCorpse()) {
       continue;
     }
@@ -1080,7 +1080,7 @@ void Heap::MournClassTableForwarded() {
   }
 }
 
-bool Heap::BecomeForward(Array* old, Array* neu) {
+bool Heap::BecomeForward(Array old, Array neu) {
   if (old->Size() != neu->Size()) {
     return false;
   }
@@ -1091,8 +1091,8 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
   }
 
   for (intptr_t i = 0; i < length; i++) {
-    Object* forwarder = old->element(i);
-    Object* forwardee = neu->element(i);
+    Object forwarder = old->element(i);
+    Object forwardee = neu->element(i);
     if (forwarder->IsImmediateObject() ||
         forwardee->IsImmediateObject()) {
       return false;
@@ -1102,8 +1102,8 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
   interpreter_->GCPrologue();  // Before creating forwarders!
 
   for (intptr_t i = 0; i < length; i++) {
-    HeapObject* forwarder = static_cast<HeapObject*>(old->element(i));
-    HeapObject* forwardee = static_cast<HeapObject*>(neu->element(i));
+    HeapObject forwarder = static_cast<HeapObject>(old->element(i));
+    HeapObject forwardee = static_cast<HeapObject>(neu->element(i));
 
     ASSERT(!forwarder->IsForwardingCorpse());
     ASSERT(!forwardee->IsForwardingCorpse());
@@ -1114,7 +1114,7 @@ bool Heap::BecomeForward(Array* old, Array* neu) {
 
     HeapObject::Initialize(forwarder->Addr(), kForwardingCorpseCid, heap_size);
     ASSERT(forwarder->IsForwardingCorpse());
-    ForwardingCorpse* corpse = static_cast<ForwardingCorpse*>(forwarder);
+    ForwardingCorpse corpse = static_cast<ForwardingCorpse>(forwarder);
     if (forwarder->heap_size() == 0) {
       corpse->set_overflow_size(heap_size);
     }
@@ -1138,14 +1138,14 @@ void Heap::ForwardRoots() {
     ForwardPointer(handles_[i]);
   }
 
-  Object** from;
-  Object** to;
+  Object* from;
+  Object* to;
   interpreter_->RootPointers(&from, &to);
-  for (Object** ptr = from; ptr <= to; ptr++) {
+  for (Object* ptr = from; ptr <= to; ptr++) {
     ForwardPointer(ptr);
   }
   interpreter_->StackPointers(&from, &to);
-  for (Object** ptr = from; ptr <= to; ptr++) {
+  for (Object* ptr = from; ptr <= to; ptr++) {
     ForwardPointer(ptr);
   }
 }
@@ -1153,13 +1153,13 @@ void Heap::ForwardRoots() {
 void Heap::ForwardHeap() {
   uword scan = to_.object_start();
   while (scan < top_) {
-    HeapObject* obj = HeapObject::FromAddr(scan);
+    HeapObject obj = HeapObject::FromAddr(scan);
     if (obj->cid() >= kFirstLegalCid) {
       ForwardClass(this, obj);
-      Object** from;
-      Object** to;
+      Object* from;
+      Object* to;
       obj->Pointers(&from, &to);
-      for (Object** ptr = from; ptr <= to; ptr++) {
+      for (Object* ptr = from; ptr <= to; ptr++) {
         ForwardPointer(ptr);
       }
     }
@@ -1170,14 +1170,14 @@ void Heap::ForwardHeap() {
   for (Region* region = regions_; region != nullptr; region = region->next()) {
     uword scan = region->object_start();
     while (scan < region->object_end()) {
-      HeapObject* obj = HeapObject::FromAddr(scan);
+      HeapObject obj = HeapObject::FromAddr(scan);
       if (obj->cid() >= kFirstLegalCid) {
         ForwardClass(this, obj);
         obj->set_is_remembered(false);
-        Object** from;
-        Object** to;
+        Object* from;
+        Object* to;
         obj->Pointers(&from, &to);
-        for (Object** ptr = from; ptr <= to; ptr++) {
+        for (Object* ptr = from; ptr <= to; ptr++) {
           ForwardPointer(ptr);
           if ((*ptr)->IsNewObject() && !obj->is_remembered()) {
             AddToRememberedSet(obj);
@@ -1195,22 +1195,22 @@ void Heap::ForwardClassIds() {
   // the instances are updated). But for the classes whose representation is
   // defined by the VM we need to keep the fixed cids (e.g., kSmiCid), so we may
   // as well treat them all the same way.
-  Object* nil = interpreter_->nil_obj();
+  Object nil = interpreter_->nil_obj();
   for (intptr_t old_cid = kFirstLegalCid;
        old_cid < class_table_size_;
        old_cid++) {
-    Behavior* old_class = static_cast<Behavior*>(class_table_[old_cid]);
+    Behavior old_class = static_cast<Behavior>(class_table_[old_cid]);
     if (!old_class->IsForwardingCorpse()) {
       continue;
     }
 
-    Behavior* new_class = static_cast<Behavior*>(
-        reinterpret_cast<ForwardingCorpse*>(old_class)->target());
+    Behavior new_class = static_cast<Behavior>(
+        static_cast<ForwardingCorpse>(old_class)->target());
     ASSERT(!new_class->IsForwardingCorpse());
 
     if (new_class->id() != nil) {
       ASSERT(new_class->id()->IsSmallInteger());
-      // Arrange for instances with new_cid to be migrated to i.
+      // Arraynge for instances with new_cid to be migrated to i.
       intptr_t new_cid = new_class->id()->value();
       class_table_[new_cid] = old_class;
     }
@@ -1225,7 +1225,7 @@ intptr_t Heap::AllocateClassId() {
   if (class_table_free_ != 0) {
     cid = class_table_free_;
     class_table_free_ =
-        static_cast<SmallInteger*>(class_table_[cid])->value();
+        static_cast<SmallInteger>(class_table_[cid])->value();
   } else if (class_table_size_ == class_table_capacity_) {
     if (TRACE_GROWTH) {
       OS::PrintErr("Scavenging to free class table entries\n");
@@ -1234,21 +1234,21 @@ intptr_t Heap::AllocateClassId() {
     if (class_table_free_ != 0) {
       cid = class_table_free_;
       class_table_free_ =
-          static_cast<SmallInteger*>(class_table_[cid])->value();
+          static_cast<SmallInteger>(class_table_[cid])->value();
     } else {
       class_table_capacity_ += (class_table_capacity_ >> 1);
       if (TRACE_GROWTH) {
         OS::PrintErr("Growing class table to %" Pd "\n",
                      class_table_capacity_);
       }
-      Object** old_class_table = class_table_;
-      class_table_ = new Object*[class_table_capacity_];
+      Object* old_class_table = class_table_;
+      class_table_ = new Object[class_table_capacity_];
       for (intptr_t i = 0; i < class_table_size_; i++) {
         class_table_[i] = old_class_table[i];
       }
 #if defined(DEBUG)
       for (intptr_t i = class_table_size_; i < class_table_capacity_; i++) {
-        class_table_[i] = reinterpret_cast<Object*>(kUnallocatedWord);
+        class_table_[i] = static_cast<Object>(kUnallocatedWord);
       }
 #endif
       delete[] old_class_table;
@@ -1260,7 +1260,7 @@ intptr_t Heap::AllocateClassId() {
     class_table_size_++;
   }
 #if defined(DEBUG)
-  class_table_[cid] = reinterpret_cast<Object*>(kUninitializedWord);
+  class_table_[cid] = static_cast<Object>(kUninitializedWord);
 #endif
   return cid;
 }
@@ -1271,7 +1271,7 @@ void Heap::InitializeAfterSnapshot() {
   // overwritten. After all snapshot objects have been initialized, we can
   // correct the ids in the classes.
   for (intptr_t cid = kFirstLegalCid; cid < class_table_size_; cid++) {
-    Behavior* cls = static_cast<Behavior*>(class_table_[cid]);
+    Behavior cls = static_cast<Behavior>(class_table_[cid]);
     cls->AssertCouldBeBehavior();
     if (cls->id() == interpreter_->nil_obj()) {
       cls->set_id(SmallInteger::New(cid));
@@ -1288,7 +1288,7 @@ intptr_t Heap::CountInstances(intptr_t cid) {
   intptr_t instances = 0;
   uword scan = to_.object_start();
   while (scan < top_) {
-    HeapObject* obj = HeapObject::FromAddr(scan);
+    HeapObject obj = HeapObject::FromAddr(scan);
     if (obj->cid() == cid) {
       instances++;
     }
@@ -1297,7 +1297,7 @@ intptr_t Heap::CountInstances(intptr_t cid) {
   for (Region* region = regions_; region != nullptr; region = region->next()) {
     uword scan = region->object_start();
     while (scan < region->object_end()) {
-      HeapObject* obj = HeapObject::FromAddr(scan);
+      HeapObject obj = HeapObject::FromAddr(scan);
       if (obj->cid() == cid) {
         instances++;
       }
@@ -1307,11 +1307,11 @@ intptr_t Heap::CountInstances(intptr_t cid) {
   return instances;
 }
 
-intptr_t Heap::CollectInstances(intptr_t cid, Array* array) {
+intptr_t Heap::CollectInstances(intptr_t cid, Array array) {
   intptr_t instances = 0;
   uword scan = to_.object_start();
   while (scan < top_) {
-    HeapObject* obj = HeapObject::FromAddr(scan);
+    HeapObject obj = HeapObject::FromAddr(scan);
     if (obj->cid() == cid) {
       array->set_element(instances, obj);
       instances++;
@@ -1321,7 +1321,7 @@ intptr_t Heap::CollectInstances(intptr_t cid, Array* array) {
   for (Region* region = regions_; region != nullptr; region = region->next()) {
     uword scan = region->object_start();
     while (scan < region->object_end()) {
-      HeapObject* obj = HeapObject::FromAddr(scan);
+      HeapObject obj = HeapObject::FromAddr(scan);
       if (obj->cid() == cid) {
         array->set_element(instances, obj);
         instances++;
@@ -1336,15 +1336,15 @@ uword FreeList::TryAllocate(intptr_t size) {
   intptr_t index = IndexForSize(size);
   while (index < kSizeClasses) {
     if (free_lists_[index] != nullptr) {
-      FreeListElement* element = Dequeue(index);
+      FreeListElement element = Dequeue(index);
       SplitAndRequeue(element, size);
-      return reinterpret_cast<uword>(element) - kHeapObjectTag;
+      return element.Addr();
     }
     index++;
   }
 
-  FreeListElement* prev = nullptr;
-  FreeListElement* element = free_lists_[kSizeClasses];
+  FreeListElement prev = nullptr;
+  FreeListElement element = free_lists_[kSizeClasses];
   while (element != nullptr) {
     if (element->HeapSize() >= size) {
       if (prev == nullptr) {
@@ -1361,7 +1361,7 @@ uword FreeList::TryAllocate(intptr_t size) {
   return 0;
 }
 
-void FreeList::SplitAndRequeue(FreeListElement* element, intptr_t size) {
+void FreeList::SplitAndRequeue(FreeListElement element, intptr_t size) {
   ASSERT(size > 0);
   ASSERT((size & kObjectAlignmentMask) == 0);
   ASSERT(element->HeapSize() >= size);
@@ -1373,17 +1373,17 @@ void FreeList::SplitAndRequeue(FreeListElement* element, intptr_t size) {
   }
 }
 
-FreeListElement* FreeList::Dequeue(intptr_t index) {
-  FreeListElement* element = free_lists_[index];
+FreeListElement FreeList::Dequeue(intptr_t index) {
+  FreeListElement element = free_lists_[index];
   if (element == nullptr) {
-    return nullptr;
+    return element;
   }
   ASSERT((element->next() == nullptr) || element->next()->IsFreeListElement());
   free_lists_[index] = element->next();
   return element;
 }
 
-void FreeList::Enqueue(FreeListElement* element) {
+void FreeList::Enqueue(FreeListElement element) {
   ASSERT(element->IsFreeListElement());
   intptr_t index = IndexForSize(element->HeapSize());
   element->set_next(free_lists_[index]);
@@ -1397,8 +1397,8 @@ void FreeList::EnqueueRange(uword addr, intptr_t size) {
   ASSERT(size >= kObjectAlignment);
   ASSERT((addr & kObjectAlignmentMask) == 0);
   ASSERT((size & kObjectAlignmentMask) == 0);
-  HeapObject* object = HeapObject::Initialize(addr, kFreeListElementCid, size);
-  FreeListElement* element = static_cast<FreeListElement*>(object);
+  HeapObject object = HeapObject::Initialize(addr, kFreeListElementCid, size);
+  FreeListElement element = static_cast<FreeListElement>(object);
   if (element->heap_size() == 0) {
     ASSERT(size > kObjectAlignment);
     element->set_overflow_size(size);

@@ -79,45 +79,47 @@ enum ClassIds {
   kFirstRegularObjectCid = 14,
 };
 
-class AbstractMixin;
-class Activation;
-class Array;
-class Behavior;
-class ByteArray;
-class String;
-class Closure;
-class Ephemeron;
-class Heap;
-class Isolate;
-class Method;
-class Object;
-class SmallInteger;
-class WeakArray;
-
 enum Barrier {
   kNoBarrier,
   kBarrier
 };
 
-#define HEAP_OBJECT_IMPLEMENTATION(klass)                                      \
- private:                                                                      \
-  const klass* ptr() const {                                                   \
-    ASSERT(IsHeapObject());                                                    \
-    return reinterpret_cast<const klass*>(                                     \
-        reinterpret_cast<uword>(this) - kHeapObjectTag);                       \
-  }                                                                            \
-  klass* ptr() {                                                               \
-    ASSERT(IsHeapObject());                                                    \
-    return reinterpret_cast<klass*>(                                           \
-        reinterpret_cast<uword>(this) - kHeapObjectTag);                       \
-  }                                                                            \
-  friend class HeapObject;                                                     \
+class Heap;
+class Isolate;
+
+class AbstractMixin;
+class Activation;
+class Array;
+class Behavior;
+class ByteArray;
+class Closure;
+class Ephemeron;
+class Method;
+class Object;
+class SmallInteger;
+class String;
+class WeakArray;
+
+#define HEAP_OBJECT_IMPLEMENTATION(klass, base)                                \
  public:                                                                       \
-  static const klass* Cast(const Object* object) {                             \
-    return static_cast<const klass*>(object);                                  \
+  class Layout;                                                                \
+  explicit constexpr klass() : base() {}                                       \
+  explicit constexpr klass(uword tagged) : base(tagged) {}                     \
+  explicit constexpr klass(const Object& obj) : base(obj) {}                   \
+  constexpr klass(nullptr_t) : base(nullptr) {}                                \
+  klass* operator ->() { return this; }                                        \
+  const klass* operator ->() const { return this; }                            \
+  static klass Cast(const Object& object) {                                    \
+    return static_cast<klass>(object);                                         \
   }                                                                            \
-  static klass* Cast(Object* object) {                                         \
-    return static_cast<klass*>(object);                                        \
+ private:                                                                      \
+  const Layout* ptr() const {                                                  \
+    ASSERT(IsHeapObject());                                                    \
+    return reinterpret_cast<const Layout*>(Addr());                            \
+  }                                                                            \
+  Layout* ptr() {                                                              \
+    ASSERT(IsHeapObject());                                                    \
+    return reinterpret_cast<Layout*>(Addr());                                  \
   }                                                                            \
 
 class Object {
@@ -140,38 +142,67 @@ class Object {
   }
 
   bool IsHeapObject() const {
-    return (reinterpret_cast<uword>(this) & kSmiTagMask) == kHeapObjectTag;
+    return (tagged_pointer_ & kSmiTagMask) == kHeapObjectTag;
   }
   bool IsImmediateObject() const { return IsSmallInteger(); }
   bool IsSmallInteger() const {
-    return (reinterpret_cast<uword>(this) & kSmiTagMask) == kSmiTag;
+    return (tagged_pointer_ & kSmiTagMask) == kSmiTag;
   }
   bool IsOldObject() const {
-    uword addr = reinterpret_cast<uword>(this);
-    return (addr & kObjectAlignmentMask) == kOldObjectBits;
+    return (tagged_pointer_ & kObjectAlignmentMask) == kOldObjectBits;
   }
   bool IsNewObject() const {
-    uword addr = reinterpret_cast<uword>(this);
-    return (addr & kObjectAlignmentMask) == kNewObjectBits;
+    return (tagged_pointer_ & kObjectAlignmentMask) == kNewObjectBits;
   }
   // Like !IsHeapObject() || IsOldObject(), but compiles to a single branch.
   bool IsImmediateOrOldObject() const {
-    const uword addr = reinterpret_cast<uword>(this);
-    return (addr & kObjectAlignmentMask) != kNewObjectBits;
+    return (tagged_pointer_ & kObjectAlignmentMask) != kNewObjectBits;
   }
   bool IsImmediateOrNewObject() const {
-    const uword addr = reinterpret_cast<uword>(this);
-    return (addr & kObjectAlignmentMask) != kOldObjectBits;
+    return (tagged_pointer_ & kObjectAlignmentMask) != kOldObjectBits;
   }
 
   inline intptr_t ClassId() const;
-  Behavior* Klass(Heap* heap) const;
+  Behavior Klass(Heap* heap) const;
 
   char* ToCString(Heap* heap) const;
   void Print(Heap* heap) const;
+
+ public:
+  constexpr Object() : tagged_pointer_(0) {}
+  explicit constexpr Object(uword tagged) : tagged_pointer_(tagged) {}
+  constexpr Object(nullptr_t) : tagged_pointer_(0) {}  // NOLINT
+
+  Object* operator->() { return this; }
+
+  constexpr bool operator ==(const Object& other) const {
+    return tagged_pointer_ == other.tagged_pointer_;
+  }
+  constexpr bool operator !=(const Object& other) const {
+    return tagged_pointer_ != other.tagged_pointer_;
+  }
+  constexpr bool operator ==(nullptr_t other) const {
+    return tagged_pointer_ == 0;
+  }
+  constexpr bool operator !=(nullptr_t other) const {
+    return tagged_pointer_ != 0;
+  }
+
+  operator bool() const = delete;
+  explicit operator uword() const {
+    return tagged_pointer_;
+  }
+  explicit operator intptr_t() const {
+    return static_cast<intptr_t>(tagged_pointer_);
+  }
+
+ protected:
+  uword tagged_pointer_;
 };
 
 class HeapObject : public Object {
+  HEAP_OBJECT_IMPLEMENTATION(HeapObject, Object);
+
  public:
   void AssertCouldBeBehavior() const {
     ASSERT(IsHeapObject());
@@ -181,68 +212,28 @@ class HeapObject : public Object {
     ASSERT((heap_slots == 8) || (heap_slots == 10));
   }
 
-  bool is_marked() const {
-    return MarkBit::decode(ptr()->header_);
-  }
-  void set_is_marked(bool value) {
-    ptr()->header_ = MarkBit::update(value, ptr()->header_);
-  }
-  bool is_remembered() const {
-    return RememberedBit::decode(ptr()->header_);
-  }
-  void set_is_remembered(bool value) {
-    ptr()->header_ = RememberedBit::update(value, ptr()->header_);
-  }
-  bool is_canonical() const {
-    return CanonicalBit::decode(ptr()->header_);
-  }
-  void set_is_canonical(bool value) {
-    ptr()->header_ = CanonicalBit::update(value, ptr()->header_);
-  }
-  intptr_t heap_size() const {
-    return SizeField::decode(ptr()->header_) << kObjectAlignmentLog2;
-  }
-  intptr_t cid() const {
-    return ClassIdField::decode(ptr()->header_);
-  }
-  void set_cid(intptr_t value) {
-    ptr()->header_ = ClassIdField::update(value, ptr()->header_);
-  }
-  intptr_t header_hash() const {
-    return ptr()->header_hash_;
-  }
-  void set_header_hash(intptr_t value) {
-    ptr()->header_hash_ = value;
-  }
+  inline bool is_marked() const;
+  inline void set_is_marked(bool value);
+  inline bool is_remembered() const;
+  inline void set_is_remembered(bool value);
+  inline bool is_canonical() const;
+  inline void set_is_canonical(bool value);
+  inline intptr_t heap_size() const;
+  inline intptr_t cid() const;
+  inline void set_cid(intptr_t value);
+  inline intptr_t header_hash() const;
+  inline void set_header_hash(intptr_t value);
 
   uword Addr() const {
-    return reinterpret_cast<uword>(this) - kHeapObjectTag;
+    return tagged_pointer_ - kHeapObjectTag;
   }
-  static HeapObject* FromAddr(uword addr) {
-    return reinterpret_cast<HeapObject*>(addr + kHeapObjectTag);
+  static HeapObject FromAddr(uword addr) {
+    return HeapObject(addr + kHeapObjectTag);
   }
 
-  static HeapObject* Initialize(uword addr,
-                                intptr_t cid,
-                                intptr_t heap_size) {
-    ASSERT(cid != kIllegalCid);
-    ASSERT((heap_size & kObjectAlignmentMask) == 0);
-    ASSERT(heap_size > 0);
-    intptr_t size_tag = heap_size >> kObjectAlignmentLog2;
-    if (!SizeField::is_valid(size_tag)) {
-      size_tag = 0;
-      ASSERT(cid < kFirstRegularObjectCid);
-    }
-    uword header = 0;
-    header = SizeField::update(size_tag, header);
-    header = ClassIdField::update(cid, header);
-    HeapObject* obj = FromAddr(addr);
-    obj->ptr()->header_ = header;
-    obj->ptr()->header_hash_ = 0;
-    ASSERT(obj->cid() == cid);
-    ASSERT(!obj->is_marked());
-    return obj;
-  }
+  inline static HeapObject Initialize(uword addr,
+                                      intptr_t cid,
+                                      intptr_t heap_size);
 
   intptr_t HeapSize() const {
     ASSERT(IsHeapObject());
@@ -253,7 +244,7 @@ class HeapObject : public Object {
     return HeapSizeFromClass();
   }
   intptr_t HeapSizeFromClass() const;
-  void Pointers(Object*** from, Object*** to);
+  void Pointers(Object** from, Object** to);
 
  protected:
   template<typename type>
@@ -274,22 +265,8 @@ class HeapObject : public Object {
     }
   }
 
-  uword header_;
-  uword header_hash_;
-
  private:
   void AddToRememberedSet() const;
-
-  const HeapObject* ptr() const {
-    ASSERT(IsHeapObject());
-    return reinterpret_cast<const HeapObject*>(
-        reinterpret_cast<uword>(this) - kHeapObjectTag);
-  }
-  HeapObject* ptr() {
-    ASSERT(IsHeapObject());
-    return reinterpret_cast<HeapObject*>(
-        reinterpret_cast<uword>(this) - kHeapObjectTag);
-  }
 
   class MarkBit : public BitField<bool, kMarkBit, 1> {};
   class RememberedBit : public BitField<bool, kRememberedBit, 1> {};
@@ -309,46 +286,23 @@ intptr_t Object::ClassId() const {
 }
 
 class ForwardingCorpse : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(ForwardingCorpse);
+  HEAP_OBJECT_IMPLEMENTATION(ForwardingCorpse, HeapObject);
 
  public:
-  Object* target() const {
-    return reinterpret_cast<Object*>(ptr()->header_hash_);
-  }
-  void set_target(Object* value) {
-    ptr()->header_hash_ = reinterpret_cast<intptr_t>(value);
-  }
-  intptr_t overflow_size() const {
-    return ptr()->overflow_size_;
-  }
-  void set_overflow_size(intptr_t value) {
-    ptr()->overflow_size_ = value;
-  }
-
- private:
-  intptr_t overflow_size_;
+  inline Object target() const;
+  inline void set_target(Object value);
+  inline intptr_t overflow_size() const;
+  inline void set_overflow_size(intptr_t value);
 };
 
 class FreeListElement : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(FreeListElement);
+  HEAP_OBJECT_IMPLEMENTATION(FreeListElement, HeapObject);
 
  public:
-  FreeListElement* next() const {
-    return reinterpret_cast<FreeListElement*>(ptr()->header_hash_);
-  }
-  void set_next(FreeListElement* value) {
-    ASSERT((value == nullptr) || value->IsHeapObject());  // Tagged.
-    ptr()->header_hash_ = reinterpret_cast<intptr_t>(value);
-  }
-  intptr_t overflow_size() const {
-    return ptr()->overflow_size_;
-  }
-  void set_overflow_size(intptr_t value) {
-    ptr()->overflow_size_ = value;
-  }
-
- private:
-  intptr_t overflow_size_;
+  inline FreeListElement next() const;
+  inline void set_next(FreeListElement value);
+  inline intptr_t overflow_size() const;
+  inline void set_overflow_size(intptr_t value);
 };
 
 class SmallInteger : public Object {
@@ -357,13 +311,17 @@ class SmallInteger : public Object {
   static const intptr_t kMaxValue = (static_cast<intptr_t>(1) << kBits) - 1;
   static const intptr_t kMinValue = -(static_cast<intptr_t>(1) << kBits);
 
-  static SmallInteger* New(intptr_t value) {
-    return reinterpret_cast<SmallInteger*>(value << kSmiTagShift);
+  explicit constexpr SmallInteger(const Object& obj) : Object(obj) {}
+  explicit constexpr SmallInteger(uword tagged) : Object(tagged) {}
+  const SmallInteger* operator->() const { return this; }
+
+  static SmallInteger New(intptr_t value) {
+    return static_cast<SmallInteger>(value << kSmiTagShift);
   }
 
   intptr_t value() const {
     ASSERT(IsSmallInteger());
-    return reinterpret_cast<intptr_t>(this) >> kSmiTagShift;
+    return static_cast<intptr_t>(tagged_pointer_) >> kSmiTagShift;
   }
 
 #if defined(ARCH_IS_32_BIT)
@@ -381,17 +339,14 @@ class SmallInteger : public Object {
 };
 
 class MediumInteger : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(MediumInteger);
+  HEAP_OBJECT_IMPLEMENTATION(MediumInteger, HeapObject);
 
  public:
   static const int64_t kMinValue = kMinInt64;
   static const int64_t kMaxValue = kMaxInt64;
 
-  int64_t value() const { return ptr()->value_; }
-  void set_value(int64_t value) { ptr()->value_ = value; }
-
- private:
-  int64_t value_;
+  inline int64_t value() const;
+  inline void set_value(int64_t value);
 };
 
 #if defined(ARCH_IS_32_BIT)
@@ -409,7 +364,7 @@ const ddigit_t kDigitBase = static_cast<ddigit_t>(1) << kDigitBits;
 const ddigit_t kDigitMask = kDigitBase - static_cast<ddigit_t>(1);
 
 class LargeInteger : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(LargeInteger);
+  HEAP_OBJECT_IMPLEMENTATION(LargeInteger, HeapObject);
 
  public:
   enum DivOperationType {
@@ -423,431 +378,208 @@ class LargeInteger : public HeapObject {
     kRemainder
   };
 
-  static LargeInteger* Expand(Object* integer, Heap* H);
-  static Object* Reduce(LargeInteger* integer, Heap* H);
+  static LargeInteger Expand(Object integer, Heap* H);
+  static Object Reduce(LargeInteger integer, Heap* H);
 
-  static intptr_t Compare(LargeInteger* left, LargeInteger* right);
+  static intptr_t Compare(LargeInteger left, LargeInteger right);
 
-  static LargeInteger* Add(LargeInteger* left,
-                           LargeInteger* right, Heap* H);
-  static LargeInteger* Subtract(LargeInteger* left,
-                                LargeInteger* right, Heap* H);
-  static LargeInteger* Multiply(LargeInteger* left,
-                                LargeInteger* right, Heap* H);
-  static LargeInteger* Divide(DivOperationType op_type,
-                              DivResultType result_type,
-                              LargeInteger* left,
-                              LargeInteger* right,
-                              Heap* H);
+  static LargeInteger Add(LargeInteger left,
+                          LargeInteger right, Heap* H);
+  static LargeInteger Subtract(LargeInteger left,
+                               LargeInteger right, Heap* H);
+  static LargeInteger Multiply(LargeInteger left,
+                               LargeInteger right, Heap* H);
+  static LargeInteger Divide(DivOperationType op_type,
+                             DivResultType result_type,
+                             LargeInteger left,
+                             LargeInteger right,
+                             Heap* H);
 
-  static LargeInteger* And(LargeInteger* left,
-                           LargeInteger* right, Heap* H);
-  static LargeInteger* Or(LargeInteger* left,
-                          LargeInteger* right, Heap* H);
-  static LargeInteger* Xor(LargeInteger* left,
-                           LargeInteger* right, Heap* H);
-  static LargeInteger* ShiftRight(LargeInteger* left,
-                                  intptr_t raw_right, Heap* H);
-  static LargeInteger* ShiftLeft(LargeInteger* left,
+  static LargeInteger And(LargeInteger left,
+                          LargeInteger right, Heap* H);
+  static LargeInteger Or(LargeInteger left,
+                         LargeInteger right, Heap* H);
+  static LargeInteger Xor(LargeInteger left,
+                          LargeInteger right, Heap* H);
+  static LargeInteger ShiftRight(LargeInteger left,
                                  intptr_t raw_right, Heap* H);
+  static LargeInteger ShiftLeft(LargeInteger left,
+                                intptr_t raw_right, Heap* H);
 
-  static String* PrintString(LargeInteger* large, Heap* H);
+  static String PrintString(LargeInteger large, Heap* H);
 
-  static double AsDouble(LargeInteger* integer);
-  static bool FromDouble(double raw_value, Object** result, Heap* H);
+  static double AsDouble(LargeInteger integer);
+  static bool FromDouble(double raw_value, Object* result, Heap* H);
 
-  bool negative() const {
-    return ptr()->negative_;
-  }
-  void set_negative(bool v) {
-    ptr()->negative_ = v;
-  }
-  intptr_t size() const {
-    return ptr()->size_;
-  }
-  void set_size(intptr_t value) {
-    ptr()->size_ = value;
-  }
-  intptr_t capacity() const {
-    return ptr()->capacity_;
-  }
-  void set_capacity(intptr_t value) {
-    ptr()->capacity_ = value;
-  }
-  digit_t digit(intptr_t index) const {
-    return ptr()->digits_[index];
-  }
-  void set_digit(intptr_t index, digit_t value) {
-    ptr()->digits_[index] = value;
-  }
-
- private:
-  intptr_t capacity_;
-  intptr_t negative_;  // TODO(rmacnak): Use a header bit?
-  intptr_t size_;
-  digit_t digits_[];
+  inline bool negative() const;
+  inline void set_negative(bool v);
+  inline intptr_t size() const;
+  inline void set_size(intptr_t value);
+  inline intptr_t capacity() const;
+  inline void set_capacity(intptr_t value);
+  inline digit_t digit(intptr_t index) const;
+  inline void set_digit(intptr_t index, digit_t value);
 };
 
 class RegularObject : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(RegularObject);
+  HEAP_OBJECT_IMPLEMENTATION(RegularObject, HeapObject);
 
  public:
-  Object* slot(intptr_t index) const { return Load(&ptr()->slots_[index]); }
-  void set_slot(intptr_t index, Object* value, Barrier barrier = kBarrier) {
-    Store(&ptr()->slots_[index], value, barrier);
-  }
+  inline Object slot(intptr_t index) const;
+  inline void set_slot(intptr_t index, Object value,
+                       Barrier barrier = kBarrier);
 
- private:
-  Object** from() {
-    return &ptr()->slots_[0];
-  }
-  Object* slots_[];
-  Object** to() {
-    intptr_t num_slots = (heap_size() - sizeof(HeapObject)) >> kWordSizeLog2;
-    return &ptr()->slots_[num_slots - 1];
-  }
+  inline Object* from();
+  inline Object* to();
 };
 
 class Array : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Array);
+  HEAP_OBJECT_IMPLEMENTATION(Array, HeapObject);
 
  public:
-  SmallInteger* size() const { return Load(&ptr()->size_, kNoBarrier); }
-  void set_size(SmallInteger* s) { Store(&ptr()->size_, s, kNoBarrier); }
+  inline SmallInteger size() const;
+  inline void set_size(SmallInteger s);
   intptr_t Size() const { return size()->value(); }
 
-  Object* element(intptr_t index) const {
-    return Load(&ptr()->elements_[index]);
-  }
-  void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
-    Store(&ptr()->elements_[index], value, barrier);
-  }
+  inline Object element(intptr_t index) const;
+  inline void set_element(intptr_t index, Object value,
+                          Barrier barrier = kBarrier);
 
- private:
-  Object** from() {
-    return &ptr()->elements_[0];
-  }
-  SmallInteger* size_;
-  Object* elements_[];
-  Object** to() {
-    return &ptr()->elements_[Size() - 1];
-  }
+  inline Object* from();
+  inline Object* to();
 };
 
 class WeakArray : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(WeakArray);
+  HEAP_OBJECT_IMPLEMENTATION(WeakArray, HeapObject);
 
  public:
-  SmallInteger* size() const { return Load(&ptr()->size_, kNoBarrier); }
-  void set_size(SmallInteger* s) { Store(&ptr()->size_, s, kNoBarrier); }
+  inline SmallInteger size() const;
+  inline void set_size(SmallInteger s);
   intptr_t Size() const { return size()->value(); }
 
   // Only accessed by the GC. Bypasses barrier, including assertions.
-  WeakArray* next() const { return ptr()->next_; }
-  void set_next(WeakArray* value) { ptr()->next_ = value; }
+  inline WeakArray next() const;
+  inline void set_next(WeakArray value);
 
-  Object* element(intptr_t index) const {
-    return Load(&ptr()->elements_[index]);
-  }
-  void set_element(intptr_t index, Object* value, Barrier barrier = kBarrier) {
-    Store(&ptr()->elements_[index], value, barrier);
-  }
+  inline Object element(intptr_t index) const;
+  inline void set_element(intptr_t index, Object value,
+                          Barrier barrier = kBarrier);
 
- private:
-  Object** from() {
-    return &ptr()->elements_[0];
-  }
-  SmallInteger* size_;  // Not visited.
-  WeakArray* next_;  // Not visited.
-  Object* elements_[];
-  Object** to() {
-    return &ptr()->elements_[Size() - 1];
-  }
+  inline Object* from();
+  inline Object* to();
 };
 
 class Ephemeron : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Ephemeron);
+  HEAP_OBJECT_IMPLEMENTATION(Ephemeron, HeapObject);
 
  public:
-  Object* key() const { return Load(&ptr()->key_); }
-  Object** key_ptr() { return &ptr()->key_; }
-  void set_key(Object* key, Barrier barrier = kBarrier) {
-    Store(&ptr()->key_, key, barrier);
-  }
+  inline Object key() const;
+  inline Object* key_ptr();
+  inline void set_key(Object key, Barrier barrier = kBarrier);
 
-  Object* value() const { return Load(&ptr()->value_); }
-  Object** value_ptr() { return &ptr()->value_; }
-  void set_value(Object* value, Barrier barrier = kBarrier) {
-    Store(&ptr()->value_, value, barrier);
-  }
+  inline Object value() const;
+  inline Object* value_ptr();
+  inline void set_value(Object value, Barrier barrier = kBarrier);
 
-  Object* finalizer() const { return Load(&ptr()->finalizer_); }
-  Object** finalizer_ptr() { return &ptr()->finalizer_; }
-  void set_finalizer(Object* finalizer, Barrier barrier = kBarrier) {
-    Store(&ptr()->finalizer_, finalizer, barrier);
-  }
+  inline Object finalizer() const;
+  inline Object* finalizer_ptr();
+  inline void set_finalizer(Object finalizer, Barrier barrier = kBarrier);
 
   // Only accessed by the GC. Bypasses barrier, including assertions.
-  Ephemeron* next() const { return ptr()->next_; }
-  void set_next(Ephemeron* value) { ptr()->next_ = value; }
+  inline Ephemeron next() const;
+  inline void set_next(Ephemeron value);
 
- private:
-  Object** from() {
-    return &ptr()->key_;
-  }
-  Object* key_;
-  Object* value_;
-  Object* finalizer_;
-  Ephemeron* next_;  // Not visited.
-  Object** to() {
-    return &ptr()->finalizer_;
-  }
+  inline Object* from();
+  inline Object* to();
 };
 
 class Bytes : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Bytes);
+  HEAP_OBJECT_IMPLEMENTATION(Bytes, HeapObject);
 
  public:
-  SmallInteger* size() const { return Load(&ptr()->size_, kNoBarrier); }
-  void set_size(SmallInteger* s) { Store(&ptr()->size_, s, kNoBarrier); }
+  inline SmallInteger size() const;
+  inline void set_size(SmallInteger s);
   intptr_t Size() const { return size()->value(); }
 
-  uint8_t element(intptr_t index) const {
-    return *element_addr(index);
-  }
-  void set_element(intptr_t index, uint8_t value) {
-    *element_addr(index) = value;
-  }
-  uint8_t* element_addr(intptr_t index) {
-    uint8_t* elements = reinterpret_cast<uint8_t*>(
-        reinterpret_cast<uword>(ptr()) + sizeof(Bytes));
-    return &elements[index];
-  }
-  const uint8_t* element_addr(intptr_t index) const {
-    const uint8_t* elements = reinterpret_cast<const uint8_t*>(
-        reinterpret_cast<uword>(ptr()) + sizeof(Bytes));
-    return &elements[index];
-  }
-
- private:
-  SmallInteger* size_;
+  inline uint8_t element(intptr_t index) const;
+  inline void set_element(intptr_t index, uint8_t value);
+  inline uint8_t* element_addr(intptr_t index);
+  inline const uint8_t* element_addr(intptr_t index) const;
 };
 
 class String : public Bytes {
-  HEAP_OBJECT_IMPLEMENTATION(String);
+  HEAP_OBJECT_IMPLEMENTATION(String, Bytes);
 
  public:
-  SmallInteger* EnsureHash(Isolate* isolate);
+  SmallInteger EnsureHash(Isolate* isolate);
 };
 
 class ByteArray : public Bytes {
-  HEAP_OBJECT_IMPLEMENTATION(ByteArray);
+  HEAP_OBJECT_IMPLEMENTATION(ByteArray, Bytes);
 };
 
+static const intptr_t kMaxTemps = 35;
+
 class Activation : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Activation);
+  HEAP_OBJECT_IMPLEMENTATION(Activation, HeapObject);
 
  public:
-  static const intptr_t kMaxTemps = 35;
-
-  Activation* sender() const { return Load(&ptr()->sender_); }
-  void set_sender(Activation* s, Barrier barrier = kBarrier) {
-    Store(&ptr()->sender_, s, barrier);
+  inline Activation sender() const;
+  inline void set_sender(Activation s, Barrier barrier = kBarrier);
+  Object* sender_fp() const {
+    return reinterpret_cast<Object*>(static_cast<uword>(sender()));
+  }
+  void set_sender_fp(Object* fp) {
+    Activation sender = static_cast<Activation>(reinterpret_cast<uword>(fp));
+    ASSERT(sender->IsSmallInteger());
+    set_sender(sender, kNoBarrier);
   }
 
-  SmallInteger* bci() const { return Load(&ptr()->bci_, kNoBarrier); }
-  void set_bci(SmallInteger* i) { Store(&ptr()->bci_, i, kNoBarrier); }
+  inline SmallInteger bci() const;
+  inline void set_bci(SmallInteger i);
 
-  Method* method() const { return Load(&ptr()->method_); }
-  void set_method(Method* m, Barrier barrier = kBarrier) {
-    Store(&ptr()->method_, m, barrier);
-  }
+  inline Method method() const;
+  inline void set_method(Method m, Barrier barrier = kBarrier);
 
-  Closure* closure() const { return Load(&ptr()->closure_); }
-  void set_closure(Closure* m, Barrier barrier = kBarrier) {
-    Store(&ptr()->closure_, m, barrier);
-  }
+  inline Closure closure() const;
+  inline void set_closure(Closure m, Barrier barrier = kBarrier);
 
-  Object* receiver() const { return Load(&ptr()->receiver_); }
-  void set_receiver(Object* o, Barrier barrier = kBarrier) {
-    Store(&ptr()->receiver_, o, barrier);
-  }
+  inline Object receiver() const;
+  inline void set_receiver(Object o, Barrier barrier = kBarrier);
 
-  SmallInteger* stack_depth() const {
-    return Load(&ptr()->stack_depth_, kNoBarrier);
-  }
-  void set_stack_depth(SmallInteger* d) {
-    Store(&ptr()->stack_depth_, d, kNoBarrier);
-  }
+  inline SmallInteger stack_depth() const;
+  inline void set_stack_depth(SmallInteger d);
   intptr_t StackDepth() const { return stack_depth()->value(); }
 
-  Object* temp(intptr_t index) const { return Load(&ptr()->temps_[index]); }
-  void set_temp(intptr_t index, Object* o, Barrier barrier = kBarrier) {
-    Store(&ptr()->temps_[index], o, barrier);
-  }
+  inline Object temp(intptr_t index) const;
+  inline void set_temp(intptr_t index, Object o, Barrier barrier = kBarrier);
 
-  void PopNAndPush(intptr_t drop_count, Object* value) {
+  void PopNAndPush(intptr_t drop_count, Object value) {
     ASSERT(drop_count >= 0);
     ASSERT(drop_count <= StackDepth());
     set_stack_depth(SmallInteger::New(StackDepth() - drop_count + 1));
     set_temp(StackDepth() - 1, value);
   }
-  void Push(Object* value) {
+  void Push(Object value) {
     PopNAndPush(0, value);
   }
 
   void PrintStack(Heap* heap);
 
- private:
-  Object** from() {
-    return reinterpret_cast<Object**>(&ptr()->sender_);
-  }
-  Activation* sender_;
-  SmallInteger* bci_;
-  Method* method_;
-  Closure* closure_;
-  Object* receiver_;
-  SmallInteger* stack_depth_;
-  Object* temps_[kMaxTemps];
-  Object** to() {
-    return reinterpret_cast<Object**>(&ptr()->temps_[StackDepth() - 1]);
-  }
-};
-
-class Float64 : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Float64);
-
- public:
-  double value() const { return ptr()->value_; }
-  void set_value(double v) { ptr()->value_ = v; }
-
- private:
-  double value_;
-};
-
-class Closure : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Closure);
-
- public:
-  SmallInteger* num_copied() const {
-    return Load(&ptr()->num_copied_, kNoBarrier);
-  }
-  void set_num_copied(SmallInteger* v) {
-    Store(&ptr()->num_copied_, v, kNoBarrier);
-  }
-  intptr_t NumCopied() const { return num_copied()->value(); }
-
-  Activation* defining_activation() const {
-    return Load(&ptr()->defining_activation_);
-  }
-  void set_defining_activation(Activation* a, Barrier barrier = kBarrier) {
-    Store(&ptr()->defining_activation_, a, barrier);
-  }
-
-  SmallInteger* initial_bci() const {
-    return Load(&ptr()->initial_bci_, kNoBarrier);
-  }
-  void set_initial_bci(SmallInteger* bci) {
-    Store(&ptr()->initial_bci_, bci, kNoBarrier);
-  }
-
-  SmallInteger* num_args() const {
-    return Load(&ptr()->num_args_, kNoBarrier);
-  }
-  void set_num_args(SmallInteger* num) {
-    Store(&ptr()->num_args_, num, kNoBarrier);
-  }
-
-  Object* copied(intptr_t index) const {
-    return Load(&ptr()->copied_[index]);
-  }
-  void set_copied(intptr_t index, Object* o, Barrier barrier = kBarrier) {
-    Store(&ptr()->copied_[index], o, barrier);
-  }
-
- private:
-  Object** from() {
-    return reinterpret_cast<Object**>(&ptr()->num_copied_);
-  }
-  SmallInteger* num_copied_;
-  Activation* defining_activation_;
-  SmallInteger* initial_bci_;
-  SmallInteger* num_args_;
-  Object* copied_[];
-  Object** to() {
-    return reinterpret_cast<Object**>(&ptr()->copied_[NumCopied() - 1]);
-  }
-};
-
-class Behavior : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Behavior);
-
- public:
-  Behavior* superclass() const { return Load(&ptr()->superclass_); }
-  Array* methods() const { return Load(&ptr()->methods_); }
-  AbstractMixin* mixin() const { return Load(&ptr()->mixin_); }
-  Object* enclosing_object() const { return Load(&ptr()->enclosing_object_); }
-  SmallInteger* id() const { return Load(&ptr()->classid_, kNoBarrier); }
-  void set_id(SmallInteger* id) { Store(&ptr()->classid_, id, kNoBarrier); }
-  SmallInteger* format() const { return Load(&ptr()->format_, kNoBarrier); }
-
- private:
-  Behavior* superclass_;
-  Array* methods_;
-  Object* enclosing_object_;
-  AbstractMixin* mixin_;
-  SmallInteger* classid_;
-  SmallInteger* format_;
-};
-
-class Class : public Behavior {
-  HEAP_OBJECT_IMPLEMENTATION(Class);
-
- public:
-  String* name() const { return Load(&ptr()->name_); }
-  WeakArray* subclasses() const { return Load(&ptr()->subclasses_); }
-
- private:
-  String* name_;
-  WeakArray* subclasses_;
-};
-
-class Metaclass : public Behavior {
-  HEAP_OBJECT_IMPLEMENTATION(Metaclass);
-
- public:
-  Class* this_class() const { return Load(&ptr()->this_class_); }
-
- private:
-  Class* this_class_;
-};
-
-class AbstractMixin : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(AbstractMixin);
-
- public:
-  String* name() const { return Load(&ptr()->name_); }
-  Array* methods() const { return Load(&ptr()->methods_); }
-  AbstractMixin* enclosing_mixin() const {
-    return Load(&ptr()->enclosing_mixin_);
-  }
-
- private:
-  String* name_;
-  Array* methods_;
-  AbstractMixin* enclosing_mixin_;
+  inline Object* from();
+  inline Object* to();
 };
 
 class Method : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Method);
+  HEAP_OBJECT_IMPLEMENTATION(Method, HeapObject);
 
  public:
-  SmallInteger* header() const { return Load(&ptr()->header_); }
-  Array* literals() const { return Load(&ptr()->literals_); }
-  ByteArray* bytecode() const { return Load(&ptr()->bytecode_); }
-  AbstractMixin* mixin() const { return Load(&ptr()->mixin_); }
-  String* selector() const { return Load(&ptr()->selector_); }
-  Object* source() const { return Load(&ptr()->source_); }
+  inline SmallInteger header() const;
+  inline Array literals() const;
+  inline ByteArray bytecode() const;
+  inline AbstractMixin mixin() const;
+  inline String selector() const;
+  inline Object source() const;
 
   bool IsPublic() const {
     uword am = header()->value() >> 28;
@@ -874,111 +606,647 @@ class Method : public HeapObject {
     return (header()->value() >> 8) & 255;
   }
 
-  const uint8_t* IP(const SmallInteger* bci) {
+  const uint8_t* IP(const SmallInteger bci) {
     return bytecode()->element_addr(bci->value() - 1);
   }
-  SmallInteger* BCI(const uint8_t* ip) {
+  SmallInteger BCI(const uint8_t* ip) {
     return SmallInteger::New((ip - bytecode()->element_addr(0)) + 1);
   }
+};
 
- private:
-  SmallInteger* header_;
-  Array* literals_;
-  ByteArray* bytecode_;
-  AbstractMixin* mixin_;
-  String* selector_;
-  Object* source_;
+class Float64 : public HeapObject {
+  HEAP_OBJECT_IMPLEMENTATION(Float64, HeapObject);
+
+ public:
+  inline double value() const;
+  inline void set_value(double v);
+};
+
+class Closure : public HeapObject {
+  HEAP_OBJECT_IMPLEMENTATION(Closure, HeapObject);
+
+ public:
+  inline SmallInteger num_copied() const;
+  inline void set_num_copied(SmallInteger v);
+  intptr_t NumCopied() const { return num_copied()->value(); }
+
+  inline Activation defining_activation() const;
+  inline void set_defining_activation(Activation a, Barrier barrier = kBarrier);
+
+  inline SmallInteger initial_bci() const;
+  inline void set_initial_bci(SmallInteger bci);
+
+  inline SmallInteger num_args() const;
+  inline void set_num_args(SmallInteger num);
+
+  inline Object copied(intptr_t index) const;
+  inline void set_copied(intptr_t index, Object o, Barrier barrier = kBarrier);
+
+  inline Object* from();
+  inline Object* to();
+};
+
+class Behavior : public HeapObject {
+  HEAP_OBJECT_IMPLEMENTATION(Behavior, HeapObject);
+
+ public:
+  inline Behavior superclass() const;
+  inline Array methods() const;
+  inline AbstractMixin mixin() const;
+  inline Object enclosing_object() const;
+  inline SmallInteger id() const;
+  inline void set_id(SmallInteger id);
+  inline SmallInteger format() const;
+};
+
+class Class : public Behavior {
+  HEAP_OBJECT_IMPLEMENTATION(Class, Behavior);
+
+ public:
+  inline String name() const;
+  inline WeakArray subclasses() const;
+};
+
+class Metaclass : public Behavior {
+  HEAP_OBJECT_IMPLEMENTATION(Metaclass, Behavior);
+
+ public:
+  inline Class this_class() const;
+};
+
+class AbstractMixin : public HeapObject {
+  HEAP_OBJECT_IMPLEMENTATION(AbstractMixin, HeapObject);
+
+ public:
+  inline String name() const;
+  inline Array methods() const;
+  inline AbstractMixin enclosing_mixin() const;
 };
 
 class Message : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Message);
+  HEAP_OBJECT_IMPLEMENTATION(Message, HeapObject);
 
  public:
-  void set_selector(String* selector, Barrier barrier = kBarrier) {
-    Store(&ptr()->selector_, selector, barrier);
-  }
-  void set_arguments(Array* arguments, Barrier barrier = kBarrier) {
-    Store(&ptr()->arguments_, arguments, barrier);
-  }
-
- private:
-  String* selector_;
-  Array* arguments_;
+  inline void set_selector(String selector, Barrier barrier = kBarrier);
+  inline void set_arguments(Array arguments, Barrier barrier = kBarrier);
 };
 
 class ObjectStore : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(ObjectStore);
+  HEAP_OBJECT_IMPLEMENTATION(ObjectStore, HeapObject);
 
  public:
-  class SmallInteger* size() const { return ptr()->array_size_; }
-  Object* nil_obj() const { return ptr()->nil_; }
-  Object* false_obj() const { return ptr()->false_; }
-  Object* true_obj() const { return ptr()->true_; }
-  Object* message_loop() const { return ptr()->message_loop_; }
-  class Array* common_selectors() const { return ptr()->common_selectors_; }
-  class String* does_not_understand() const {
-    return ptr()->does_not_understand_;
-  }
-  class String* non_boolean_receiver() const {
-    return ptr()->non_boolean_receiver_;
-  }
-  class String* cannot_return() const {
-    return ptr()->cannot_return_;
-  }
-  class String* about_to_return_through() const {
-    return ptr()->about_to_return_through_;
-  }
-  class String* unused_bytecode() const {
-    return ptr()->unused_bytecode_;
-  }
-  class String* dispatch_message() const {
-    return ptr()->dispatch_message_;
-  }
-  class String* dispatch_signal() const {
-    return ptr()->dispatch_signal_;
-  }
-  Behavior* Array() const { return ptr()->Array_; }
-  Behavior* ByteArray() const { return ptr()->ByteArray_; }
-  Behavior* String() const { return ptr()->String_; }
-  Behavior* Closure() const { return ptr()->Closure_; }
-  Behavior* Ephemeron() const { return ptr()->Ephemeron_; }
-  Behavior* Float64() const { return ptr()->Float64_; }
-  Behavior* LargeInteger() const { return ptr()->LargeInteger_; }
-  Behavior* MediumInteger() const { return ptr()->MediumInteger_; }
-  Behavior* Message() const { return ptr()->Message_; }
-  Behavior* SmallInteger() const { return ptr()->SmallInteger_; }
-  Behavior* WeakArray() const { return ptr()->WeakArray_; }
-  Behavior* Activation() const { return ptr()->Activation_; }
-  Behavior* Method() const { return ptr()->Method_; }
-
- private:
-  class SmallInteger* array_size_;
-  Object* nil_;
-  Object* false_;
-  Object* true_;
-  Object* message_loop_;
-  class Array* common_selectors_;
-  class String* does_not_understand_;
-  class String* non_boolean_receiver_;
-  class String* cannot_return_;
-  class String* about_to_return_through_;
-  class String* unused_bytecode_;
-  class String* dispatch_message_;
-  class String* dispatch_signal_;
-  Behavior* Array_;
-  Behavior* ByteArray_;
-  Behavior* String_;
-  Behavior* Closure_;
-  Behavior* Ephemeron_;
-  Behavior* Float64_;
-  Behavior* LargeInteger_;
-  Behavior* MediumInteger_;
-  Behavior* Message_;
-  Behavior* SmallInteger_;
-  Behavior* WeakArray_;
-  Behavior* Activation_;
-  Behavior* Method_;
+  inline class SmallInteger size() const;
+  inline Object nil_obj() const;
+  inline Object false_obj() const;
+  inline Object true_obj() const;
+  inline Object message_loop() const;
+  inline class Array common_selectors() const;
+  inline class String does_not_understand() const;
+  inline class String non_boolean_receiver() const;
+  inline class String cannot_return() const;
+  inline class String about_to_return_through() const;
+  inline class String unused_bytecode() const;
+  inline class String dispatch_message() const;
+  inline class String dispatch_signal() const;
+  inline Behavior Array() const;
+  inline Behavior ByteArray() const;
+  inline Behavior String() const;
+  inline Behavior Closure() const;
+  inline Behavior Ephemeron() const;
+  inline Behavior Float64() const;
+  inline Behavior LargeInteger() const;
+  inline Behavior MediumInteger() const;
+  inline Behavior Message() const;
+  inline Behavior SmallInteger() const;
+  inline Behavior WeakArray() const;
+  inline Behavior Activation() const;
+  inline Behavior Method() const;
 };
+
+class HeapObject::Layout {
+ public:
+  uword header_;
+  uword header_hash_;
+};
+
+class ForwardingCorpse::Layout : public HeapObject::Layout {
+ public:
+  intptr_t overflow_size_;
+};
+
+class FreeListElement::Layout : public HeapObject::Layout {
+ public:
+  intptr_t overflow_size_;
+};
+
+class MediumInteger::Layout : public HeapObject::Layout {
+ public:
+  int64_t value_;
+};
+
+class LargeInteger::Layout : public HeapObject::Layout {
+ public:
+  intptr_t capacity_;
+  intptr_t negative_;  // TODO(rmacnak): Use a header bit?
+  intptr_t size_;
+  digit_t digits_[];
+};
+
+class RegularObject::Layout : public HeapObject::Layout {
+ public:
+  Object slots_[];
+};
+
+class Array::Layout : public HeapObject::Layout {
+ public:
+  SmallInteger size_;
+  Object elements_[];
+};
+
+class WeakArray::Layout : public HeapObject::Layout {
+ public:
+  SmallInteger size_;  // Not visited.
+  WeakArray next_;  // Not visited.
+  Object elements_[];
+};
+
+class Ephemeron::Layout : public HeapObject::Layout {
+ public:
+  Object key_;
+  Object value_;
+  Object finalizer_;
+  Ephemeron next_;  // Not visited.
+};
+
+class Bytes::Layout : public HeapObject::Layout {
+ public:
+  SmallInteger size_;
+};
+
+class String::Layout : public Bytes::Layout {};
+
+class ByteArray::Layout : public Bytes::Layout {};
+
+class Method::Layout : public HeapObject::Layout {
+ public:
+  SmallInteger header_;
+  Array literals_;
+  ByteArray bytecode_;
+  AbstractMixin mixin_;
+  String selector_;
+  Object source_;
+};
+
+class Activation::Layout : public HeapObject::Layout {
+ public:
+  Activation sender_;
+  SmallInteger bci_;
+  Method method_;
+  Closure closure_;
+  Object receiver_;
+  SmallInteger stack_depth_;
+  Object temps_[kMaxTemps];
+};
+
+class Float64::Layout : public HeapObject::Layout {
+ public:
+  double value_;
+};
+
+class Closure::Layout : public HeapObject::Layout {
+ public:
+  SmallInteger num_copied_;
+  Activation defining_activation_;
+  SmallInteger initial_bci_;
+  SmallInteger num_args_;
+  Object copied_[];
+};
+
+class Behavior::Layout : public HeapObject::Layout {
+ public:
+  Behavior superclass_;
+  Array methods_;
+  Object enclosing_object_;
+  AbstractMixin mixin_;
+  SmallInteger classid_;
+  SmallInteger format_;
+};
+
+class Class::Layout : public Behavior::Layout {
+ public:
+  String name_;
+  WeakArray subclasses_;
+};
+
+class Metaclass::Layout : public Behavior::Layout {
+ public:
+  Class this_class_;
+};
+
+class AbstractMixin::Layout : public HeapObject::Layout {
+ public:
+  String name_;
+  Array methods_;
+  AbstractMixin enclosing_mixin_;
+};
+
+class Message::Layout : public HeapObject::Layout {
+ public:
+  String selector_;
+  Array arguments_;
+};
+
+class ObjectStore::Layout : public HeapObject::Layout {
+ public:
+  class SmallInteger array_size_;
+  Object nil_;
+  Object false_;
+  Object true_;
+  Object message_loop_;
+  class Array common_selectors_;
+  class String does_not_understand_;
+  class String non_boolean_receiver_;
+  class String cannot_return_;
+  class String about_to_return_through_;
+  class String unused_bytecode_;
+  class String dispatch_message_;
+  class String dispatch_signal_;
+  Behavior Array_;
+  Behavior ByteArray_;
+  Behavior String_;
+  Behavior Closure_;
+  Behavior Ephemeron_;
+  Behavior Float64_;
+  Behavior LargeInteger_;
+  Behavior MediumInteger_;
+  Behavior Message_;
+  Behavior SmallInteger_;
+  Behavior WeakArray_;
+  Behavior Activation_;
+  Behavior Method_;
+};
+
+bool HeapObject::is_marked() const {
+  return MarkBit::decode(ptr()->header_);
+}
+void HeapObject::set_is_marked(bool value) {
+  ptr()->header_ = MarkBit::update(value, ptr()->header_);
+}
+bool HeapObject::is_remembered() const {
+  return RememberedBit::decode(ptr()->header_);
+}
+void HeapObject::set_is_remembered(bool value) {
+  ptr()->header_ = RememberedBit::update(value, ptr()->header_);
+}
+bool HeapObject::is_canonical() const {
+  return CanonicalBit::decode(ptr()->header_);
+}
+void HeapObject::set_is_canonical(bool value) {
+  ptr()->header_ = CanonicalBit::update(value, ptr()->header_);
+}
+intptr_t HeapObject::heap_size() const {
+  return SizeField::decode(ptr()->header_) << kObjectAlignmentLog2;
+}
+intptr_t HeapObject::cid() const {
+  return ClassIdField::decode(ptr()->header_);
+}
+void HeapObject::set_cid(intptr_t value) {
+  ptr()->header_ = ClassIdField::update(value, ptr()->header_);
+}
+intptr_t HeapObject::header_hash() const {
+  return ptr()->header_hash_;
+}
+void HeapObject::set_header_hash(intptr_t value) {
+  ptr()->header_hash_ = value;
+}
+
+HeapObject HeapObject::Initialize(uword addr,
+                                intptr_t cid,
+                                intptr_t heap_size) {
+  ASSERT(cid != kIllegalCid);
+  ASSERT((heap_size & kObjectAlignmentMask) == 0);
+  ASSERT(heap_size > 0);
+  intptr_t size_tag = heap_size >> kObjectAlignmentLog2;
+  if (!SizeField::is_valid(size_tag)) {
+    size_tag = 0;
+    ASSERT(cid < kFirstRegularObjectCid);
+  }
+  uword header = 0;
+  header = SizeField::update(size_tag, header);
+  header = ClassIdField::update(cid, header);
+  HeapObject obj = FromAddr(addr);
+  obj.ptr()->header_ = header;
+  obj.ptr()->header_hash_ = 0;
+  ASSERT(obj.cid() == cid);
+  ASSERT(!obj.is_marked());
+  return obj;
+}
+
+Object ForwardingCorpse::target() const {
+  return static_cast<Object>(ptr()->header_hash_);
+}
+void ForwardingCorpse::set_target(Object value) {
+  ptr()->header_hash_ = static_cast<uword>(value);
+}
+intptr_t ForwardingCorpse::overflow_size() const {
+  return ptr()->overflow_size_;
+}
+void ForwardingCorpse::set_overflow_size(intptr_t value) {
+  ptr()->overflow_size_ = value;
+}
+
+FreeListElement FreeListElement::next() const {
+  return static_cast<FreeListElement>(ptr()->header_hash_);
+}
+void FreeListElement::set_next(FreeListElement value) {
+  ASSERT((value == nullptr) || value->IsHeapObject());  // Tagged.
+  ptr()->header_hash_ = static_cast<uword>(value);
+}
+intptr_t FreeListElement::overflow_size() const {
+  return ptr()->overflow_size_;
+}
+void FreeListElement::set_overflow_size(intptr_t value) {
+  ptr()->overflow_size_ = value;
+}
+
+int64_t MediumInteger::value() const { return ptr()->value_; }
+void MediumInteger::set_value(int64_t value) { ptr()->value_ = value; }
+
+bool LargeInteger::negative() const {
+  return ptr()->negative_;
+}
+void LargeInteger::set_negative(bool v) {
+  ptr()->negative_ = v;
+}
+intptr_t LargeInteger::size() const {
+  return ptr()->size_;
+}
+void LargeInteger::set_size(intptr_t value) {
+  ptr()->size_ = value;
+}
+intptr_t LargeInteger::capacity() const {
+  return ptr()->capacity_;
+}
+void LargeInteger::set_capacity(intptr_t value) {
+  ptr()->capacity_ = value;
+}
+digit_t LargeInteger::digit(intptr_t index) const {
+  return ptr()->digits_[index];
+}
+void LargeInteger::set_digit(intptr_t index, digit_t value) {
+  ptr()->digits_[index] = value;
+}
+
+Object RegularObject::slot(intptr_t index) const {
+  return Load(&ptr()->slots_[index]);
+}
+void RegularObject::set_slot(intptr_t index, Object value,
+                             Barrier barrier) {
+  Store(&ptr()->slots_[index], value, barrier);
+}
+Object* RegularObject::from() {
+  return &ptr()->slots_[0];
+}
+Object* RegularObject::to() {
+  intptr_t num_slots =
+      (heap_size() - sizeof(HeapObject::Layout)) >> kWordSizeLog2;
+  return &ptr()->slots_[num_slots - 1];
+}
+
+SmallInteger Array::size() const { return Load(&ptr()->size_, kNoBarrier); }
+void Array::set_size(SmallInteger s) { Store(&ptr()->size_, s, kNoBarrier); }
+Object Array::element(intptr_t index) const {
+  return Load(&ptr()->elements_[index]);
+}
+void Array::set_element(intptr_t index, Object value, Barrier barrier) {
+  Store(&ptr()->elements_[index], value, barrier);
+}
+Object* Array::from() {
+  return &ptr()->elements_[0];
+}
+Object* Array::to() {
+  return &ptr()->elements_[Size() - 1];
+}
+
+SmallInteger WeakArray::size() const { return Load(&ptr()->size_, kNoBarrier); }
+void WeakArray::set_size(SmallInteger s) {
+  Store(&ptr()->size_, s, kNoBarrier);
+}
+WeakArray WeakArray::next() const { return ptr()->next_; }
+void WeakArray::set_next(WeakArray value) { ptr()->next_ = value; }
+Object WeakArray::element(intptr_t index) const {
+  return Load(&ptr()->elements_[index]);
+}
+void WeakArray::set_element(intptr_t index, Object value, Barrier barrier) {
+  Store(&ptr()->elements_[index], value, barrier);
+}
+Object* WeakArray::from() {
+  return &ptr()->elements_[0];
+}
+Object* WeakArray::to() {
+  return &ptr()->elements_[Size() - 1];
+}
+
+Object Ephemeron::key() const { return ptr()->key_; }
+Object* Ephemeron::key_ptr() { return &ptr()->key_; }
+void Ephemeron::set_key(Object key, Barrier barrier) {
+  Store(&ptr()->key_, key, barrier);
+}
+Object Ephemeron::value() const { return Load(&ptr()->value_); }
+Object* Ephemeron::value_ptr() { return &ptr()->value_; }
+void Ephemeron::set_value(Object value, Barrier barrier) {
+  Store(&ptr()->value_, value, barrier);
+}
+Object Ephemeron::finalizer() const { return Load(&ptr()->finalizer_); }
+Object* Ephemeron::finalizer_ptr() { return &ptr()->finalizer_; }
+void Ephemeron::set_finalizer(Object finalizer, Barrier barrier) {
+  Store(&ptr()->finalizer_, finalizer, barrier);
+}
+Ephemeron Ephemeron::next() const { return ptr()->next_; }
+void Ephemeron::set_next(Ephemeron value) { ptr()->next_ = value; }
+Object* Ephemeron::from() { return &ptr()->key_; }
+Object* Ephemeron::to() { return &ptr()->finalizer_; }
+
+SmallInteger Bytes::size() const { return Load(&ptr()->size_, kNoBarrier); }
+void Bytes::set_size(SmallInteger s) { Store(&ptr()->size_, s, kNoBarrier); }
+uint8_t Bytes::element(intptr_t index) const {
+  return *element_addr(index);
+}
+void Bytes::set_element(intptr_t index, uint8_t value) {
+  *element_addr(index) = value;
+}
+uint8_t* Bytes::element_addr(intptr_t index) {
+  uint8_t* elements = reinterpret_cast<uint8_t*>(
+      reinterpret_cast<uword>(ptr()) + sizeof(Bytes::Layout));
+  return &elements[index];
+}
+const uint8_t* Bytes::element_addr(intptr_t index) const {
+  const uint8_t* elements = reinterpret_cast<const uint8_t*>(
+      reinterpret_cast<uword>(ptr()) + sizeof(Bytes::Layout));
+  return &elements[index];
+}
+
+SmallInteger Method::header() const { return Load(&ptr()->header_); }
+Array Method::literals() const { return Load(&ptr()->literals_); }
+ByteArray Method::bytecode() const { return Load(&ptr()->bytecode_); }
+AbstractMixin Method::mixin() const { return Load(&ptr()->mixin_); }
+String Method::selector() const { return Load(&ptr()->selector_); }
+Object Method::source() const { return Load(&ptr()->source_); }
+
+Activation Activation::sender() const { return Load(&ptr()->sender_); }
+void Activation::set_sender(Activation s, Barrier barrier) {
+  Store(&ptr()->sender_, s, barrier);
+}
+SmallInteger Activation::bci() const { return Load(&ptr()->bci_, kNoBarrier); }
+void Activation::set_bci(SmallInteger i) { Store(&ptr()->bci_, i, kNoBarrier); }
+Method Activation::method() const { return Load(&ptr()->method_); }
+void Activation::set_method(Method m, Barrier barrier) {
+  Store(&ptr()->method_, m, barrier);
+}
+Closure Activation::closure() const { return Load(&ptr()->closure_); }
+void Activation::set_closure(Closure m, Barrier barrier) {
+  Store(&ptr()->closure_, m, barrier);
+}
+Object Activation::receiver() const { return Load(&ptr()->receiver_); }
+void Activation::set_receiver(Object o, Barrier barrier) {
+  Store(&ptr()->receiver_, o, barrier);
+}
+SmallInteger Activation::stack_depth() const {
+  return Load(&ptr()->stack_depth_, kNoBarrier);
+}
+void Activation::set_stack_depth(SmallInteger d) {
+  Store(&ptr()->stack_depth_, d, kNoBarrier);
+}
+Object Activation::temp(intptr_t index) const {
+  return Load(&ptr()->temps_[index]);
+}
+void Activation::set_temp(intptr_t index, Object o, Barrier barrier) {
+  Store(&ptr()->temps_[index], o, barrier);
+}
+Object* Activation::from() {
+  return reinterpret_cast<Object*>(&ptr()->sender_);
+}
+Object* Activation::to() {
+  if (StackDepth() == 0) {
+    return reinterpret_cast<Object*>(&ptr()->stack_depth_);
+  }
+  return reinterpret_cast<Object*>(&ptr()->temps_[StackDepth() - 1]);
+}
+
+double Float64::value() const { return ptr()->value_; }
+void Float64::set_value(double v) { ptr()->value_ = v; }
+
+SmallInteger Closure::num_copied() const {
+  return Load(&ptr()->num_copied_, kNoBarrier);
+}
+void Closure::set_num_copied(SmallInteger v) {
+  Store(&ptr()->num_copied_, v, kNoBarrier);
+}
+Activation Closure::defining_activation() const {
+  return Load(&ptr()->defining_activation_);
+}
+void Closure::set_defining_activation(Activation a, Barrier barrier) {
+  Store(&ptr()->defining_activation_, a, barrier);
+}
+SmallInteger Closure::initial_bci() const {
+  return Load(&ptr()->initial_bci_, kNoBarrier);
+}
+void Closure::set_initial_bci(SmallInteger bci) {
+  Store(&ptr()->initial_bci_, bci, kNoBarrier);
+}
+SmallInteger Closure::num_args() const {
+  return Load(&ptr()->num_args_, kNoBarrier);
+}
+void Closure::set_num_args(SmallInteger num) {
+  Store(&ptr()->num_args_, num, kNoBarrier);
+}
+Object Closure::copied(intptr_t index) const {
+  return Load(&ptr()->copied_[index]);
+}
+void Closure::set_copied(intptr_t index, Object o, Barrier barrier ) {
+  Store(&ptr()->copied_[index], o, barrier);
+}
+Object* Closure::from() {
+  return reinterpret_cast<Object*>(&ptr()->num_copied_);
+}
+Object* Closure::to() {
+  return reinterpret_cast<Object*>(&ptr()->copied_[NumCopied() - 1]);
+}
+
+Behavior Behavior::superclass() const { return Load(&ptr()->superclass_); }
+Array Behavior::methods() const { return Load(&ptr()->methods_); }
+AbstractMixin Behavior::mixin() const { return Load(&ptr()->mixin_); }
+Object Behavior::enclosing_object() const {
+  return Load(&ptr()->enclosing_object_);
+}
+SmallInteger Behavior::id() const { return Load(&ptr()->classid_, kNoBarrier); }
+void Behavior::set_id(SmallInteger id) {
+  Store(&ptr()->classid_, id, kNoBarrier);
+}
+SmallInteger Behavior::format() const {
+  return Load(&ptr()->format_, kNoBarrier);
+}
+
+String Class::name() const { return Load(&ptr()->name_); }
+WeakArray Class::subclasses() const { return Load(&ptr()->subclasses_); }
+
+Class Metaclass::this_class() const { return Load(&ptr()->this_class_); }
+
+String AbstractMixin::name() const { return Load(&ptr()->name_); }
+Array AbstractMixin::methods() const { return Load(&ptr()->methods_); }
+AbstractMixin AbstractMixin::enclosing_mixin() const {
+  return Load(&ptr()->enclosing_mixin_);
+}
+
+void Message::set_selector(String selector, Barrier barrier) {
+  Store(&ptr()->selector_, selector, barrier);
+}
+void Message::set_arguments(Array arguments, Barrier barrier) {
+  Store(&ptr()->arguments_, arguments, barrier);
+}
+
+class SmallInteger ObjectStore::size() const { return ptr()->array_size_; }
+Object ObjectStore::nil_obj() const { return ptr()->nil_; }
+Object ObjectStore::false_obj() const { return ptr()->false_; }
+Object ObjectStore::true_obj() const { return ptr()->true_; }
+Object ObjectStore::message_loop() const { return ptr()->message_loop_; }
+class Array ObjectStore::common_selectors() const {
+  return ptr()->common_selectors_;
+}
+class String ObjectStore::does_not_understand() const {
+  return ptr()->does_not_understand_;
+}
+class String ObjectStore::non_boolean_receiver() const {
+  return ptr()->non_boolean_receiver_;
+}
+class String ObjectStore::cannot_return() const {
+  return ptr()->cannot_return_;
+}
+class String ObjectStore::about_to_return_through() const {
+  return ptr()->about_to_return_through_;
+}
+class String ObjectStore::unused_bytecode() const {
+  return ptr()->unused_bytecode_;
+}
+class String ObjectStore::dispatch_message() const {
+  return ptr()->dispatch_message_;
+}
+class String ObjectStore::dispatch_signal() const {
+  return ptr()->dispatch_signal_;
+}
+Behavior ObjectStore::Array() const { return ptr()->Array_; }
+Behavior ObjectStore::ByteArray() const { return ptr()->ByteArray_; }
+Behavior ObjectStore::String() const { return ptr()->String_; }
+Behavior ObjectStore::Closure() const { return ptr()->Closure_; }
+Behavior ObjectStore::Ephemeron() const { return ptr()->Ephemeron_; }
+Behavior ObjectStore::Float64() const { return ptr()->Float64_; }
+Behavior ObjectStore::LargeInteger() const { return ptr()->LargeInteger_; }
+Behavior ObjectStore::MediumInteger() const { return ptr()->MediumInteger_; }
+Behavior ObjectStore::Message() const { return ptr()->Message_; }
+Behavior ObjectStore::SmallInteger() const { return ptr()->SmallInteger_; }
+Behavior ObjectStore::WeakArray() const { return ptr()->WeakArray_; }
+Behavior ObjectStore::Activation() const { return ptr()->Activation_; }
+Behavior ObjectStore::Method() const { return ptr()->Method_; }
 
 }  // namespace psoup
 

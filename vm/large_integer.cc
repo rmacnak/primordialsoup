@@ -15,22 +15,22 @@ namespace psoup {
 const intptr_t kMintDigits = sizeof(uint64_t) / sizeof(digit_t);
 
 
-LargeInteger* LargeInteger::Expand(Object* integer, Heap* H) {
+LargeInteger LargeInteger::Expand(Object integer, Heap* H) {
   if (integer->IsLargeInteger()) {
-    return static_cast<LargeInteger*>(integer);
+    return static_cast<LargeInteger>(integer);
   }
 
   int64_t value;
   if (integer->IsSmallInteger()) {
-    value = static_cast<SmallInteger*>(integer)->value();
+    value = static_cast<SmallInteger>(integer)->value();
   } else if (integer->IsMediumInteger()) {
-    value = static_cast<MediumInteger*>(integer)->value();
+    value = static_cast<MediumInteger>(integer)->value();
   } else {
     UNREACHABLE();
     value = 0;
   }
 
-  LargeInteger* result = H->AllocateLargeInteger(kMintDigits);
+  LargeInteger result = H->AllocateLargeInteger(kMintDigits);
   result->set_negative(value < 0);
   uint64_t absolute_value;
   if (value < 0) {
@@ -55,7 +55,7 @@ LargeInteger* LargeInteger::Expand(Object* integer, Heap* H) {
 }
 
 
-Object* LargeInteger::Reduce(LargeInteger* large, Heap* H) {
+Object LargeInteger::Reduce(LargeInteger large, Heap* H) {
   if (large->size() > kMintDigits) {
     return large;
   }
@@ -77,7 +77,7 @@ Object* LargeInteger::Reduce(LargeInteger* large, Heap* H) {
       return SmallInteger::New(value);
     }
 
-    MediumInteger* result = H->AllocateMediumInteger();
+    MediumInteger result = H->AllocateMediumInteger();
     result->set_value(value);
     return result;
   } else {
@@ -91,14 +91,14 @@ Object* LargeInteger::Reduce(LargeInteger* large, Heap* H) {
       return SmallInteger::New(value);
     }
 
-    MediumInteger* result = H->AllocateMediumInteger();
+    MediumInteger result = H->AllocateMediumInteger();
     result->set_value(static_cast<int64_t>(value));
     return result;
   }
 }
 
 
-static void Clamp(LargeInteger* result) {
+static void Clamp(LargeInteger result) {
   for (intptr_t used = result->capacity() - 1; used >= 0; used--) {
     if (result->digit(used) != 0) {
       result->set_size(used + 1);
@@ -110,7 +110,7 @@ static void Clamp(LargeInteger* result) {
 }
 
 
-static void Verify(LargeInteger* integer) {
+static void Verify(LargeInteger integer) {
   ASSERT(integer->capacity() >= 0);
   ASSERT(integer->size() >= 0);
   ASSERT(integer->capacity() >= integer->size());
@@ -127,7 +127,7 @@ static void Verify(LargeInteger* integer) {
 }
 
 
-static intptr_t AbsCompare(LargeInteger* left, LargeInteger* right) {
+static intptr_t AbsCompare(LargeInteger left, LargeInteger right) {
   intptr_t d = right->size() - left->size();
   if (d != 0) {
     return d;
@@ -146,12 +146,12 @@ static intptr_t AbsCompare(LargeInteger* left, LargeInteger* right) {
 }
 
 
-static bool AbsGreater(LargeInteger* left, LargeInteger* right) {
+static bool AbsGreater(LargeInteger left, LargeInteger right) {
   return AbsCompare(left, right) < 0;
 }
 
 
-intptr_t LargeInteger::Compare(LargeInteger* left, LargeInteger* right) {
+intptr_t LargeInteger::Compare(LargeInteger left, LargeInteger right) {
   if (left->negative()) {
     if (right->negative()) {
       return AbsCompare(right, left);
@@ -167,15 +167,15 @@ intptr_t LargeInteger::Compare(LargeInteger* left, LargeInteger* right) {
 }
 
 
-static LargeInteger* AddAbsolutesWithSign(LargeInteger* left,
-                                          LargeInteger* right,
+static LargeInteger AddAbsolutesWithSign(LargeInteger left,
+                                          LargeInteger right,
                                           bool negative,
                                           Heap* H) {
   Verify(left);
   Verify(right);
 
-  LargeInteger* shorter;
-  LargeInteger* longer;
+  LargeInteger shorter;
+  LargeInteger longer;
   if (left->size() <= right->size()) {
     shorter = left;
     longer = right;
@@ -184,9 +184,9 @@ static LargeInteger* AddAbsolutesWithSign(LargeInteger* left,
     longer = left;
   }
 
-  HandleScope h1(H, reinterpret_cast<Object**>(&shorter));
-  HandleScope h2(H, reinterpret_cast<Object**>(&longer));
-  LargeInteger* result = H->AllocateLargeInteger(longer->size() + 1);
+  HandleScope h1(H, reinterpret_cast<Object*>(&shorter));
+  HandleScope h2(H, reinterpret_cast<Object*>(&longer));
+  LargeInteger result = H->AllocateLargeInteger(longer->size() + 1);
 
   ddigit_t carry = 0;
   for (intptr_t i = 0; i < shorter->size(); i++) {
@@ -211,8 +211,8 @@ static LargeInteger* AddAbsolutesWithSign(LargeInteger* left,
 }
 
 
-static LargeInteger* SubtractAbsolutesWithSign(LargeInteger* left,
-                                               LargeInteger* right,
+static LargeInteger SubtractAbsolutesWithSign(LargeInteger left,
+                                               LargeInteger right,
                                                bool negative,
                                                Heap* H) {
   Verify(left);
@@ -220,9 +220,9 @@ static LargeInteger* SubtractAbsolutesWithSign(LargeInteger* left,
   ASSERT(left->size() >= right->size());
   ASSERT(!AbsGreater(right, left));
 
-  HandleScope h1(H, reinterpret_cast<Object**>(&left));
-  HandleScope h2(H, reinterpret_cast<Object**>(&right));
-  LargeInteger* result = H->AllocateLargeInteger(left->size());
+  HandleScope h1(H, reinterpret_cast<Object*>(&left));
+  HandleScope h2(H, reinterpret_cast<Object*>(&right));
+  LargeInteger result = H->AllocateLargeInteger(left->size());
 
   sddigit_t borrow = 0;
   for (intptr_t i = 0; i < right->size(); i++) {
@@ -248,7 +248,7 @@ static LargeInteger* SubtractAbsolutesWithSign(LargeInteger* left,
 }
 
 
-static void AbsAddOneInPlace(LargeInteger* result) {
+static void AbsAddOneInPlace(LargeInteger result) {
   if (result->size() == 0) {
     result->set_size(1);
     result->set_digit(0, 1);
@@ -267,16 +267,16 @@ static void AbsAddOneInPlace(LargeInteger* result) {
 }
 
 
-LargeInteger* MultiplyAbsolutesWithSign(LargeInteger* left,
-                                        LargeInteger* right,
+LargeInteger MultiplyAbsolutesWithSign(LargeInteger left,
+                                        LargeInteger right,
                                         bool negative,
                                         Heap* H) {
   Verify(left);
   Verify(right);
 
-  HandleScope h1(H, reinterpret_cast<Object**>(&left));
-  HandleScope h2(H, reinterpret_cast<Object**>(&right));
-  LargeInteger* result = H->AllocateLargeInteger(left->size() + right->size());
+  HandleScope h1(H, reinterpret_cast<Object*>(&left));
+  HandleScope h2(H, reinterpret_cast<Object*>(&right));
+  LargeInteger result = H->AllocateLargeInteger(left->size() + right->size());
 
   for (intptr_t i = 0; i < left->size(); i++) {
     result->set_digit(i, 0);
@@ -304,8 +304,8 @@ LargeInteger* MultiplyAbsolutesWithSign(LargeInteger* left,
 }
 
 
-LargeInteger* LargeInteger::Add(LargeInteger* left,
-                                LargeInteger* right,
+LargeInteger LargeInteger::Add(LargeInteger left,
+                                LargeInteger right,
                                 Heap* H) {
   if (left->negative() == right->negative()) {
     // -l + -r = -(l + r)
@@ -325,8 +325,8 @@ LargeInteger* LargeInteger::Add(LargeInteger* left,
 }
 
 
-LargeInteger* LargeInteger::Subtract(LargeInteger* left,
-                                     LargeInteger* right,
+LargeInteger LargeInteger::Subtract(LargeInteger left,
+                                     LargeInteger right,
                                      Heap* H) {
   if (left->negative() != right->negative()) {
     // -l -  r = -(l + r)
@@ -346,8 +346,8 @@ LargeInteger* LargeInteger::Subtract(LargeInteger* left,
 }
 
 
-LargeInteger* LargeInteger::Multiply(LargeInteger* left,
-                                     LargeInteger* right,
+LargeInteger LargeInteger::Multiply(LargeInteger left,
+                                     LargeInteger right,
                                      Heap* h) {
   //  l *  r =   l * r
   // -l * -r =   l * r
@@ -358,14 +358,14 @@ LargeInteger* LargeInteger::Multiply(LargeInteger* left,
 }
 
 
-LargeInteger* LargeInteger::And(LargeInteger* left,
-                                LargeInteger* right,
+LargeInteger LargeInteger::And(LargeInteger left,
+                                LargeInteger right,
                                 Heap* H) {
   Verify(left);
   Verify(right);
 
-  LargeInteger* shorter;
-  LargeInteger* longer;
+  LargeInteger shorter;
+  LargeInteger longer;
   if (left->size() > right->size()) {
     longer = left;
     shorter = right;
@@ -375,9 +375,9 @@ LargeInteger* LargeInteger::And(LargeInteger* left,
   }
 
   intptr_t result_size = longer->size();
-  HandleScope h1(H, reinterpret_cast<Object**>(&shorter));
-  HandleScope h2(H, reinterpret_cast<Object**>(&longer));
-  LargeInteger* result = H->AllocateLargeInteger(result_size);
+  HandleScope h1(H, reinterpret_cast<Object*>(&shorter));
+  HandleScope h2(H, reinterpret_cast<Object*>(&longer));
+  LargeInteger result = H->AllocateLargeInteger(result_size);
 
   if (!shorter->negative() && !longer->negative()) {
     // s & l
@@ -464,14 +464,14 @@ LargeInteger* LargeInteger::And(LargeInteger* left,
 }
 
 
-LargeInteger* LargeInteger::Or(LargeInteger* left,
-                               LargeInteger* right,
+LargeInteger LargeInteger::Or(LargeInteger left,
+                               LargeInteger right,
                                Heap* H) {
   Verify(left);
   Verify(right);
 
-  LargeInteger* shorter;
-  LargeInteger* longer;
+  LargeInteger shorter;
+  LargeInteger longer;
   if (left->size() > right->size()) {
     longer = left;
     shorter = right;
@@ -481,9 +481,9 @@ LargeInteger* LargeInteger::Or(LargeInteger* left,
   }
 
   intptr_t result_size = longer->size();
-  HandleScope h1(H, reinterpret_cast<Object**>(&shorter));
-  HandleScope h2(H, reinterpret_cast<Object**>(&longer));
-  LargeInteger* result = H->AllocateLargeInteger(result_size);
+  HandleScope h1(H, reinterpret_cast<Object*>(&shorter));
+  HandleScope h2(H, reinterpret_cast<Object*>(&longer));
+  LargeInteger result = H->AllocateLargeInteger(result_size);
 
   if (!shorter->negative() && !longer->negative()) {
     // s | l
@@ -606,14 +606,14 @@ LargeInteger* LargeInteger::Or(LargeInteger* left,
 }
 
 
-LargeInteger* LargeInteger::Xor(LargeInteger* left,
-                                LargeInteger* right,
+LargeInteger LargeInteger::Xor(LargeInteger left,
+                                LargeInteger right,
                                 Heap* H) {
   Verify(left);
   Verify(right);
 
-  LargeInteger* shorter;
-  LargeInteger* longer;
+  LargeInteger shorter;
+  LargeInteger longer;
   if (left->size() > right->size()) {
     longer = left;
     shorter = right;
@@ -623,9 +623,9 @@ LargeInteger* LargeInteger::Xor(LargeInteger* left,
   }
 
   intptr_t result_size = longer->size();
-  HandleScope h1(H, reinterpret_cast<Object**>(&shorter));
-  HandleScope h2(H, reinterpret_cast<Object**>(&longer));
-  LargeInteger* result = H->AllocateLargeInteger(result_size);
+  HandleScope h1(H, reinterpret_cast<Object*>(&shorter));
+  HandleScope h2(H, reinterpret_cast<Object*>(&longer));
+  LargeInteger result = H->AllocateLargeInteger(result_size);
 
   if (!shorter->negative() && !longer->negative()) {
     // s ^ l
@@ -739,7 +739,7 @@ LargeInteger* LargeInteger::Xor(LargeInteger* left,
 }
 
 
-LargeInteger* LargeInteger::ShiftLeft(LargeInteger* left,
+LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
                                       intptr_t right,
                                       Heap* H) {
   Verify(left);
@@ -758,8 +758,8 @@ LargeInteger* LargeInteger::ShiftLeft(LargeInteger* left,
     // This case is singled out not for performance but to avoid
     // the undefined behavior of digit_t >> kDigitBits.
     intptr_t result_size = left->size() + digit_shift;
-    HandleScope h1(H, reinterpret_cast<Object**>(&left));
-    LargeInteger* result = H->AllocateLargeInteger(result_size);
+    HandleScope h1(H, reinterpret_cast<Object*>(&left));
+    LargeInteger result = H->AllocateLargeInteger(result_size);
 
     for (intptr_t i = 0; i < digit_shift; i++) {
       result->set_digit(i, 0);
@@ -775,8 +775,8 @@ LargeInteger* LargeInteger::ShiftLeft(LargeInteger* left,
   }
 
   intptr_t result_size = left->size() + digit_shift + 1;
-  HandleScope h1(H, reinterpret_cast<Object**>(&left));
-  LargeInteger* result = H->AllocateLargeInteger(result_size);
+  HandleScope h1(H, reinterpret_cast<Object*>(&left));
+  LargeInteger result = H->AllocateLargeInteger(result_size);
 
   for (intptr_t i = 0; i < digit_shift; i++) {
     result->set_digit(i, 0);
@@ -801,7 +801,7 @@ LargeInteger* LargeInteger::ShiftLeft(LargeInteger* left,
 }
 
 
-LargeInteger* LargeInteger::ShiftRight(LargeInteger* left,
+LargeInteger LargeInteger::ShiftRight(LargeInteger left,
                                        intptr_t right,
                                        Heap* H) {
   Verify(left);
@@ -814,8 +814,8 @@ LargeInteger* LargeInteger::ShiftRight(LargeInteger* left,
     // This case is singled out not for performance but to avoid
     // the undefined behavior of digit_t << kDigitBits.
     intptr_t result_size = left->size() - digit_shift;
-    HandleScope h1(H, reinterpret_cast<Object**>(&left));
-    LargeInteger* result = H->AllocateLargeInteger(result_size);
+    HandleScope h1(H, reinterpret_cast<Object*>(&left));
+    LargeInteger result = H->AllocateLargeInteger(result_size);
 
     for (intptr_t i = 0; i < result_size; i++) {
       result->set_digit(i, left->digit(i + digit_shift));
@@ -839,8 +839,8 @@ LargeInteger* LargeInteger::ShiftRight(LargeInteger* left,
   }
 
   intptr_t result_size = left->size() - digit_shift;
-  HandleScope h1(H, reinterpret_cast<Object**>(&left));
-  LargeInteger* result = H->AllocateLargeInteger(result_size);
+  HandleScope h1(H, reinterpret_cast<Object*>(&left));
+  LargeInteger result = H->AllocateLargeInteger(result_size);
 
   digit_t carry = left->digit(digit_shift) >> bit_shift_down;
   for (intptr_t i = 0; i < result_size - 1; i++) {
@@ -904,10 +904,10 @@ ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint32_t x) {
 }
 
 
-LargeInteger* LargeInteger::Divide(DivOperationType op_type,
+LargeInteger LargeInteger::Divide(DivOperationType op_type,
                                    DivResultType result_type,
-                                   LargeInteger* dividend,
-                                   LargeInteger* divisor,
+                                   LargeInteger dividend,
+                                   LargeInteger divisor,
                                    Heap* H) {
   Verify(dividend);
   Verify(divisor);
@@ -923,7 +923,7 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
     if (result_type == kQuoitent) {
       if (op_type == kTruncated) {
         // return 0
-        LargeInteger* quotient = H->AllocateLargeInteger(0);
+        LargeInteger quotient = H->AllocateLargeInteger(0);
         quotient->set_negative(false);
         quotient->set_size(0);
         return quotient;
@@ -933,13 +933,13 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
         if ((dividend->size() == 0) ||
             (dividend->negative() == divisor->negative())) {
           // return 0
-          LargeInteger* quotient = H->AllocateLargeInteger(0);
+          LargeInteger quotient = H->AllocateLargeInteger(0);
           quotient->set_negative(false);
           quotient->set_size(0);
           return quotient;
         } else {
           // return -1
-          LargeInteger* quotient = H->AllocateLargeInteger(1);
+          LargeInteger quotient = H->AllocateLargeInteger(1);
           quotient->set_negative(true);
           quotient->set_size(1);
           quotient->set_digit(0, 1);
@@ -951,7 +951,7 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
         if (dividend->size() == 0) {
           return dividend;
         }
-        return NULL;
+        return nullptr;
       }
     }
 
@@ -973,9 +973,9 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
     UNREACHABLE();
   }
 
-  HandleScope h1(H, reinterpret_cast<Object**>(&dividend));
-  HandleScope h2(H, reinterpret_cast<Object**>(&divisor));
-  LargeInteger* quoitent = H->AllocateLargeInteger(m - n + 1);
+  HandleScope h1(H, reinterpret_cast<Object*>(&dividend));
+  HandleScope h2(H, reinterpret_cast<Object*>(&divisor));
+  LargeInteger quoitent = H->AllocateLargeInteger(m - n + 1);
   quoitent->set_negative(dividend->negative() != divisor->negative());
 
   if (n == 1) {
@@ -1014,7 +1014,7 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
         if (remainder_d == 0) {
           return quoitent;
         } else {
-          return NULL;
+          return nullptr;
         }
       }
     }
@@ -1022,14 +1022,14 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
     if (result_type == kRemainder) {
       if (op_type == kTruncated) {
         if (remainder_d == 0) {
-          LargeInteger* remainder = H->AllocateLargeInteger(0);
+          LargeInteger remainder = H->AllocateLargeInteger(0);
           remainder->set_negative(false);
           remainder->set_size(0);
           Verify(remainder);
           return remainder;
         }
 
-        LargeInteger* remainder = H->AllocateLargeInteger(1);
+        LargeInteger remainder = H->AllocateLargeInteger(1);
         remainder->set_negative(dividend->negative());
         remainder->set_size(1);
         remainder->set_digit(0, remainder_d);
@@ -1039,7 +1039,7 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
 
       if (op_type == kFloored) {
         if (remainder_d == 0) {
-          LargeInteger* remainder = H->AllocateLargeInteger(0);
+          LargeInteger remainder = H->AllocateLargeInteger(0);
           remainder->set_negative(false);
           remainder->set_size(0);
           Verify(remainder);
@@ -1047,7 +1047,7 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
         }
 
         if (dividend->negative() != divisor->negative()) {
-          LargeInteger* remainder = H->AllocateLargeInteger(1);
+          LargeInteger remainder = H->AllocateLargeInteger(1);
           remainder->set_negative(divisor->negative());
           remainder->set_size(1);
           remainder->set_digit(0, divisor_d - remainder_d);
@@ -1055,7 +1055,7 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
           return remainder;
         }
 
-        LargeInteger* remainder = H->AllocateLargeInteger(1);
+        LargeInteger remainder = H->AllocateLargeInteger(1);
         remainder->set_negative(divisor->negative());
         remainder->set_size(1);
         remainder->set_digit(0, remainder_d);
@@ -1159,13 +1159,13 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
       if (remainder_is_zero) {
         return quoitent;
       } else {
-        return NULL;
+        return nullptr;
       }
     }
   }
 
   if (result_type == kRemainder) {
-    LargeInteger* remainder = H->AllocateLargeInteger(n);
+    LargeInteger remainder = H->AllocateLargeInteger(n);
     remainder->set_negative(dividend->negative());
     for (intptr_t i = 0; i < n - 1; i++) {
       digit_t d = (norm_rem[i] >> normalize_shift) |
@@ -1194,11 +1194,11 @@ LargeInteger* LargeInteger::Divide(DivOperationType op_type,
   }
 
   UNREACHABLE();
-  return NULL;
+  return nullptr;
 }
 
 
-String* LargeInteger::PrintString(LargeInteger* large, Heap* H) {
+String LargeInteger::PrintString(LargeInteger large, Heap* H) {
 #if defined(ARCH_IS_32_BIT)
   const ddigit_t kDivisor = 10000;
   const intptr_t kDivisorLog10 = 4;
@@ -1259,7 +1259,7 @@ String* LargeInteger::PrintString(LargeInteger* large, Heap* H) {
   delete[] scratch;
 
   intptr_t nchars = est_decimal_digits - pos;
-  String* result = H->AllocateString(nchars);
+  String result = H->AllocateString(nchars);
   memcpy(result->element_addr(0), &chars[pos], nchars);
 
   delete[] chars;
@@ -1268,7 +1268,7 @@ String* LargeInteger::PrintString(LargeInteger* large, Heap* H) {
 }
 
 
-double LargeInteger::AsDouble(LargeInteger* integer) {
+double LargeInteger::AsDouble(LargeInteger integer) {
   intptr_t used = integer->size();
   ASSERT(used >= kMintDigits);
   ASSERT(used >= 2);
@@ -1464,7 +1464,7 @@ class DoubleInternals {
 };
 
 
-static LargeInteger* NewFromShiftedInt64(int64_t value,
+static LargeInteger NewFromShiftedInt64(int64_t value,
                                          intptr_t shift,
                                          Heap* H) {
   bool negative;
@@ -1484,7 +1484,7 @@ static LargeInteger* NewFromShiftedInt64(int64_t value,
     // This case is singled out not for performance but to avoid
     // the undefined behavior of digit_t >> kDigitBits.
     intptr_t result_size = kMintDigits + digit_shift;
-    LargeInteger* result = H->AllocateLargeInteger(result_size);
+    LargeInteger result = H->AllocateLargeInteger(result_size);
 
     for (intptr_t i = 0; i < digit_shift; i++) {
       result->set_digit(i, 0);
@@ -1501,7 +1501,7 @@ static LargeInteger* NewFromShiftedInt64(int64_t value,
   }
 
   intptr_t result_size = kMintDigits + digit_shift + 1;
-  LargeInteger* result = H->AllocateLargeInteger(result_size);
+  LargeInteger result = H->AllocateLargeInteger(result_size);
 
   for (intptr_t i = 0; i < digit_shift; i++) {
     result->set_digit(i, 0);
@@ -1526,7 +1526,7 @@ static LargeInteger* NewFromShiftedInt64(int64_t value,
 }
 
 
-bool LargeInteger::FromDouble(double raw_value, Object** result, Heap* H) {
+bool LargeInteger::FromDouble(double raw_value, Object* result, Heap* H) {
   if (isinf(raw_value) || isnan(raw_value)) {
     return false;
   }
@@ -1558,13 +1558,13 @@ bool LargeInteger::FromDouble(double raw_value, Object** result, Heap* H) {
     if (SmallInteger::IsSmiValue(ival)) {
       *result = SmallInteger::New(ival);
     } else {
-      MediumInteger* mint = H->AllocateMediumInteger();
+      MediumInteger mint = H->AllocateMediumInteger();
       mint->set_value(ival);
       *result = mint;
     }
     return true;
   }
-  LargeInteger* lint = NewFromShiftedInt64(ival, exponent, H);
+  LargeInteger lint = NewFromShiftedInt64(ival, exponent, H);
   *result = Reduce(lint, H);
   return true;
 }

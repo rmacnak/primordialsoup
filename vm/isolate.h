@@ -49,7 +49,7 @@ class Isolate {
   void PrintStack();
 
  private:
-  void Activate(Object* message, Object* port);
+  void Activate(Object message, Object port);
 
   Heap* heap_;
   Interpreter* interpreter_;

@@ -132,24 +132,24 @@ Isolate::~Isolate() {
 
 
 void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
-  Object* message;
+  Object message;
   if (isolate_message->data() != NULL) {
     intptr_t length = isolate_message->length();
-    ByteArray* bytes = heap_->AllocateByteArray(length);  // SAFEPOINT
+    ByteArray bytes = heap_->AllocateByteArray(length);  // SAFEPOINT
     memcpy(bytes->element_addr(0), isolate_message->data(), length);
     message = bytes;
   } else {
     int argc = isolate_message->argc();
-    Array* strings = heap_->AllocateArray(argc);  // SAFEPOINT
+    Array strings = heap_->AllocateArray(argc);  // SAFEPOINT
     for (intptr_t i = 0; i < argc; i++) {
       strings->set_element(i, SmallInteger::New(0));
     }
 
-    HandleScope h1(heap_, reinterpret_cast<Object**>(&strings));
+    HandleScope h1(heap_, reinterpret_cast<Object*>(&strings));
     for (intptr_t i = 0; i < argc; i++) {
       const char* cstr = isolate_message->argv()[i];
       intptr_t length = strlen(cstr);
-      String* string = heap_->AllocateString(length);  // SAFEPOINT
+      String string = heap_->AllocateString(length);  // SAFEPOINT
       memcpy(string->element_addr(0), cstr, length);
       strings->set_element(i, string);
     }
@@ -157,14 +157,14 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
   }
 
   Port port_id = isolate_message->dest_port();
-  Object* port;
+  Object port;
   if (port_id == ILLEGAL_PORT) {
     port = interpreter_->nil_obj();
   } else if (SmallInteger::IsSmiValue(port_id)) {
     port = SmallInteger::New(port_id);
   } else {
-    HandleScope h1(heap_, reinterpret_cast<Object**>(&message));
-    MediumInteger* mint = heap_->AllocateMediumInteger();  // SAFEPOINT
+    HandleScope h1(heap_, reinterpret_cast<Object*>(&message));
+    MediumInteger mint = heap_->AllocateMediumInteger();  // SAFEPOINT
     mint->set_value(port_id);
     port = mint;
   }
@@ -174,17 +174,17 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
 
 
 void Isolate::ActivateWakeup() {
-  Object* nil = interpreter_->nil_obj();
+  Object nil = interpreter_->nil_obj();
   Activate(nil, nil);
 }
 
 
-void Isolate::Activate(Object* message, Object* port) {
-  Object* message_loop = interpreter_->object_store()->message_loop();
+void Isolate::Activate(Object message, Object port) {
+  Object message_loop = interpreter_->object_store()->message_loop();
 
-  Behavior* cls = message_loop->Klass(heap_);
-  String* selector = interpreter_->object_store()->dispatch_message();
-  Method* method = interpreter_->MethodAt(cls, selector);
+  Behavior cls = message_loop->Klass(heap_);
+  String selector = interpreter_->object_store()->dispatch_message();
+  Method method = interpreter_->MethodAt(cls, selector);
 
   interpreter_->Push(message_loop);
   interpreter_->Push(message);
@@ -197,11 +197,11 @@ void Isolate::ActivateSignal(intptr_t handle,
                              intptr_t status,
                              intptr_t signals,
                              intptr_t count) {
-  Object* message_loop = interpreter_->object_store()->message_loop();
+  Object message_loop = interpreter_->object_store()->message_loop();
 
-  Behavior* cls = message_loop->Klass(heap_);
-  String* selector = interpreter_->object_store()->dispatch_signal();
-  Method* method = interpreter_->MethodAt(cls, selector);
+  Behavior cls = message_loop->Klass(heap_);
+  String selector = interpreter_->object_store()->dispatch_signal();
+  Method method = interpreter_->MethodAt(cls, selector);
 
   interpreter_->Push(message_loop);
   interpreter_->Push(SmallInteger::New(handle));

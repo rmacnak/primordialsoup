@@ -129,10 +129,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       env['CCFLAGS'] += ['-fsanitize=thread']
       env['LINKFLAGS'] += ['-fsanitize=thread']
     elif sanitize == 'undefined':
-      env['CCFLAGS'] += [
-        '-fsanitize=undefined',
-        '-fno-sanitize=alignment,null',
-      ]
+      env['CCFLAGS'] += ['-fsanitize=undefined']
       env['LINKFLAGS'] += ['-fsanitize=undefined']
     else:
       env['CCFLAGS'] += ['-D_FORTIFY_SOURCE=2']

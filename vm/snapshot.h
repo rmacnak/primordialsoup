@@ -7,6 +7,7 @@
 
 #include "vm/allocation.h"
 #include "vm/globals.h"
+#include "vm/object.h"
 
 namespace psoup {
 
@@ -34,13 +35,13 @@ class Deserializer : public ValueObject {
 
   intptr_t next_ref() const { return next_ref_; }
 
-  void RegisterRef(Object* object) {
+  void RegisterRef(Object object) {
     refs_[next_ref_++] = object;
   }
-  Object* ReadRef() {
+  Object ReadRef() {
     return Ref(ReadUnsigned());
   }
-  Object* Ref(intptr_t i) {
+  Object Ref(intptr_t i) {
     ASSERT(i > 0);
     ASSERT(i < next_ref_);
     return refs_[i];
@@ -56,7 +57,7 @@ class Deserializer : public ValueObject {
   intptr_t num_clusters_;
   Cluster** clusters_;
 
-  Object** refs_;
+  Object* refs_;
   intptr_t next_ref_;
 };
 
