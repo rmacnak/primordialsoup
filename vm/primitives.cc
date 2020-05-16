@@ -3242,7 +3242,7 @@ DEFINE_PRIMITIVE(JS_pushValue) {
     RETURN_SELF();
   }
   if (object->IsFloat64()) {
-    double value = static_cast<Float64*>(object)->value();
+    double value = static_cast<Float64>(object)->value();
     _JS_pushFloat(value);
     RETURN_SELF();
   }

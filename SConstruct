@@ -116,12 +116,13 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-Wno-unused-parameter',
       '-fno-rtti',
       '-fno-exceptions',
-      '-fstack-protector',
       '-fpic',
       '-fvisibility=hidden',
       '-fdata-sections',
       '-ffunction-sections',
     ]
+    if target_os != 'emscripten':
+      env['CCFLAGS'] += ['-fstack-protector']
     if sanitize != None:
       env['CCFLAGS'] += ['-fsanitize=' + sanitize ]
       env['LINKFLAGS'] += ['-fsanitize=' + sanitize ]
