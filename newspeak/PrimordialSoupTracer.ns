@@ -4,7 +4,7 @@ class PrimordialSoupTracer packageUsing: manifest = (
 (* Bootstraps Primordial Soup snapshots from Squeak. *)
 |
 runtime = manifest RuntimeForPrimordialSoup packageRuntimeUsing: manifest.
-runtimeWithBuilders = manifest RuntimeWithBuildersForPrimordialSoup packageRuntimeUsing: manifest.
+runtimeWithMirrors = manifest RuntimeWithMirrorsForPrimordialSoup packageRuntimeUsing: manifest.
 helloApp = manifest HelloApp packageUsing: manifest.
 testApp = manifest TestRunner packageUsing: manifest.
 benchmarkApp = manifest BenchmarkRunner packageUsing: manifest.
@@ -896,13 +896,13 @@ public main: p args: a = (
 	(Tracer usingPlatform: p with: runtime source: false)
 		serialize: helloApp to: 'primordialsoup/snapshots/hello.vfuel'.
 
-	(Tracer usingPlatform: p with: runtimeWithBuilders source: true)
+	(Tracer usingPlatform: p with: runtimeWithMirrors source: true)
 		serialize: testApp to: 'primordialsoup/snapshots/tests.vfuel'.
 
 	(Tracer usingPlatform: p with: runtime source: false)
 		serialize: benchmarkApp to: 'primordialsoup/snapshots/benchmarks.vfuel'.
 
-	(Tracer usingPlatform: p with: runtimeWithBuilders source: false)
+	(Tracer usingPlatform: p with: runtimeWithMirrors source: false)
 		serialize: compilerApp to: 'primordialsoup/snapshots/compiler.vfuel'.
 )
 ) : (

@@ -263,7 +263,7 @@ def BuildSnapshots(outdir, host_vm):
 
   testout = os.path.join(outdir, 'TestRunner.vfuel')
   snapshots += [testout]
-  cmd += ' RuntimeWithBuildersForPrimordialSoup TestRunner ' + testout
+  cmd += ' RuntimeWithMirrorsForPrimordialSoup TestRunner ' + testout
 
   benchmarkout = os.path.join(outdir, 'BenchmarkRunner.vfuel')
   snapshots += [benchmarkout]
@@ -271,7 +271,7 @@ def BuildSnapshots(outdir, host_vm):
 
   compilerout = os.path.join(outdir, 'CompilerApp.vfuel')
   snapshots += [compilerout]
-  cmd += ' RuntimeWithBuildersForPrimordialSoup CompilerApp ' + compilerout
+  cmd += ' RuntimeWithMirrorsForPrimordialSoup CompilerApp ' + compilerout
 
   Command(target=snapshots, source=nssources, action=cmd)
   Requires(snapshots, host_vm)

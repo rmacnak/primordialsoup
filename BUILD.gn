@@ -193,7 +193,7 @@ action("snapshots") {
     "newspeak/PrimordialSoupTracer.ns",
     "newspeak/Richards.ns",
     "newspeak/RuntimeForPrimordialSoup.ns",
-    "newspeak/RuntimeWithBuildersForPrimordialSoup.ns",
+    "newspeak/RuntimeWithMirrorsForPrimordialSoup.ns",
     "newspeak/SlotRead.ns",
     "newspeak/SlotWrite.ns",
     "newspeak/Splay.ns",
@@ -230,7 +230,7 @@ action("snapshots") {
     "HelloApp",
     rebase_path(hello_snapshot),
 
-    "RuntimeWithBuildersForPrimordialSoup",
+    "RuntimeWithMirrorsForPrimordialSoup",
     "TestRunner",
     rebase_path(tests_snapshot),
 
@@ -238,7 +238,7 @@ action("snapshots") {
     "BenchmarkRunner",
     rebase_path(benchmarks_snapshot),
 
-    "RuntimeWithBuildersForPrimordialSoup",
+    "RuntimeWithMirrorsForPrimordialSoup",
     "CompilerApp",
     rebase_path(compiler_snapshot),
   ]
