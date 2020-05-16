@@ -133,7 +133,9 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
       stack_limit_ + (sizeof(Activation::Layout) / sizeof(Object));
 
 #if defined(DEBUG)
-  memset(stack_limit_, kUninitializedByte, kStackSize);
+  for (intptr_t i = 0; i < kStackSlots; i++) {
+    stack_limit_[i] = static_cast<Object>(kUninitializedWord);
+  }
 #endif
 }
 
@@ -1786,7 +1788,9 @@ Activation Interpreter::FlushAllFrames() {
   ASSERT(sp_ == stack_base_);
   ASSERT(fp_ == 0);
 #if defined(DEBUG)
-  memset(stack_limit_, kUninitializedByte, kStackSize);
+  for (intptr_t i = 0; i < kStackSlots; i++) {
+    stack_limit_[i] = static_cast<Object>(kUninitializedWord);
+  }
 #endif
 
   return top;
