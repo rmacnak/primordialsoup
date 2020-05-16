@@ -122,15 +122,9 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-fdata-sections',
       '-ffunction-sections',
     ]
-    if sanitize == 'address':
-      env['CCFLAGS'] += ['-fsanitize=address']
-      env['LINKFLAGS'] += ['-fsanitize=address']
-    elif sanitize == 'thread':
-      env['CCFLAGS'] += ['-fsanitize=thread']
-      env['LINKFLAGS'] += ['-fsanitize=thread']
-    elif sanitize == 'undefined':
-      env['CCFLAGS'] += ['-fsanitize=undefined']
-      env['LINKFLAGS'] += ['-fsanitize=undefined']
+    if sanitize != None:
+      env['CCFLAGS'] += ['-fsanitize=' + sanitize ]
+      env['LINKFLAGS'] += ['-fsanitize=' + sanitize ]
     else:
       env['CCFLAGS'] += ['-D_FORTIFY_SOURCE=2']
 

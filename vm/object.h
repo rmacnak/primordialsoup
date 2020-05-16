@@ -316,7 +316,8 @@ class SmallInteger : public Object {
   const SmallInteger* operator->() const { return this; }
 
   static SmallInteger New(intptr_t value) {
-    return static_cast<SmallInteger>(value << kSmiTagShift);
+    return static_cast<SmallInteger>(
+        static_cast<uintptr_t>(value) << kSmiTagShift);
   }
 
   intptr_t value() const {
@@ -332,9 +333,9 @@ class SmallInteger : public Object {
 #endif
 
   static bool IsSmiValue(intptr_t value) {
-    // Check if the top two bits are equal.
-    ASSERT(kSmiTagShift == 1);
-    return (value ^ (value << 1)) >= 0;
+    intptr_t tagged = static_cast<uintptr_t>(value) << kSmiTagShift;
+    intptr_t untagged = tagged >> kSmiTagShift;
+    return untagged == value;
   }
 };
 
@@ -1127,10 +1128,7 @@ Object* Activation::from() {
   return reinterpret_cast<Object*>(&ptr()->sender_);
 }
 Object* Activation::to() {
-  if (StackDepth() == 0) {
-    return reinterpret_cast<Object*>(&ptr()->stack_depth_);
-  }
-  return reinterpret_cast<Object*>(&ptr()->temps_[StackDepth() - 1]);
+  return reinterpret_cast<Object*>(&ptr()->stack_depth_) + StackDepth();
 }
 
 double Float64::value() const { return ptr()->value_; }

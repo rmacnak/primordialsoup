@@ -260,4 +260,16 @@ inline D bit_cast(const S& source) {
 #define NOINLINE
 #endif
 
+#if defined(__has_feature)
+#if __has_feature(undefined_behavior_sanitizer)
+#define USING_UNDEFINED_BEHAVIOR_SANITIZER
+#endif
+#endif
+
+#if defined(USING_UNDEFINED_BEHAVIOR_SANITIZER)
+#define NO_SANITIZE_UNDEFINED(check) __attribute__((no_sanitize(check)))
+#else
+#define NO_SANITIZE_UNDEFINED(check)
+#endif
+
 #endif  // VM_GLOBALS_H_

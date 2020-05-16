@@ -1142,10 +1142,9 @@ void Interpreter::PrintStack() {
   CreateBaseFrame(top);
 }
 
-
 void Interpreter::Interpret() {
-  intptr_t extA = 0;
-  intptr_t extB = 0;
+  uintptr_t extA = 0;
+  uintptr_t extB = 0;
   for (;;) {
     ASSERT(ip_ != 0);
     ASSERT(sp_ != 0);

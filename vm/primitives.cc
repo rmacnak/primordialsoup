@@ -507,7 +507,7 @@ DEFINE_PRIMITIVE(Number_divide) {
     double raw_left, raw_right;
     FLOAT_VALUE(raw_left, left);
     FLOAT_VALUE(raw_right, right);
-    double raw_result = raw_left / raw_right;
+    double raw_result = Math::DivideF64(raw_left, raw_right);
     RETURN_FLOAT(raw_result);
   }
 
@@ -982,7 +982,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
     }
     // bit length is for wrong size
     if (Utils::BitLength(raw_left) + raw_right < SmallInteger::kBits) {
-      intptr_t raw_result = raw_left << raw_right;
+      intptr_t raw_result = Math::ShiftLeft(raw_left, raw_right);
       ASSERT((raw_result >> raw_right) == raw_left);
       RETURN_SMI(raw_result);
     }
@@ -995,7 +995,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
       return kFailure;
     }
     if (Utils::BitLength(raw_left) <= (63 - raw_right)) {
-      int64_t raw_result = raw_left << raw_right;
+      int64_t raw_result = Math::ShiftLeft64(raw_left, raw_right);
       ASSERT(raw_result >> raw_right == raw_left);
       RETURN_MINT(raw_result);
     }
