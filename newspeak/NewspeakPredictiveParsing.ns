@@ -676,7 +676,7 @@ public parseSendExpression = (
 public parseSlotDeclaration = (
 	(* slotDef = accessModifier opt, slotDecl,
 		(((tokenFromSymbol: #=) | (tokenFromSymbol: #'::=')), expression, dot) opt. *)
-	| declStart am varStart varEnd varName type var |
+	| declStart am varStart varEnd varName type var init |
 	declStart:: tokenStart.
 	am:: parseAccessModifierOpt.
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
@@ -691,28 +691,27 @@ public parseSlotDeclaration = (
 
 	tokenKind = #'::=' ifTrue:
 		[advanceToken.
+		 init:: parseSlotInitializer.
 		 ^MutableSlotDefAST new
 			accessModifier: am;
 			slotDecl: var;
-			initializer: parseSlotInitializer;
-			start: declStart;
-			end: tokenEnd].
+			initializer: init;
+			start: declStart; end: init end].
 
 	(tokenKind = #binary and: [tokenValue = '=']) ifTrue:
 		[advanceToken.
+		 init:: parseSlotInitializer.
 		 ^ImmutableSlotDefAST new
 			accessModifier: am;
 			slotDecl: var;
-			initializer: parseSlotInitializer;
-			start: declStart;
-			end: tokenEnd].
+			initializer: init;
+			start: declStart; end: init end].
 
 	^MutableSlotDefAST new
 		accessModifier: am;
 		slotDecl: var;
 		initializer: nil;
-		start: declStart;
-		end: tokenEnd
+		start: declStart; end: tokenEnd
 )
 public parseSlotInitializer = (
 	(* slotDef = accessModifier opt, slotDecl,

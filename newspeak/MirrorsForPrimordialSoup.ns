@@ -58,9 +58,38 @@ private compileExpression: expression <String> with: rawScope <Map[Symbol, Objec
 	^imethod compiledMethod metadata: imethod debugInfo
 )
 private computeDebugInfo = (
-	| metadata = reflectee method metadata. |
-	metadata isKindOfDebugInfo ifTrue: [^metadata].
-	^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo
+	| rawMethod = reflectee method. metadata = rawMethod metadata. definingMixin |
+
+	(* Expression *)
+	metadata isKindOfDebugInfo ifTrue:
+		[^metadata].
+
+	(* Regular method *)
+	reflectee method isSynthetic ifFalse:
+		[^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo].
+
+	definingMixin:: rawMethod mixin.
+	definingMixin isMeta ifFalse:
+		[(* Nested class accessor *)
+		 definingMixin _nestedMixins do:
+			[:nestedMixin | nestedMixin _name = rawMethod selector ifTrue:
+				[^(compiler
+					compileClassHeader2: nestedMixin _headerSource
+					within: (mxn: definingMixin)) accessor debugInfo]].
+		 (* Instance initializer *)
+		 (isSubinitializerSelector: rawMethod selector) ifTrue:
+			[^(compiler
+				compileClassHeader2: rawMethod mixin _headerSource
+				within: (mxn: definingMixin _enclosingMixin)) initializers first debugInfo]].
+
+	(* Factory *)
+	definingMixin isMeta ifTrue:
+		[definingMixin _instanceMixin _primaryFactorySelector = rawMethod selector ifTrue:
+			[^(compiler
+				compileClassHeader2: definingMixin _instanceMixin _headerSource
+				within: (mxn: definingMixin _enclosingMixin)) factory debugInfo]].
+
+	halt.
 )
 private computeDebugMapper = (
 	^computeDebugInfo mapperForContext: reflectee
@@ -104,7 +133,43 @@ public isUncontinuable ^<Boolean> = (
 	^reflectee isDead
 )
 public method ^<MethorMirror> = (
-	^MethodMirror reflecting: reflectee method
+	| rawMethod = reflectee method. definingMixin |
+
+	(* Regular method / expression *)
+	rawMethod isSynthetic ifFalse:
+		[^MethodMirror reflecting: rawMethod].
+
+	(* :todo: These tests are complicated, and might also be wrong if the mixin was changed after this activation. Consider saving the relevant InstanceMixin in the synthetic method's metadata slot in the original compile instead. *)
+
+	definingMixin:: rawMethod mixin.
+	definingMixin isMeta ifFalse:
+		[(* Nested class accessor *)
+		 definingMixin _nestedMixins do:
+			[:nestedMixin | nestedMixin _name = rawMethod selector ifTrue:
+				[^SyntheticMethodMirror
+					reflecting: rawMethod
+					name: rawMethod selector
+					source: nestedMixin _headerSource]].
+		 (* Instance initializer *)
+		 (isSubinitializerSelector: rawMethod selector) ifTrue:
+			[^SyntheticMethodMirror
+				reflecting: rawMethod
+				name: definingMixin _primaryFactorySelector
+				source: definingMixin _headerSource]].
+
+	(* Factory *)
+	definingMixin isMeta ifTrue:
+		[definingMixin _instanceMixin _primaryFactorySelector = rawMethod selector ifTrue:
+			[^SyntheticMethodMirror
+				reflecting: rawMethod
+				name: rawMethod selector
+				source: definingMixin _instanceMixin _headerSource]].
+
+	halt.
+)
+private mxn: mixin = (
+	nil = mixin ifTrue: [^nil].
+	^MixinMirror reflecting: mixin
 )
 public operands ^<List[ObjectMirror]> = (
 	(* todo: Should these simply appear in `slots` as slots with an empty or nil name? *)
@@ -150,11 +215,13 @@ public slots ^<List[LocalSlotMirror]> = (
 )
 public sourceRange ^<Interval> = (
 	(* The bci of an activation points to the bytecode that will be executed next. For the top activation, we want the source range to be this next action. For other activations, we want the source interval to be the pending message send. *)
-	| effectiveBCI <Integer> |
+	| effectiveBCI <Integer> range <Interval> |
 	effectiveBCI:: reflectee bci.
 	reflectee = thread suspendedActivation ifFalse:
 		[effectiveBCI:: Simulator bciBefore: effectiveBCI in: reflectee method].
-	^computeDebugInfo bciSourceMapping at: effectiveBCI ifAbsent: [nil]
+	range:: computeDebugInfo bciSourceMapping at: effectiveBCI ifAbsent: [^nil].
+	range start = 0 ifTrue: [^nil].
+	^range
 )
 public stepInto ^<ThreadMirror> = (
 	thread stepInto: reflectee.
@@ -1719,6 +1786,12 @@ public definingMixin = mxn.
 public isKindOfSlotDeclarationMirror ^<Boolean> = (
 	^true
 )
+) : (
+)
+private class SyntheticMethodMirror reflecting: m name: n source: s = MethodMirror reflecting: m (|
+	public name <Symbol> = n.
+	public source <String> = s.
+|) (
 ) : (
 )
 private class Thread = (
