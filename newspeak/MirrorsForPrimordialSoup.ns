@@ -1856,6 +1856,15 @@ private lookupNewMethod: activation = (
 	nil = newMethod ifTrue: [^oldMethod].
 	^newMethod
 )
+private prepareToResumeWithRoot: simulationRoot <Activation> = (
+	| top bottom <Activation> |
+	top:: suspendedActivation.
+	(findBottom: top) sender: simulationRoot.
+	state = #broken ifTrue: [top push: result]. (* Result of #signal *)
+	state: #running.
+	suspendedActivation: nil.
+	^top
+)
 public restart: activation withLookup: doLookup = (
 	| closure newMethod |
 	(hasSender: activation) ifFalse:
@@ -1893,20 +1902,10 @@ public resume = (
 )
 private resumeImpl = (
 	(* :literalmessage: primitive: 142 *)
-	| threadAtTemp1 bottom top jumpResult |
-	nil = suspendedActivation ifTrue:
-		[^Error signal: 'Nothing to resume'].
-
+	| threadAtTemp1 jumpResult |
 	threadAtTemp1:: self. (* Known to exception signaling machinery. *)
 
-	top:: suspendedActivation.
-	bottom:: findBottom: top.
-	bottom sender: currentActivation.
-
-	state: #running.
-	suspendedActivation: nil.
-
-	jumpResult:: jumpTo: top.
+	jumpResult:: jumpTo: (prepareToResumeWithRoot: currentActivation).
 
 	state = #broken ifTrue:
 		[result: jumpResult.
@@ -1975,14 +1974,9 @@ public stepThrough: activation = (
 	stepUntil: [:top | has: top reachedOrSkippedHome: goal].
 )
 private stepUntil: predicate <[:Activation | Boolean]> = (
-	| root bottom simulator = Simulator new. |
+	| root simulator = Simulator new. |
 	root:: createSimulationRoot.
-	bottom:: findBottom: suspendedActivation.
-	bottom sender: root.
-	simulator activation: suspendedActivation.
-
-	state: #running.
-	suspendedActivation: nil.
+	simulator activation: (prepareToResumeWithRoot: root).
 
 	root = simulator activation ifTrue: [halt].
 
