@@ -6,7 +6,7 @@ private symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
 |) (
 public class Activation _cannotInstantiate = (
-(* A reified activation record.
+(* An activation record for a method or closure.
 
 Note this class only contains accessors and the logic needed for unwind-protect and exceptions. The debugger's simulator that is normally implemented in this class in Smalltalks is instead in the mirrors module.
 |
@@ -33,7 +33,7 @@ public bci: value = (
 	halt.
 )
 private cannotReturn: result = (
-	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer along the chain of senders. *)
+	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer be reached along the chain of senders. *)
 	^(CannotReturn result: result) signal
 )
 public closure = (
@@ -215,7 +215,9 @@ public new = (
 	^self value: nil
 )
 )
-public class Behavior = (|
+public class Behavior = (
+(* My instances describe the shape and behavior of other objects. *)
+|
 private superclass <Behavior> (* Must be slot 1, known to the VM. *)
 private methods <Array[Method]> (* Must be slot 2, known to the VM. *)
 private enclosingObject <Object> (* Must be slot 3, known to the VM. *)
@@ -235,7 +237,9 @@ public mixinApply: superklass = (
 public class Boolean = () (
 ) : (
 )
-public class ByteArray _cannotInstantiate = Collection () (
+public class ByteArray _cannotInstantiate = Collection (
+(* A mutable, fixed-length sequence of integers between 0 and 255. *)
+) (
 public at: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 47 *)
 	^(ArgumentError value: index) signal
@@ -316,7 +320,9 @@ public withAll: bytes <Collection[Integer] | ByteArray | String> ^<ByteArray> = 
 	^result
 )
 )
-class CannotReturn result: r = Exception (|
+class CannotReturn result: r = Exception (
+(* Signalled when attempting to return to (or through) a nil sender or a sender that has already returned. *)
+|
 public result = r.
 |) (
 public printString ^<String> = (
@@ -458,7 +464,9 @@ public whileTrue: action = (
 )
 ) : (
 )
-public class Collection = () (
+public class Collection = (
+(* An enumerable group of elements. All operations are defined in terms of `do:`. *)
+) (
 public allSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
 	self do: [:element <E> | (predicate value: element) ifFalse: [^false]].
 	^true
@@ -596,6 +604,7 @@ private jumpTo: activation = (
 	halt.
 )
 public pass = (
+	(* Yield control to the next enclosing #on:do: handler. *)
 	nil = handlerActivation ifTrue: [^error].
 	invokeNextHandler.
 	halt.
@@ -605,6 +614,7 @@ public printString ^<String> = (
 	^super class name, ': ', messageText
 )
 public resume: resumptionValue = (
+	(* Returns the argument to the sender of #signal. *)
 	| savedSignalActivation = signalActivation. |
 	nil = savedSignalActivation ifTrue: [^error].
 	signalActivation:: nil.
@@ -617,6 +627,7 @@ public retry = (
 	halt.
 )
 public return: returnValue = (
+	(* Returns the argument as the result of the current #on:do: message. *)
 	| savedHandlerActivation = handlerActivation. |
 	nil = handlerActivation ifTrue: [^error].
 	signalActivation:: nil.
@@ -639,6 +650,7 @@ private returnToSimulationRoot: simulationRoot <Activation> = (
 	jumpTo: simulationRoot.
 )
 public signal = (
+	(* Yields control to an enclosing #on:do: handler. *)
 	handlerActivation:: signalActivation:: currentActivation.
 	invokeNextHandler.
 	halt.
@@ -653,7 +665,9 @@ public signal: message <String> = (
 	^(self new messageText: message) signal
 )
 )
-public class False _cannotInstantiate = Boolean () (
+public class False _cannotInstantiate = Boolean (
+(* Defines the behavior of `false`. *)
+) (
 public & alternative <Boolean> ^<Boolean> = (
 	(* Evaluating conjunction. *)
 	^false
@@ -693,7 +707,9 @@ public | alternative <Boolean> ^<Boolean> = (
 )
 ) : (
 )
-public class Float _cannotInstantiate = Number () (
+public class Float _cannotInstantiate = Number (
+(* A double-precision floating pointer number. *)
+) (
 public addFromFraction: left = (
 	^left asFloat + self
 )
@@ -782,7 +798,9 @@ public parse: string <String> ^<Float> = (
 	^(ArgumentError value: string) signal
 )
 )
-public class Fraction reducedNumerator: num denominator: denom = Number (|
+public class Fraction reducedNumerator: num denominator: denom = Number (
+(* A rational number. *)
+|
 public numerator <Integer> = num.
 public denominator <Integer> = denom.
 |) (
@@ -911,6 +929,7 @@ public numerator: numerator <Integer> denominator: denominator <Integer> ^<Fract
 )
 )
 public class IdentityMap new: capacity = (
+(* A map whose keys are considering equal according to object identity. *)
 |
 table ::= Array new: capacity.
 public size ::= 0.
@@ -1169,7 +1188,9 @@ public value = (
 )
 ) : (
 )
-class Integer = Number () (
+class Integer = Number (
+(* Integers are represented by my subclasses: SmallInteger, MediumInteger and LargeInteger. *)
+) (
 public & other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 16 *)
 	^(ArgumentError value: other) signal
@@ -1309,10 +1330,14 @@ public parse: string <String> radix: radix <Integer> ^<Integer> = (
 	^negative ifTrue: [0 - value] ifFalse: [value]
 )
 )
-public class LargeInteger _cannotInstantiate = Integer () (
+public class LargeInteger _cannotInstantiate = Integer (
+(* An arbitrary-precision integer. *)
+) (
 ) : (
 )
-public class MediumInteger _cannotInstantiate = Integer () (
+public class MediumInteger _cannotInstantiate = Integer (
+(* An integer representable as a 64-bit two's complement number. *)
+) (
 ) : (
 )
 public class Message selector: s arguments: a = (|
@@ -1328,7 +1353,9 @@ public sendTo: receiver = (
 )
 ) : (
 )
-public class MessageNotUnderstood receiver: r message: m = Exception (|
+public class MessageNotUnderstood receiver: r message: m = Exception (
+(* Signalled by Object>>doesNotUnderstand:. *)
+|
 public receiver <Object> = r.
 public message <Message> = m.
 |) (
@@ -1433,7 +1460,9 @@ public newSetterForSlot: name at: index accessModifier: am = (
 	^accessor
 )
 )
-class NonBooleanReceiver receiver: r = Exception (|
+class NonBooleanReceiver receiver: r = Exception (
+(* Signalled when the receiver of an inlined control message (such as ifTrue:) is neither `true` nor `false`. *)
+|
 public receiver = r.
 |) (
 public printString ^<String> = (
@@ -1608,10 +1637,14 @@ protected yourself = (
 )
 ) : (
 )
-public class SmallInteger _cannotInstantiate = Integer () (
+public class SmallInteger _cannotInstantiate = Integer (
+(* An integer representable as a 31-/63-bit two's complement number. *)
+) (
 ) : (
 )
-public class Stopwatch = (|
+public class Stopwatch = (
+(* Measures durations using the system's monotonic clock. *)
+|
 private cumulativeNanos ::= 0.
 private startNanos
 |) (
@@ -1636,7 +1669,9 @@ public stop = (
 )
 ) : (
 )
-public class String _cannotInstantiate = () (
+public class String _cannotInstantiate = (
+(* An immutable, fixed-length sequence of integers between 0 and 255. Often interpreted as UTF-8. *)
+) (
 public , other <String> ^<String> = (
 	(* :literalmessage: primitive: 115 *)
 	^(ArgumentError value: other) signal
@@ -1783,7 +1818,9 @@ public new ^<StringBuilder> = (
 	^self new: 8
 )
 )
-public class True _cannotInstantiate = Boolean () (
+public class True _cannotInstantiate = Boolean (
+(* Defines the behavior of `true`. *)
+) (
 public & alternative <Boolean> ^<Boolean> = (
 	(* Evaluating conjunction. *)
 	^alternative
@@ -1823,7 +1860,9 @@ public | alternative <Boolean> ^<Boolean> = (
 )
 ) : (
 )
-public class UndefinedObject _cannotInstantiate = () (
+public class UndefinedObject _cannotInstantiate = (
+(* Defines the behavior of `nil`. *)
+) (
 public isNil ^<Boolean> = (
 	^true
 )
@@ -1832,7 +1871,9 @@ public printString ^<String> = (
 )
 ) : (
 )
-public class WeakArray _cannotInstantiate = Collection () (
+public class WeakArray _cannotInstantiate = Collection (
+(* An array that does not prevent its elements from being garbage collected. *)
+) (
 public at: index <Integer> ^<E> = (
 	(* :literalmessage: primitive: 43 *)
 	^(ArgumentError value: index) signal
@@ -1866,7 +1907,9 @@ public new: size <Integer> ^<WeakArray[E]> = (
 	^(ArgumentError value: size) signal
 )
 )
-public class WeakMap = (|
+public class WeakMap = (
+(* A collection of key/value associations that do not prevent the keys and values from becoming garbage collected. *)
+|
 private table ::= Array new: 256. (* A fairly large initial capacity because the expected usage is one per module. *)
 private used ::= 0.
 |) (
@@ -1955,7 +1998,9 @@ private maybeGrow = (
 )
 ) : (
 )
-public class _Array _cannotInstantiate = Collection () (
+public class _Array _cannotInstantiate = Collection (
+(* A mutable, fixed-length sequence of arbitrary elements. *)
+) (
 public , collection = (
 	|
 	newArray = Array new: self size + collection size.
@@ -2080,7 +2125,7 @@ public withAll: collection <Collection[E]> ^<Array[E]> = (
 )
 )
 public class _Object = (
-(* Object is the root of the class hierarchy in the Newspeak programming language, and provides behavior common to all objects.
+(* Object is the root of the class hierarchy and provides behavior common to all objects.
 
 Unlike other systems inspired by Smalltalk, the number of methods in this class is deliberately kept to a minimum. Behavior should only be provided by this class if it should be considered part of the core set of features available to *all* Newspeak programmers.
 

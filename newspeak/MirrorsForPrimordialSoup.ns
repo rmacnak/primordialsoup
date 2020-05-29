@@ -1003,7 +1003,7 @@ public declaration ^<ClassDeclarationMirror> = (
 	^ClassDeclarationMirror reflecting:
 		(mixin isMeta ifTrue: [mixin _instanceMixin] ifFalse: [mixin])
 )
-public enclosingMixin ^<ClassDeclarationMirror> = (
+public enclosingMixin ^<MixinMirror> = (
 	| em = mixin _enclosingMixin. |
 	nil = em ifTrue: [^nil].
 	^MixinMirror reflecting: em

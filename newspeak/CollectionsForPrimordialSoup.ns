@@ -7,6 +7,11 @@ class CollectionsForPrimordialSoup usingInternalKernel: ik = (
 	|
 ) (
 public class List new: capacity <Integer> = Collection (
+(* An ordered collection of elements.
+
+Indexing (#at: and #at:put:) happens in constant time. Insertion (#add:, #addLast) and removal (#removeLast:) at the end run in amortized constant time. Insertion (#addFirst:) and removal (#removeFirst) at the beginning run in linear time. As such, List can be used as an efficient stack, but an inefficient queue.
+
+nil is a valid element. *)
 	|
 	protected size_ ::= 0.
 	protected data ::= Array new: capacity.
@@ -142,6 +147,13 @@ public withAll: collection <Collection[E]> ^<List[E]> = (
 )
 )
 public class Map new: capacity <Integer> = Collection (
+(* A collection associating keys to values.
+
+Lookup (#at:) runs in constant time, and insertion (#at:put:) and removal (#removeKey:) run in amortized constant time, provided the #hash of keys is well distributed.
+
+The order of iteration of keys is unspecified except for the following constraints. The iteration order only changes when the map is modified (insertion or removal). The iteration order of values and associations is consistent with the iteration order of keys.
+
+nil is a valid key and a valid value. *)
 	|
 	protected size_ ::= 0.
 	protected table ::= Array new: (capacityFor: capacity).
@@ -178,7 +190,7 @@ public at: key <K> put: value <V> ^<V> = (
 	^value
 )
 private capacityFor: numElements <Integer> = (
-	numElements < 0 ifTrue: [^ArgumentError value: numElements].
+	numElements < 0 ifTrue: [^(ArgumentError value: numElements) signal].
 	(* + 1 for an empty slot to terminate probing *)
 	(* * 4 // 3 for 75% load factor *)
 	(* << 1 for flattened association *)
@@ -323,6 +335,13 @@ public printString = (
 ) : (
 )
 public class Set new: capacity <Integer> = Collection (
+(* A collection elements without duplicates.
+
+Lookup (#includes:) runs in constant time, and insertion (#add:) and removal (#remove:) run in amortized constant time, provided the #hash of elements is well distributed.
+
+The order of iteration of elements is unspecified except the iteration order only changes when the set is modified (insertion or removal).
+
+nil is a valid element. *)
 	|
 	protected size_ ::= 0.
 	protected table ::= Array new: (capacityFor: capacity).
@@ -353,7 +372,7 @@ public asArray ^<Array[E]> = (
 	^result
 )
 private capacityFor: numElements <Integer> = (
-	numElements < 0 ifTrue: [^ArgumentError value: numElements].
+	numElements < 0 ifTrue: [^(ArgumentError value: numElements) signal].
 	(* + 1 for an empty slot to terminate probing *)
 	(* * 4 // 3 for 75% load factor *)
 	^numElements + 1 * 4 // 3
