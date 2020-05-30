@@ -1196,7 +1196,7 @@ private scanMaybeExponent ^<Integer> = (
 			 position:: position + 1].
 
 	neg ifTrue: [exp:: exp * -1].
-	^10 ** exp
+	^10 raisedTo: exp
 )
 private scanMaybeFraction: radix <Integer> ^<Fraction> = (
 	| numerator denominator byte digit |

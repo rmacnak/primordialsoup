@@ -26,6 +26,33 @@ reject: input = (
 public testDecodeEmpty = (
 	reject: ''.
 )
+public testDecodeExponential = (
+	assert: (parse: '1e-2') equals: 1/100.
+	assert: (parse: '1e-1') equals: 1/10.
+	assert: (parse: '1e-0') equals: 1.
+	assert: (parse: '1e0') equals: 1.
+	assert: (parse: '1e+0') equals: 1.
+	assert: (parse: '1e1') equals: 10.
+	assert: (parse: '1e+1') equals: 10.
+	assert: (parse: '1e2') equals: 100.
+	assert: (parse: '1e+2') equals: 100.
+	reject: '1e'.
+	reject: '1e+'.
+	reject: '1e-'.
+
+	assert: (parse: '-3e-2') equals: -3/100.
+	assert: (parse: '-3e-1') equals: -3/10.
+	assert: (parse: '-3e-0') equals: -3.
+	assert: (parse: '-3e0') equals: -3.
+	assert: (parse: '-3e+0') equals: -3.
+	assert: (parse: '-3e1') equals: -30.
+	assert: (parse: '-3e+1') equals: -30.
+	assert: (parse: '-3e2') equals: -300.
+	assert: (parse: '-3e+2') equals: -300.
+	reject: '3e'.
+	reject: '3e+'.
+	reject: '3e-'.
+)
 public testDecodeFalse = (
 	assert: (parse: 'false') equals: false.
 	assert: (parse: ' false') equals: false.

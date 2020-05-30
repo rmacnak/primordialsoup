@@ -773,6 +773,13 @@ public log ^<Float> = (
 public multiplyFromFraction: left = (
 	^left asFloat * self
 )
+private pow: exponent <Float> ^<Float> = (
+	(* :literalmessage: primitive: 131 *)
+	^(ArgumentError value: exponent) signal
+)
+public raisedTo: exponent <Number> ^<Float> = (
+	^self pow: exponent asFloat
+)
 public rounded ^<Float> = (
 	(* :literalmessage: primitive: 125 *)
 	halt.
@@ -1283,9 +1290,6 @@ public multiplyFromFraction: left = (
 public numerator ^<Integer> = (
 	^self
 )
-public raisedTo: exponent mod: modulus = (
-	halt.
-)
 public rounded ^<Integer> = (
 	^self
 )
@@ -1586,8 +1590,21 @@ public quo: other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 7 *)
 	^(ArgumentError value: other) signal
 )
-public raisedTo: other = (
-	halt.
+public raisedTo: exponent <Number> ^<Number> = (
+	exponent isKindOfInteger ifTrue: [^self raisedToInteger: exponent].
+	^self asFloat raisedTo: exponent
+)
+private raisedToInteger: exponent <Integer> ^<Integer | Fraction> = (
+	| result base e |
+	exponent < 0 ifTrue: [^1 / (self raisedToInteger: 0 - exponent)].
+	result:: 1.
+	base:: self.
+	e:: exponent.
+	[e > 0] whileTrue:
+		[(e bitAnd: 1) = 0 ifFalse: [result:: result * base].
+		 e:: e >> 1.
+		 base:: base * base].
+	^result
 )
 public rem: other <Number> ^<Number> = (
 	(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)

@@ -158,7 +158,7 @@ parseOptionalExponent = (
 			 position:: position + 1].
 
 	neg ifTrue: [exp:: -1 * exp].
-	^10 ** exp
+	^10 raisedTo: exp
 )
 parseOptionalFraction = (
 	(* ("." digit+) *)
