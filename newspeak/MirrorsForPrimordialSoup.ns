@@ -683,9 +683,8 @@ private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> 
 	intermediate classSide checkNameConflictsForFactory: newIntermediate factoryName.
 )
 public classComment ^<String> = (
-	(* :questionable: *)
-	nil = source ifTrue: [^nil].
-	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
+	(* :todo: This is pretty sugary; does it belong in mirrors? *)
+	^commentFromHeader: source
 )
 public name = (
 	^intermediate simpleName
@@ -729,12 +728,9 @@ public name: newName <String> = (
 	intermediate initializers: newIR initializers.
 	intermediate instanceSide slots: newIR instanceSide slots.
 )
-public preamble ^<Symbol> = (
-	(* :questionable: *)
-	| headerAst |
-	nil = source ifTrue: [^nil].
-	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
-	^source copyFrom: headerAst start to: headerAst superConstructorCall end
+public preamble ^<String> = (
+	(* :todo: This is pretty sugary; does it belong in mirrors? *)
+	^preambleFromHeader: source
 )
 public source ^<String> = (
 	^intermediate headerSource
@@ -776,9 +772,8 @@ public = other ^<Boolean> = (
 	^other isKindOfClassHeaderMirror
 )
 public classComment ^<String> = (
-	(* :questionable: *)
-	nil = source ifTrue: [^nil].
-	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
+	(* :todo: This is pretty sugary; does it belong in mirrors? *)
+	^commentFromHeader: source
 )
 public hash ^<Integer> = (
 	^mixin hash bitXor: class hash
@@ -789,12 +784,9 @@ public isKindOfClassHeaderMirror ^<Boolean> = (
 public name = (
 	^mixin _name
 )
-public preamble ^<Symbol> = (
-	(* :questionable: *)
-	| headerAst |
-	nil = source ifTrue: [^nil].
-	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
-	^source copyFrom: headerAst start to: headerAst superConstructorCall end
+public preamble ^<String> = (
+	(* :todo: This is pretty sugary; does it belong in mirrors? *)
+	^preambleFromHeader: source
 )
 public source ^<String> = (
 	^mixin _headerSource
@@ -2149,6 +2141,10 @@ private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
 	halt.
 )
+private commentFromHeader: source <String> ^<String> = (
+	nil = source ifTrue: [^nil].
+	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
+)
 private compiler = (
 	nil = compilerX ifTrue: [constructCompiler].
 	^compilerX
@@ -2243,6 +2239,12 @@ private numCopiedOf: closure <Closure> ^<Integer> = (
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
 	^parsingX
+)
+private preambleFromHeader: source <String> ^<String> = (
+	| headerAst |
+	nil = source ifTrue: [^nil].
+	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
+	^source copyFrom: headerAst start to: headerAst classComment preambleEnd
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)

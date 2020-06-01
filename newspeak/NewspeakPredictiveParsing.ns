@@ -84,17 +84,16 @@ defaultClassSide = (
 		methods: {}
 )
 defaultConstructorPattern = (
-	^MessagePatternAST new selector: #new parameters: {}; start: 1; end: 1
+	^MessagePatternAST new selector: #new parameters: {}
 )
 defaultSuperclassClause = (
 	^UnresolvedSendAST new
 		receiver:
 			(UnresolvedSendAST new
 				receiver: implicitReceiver;
-				message: (MessageAST new send: #Object with: {}; start: 1; end: 1);
-				start: 1; end: 1);
+				message: (MessageAST new send: #Object with: {}));
 		message:
-			(MessageAST new send: #new with: {}; start: 1; end: 1); start: 1; end: 1
+			(MessageAST new send: #new with: {})
 )
 expected: expectedKind = (
 	^(ParseError message: 'expected ' , expectedKind position: tokenStart) signal
@@ -209,7 +208,7 @@ public parseClassHeader = (
 		superclassClause opt, lparen, classComment opt,
 		slotDecls opt,  initExprs, rparen). *)
 
-	| declStart am name constructor superclassCall comment tempsBody inits declEnd x y |
+	| declStart am name constructor superclassCall comment preambleEnd tempsBody inits declEnd |
 	declStart:: tokenStart.
 	am:: parseAccessModifierOpt.
 
@@ -218,18 +217,19 @@ public parseClassHeader = (
 
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
 	name:: tokenValue.
+	preambleEnd:: tokenEnd.
 	advanceToken.
 
 	(* Cheat: skipping binary message pattern. *)
 	(tokenKind = #identifier or: [tokenKind = #keyword])
-		ifTrue: [constructor:: parseMessagePattern]
+		ifTrue: [constructor:: parseMessagePattern. preambleEnd:: constructor end]
 		ifFalse: [constructor:: defaultConstructorPattern].
 
 	(tokenKind = #binary and: [tokenValue = '=']) ifFalse: [expected: '='].
 	advanceToken.
 
 	tokenKind = #identifier
-		ifTrue: [superclassCall:: parseSuperclassClause]
+		ifTrue: [superclassCall:: parseSuperclassClause. preambleEnd:: superclassCall end]
 		ifFalse: [superclassCall:: defaultSuperclassClause].
 
 	tokenKind = #'(' ifFalse: [expected: '('].
@@ -254,7 +254,7 @@ public parseClassHeader = (
 		isSeq: tempsBody isSeq;
 		initExprs: inits;
 		category: 'Unclassified';
-		classComment: (Token value: comment);
+		classComment: ((Token value: comment) preambleEnd: preambleEnd);
 		inheritanceChain: {superclassCall};
 		accessModifier: am;
 		start: declStart; end: declEnd
@@ -751,7 +751,7 @@ public parseSuperclassClause = (
 		outerReceiver = (tokenFromSymbol: #outer), identifier.
 		superclassPrefix = outerReceiver | (tokenFromSymbol: #self) | (tokenFromSymbol: #super).
 	*)
-	| clauseStart sc clauseEnd |
+	| clauseStart sc clauseEnd message |
 
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
 	clauseStart:: tokenStart.
@@ -783,16 +783,19 @@ public parseSuperclassClause = (
 	clauseEnd:: tokenEnd.
 	advanceToken.
 
+	message:: parseSuperclassMessage.
+	0 = message end ifFalse: [clauseEnd:: message end].
+
 	^UnresolvedSendAST new
 		receiver: sc;
-		message: parseSuperclassMessage;
+		message: message;
 		start: clauseStart; end: clauseEnd
 )
 public parseSuperclassMessage = (
 	tokenKind = #identifier ifTrue: [^parseUnaryMessage].
 	tokenKind = #binary ifTrue: [^parseBinaryMessage].
 	tokenKind = #keyword ifTrue: [^parseKeywordMessage].
-	^MessageAST new send: #new with: {}; start: 1; end: 1
+	^MessageAST new send: #new with: {}
 )
 public parseTemporariesOpt = (
 	| temps = List new. body |
@@ -1360,6 +1363,7 @@ class Token value: v = (
 public value = v.
 public start
 public end
+public preambleEnd
 |) (
 ) : (
 )

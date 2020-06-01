@@ -1924,8 +1924,7 @@ where <classTree> is the AST that computes the class.
 		body: (CodeBodyAST new
 			parameters: {}
 			temporaries: {}
-			statements: {if. return});
-		start: 1; end: 1
+			statements: {if. return})
 )
 addInitializersToMixinApplication: mixinApp <NormalSendAST> nestedMixin: nestedMixin factoryName: facName <Symbol> = (
 (* This method produces an AST representing code of the form:
@@ -2186,11 +2185,10 @@ astForPrimaryFactory: hdr <ClassHeaderAST> ^<MethodAST> = (
 
 	body:: CodeBodyAST new
 		temporaries: {tempDecl}
-		statements: stmts;
-		copyPositionFrom: cons.
+		statements: stmts.
 	^MethodAST new
 		pattern: cons body: body accessModifier: #public;
-		copyPositionFrom: cons
+		copyPositionFrom: hdr
 )
 astForTransientSlotGetter: tree <SlotDefAST> = (
 (* Build an AST for a method that would lazily create a execute the expression in a transient  slot, and cache it. The generated code has the form
@@ -2253,7 +2251,7 @@ simpleName = (
 			parameters: {}
 			temporaries: {}
 			statements: {if. return});
-		start: 1; end: 1
+		copyPositionFrom: tree
 )
 astForTransientSlotInitializer: tree <SlotDefAST> do: astAndSourceBlock <[:MethodAST :String]> = (
 	| initializer initMethodName selector messagePattern body return newAST newSource |
@@ -2283,8 +2281,7 @@ astForTransientSlotInitializer: tree <SlotDefAST> do: astAndSourceBlock <[:Metho
 	newAST:: MethodAST new
 		pattern: messagePattern;
 		body: body;
-		start: 1;
-		end: 1.
+		copyPositionFrom: tree.
 
 (*	newSource:: messagePattern accessModifier , ' ', 'zzzz', ' = ( ^ ', (sourceForNode: initializer), ' )'  .    *)
 	newSource:: messagePattern accessModifier , ' ', messagePattern selector, ' = ( ^ ', (sourceForNode: initializer), ' )'.
@@ -2318,7 +2315,7 @@ astForTransientSlotSetter: tree <SlotDefAST> = (
 			parameters: {newValueParameter} asMutableArrayList
 			temporaries: {}
 			statements: { assignToSlot } asMutableArrayList);
-		start: 1; end: 1
+		copyPositionFrom: tree
 )
 buildIncrementalScopeFor: mm <MixinMirror> = (
 	| enclosingClass thisClass |
@@ -2588,6 +2585,7 @@ private createNestedClassAccessorFrom: nestedClassNode <ClassDeclarationAST | Mi
 	ast:: accessorASTForNestedClassNamed: simpleName
 		classTree: classTree
 		accessModifier: nestedClassNode accessModifier.
+	ast copyPositionFrom: nestedClassNode header.
 
 	^compileSyntheticMethod: ast
 )
@@ -2816,10 +2814,10 @@ toScope: scope <Scope> addSlot: slotNode <SlotDeclAST> = (
 	slotNode isMutable ifTrue:
 		[scope at: (namer selectorForSlotSetter: slotNode) put: entry].
 )
-private within: mixinIR <IntermediateMixin> compileClass: nestedClassNode <MethodAST> = (
+private within: mixinIR <IntermediateMixin> compileClass: nestedClassNode <ClassDeclarationAST> = (
 	mixinIR nestedClasses add: (within: mixinIR compileClassNoAdd: nestedClassNode).
 )
-private within: mixinIR <IntermediateMixin> compileClassNoAdd: nestedClassNode <MethodAST> = (
+private within: mixinIR <IntermediateMixin> compileClassNoAdd: nestedClassNode <ClassDeclarationAST> = (
 	| nestedClassIR |
 	nestedClassIR:: nestedClassNode isKindOfClassDeclarationNode
 		ifTrue: [compileClass: nestedClassNode]
@@ -2849,7 +2847,6 @@ private within: mixinIR <IntermediateMixin> compileInitializers: headerNode <Cla
 	(* The superclass clause is not a property of the mixin; this method is specific to the application. That said, all applications derived from the class declaration will share it *)
 	mixinIR declaration initializers: {
 		compileSyntheticMethod: (astForClassDeclarationInitializer: headerNode).
-		compileSyntheticMethod: (astForMixinInitializer: headerNode).
 	}.
 )
 private within: mixinIR <IntermediateMixin> compileInstanceSide: classNode <ClassDeclarationAST> = (

@@ -558,13 +558,51 @@ public testClassHeaderPreamble = (
 	mirror <ClassMirror>
 	|
 
+	(* Everything explicit *)
 	preamble:: 'class Foo foo: x = Bar bar: x'.
-	headerSource:: preamble, ' (
-		|
-		bar
-		baz
-		|
-	)'.
+	headerSource:: preamble, ' ()'.
+
+	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
+	assert: builder header preamble equals: preamble.
+
+	klass:: builder install applyToObject reflectee.
+	mirror:: ClassMirror reflecting: klass.
+	assert: mirror mixin declaration header preamble equals: preamble.
+
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	assert: builder header preamble equals: preamble.
+
+	(* Default superclass factory *)
+	preamble:: 'class Foo foo: x = Bar'.
+	headerSource:: preamble, ' ()'.
+
+	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
+	assert: builder header preamble equals: preamble.
+
+	klass:: builder install applyToObject reflectee.
+	mirror:: ClassMirror reflecting: klass.
+	assert: mirror mixin declaration header preamble equals: preamble.
+
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	assert: builder header preamble equals: preamble.
+
+	(* Default superclass *)
+	preamble:: 'class Foo foo: x'.
+	headerSource:: preamble, ' = ()'.
+
+	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
+	assert: builder header preamble equals: preamble.
+
+	klass:: builder install applyToObject reflectee.
+	mirror:: ClassMirror reflecting: klass.
+	assert: mirror mixin declaration header preamble equals: preamble.
+
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	assert: builder header preamble equals: preamble.
+
+	(* Default factory *)
+	preamble:: 'class Foo'.
+	headerSource:: preamble, ' = ()'.
 
 	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
 	assert: builder header preamble equals: preamble.
