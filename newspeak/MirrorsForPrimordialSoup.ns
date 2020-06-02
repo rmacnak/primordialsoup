@@ -2021,6 +2021,9 @@ public isBroken ^<Boolean> = (
 public isFulfilled ^<Boolean> = (
 	^thread state = #fulfilled
 )
+public isKindOfThreadMirror ^<Boolean> = (
+	^true
+)
 public isRunning ^<Boolean> = (
 	^thread state = #running
 )

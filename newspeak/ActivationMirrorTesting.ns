@@ -1123,6 +1123,26 @@ public testExceptionDuringStepOver = (
 	assert: thread result reflectee equals: exception.
 	assertThread: thread atMethod: #testExceptionDuringStepOver snippet: 'exception signal'.
 )
+public testIsKindOfActivationMirror = (
+	| closure thread activation |
+	thread:: ActivationMirror invokeSuspended: [seven].
+	activation:: thread suspendedActivation.
+
+	assert: activation isKindOfActivationMirror.
+	deny: thread isKindOfActivationMirror.
+	deny: nil isKindOfActivationMirror.
+	deny: 0 isKindOfActivationMirror.
+)
+public testIsKindOfThreadMirror = (
+	| closure thread activation |
+	thread:: ActivationMirror invokeSuspended: [seven].
+	activation:: thread suspendedActivation.
+
+	assert: thread isKindOfThreadMirror.
+	deny: activation isKindOfThreadMirror.
+	deny: nil isKindOfThreadMirror.
+	deny: 0 isKindOfThreadMirror.
+)
 public testQuickResumeReturnAcrossBoundry = (
 	assert: quickResumeReturnAcrossBoundry equals: 'expected return'
 )
@@ -1168,6 +1188,29 @@ public testResumeAfterExceptionSlowly = (
 	assert: thread isFulfilled.
 	assert: thread result reflectee equals: exception.
 	assert: thread suspendedActivation equals: nil.
+)
+public testThreadEquality = (
+	| closure thread1 thread1Stepped thread2 thread2Stepped |
+	closure:: [seven].
+
+	thread1:: ActivationMirror invokeSuspended: closure.
+	thread1Stepped:: thread1 stepInto.
+	assert: thread1 equals: thread1Stepped.
+	assert: thread1Stepped equals: thread1.
+	assert: thread1 hash equals: thread1Stepped hash.
+
+	thread2:: ActivationMirror invokeSuspended: closure.
+	thread2Stepped:: thread2 stepInto.
+	assert: thread2 equals: thread2Stepped.
+	assert: thread2Stepped equals: thread2.
+	assert: thread2 hash equals: thread2Stepped hash.
+
+	deny: thread1 equals: thread2.
+	deny: thread2 equals: thread1.
+
+	deny: thread1 equals: nil.
+	deny: thread1 equals: thread1 suspendedActivation.
+	deny: thread1 suspendedActivation equals: thread1.
 )
 public testThreadResumeBroken = (
 	| exception thread |
