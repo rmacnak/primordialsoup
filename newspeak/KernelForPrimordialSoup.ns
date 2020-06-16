@@ -490,6 +490,18 @@ public do: action <[:E]> separatedBy: betweenAction <[]> = (
 		 first ifTrue: [first:: false] ifFalse: [betweenAction value].
 		 action value: element].
 )
+public flatMap: map <[:E | R def]> ^<Collection[R]> = (
+	^self flatten collect: map
+)
+public flatten ^ <Array> = (
+	| totalSize <Integer> ::= 0. c <Array> index <Integer> ::= 1. |
+	self do: [:e <E> | totalSize:: totalSize + (e isKindOfCollection ifTrue: [e size] ifFalse: [1])].
+	c:: Array new: totalSize.
+	do: [:e <E> | e isKindOfCollection
+					ifTrue: [e do: [:x | c at: index put: x. index:: index + 1]]
+					ifFalse: [c at: index put: e. index:: index + 1]
+		].
+)
 public includes: object <Object> ^<Boolean> = (
 	self do: [:element <E> | element = object ifTrue: [^true]].
 	^false
@@ -505,6 +517,9 @@ public isEmpty ^<Boolean> = (
 )
 public isKindOfCollection ^<Boolean> = (
 	^true
+)
+newForCollectUsingAdd: capacity = (
+  subclassResponsibility
 )
 public noneSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
 	self do: [:element <E> | (predicate value: element) ifTrue: [^false]].
@@ -2001,6 +2016,12 @@ public copy ^<Array[E]> = (
 	newArray replaceFrom: 1 to: self size with: self startingAt: 1.
 	^newArray
 )
+public copyFrom: start <integer> to: stop <Integer> ^ <Array[E]> = (
+  | cp <Array[E]> |
+  cp:: Array new: (stop - start) + 1.
+  1 to: cp size do: [:i <Integer> | cp at: i put: (self at: i + start -1)].
+  ^cp
+)
 public copyWith: newElement <E> ^<Array[E]> = (
 	|
 	newArray = Array new: 1 + self size.
@@ -2115,6 +2136,13 @@ public = other <Object> ^<Boolean> = (
 	(* :literalmessage: primitive: 86 *)
 	halt.
 )
+public == other <Object> ^<Boolean> = (
+	(* Answers whether the receiver is considered identical to 'other'.
+	May not be overridden by subclasses. *)
+
+	(* :literalmessage: primitive: 86 *)
+	halt.
+)
 protected Array = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup _Array
@@ -2176,6 +2204,13 @@ public hash ^<Integer> = (
 	(* :literalmessage: primitive: 87 *)
 	halt.
 )
+public identityHash ^<Integer> = (
+	(* Answers the hash code for the receiver.
+	May not be overridden by subclasses. *)
+
+	(* :literalmessage: primitive: 87 *)
+	halt.
+)
 public isNil ^<Boolean> = (
 	^false
 )
@@ -2188,6 +2223,9 @@ public printString ^<String> = (
 )
 public yourself = (
 	^self
+)
+public ~= other <Object> ^<Boolean> = (
+	^(self = other) not.
 )
 ) : (
 )

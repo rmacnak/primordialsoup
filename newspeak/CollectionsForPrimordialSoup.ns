@@ -55,6 +55,12 @@ public at: index <Integer> put: value <E> ^<E> = (
 	index > size_ ifTrue: [^(ArgumentError value: index) signal].
 	^data at: index put: value
 )
+public copyFrom: start <integer> to: stop <Integer> ^ <List[E]> = (
+  | cp <List[E]> |
+  cp:: List new: (stop - start) + 1.
+  1 to: (stop - start) + 1 do: [:i <Integer> | cp add: (self at: i + start -1)].
+  ^cp
+)
 public do: action <[:E]> = (
 	1 to: size_ do: [:index | action value: (data at: index)].
 )
