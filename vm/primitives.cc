@@ -3150,7 +3150,7 @@ EM_JS(bool, _JS_performGet, (), {
   var selector = aliens.pop();
   var receiver = aliens.pop();
   try {
-    var result = receiver[selector];
+    var result = Reflect.get(receiver, selector);
     aliens.push(result);
     return true;
   } catch (exception) {
@@ -3164,8 +3164,8 @@ EM_JS(bool, _JS_performSet, (), {
   var selector = aliens.pop();
   var receiver = aliens.pop();
   try {
-    var result = receiver[selector] = argument;
-    aliens.push(result);
+    var result = Reflect.set(receiver, selector, argument);
+    aliens.push(argument);
     return true;
   } catch (exception) {
     aliens.push(exception);
@@ -3177,7 +3177,7 @@ EM_JS(bool, _JS_performDelete, (), {
   var selector = aliens.pop();
   var receiver = aliens.pop();
   try {
-    var result = delete receiver[selector];
+    var result = Reflect.deleteProperty(receiver, selector);
     aliens.push(result);
     return true;
   } catch (exception) {
@@ -3199,7 +3199,7 @@ EM_JS(bool, _JS_performInvoke, (intptr_t numArgs), {
     return false;
   }
   try {
-    var result = receiver[selector].apply(receiver, arguments);
+    var result = Reflect.apply(receiver[selector], receiver, arguments);
     aliens.push(result);
     return true;
   } catch (exception) {
@@ -3215,7 +3215,7 @@ EM_JS(bool, _JS_performNew, (intptr_t numArgs), {
   }
   var receiver = aliens.pop();
   try {
-    var result = new (Function.prototype.bind.apply(receiver, arguments));
+    var result = Reflect.construct(receiver, arguments);
     aliens.push(result);
     return true;
   } catch (exception) {
