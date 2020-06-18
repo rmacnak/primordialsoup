@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class KernelForPrimordialSoup = (|
 private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
@@ -333,6 +333,9 @@ protected basicNew = (
 	(* :literalmessage: primitive: 34 *)
 	halt.
 )
+public isKindOfClass ^ <Boolean> = (
+  ^true
+)
 public name ^<String> = (
 	^self nameS
 )
@@ -501,6 +504,7 @@ public flatten ^ <Array> = (
 					ifTrue: [e do: [:x | c at: index put: x. index:: index + 1]]
 					ifFalse: [c at: index put: e. index:: index + 1]
 		].
+	^c
 )
 public includes: object <Object> ^<Boolean> = (
 	self do: [:element <E> | element = object ifTrue: [^true]].
@@ -1209,20 +1213,6 @@ public addFromFraction: left = (
 public asInteger ^<Integer> = (
 	^self
 )
-public asStringRadix: radix <Integer> ^<String> = (
-	| value result index |
-	10 = radix ifTrue: [^self asString].
-	radix < 2 ifTrue: [^(ArgumentError value: radix) signal].
-	radix > 36 ifTrue: [^(ArgumentError value: radix) signal].
-	self < 0 ifTrue: [^'-', ((0 - self) asStringRadix: radix)].
-	value:: self.
-	result:: ''.
-	[index:: 1 + (value \\ radix).
-	 result:: ('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' copyFrom: index to: index) , result.
-	 value:: value // radix.
-	 value > 0] whileTrue.
-	^result
-)
 public bitAnd: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 16 *)
 	^(ArgumentError value: other) signal
@@ -1739,6 +1729,12 @@ public startsWith: prefix <ByteArray | String> ^<Boolean> = (
 	^(ArgumentError value: prefix) signal
 )
 ) : (
+public cr ^ <Instance> = (
+  ^with: 13
+)
+public crlf ^ <Instance> = (
+  ^withAll: {13. 10}
+)
 public fromRune: rune = (
 	(* :bogus: *)
 	^self with: rune
@@ -1746,6 +1742,12 @@ public fromRune: rune = (
 public fromRunes: runes = (
 	(* :bogus: *)
 	^self withAll: runes
+)
+public lf ^ <Instance> = (
+  ^with: 10
+)
+public newline ^ <Instance> = (
+  ^lf
 )
 public with: byte <Integer> ^<String> = (
 	(* :literalmessage: primitive: 123 *)
@@ -2098,12 +2100,6 @@ private sort: source into: destination from: start to: stop by: lessOrEqual = (
 )
 public sortFrom: start to: stop by: lessOrEqual <[:E :E | Boolean]> = (
 	self sort: (self copyWithSize: stop - start + 1) into: self from: start to: stop by: lessOrEqual.
-)
-with: other <List[X def]> do: action <[:E :X]> = (
-	assert: [size = other size] message: 'Cannot jointly iterate collections of different size'.
-	1 to: size do: [:index <Integer>  |
-		action value: (at: index) value: (other at: index)
-		]
 )
 ) : (
 public new: size <Integer> ^<Array[E]> = (
