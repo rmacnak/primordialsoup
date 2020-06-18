@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns = (|
 private Collection = platform collections Collection.
 private List = platform collections List.
@@ -879,12 +879,16 @@ public isKindOfMethodMirror ^<Boolean> = (
 public name = (
 	^method selector
 )
-public selectors ^ <List[Symbol]> = (
-  ^method literals
-)
 public source ^<String> = (
 	(* :todo: Should this be async? *)
 	^method source
+)
+public selectors ^ <List[Symbol]> = (
+  | result <List[Symbol]> = List new. |
+  method literals do: [:s |
+	 s isKindOfString ifTrue: [result add: s]
+	].
+  ^result
 )
 ) : (
 )
