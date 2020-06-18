@@ -58,38 +58,9 @@ private compileExpression: expression <String> with: rawScope <Map[Symbol, Objec
 	^imethod compiledMethod metadata: imethod debugInfo
 )
 private computeDebugInfo = (
-	| rawMethod = reflectee method. metadata = rawMethod metadata. definingMixin |
-
-	(* Expression *)
-	metadata isKindOfDebugInfo ifTrue:
-		[^metadata].
-
-	(* Regular method *)
-	reflectee method isSynthetic ifFalse:
-		[^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo].
-
-	definingMixin:: rawMethod mixin.
-	definingMixin isMeta ifFalse:
-		[(* Nested class accessor *)
-		 definingMixin _nestedMixins do:
-			[:nestedMixin | nestedMixin _name = rawMethod selector ifTrue:
-				[^(compiler
-					compileClassHeader2: nestedMixin _headerSource
-					within: (mxn: definingMixin)) accessor debugInfo]].
-		 (* Instance initializer *)
-		 (isSubinitializerSelector: rawMethod selector) ifTrue:
-			[^(compiler
-				compileClassHeader2: rawMethod mixin _headerSource
-				within: (mxn: definingMixin _enclosingMixin)) initializers first debugInfo]].
-
-	(* Factory *)
-	definingMixin isMeta ifTrue:
-		[definingMixin _instanceMixin _primaryFactorySelector = rawMethod selector ifTrue:
-			[^(compiler
-				compileClassHeader2: definingMixin _instanceMixin _headerSource
-				within: (mxn: definingMixin _enclosingMixin)) factory debugInfo]].
-
-	halt.
+	| metadata = reflectee method metadata. |
+	metadata isKindOfDebugInfo ifTrue: [^metadata].
+	^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo
 )
 private computeDebugMapper = (
 	^computeDebugInfo mapperForContext: reflectee
@@ -133,43 +104,7 @@ public isUncontinuable ^<Boolean> = (
 	^reflectee isDead
 )
 public method ^<MethorMirror> = (
-	| rawMethod = reflectee method. definingMixin |
-
-	(* Regular method / expression *)
-	rawMethod isSynthetic ifFalse:
-		[^MethodMirror reflecting: rawMethod].
-
-	(* :todo: These tests are complicated, and might also be wrong if the mixin was changed after this activation. Consider saving the relevant InstanceMixin in the synthetic method's metadata slot in the original compile instead. *)
-
-	definingMixin:: rawMethod mixin.
-	definingMixin isMeta ifFalse:
-		[(* Nested class accessor *)
-		 definingMixin _nestedMixins do:
-			[:nestedMixin | nestedMixin _name = rawMethod selector ifTrue:
-				[^SyntheticMethodMirror
-					reflecting: rawMethod
-					name: rawMethod selector
-					source: nestedMixin _headerSource]].
-		 (* Instance initializer *)
-		 (isSubinitializerSelector: rawMethod selector) ifTrue:
-			[^SyntheticMethodMirror
-				reflecting: rawMethod
-				name: definingMixin _primaryFactorySelector
-				source: definingMixin _headerSource]].
-
-	(* Factory *)
-	definingMixin isMeta ifTrue:
-		[definingMixin _instanceMixin _primaryFactorySelector = rawMethod selector ifTrue:
-			[^SyntheticMethodMirror
-				reflecting: rawMethod
-				name: rawMethod selector
-				source: definingMixin _instanceMixin _headerSource]].
-
-	halt.
-)
-private mxn: mixin = (
-	nil = mixin ifTrue: [^nil].
-	^MixinMirror reflecting: mixin
+	^MethodMirror reflecting: reflectee method
 )
 public operands ^<List[ObjectMirror]> = (
 	(* todo: Should these simply appear in `slots` as slots with an empty or nil name? *)
@@ -215,13 +150,11 @@ public slots ^<List[LocalSlotMirror]> = (
 )
 public sourceRange ^<Interval> = (
 	(* The bci of an activation points to the bytecode that will be executed next. For the top activation, we want the source range to be this next action. For other activations, we want the source interval to be the pending message send. *)
-	| effectiveBCI <Integer> range <Interval> |
+	| effectiveBCI <Integer> |
 	effectiveBCI:: reflectee bci.
 	reflectee = thread suspendedActivation ifFalse:
 		[effectiveBCI:: Simulator bciBefore: effectiveBCI in: reflectee method].
-	range:: computeDebugInfo bciSourceMapping at: effectiveBCI ifAbsent: [^nil].
-	range start = 0 ifTrue: [^nil].
-	^range
+	^computeDebugInfo bciSourceMapping at: effectiveBCI ifAbsent: [nil]
 )
 public stepInto ^<ThreadMirror> = (
 	thread stepInto: reflectee.
@@ -642,6 +575,9 @@ public isKindOfClassDeclarationMirror ^<Boolean> = (
 public name = (
 	^mixin _name
 )
+public primaryFactorySelector ^ <Symbol> = (
+ ^mixin _primaryFactorySelector
+)
 public printString = (
 	^'ClassDeclarationMirror:',simpleName.
 )
@@ -683,8 +619,9 @@ private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> 
 	intermediate classSide checkNameConflictsForFactory: newIntermediate factoryName.
 )
 public classComment ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^commentFromHeader: source
+	(* :questionable: *)
+	nil = source ifTrue: [^nil].
+	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
 )
 public name = (
 	^intermediate simpleName
@@ -728,9 +665,12 @@ public name: newName <String> = (
 	intermediate initializers: newIR initializers.
 	intermediate instanceSide slots: newIR instanceSide slots.
 )
-public preamble ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^preambleFromHeader: source
+public preamble ^<Symbol> = (
+	(* :questionable: *)
+	| headerAst |
+	nil = source ifTrue: [^nil].
+	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
+	^source copyFrom: headerAst start to: headerAst superConstructorCall end
 )
 public source ^<String> = (
 	^intermediate headerSource
@@ -772,11 +712,20 @@ public = other ^<Boolean> = (
 	^other isKindOfClassHeaderMirror
 )
 public classComment ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^commentFromHeader: source
+	(* :questionable: *)
+	nil = source ifTrue: [^nil].
+	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
 )
 public hash ^<Integer> = (
 	^mixin hash bitXor: class hash
+)
+instanceInitializer ^ <_Method> = (
+(* get the mixin's _methods and find the instance initializer *)
+  | methods = mixin _methods. initSelector = 'initializer`', primaryFactorySelector. |
+  1 to: methods size do: [:i <Integer> |
+	(methods at: i) selector = initSelector ifTrue: [^methods at: i]
+	].
+  shouldNotHappen.
 )
 public isKindOfClassHeaderMirror ^<Boolean> = (
 	^true
@@ -784,9 +733,22 @@ public isKindOfClassHeaderMirror ^<Boolean> = (
 public name = (
 	^mixin _name
 )
-public preamble ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^preambleFromHeader: source
+public preamble ^<Symbol> = (
+	(* :questionable: *)
+	| headerAst |
+	nil = source ifTrue: [^nil].
+	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
+	^source copyFrom: headerAst start to: headerAst superConstructorCall end
+)
+public primaryFactorySelector ^ <Symbol> = (
+  ^mixin _primaryFactorySelector
+)
+public selectors ^ <List[Symbol]> = (
+  | result <List[Symbol]> = List new. |
+  instanceInitializer literals do: [:s |
+	 s isKindOfString ifTrue: [result add: (s copyFrom: (s lastIndexOf: '`') + 1 to: s size)]
+	].
+  ^result
 )
 public source ^<String> = (
 	^mixin _headerSource
@@ -917,6 +879,9 @@ public isKindOfMethodMirror ^<Boolean> = (
 public name = (
 	^method selector
 )
+public selectors ^ <List[Symbol]> = (
+  ^method literals
+)
 public source ^<String> = (
 	(* :todo: Should this be async? *)
 	^method source
@@ -995,7 +960,7 @@ public declaration ^<ClassDeclarationMirror> = (
 	^ClassDeclarationMirror reflecting:
 		(mixin isMeta ifTrue: [mixin _instanceMixin] ifFalse: [mixin])
 )
-public enclosingMixin ^<MixinMirror> = (
+public enclosingMixin ^<ClassDeclarationMirror> = (
 	| em = mixin _enclosingMixin. |
 	nil = em ifTrue: [^nil].
 	^MixinMirror reflecting: em
@@ -1027,6 +992,9 @@ public nestedClasses ^<Collection[ClassDeclarationMirror]> = (
 		[:nestedMixin <InstanceMixin> |
 		results add: (ClassDeclarationMirror reflecting: nestedMixin)].
 	^MirrorGroup wrapping: results
+)
+public primaryFactorySelector ^ <Symbol> = (
+  ^isMeta ifFalse: [mixin _primaryFactorySelector] ifTrue: [mixin _instanceMixin _primaryFactorySelector].
 )
 public slots ^<Collection[SlotDeclarationMirror]> = (
 	| results = List new. |
@@ -1780,12 +1748,6 @@ public isKindOfSlotDeclarationMirror ^<Boolean> = (
 )
 ) : (
 )
-private class SyntheticMethodMirror reflecting: m name: n source: s = MethodMirror reflecting: m (|
-	public name <Symbol> = n.
-	public source <String> = s.
-|) (
-) : (
-)
 private class Thread = (
 	|
 	public state ::= #initial.
@@ -1848,15 +1810,6 @@ private lookupNewMethod: activation = (
 	nil = newMethod ifTrue: [^oldMethod].
 	^newMethod
 )
-private prepareToResumeWithRoot: simulationRoot <Activation> = (
-	| top bottom <Activation> |
-	top:: suspendedActivation.
-	(findBottom: top) sender: simulationRoot.
-	state = #broken ifTrue: [top push: result]. (* Result of #signal *)
-	state: #running.
-	suspendedActivation: nil.
-	^top
-)
 public restart: activation withLookup: doLookup = (
 	| closure newMethod |
 	(hasSender: activation) ifFalse:
@@ -1894,10 +1847,20 @@ public resume = (
 )
 private resumeImpl = (
 	(* :literalmessage: primitive: 142 *)
-	| threadAtTemp1 jumpResult |
+	| threadAtTemp1 bottom top jumpResult |
+	nil = suspendedActivation ifTrue:
+		[^Error signal: 'Nothing to resume'].
+
 	threadAtTemp1:: self. (* Known to exception signaling machinery. *)
 
-	jumpResult:: jumpTo: (prepareToResumeWithRoot: currentActivation).
+	top:: suspendedActivation.
+	bottom:: findBottom: top.
+	bottom sender: currentActivation.
+
+	state: #running.
+	suspendedActivation: nil.
+
+	jumpResult:: jumpTo: top.
 
 	state = #broken ifTrue:
 		[result: jumpResult.
@@ -1966,9 +1929,14 @@ public stepThrough: activation = (
 	stepUntil: [:top | has: top reachedOrSkippedHome: goal].
 )
 private stepUntil: predicate <[:Activation | Boolean]> = (
-	| root simulator = Simulator new. |
+	| root bottom simulator = Simulator new. |
 	root:: createSimulationRoot.
-	simulator activation: (prepareToResumeWithRoot: root).
+	bottom:: findBottom: suspendedActivation.
+	bottom sender: root.
+	simulator activation: suspendedActivation.
+
+	state: #running.
+	suspendedActivation: nil.
 
 	root = simulator activation ifTrue: [halt].
 
@@ -2021,7 +1989,7 @@ public isBroken ^<Boolean> = (
 public isFulfilled ^<Boolean> = (
 	^thread state = #fulfilled
 )
-public isKindOfThreadMirror ^<Boolean> = (
+public isKindOfThreadMirror ^ <Boolean> = (
 	^true
 )
 public isRunning ^<Boolean> = (
@@ -2144,10 +2112,6 @@ private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
 	halt.
 )
-private commentFromHeader: source <String> ^<String> = (
-	nil = source ifTrue: [^nil].
-	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
-)
 private compiler = (
 	nil = compilerX ifTrue: [constructCompiler].
 	^compilerX
@@ -2242,12 +2206,6 @@ private numCopiedOf: closure <Closure> ^<Integer> = (
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
 	^parsingX
-)
-private preambleFromHeader: source <String> ^<String> = (
-	| headerAst |
-	nil = source ifTrue: [^nil].
-	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
-	^source copyFrom: headerAst start to: headerAst classComment preambleEnd
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)
