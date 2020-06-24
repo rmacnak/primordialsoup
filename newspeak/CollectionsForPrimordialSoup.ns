@@ -146,7 +146,7 @@ public size ^<Integer> = (
 public sort: lessOrEqual <[:E :E | Boolean]> = (
 	data sortFrom: 1 to: size_ by: lessOrEqual.
 )
-with: other <List[X def]> do: action <[:E :X]> = (
+public with: other <List[X def]> do: action <[:E :X]> = (
 	assert: [size = other size] message: 'Cannot jointly iterate collections of different size'.
 	1 to: size do: [:index <Integer>  |
 		action value: (at: index) value: (other at: index)
