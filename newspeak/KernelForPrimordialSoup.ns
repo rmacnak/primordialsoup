@@ -1579,6 +1579,13 @@ public sqrt ^<Float> = (
 public tan ^<Float> = (
 	^self asFloat tan
 )
+public to: stop <Number> ^ <Array[Number]> = (
+	| result = Array new: (stop - self + 1) abs. |
+	result keysAndValuesDo: [:i <integer> :e <Object> |
+	  result at: i put: self + i - 1.
+	  ].
+	^result
+)
 public to: stop <Number> by: step <Number> do: action <[:Number]> = (
 	| current ::= self. |
 	[current <= stop] whileTrue: [action value. current:: step + current].
@@ -2100,6 +2107,12 @@ private sort: source into: destination from: start to: stop by: lessOrEqual = (
 )
 public sortFrom: start to: stop by: lessOrEqual <[:E :E | Boolean]> = (
 	self sort: (self copyWithSize: stop - start + 1) into: self from: start to: stop by: lessOrEqual.
+)
+public with:  other <List[X def]> do: action <[:E :X]> = (
+  assert: [self size = other size] message: 'Cannot jointly iterate collections of different sizes'.
+  1 to: size do: [:index <Integer> |
+    action value: (at: index) value: (other at: index)
+  ]
 )
 ) : (
 public new: size <Integer> ^<Array[E]> = (
