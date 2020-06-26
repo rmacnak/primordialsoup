@@ -1,5 +1,5 @@
 Newspeak3
-'Root'
+'NS2PrimordialSoup'
 class KernelForPrimordialSoup = (|
 private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
@@ -1212,6 +1212,20 @@ public addFromFraction: left = (
 )
 public asInteger ^<Integer> = (
 	^self
+)
+public asStringRadix: radix <Integer> ^<String> = (
+	| value result index |
+	10 = radix ifTrue: [^self asString].
+	radix < 2 ifTrue: [^(ArgumentError value: radix) signal].
+	radix > 36 ifTrue: [^(ArgumentError value: radix) signal].
+	self < 0 ifTrue: [^'-', ((0 - self) asStringRadix: radix)].
+	value:: self.
+	result:: ''.
+	[index:: 1 + (value \\ radix).
+	 result:: ('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' copyFrom: index to: index) , result.
+	 value:: value // radix.
+	 value > 0] whileTrue.
+	^result
 )
 public bitAnd: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 16 *)
