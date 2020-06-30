@@ -173,7 +173,7 @@ public stepThrough ^<ThreadMirror> = (
 	^ThreadMirror reflecting: thread
 )
 ) : (
-public invokeSuspended: closure = (
+public invokeSuspended: closure <[]> ^ <ThreadMirror> = (
 	| simulator thread |
 	simulator:: Simulator new.
 	simulator activateClosure: closure arguments: {}.
@@ -184,6 +184,30 @@ public invokeSuspended: closure = (
 
 	^ThreadMirror reflecting: thread
 )
+)
+public class AtomicInstallWrapper = (
+) (
+public install: classDecls <List[IntermediateClassDeclaration]> into: ns <Map[Symbol, Object]> ^ <List[MixinMirror]> = (
+  classDecls do: [:ir <IntermediateClassDeclaration> |  
+	| entry = ns at: ir simpleName ifAbsent: []. |
+      nil = entry ifFalse: [
+	  entry isKindOfClass ifTrue: [setMixinsOf: ir from: (mixinOf: entry).]
+	  ] 
+  ].
+  ^(AtomicInstaller new install: classDecls) collect: [:im <InstanceMixin> | MixinMirror reflecting: im]
+)
+setMixinsOf: ir <IntermediateClassDeclaration> from: mxn <InstanceMixin> = (
+   | mixinMap = Map new. |
+   ir existingMixin: mxn.
+   mxn _nestedMixins do: [:nm <InstanceMixin> | mixinMap at: nm _name put: nm].
+   ir instanceSide nestedClasses do: [:ncir <IntermediateClassDeclaration > | 
+	     | entry = mixinMap at: ncir simpleName. |
+	     nil = entry ifFalse: [
+		  setMixinsOf: ncir from: entry
+		]
+	].
+)
+) : (
 )
 class AtomicInstaller = (|
 private updateMixinsAndClasses <IdentityMap[OldObject,NewObject]>
@@ -880,7 +904,11 @@ public name = (
 	^method selector
 )
 public selectors ^ <List[Symbol]> = (
-  ^method literals
+  | result <List[Symbol]> = List new. |
+  method literals do: [:s |
+        s isKindOfString ifTrue: [result add: s]
+       ].
+  ^result
 )
 public source ^<String> = (
 	(* :todo: Should this be async? *)
@@ -2112,7 +2140,7 @@ private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
 	halt.
 )
-private compiler = (
+public compiler = (
 	nil = compilerX ifTrue: [constructCompiler].
 	^compilerX
 )
@@ -2166,6 +2194,9 @@ private identityHashOf: a = (
 private initialBCIOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 73 *)
 	halt.
+)
+public installer ^ <AtomicInstallWrapper> = (
+  ^AtomicInstallWrapper new
 )
 private intermediates = (
 	nil = intermediatesX ifTrue: [constructCompiler].
