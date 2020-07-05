@@ -313,6 +313,33 @@ public testIsKindOfArray = (
 	deny: 'Array new' isKindOfArray.
 	deny: nil isKindOfArray.
 )
+public testArrayCopyFromTo = (
+	| array copy1 copy2  copy3|
+	array:: Array new: 7.
+	array at: 1 put: 10.
+	array at: 2 put: 20.
+	array at: 3 put: 30.
+	array at: 4 put: 40.
+	array at: 5 put: 50.
+	array at: 6 put: 60.
+	array at: 7 put: 70.
+    copy1:: array copyFrom: 2 to: 5.
+    assert: copy1 size equals: 4.
+	assert: (copy1 at: 1) equals: 20.
+	assert: (copy1 at: 2) equals: 30.
+	assert: (copy1 at: 3) equals: 40.
+	assert: (copy1 at: 4) equals: 50.
+    copy2:: array copyFrom: 7 to: 6.
+    assert: [copy2 isEmpty].
+    copy3:: array copyFrom: 7 to: 7. 
+    assert: copy3 size equals: 1.
+	assert: (copy3 at: 1) equals: 70.    
+	should: [array copyFrom: 0 to: 5] signal: Error.
+    should: [array copyFrom: 2 to: 8] signal: Error.
+    should: [array copyFrom: 0 to: 8] signal: Error.
+    should: [array copyFrom: 8 to: 5] signal: Error.
+    should: [array copyFrom: 7 to: 0] signal: Error.
+)
 ) : (
 TEST_CONTEXT = ()
 )

@@ -636,6 +636,33 @@ public testListWithAll = (
 	should: [List withAll: nil] signal: Error.
 	should: [List withAll: 122 asFloat] signal: Error.
 )
+public testListCopyFromTo = (
+	| list copy1 copy2  copy3|
+	list:: List new: 7.
+	list add: 10.
+	list add: 20.
+	list add: 30.
+	list add: 40.
+	list add: 50.
+	list add: 60.
+	list add: 70.
+    copy1:: list copyFrom: 2 to: 5.
+    assert: copy1 size equals: 4.
+	assert: (copy1 at: 1) equals: 20.
+	assert: (copy1 at: 2) equals: 30.
+	assert: (copy1 at: 3) equals: 40.
+	assert: (copy1 at: 4) equals: 50.
+    copy2:: list copyFrom: 7 to: 6.
+    assert: [copy2 isEmpty].
+    copy3:: list copyFrom: 7 to: 7. 
+    assert: copy3 size equals: 1.
+	assert: (copy3 at: 1) equals: 70.    
+	should: [list copyFrom: 0 to: 5] signal: Error.
+    should: [list copyFrom: 2 to: 8] signal: Error.
+    should: [list copyFrom: 0 to: 8] signal: Error.
+    should: [list copyFrom: 8 to: 5] signal: Error.
+    should: [list copyFrom: 7 to: 0] signal: Error.
+)
 ) : (
 TEST_CONTEXT = ()
 )
