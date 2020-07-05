@@ -817,14 +817,6 @@ public classComment ^<String> = (
 public hash ^<Integer> = (
 	^mixin hash bitXor: class hash
 )
-instanceInitializer ^ <_Method> = (
-(* get the mixin's _methods and find the instance initializer *)
-  | methods = mixin _methods. initSelector = 'initializer`', primaryFactorySelector. |
-  1 to: methods size do: [:i <Integer> |
-	(methods at: i) selector = initSelector ifTrue: [^methods at: i]
-	].
-  shouldNotHappen.
-)
 public isKindOfClassHeaderMirror ^<Boolean> = (
 	^true
 )
@@ -850,6 +842,14 @@ public selectors ^ <List[Symbol]> = (
 )
 public source ^<String> = (
 	^mixin _headerSource
+)
+instanceInitializer ^ <_Method> = (
+(* get the mixin's _methods and find the instance initializer *)
+  | methods = mixin _methods. |
+  1 to: methods size do: [:i <Integer> |
+    (isSubinitializerSelector: (methods at: i) selector) ifTrue: [^methods at: i].
+	].
+  shouldNotHappen.
 )
 ) : (
 )
