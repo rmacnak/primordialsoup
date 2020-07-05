@@ -7,6 +7,13 @@ class CollectionsForPrimordialSoup usingInternalKernel: ik = (
 	|
 ) (
 public class List new: capacity <Integer> = Collection (
+(* An ordered collection of elements.
+
+Indexing (#at: and #at:put:) happens in constant time. Insertion (#add:, #addLast) and removal (#removeLast:) at the end run in
+amortized constant time. Insertion (#addFirst:) and removal (#removeFirst) at the beginning run in linear time. As such, List can be
+used as an efficient stack, but an inefficient queue.
+
+nil is a valid element. *)
 	|
 	protected size_ ::= 0.
 	protected data ::= Array new: capacity.
@@ -54,12 +61,6 @@ public at: index <Integer> ^<E> = (
 public at: index <Integer> put: value <E> ^<E> = (
 	index > size_ ifTrue: [^(ArgumentError value: index) signal].
 	^data at: index put: value
-)
-public copyFrom: start <integer> to: stop <Integer> ^ <List[E]> = (
-  | cp <List[E]> |
-  cp:: List new: (stop - start) + 1.
-  1 to: (stop - start) + 1 do: [:i <Integer> | cp add: (self at: i + start -1)].
-  ^cp
 )
 public do: action <[:E]> = (
 	1 to: size_ do: [:index | action value: (data at: index)].
@@ -139,6 +140,18 @@ public size ^<Integer> = (
 public sort: lessOrEqual <[:E :E | Boolean]> = (
 	data sortFrom: 1 to: size_ by: lessOrEqual.
 )
+public with: other <List[X def]> do: action <[:E :X]> = (
+	assert: [size = other size] message: 'Cannot jointly iterate collections of different size'.
+	1 to: size do: [:index <Integer>  |
+		action value: (at: index) value: (other at: index)
+		]
+)
+public copyFrom: start <Integer> to: stop <Integer> ^ <List[E]> = (
+  | cp <List[E]> contents = data. |
+  cp:: List new: (stop - start) + 1.
+  1 to: (stop - start) + 1 do: [:i <Integer> | cp add: (contents at: i + start -1)].
+  ^cp
+)
 ) : (
 public new ^<List[E]> = (
 	^self new: 3
@@ -148,6 +161,14 @@ public withAll: collection <Collection[E]> ^<List[E]> = (
 )
 )
 public class Map new: capacity <Integer> = Collection (
+(* A collection associating keys to values.
+
+Lookup (#at:) runs in constant time, and insertion (#at:put:) and removal (#removeKey:) run in amortized constant time, 
+provided the #hash of keys is well distributed.
+
+The order of iteration of keys is unspecified except for the following constraints. The iteration order only changes when the map is modified (insertion or removal). The iteration order of values and associations is consistent with the iteration order of keys.
+
+nil is a valid key and a valid value. *)
 	|
 	protected size_ ::= 0.
 	protected table ::= Array new: (capacityFor: capacity).
@@ -329,6 +350,14 @@ public printString = (
 ) : (
 )
 public class Set new: capacity <Integer> = Collection (
+(* A collection elements without duplicates.
+
+Lookup (#includes:) runs in constant time, and insertion (#add:) and removal (#remove:) run in amortized constant time, 
+provided the #hash of elements is well distributed.
+
+The order of iteration of elements is unspecified except the iteration order only changes when the set is modified (insertion or removal).
+
+nil is a valid element. *)
 	|
 	protected size_ ::= 0.
 	protected table ::= Array new: (capacityFor: capacity).

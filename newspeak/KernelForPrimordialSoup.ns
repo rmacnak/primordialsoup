@@ -4,6 +4,7 @@ class KernelForPrimordialSoup = (|
 private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
+ <[:e :signaler]>
 |) (
 public class Activation _cannotInstantiate = (
 (* A reified activation record.
@@ -333,6 +334,9 @@ protected basicNew = (
 	(* :literalmessage: primitive: 34 *)
 	halt.
 )
+public isKindOfClass ^ <Boolean> = (
+  ^true
+)
 public name ^<String> = (
 	^self nameS
 )
@@ -493,15 +497,6 @@ public do: action <[:E]> separatedBy: betweenAction <[]> = (
 public flatMap: map <[:E | R def]> ^<Collection[R]> = (
 	^self flatten collect: map
 )
-public flatten ^ <Array> = (
-	| totalSize <Integer> ::= 0. c <Array> index <Integer> ::= 1. |
-	self do: [:e <E> | totalSize:: totalSize + (e isKindOfCollection ifTrue: [e size] ifFalse: [1])].
-	c:: Array new: totalSize.
-	do: [:e <E> | e isKindOfCollection
-					ifTrue: [e do: [:x | c at: index put: x. index:: index + 1]]
-					ifFalse: [c at: index put: e. index:: index + 1]
-		].
-)
 public includes: object <Object> ^<Boolean> = (
 	self do: [:element <E> | element = object ifTrue: [^true]].
 	^false
@@ -556,6 +551,16 @@ public size ^<Integer> = (
 	self do: [:ignore | count:: count + 1].
 	^count
 )
+public flatten ^ <Array> = (
+	| totalSize <Integer> ::= 0. c <Array> index <Integer> ::= 1. |
+	do: [:e <E> | totalSize:: totalSize + (e isKindOfCollection ifTrue: [e size] ifFalse: [1])].
+	c:: Array new: totalSize.
+	do: [:e <E> | e isKindOfCollection
+					ifTrue: [e do: [:x | c at: index put: x. index:: index + 1]]
+					ifFalse: [c at: index put: e. index:: index + 1]
+		].
+	^c
+)
 ) : (
 )
 public class Ephemeron = (|
@@ -571,23 +576,6 @@ private signalActivation <Activation>
 private handlerActivation <Activation>
 public messageText (* squeak compatibility for Minitest *)
 |) (
-private invokeNextHandler = (
-	| activation <Activation> |
-
-	activation:: handlerActivation sender.
-	[nil = activation] whileFalse:
-		[activation method primitive = 142 ifTrue:
-			[returnToSimulationRoot: activation.
-			 halt].
-		 activation method primitive = 116 ifTrue:
-			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
-				[(activation tempAt: 3) ifTrue:
-					[^invokeOnDoHandler: activation]]].
-		 activation:: activation sender].
-
-	messageLoop unhandledException: self from: signalActivation sender.
-	halt.
-)
 private invokeOnDoHandler: handler <Activation> = (
 	| handlerResult |
 	handler tempAt: 3 put: false. (* handlerActive:: false. *)
@@ -662,6 +650,22 @@ public signal: message <String> = (
 	(* squeak compatibility for Minitest *)
 	messageText:: message.
 	^self signal
+)
+private invokeNextHandler = (
+	| activation <Activation> |
+
+	activation:: handlerActivation sender.
+	[nil = activation] whileFalse:
+		[activation method primitive = 142 ifTrue:
+			[returnToSimulationRoot: activation.
+			 halt].
+		 activation method primitive = 116 ifTrue:
+			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
+				[(activation tempAt: 3) ifTrue:
+					[^invokeOnDoHandler: activation]]].
+		 activation:: activation sender].
+	messageLoop unhandledException: self from: signalActivation sender.
+	halt.
 )
 ) : (
 public signal: message <String> = (
@@ -1739,6 +1743,12 @@ public startsWith: prefix <ByteArray | String> ^<Boolean> = (
 	^(ArgumentError value: prefix) signal
 )
 ) : (
+public cr ^ <Instance> = (
+  ^with: 13
+)
+public crlf ^ <Instance> = (
+  ^withAll: {13. 10}
+)
 public fromRune: rune = (
 	(* :bogus: *)
 	^self with: rune
@@ -1746,6 +1756,12 @@ public fromRune: rune = (
 public fromRunes: runes = (
 	(* :bogus: *)
 	^self withAll: runes
+)
+public lf ^ <Instance> = (
+  ^with: 10
+)
+public newline ^ <Instance> = (
+  ^lf
 )
 public with: byte <Integer> ^<String> = (
 	(* :literalmessage: primitive: 123 *)
