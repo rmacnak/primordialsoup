@@ -162,8 +162,7 @@ public method ^<MethorMirror> = (
 				reflecting: rawMethod
 				name: rawMethod selector
 				source: definingMixin _instanceMixin _headerSource]].
-	halt.
-)
+	halt.)
 private mxn: mixin = (
 	nil = mixin ifTrue: [^nil].
 	^MixinMirror reflecting: mixin
@@ -248,6 +247,17 @@ public invokeSuspended: closure <[]> ^ <ThreadMirror> = (
 
 	^ThreadMirror reflecting: thread
 )
+public threadForBrokenActivation: a <Activation> reason: e <Exception> ^ <ThreadMirror> = (
+  | thread = Thread new. |
+  'computing thread' out.
+  thread state: #broken.
+  'computing thread 2' out.
+  thread result: e.
+  'computing thread 3' out.
+  thread suspendedActivation: a.
+  'computing thread 4' out.
+  ^ThreadMirror reflecting: thread
+)
 )
 public class AtomicInstallWrapper = (
 ) (
@@ -265,7 +275,7 @@ setMixinsOf: ir <IntermediateClassDeclaration> from: mxn <InstanceMixin> = (
    ir existingMixin: mxn.
    mxn _nestedMixins do: [:nm <InstanceMixin> | mixinMap at: nm _name put: nm].
    ir instanceSide nestedClasses do: [:ncir <IntermediateClassDeclaration > | 
-	     | entry = mixinMap at: ncir simpleName. |
+	     | entry = mixinMap at: ncir simpleName ifAbsent: []. |
 	     nil = entry ifFalse: [
 		  setMixinsOf: ncir from: entry
 		]
@@ -807,14 +817,6 @@ public classComment ^<String> = (
 public hash ^<Integer> = (
 	^mixin hash bitXor: class hash
 )
-instanceInitializer ^ <_Method> = (
-(* get the mixin's _methods and find the instance initializer *)
-  | methods = mixin _methods. initSelector = 'initializer`', primaryFactorySelector. |
-  1 to: methods size do: [:i <Integer> |
-	(methods at: i) selector = initSelector ifTrue: [^methods at: i]
-	].
-  shouldNotHappen.
-)
 public isKindOfClassHeaderMirror ^<Boolean> = (
 	^true
 )
@@ -840,6 +842,14 @@ public selectors ^ <List[Symbol]> = (
 )
 public source ^<String> = (
 	^mixin _headerSource
+)
+instanceInitializer ^ <_Method> = (
+(* get the mixin's _methods and find the instance initializer *)
+  | methods = mixin _methods. |
+  1 to: methods size do: [:i <Integer> |
+    (isSubinitializerSelector: (methods at: i) selector) ifTrue: [^methods at: i].
+	].
+  shouldNotHappen.
 )
 ) : (
 )
@@ -968,7 +978,7 @@ public name = (
 	^method selector
 )
 public selectors ^ <List[Symbol]> = (
-  | result <List[Symbol]> = List new. |
+ | result <List[Symbol]> = List new. |
   method literals do: [:s |
         s isKindOfString ifTrue: [result add: s]
        ].
