@@ -1,5 +1,5 @@
 Newspeak3
-'Newspeak'
+'NS2PrimordialSoup'
 class NewspeakPredictiveParsing usingPlatform: platform asts: asts = (
 (* A predictive LL(3) parser for Newspeak.
 
@@ -28,12 +28,12 @@ Todo:
 	private CodeBodyAST = asts CodeBodyAST.
 	private ImmutableSlotDefAST = asts ImmutableSlotDefAST.
 	private InitializerAST = asts InitializerAST.
-	private ParameterizedTypeAST = asts ParameterizedTypeAST.
 	private MessageAST = asts MessageAST.
 	private MessagePatternAST = asts MessagePatternAST.
 	private MethodAST = asts MethodAST.
 	private MixinApplicationClassAST = asts MixinApplicationClassAST.
 	private MutableSlotDefAST = asts MutableSlotDefAST.
+	private ParameterizedTypeAST = asts ParameterizedTypeAST.	
 	private UnresolvedSendAST = asts UnresolvedSendAST.
 	private NumberAST = asts NumberAST.
 	private ReturnStatAST = asts ReturnStatAST.
@@ -84,16 +84,17 @@ defaultClassSide = (
 		methods: {}
 )
 defaultConstructorPattern = (
-	^MessagePatternAST new selector: #new parameters: {}
+	^MessagePatternAST new selector: #new parameters: {}; start: 1; end: 1
 )
 defaultSuperclassClause = (
 	^UnresolvedSendAST new
 		receiver:
 			(UnresolvedSendAST new
 				receiver: implicitReceiver;
-				message: (MessageAST new send: #Object with: {}));
+				message: (MessageAST new send: #Object with: {}; start: 1; end: 1);
+				start: 1; end: 1);
 		message:
-			(MessageAST new send: #new with: {})
+			(MessageAST new send: #new with: {}; start: 1; end: 1); start: 1; end: 1
 )
 expected: expectedKind = (
 	^(ParseError message: 'expected ' , expectedKind position: tokenStart) signal
@@ -155,6 +156,10 @@ public parseBinaryMessagePattern = (
 		returnType: returnType;
 		start: patternStart; end: parameter end (* bogus *)
 )
+public parseBlockReturnType = (
+       (* blockReturnType = typeExpr *)
+       ^parseTypeExpr
+)
 public parseCascadedMessage = (
 	tokenKind = #';' ifFalse: [expected: 'semicolon'].
 	advanceToken.
@@ -208,7 +213,7 @@ public parseClassHeader = (
 		superclassClause opt, lparen, classComment opt,
 		slotDecls opt,  initExprs, rparen). *)
 
-	| declStart am name constructor superclassCall comment preambleEnd tempsBody inits declEnd |
+	| declStart am name constructor superclassCall comment tempsBody inits declEnd x y |
 	declStart:: tokenStart.
 	am:: parseAccessModifierOpt.
 
@@ -217,19 +222,18 @@ public parseClassHeader = (
 
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
 	name:: tokenValue.
-	preambleEnd:: tokenEnd.
 	advanceToken.
 
 	(* Cheat: skipping binary message pattern. *)
 	(tokenKind = #identifier or: [tokenKind = #keyword])
-		ifTrue: [constructor:: parseMessagePattern. preambleEnd:: constructor end]
+		ifTrue: [constructor:: parseMessagePattern]
 		ifFalse: [constructor:: defaultConstructorPattern].
 
 	(tokenKind = #binary and: [tokenValue = '=']) ifFalse: [expected: '='].
 	advanceToken.
 
 	tokenKind = #identifier
-		ifTrue: [superclassCall:: parseSuperclassClause. preambleEnd:: superclassCall end]
+		ifTrue: [superclassCall:: parseSuperclassClause]
 		ifFalse: [superclassCall:: defaultSuperclassClause].
 
 	tokenKind = #'(' ifFalse: [expected: '('].
@@ -254,7 +258,7 @@ public parseClassHeader = (
 		isSeq: tempsBody isSeq;
 		initExprs: inits;
 		category: 'Unclassified';
-		classComment: ((Token value: comment) preambleEnd: preambleEnd);
+		classComment: (Token value: comment);
 		inheritanceChain: {superclassCall};
 		accessModifier: am;
 		start: declStart; end: declEnd
@@ -634,6 +638,19 @@ public parseParenthesizedExpression = (
 	advanceToken.
 	^result
 )
+public parseParenthesizedTypeExpression = (
+       (* parenthesizedTypeExpression = lparen, typeExpr, rparen *)
+	| start result |
+	tokenKind = #'(' ifFalse: [expected: '('].
+	start:: tokenStart.
+	advanceToken.
+	result:: parseTypeExpr.
+	tokenKind = #')' ifFalse: [expected: ')'].
+	result start: start.
+	result end: tokenEnd.
+	advanceToken.
+	^result
+)
 public parsePrimary = (
 	(* primary = slotName | literal | block | parenthesizedExpression. *)
 	| send |
@@ -751,7 +768,7 @@ public parseSuperclassClause = (
 		outerReceiver = (tokenFromSymbol: #outer), identifier.
 		superclassPrefix = outerReceiver | (tokenFromSymbol: #self) | (tokenFromSymbol: #super).
 	*)
-	| clauseStart sc clauseEnd message |
+	| clauseStart sc clauseEnd |
 
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
 	clauseStart:: tokenStart.
@@ -783,19 +800,16 @@ public parseSuperclassClause = (
 	clauseEnd:: tokenEnd.
 	advanceToken.
 
-	message:: parseSuperclassMessage.
-	0 = message end ifFalse: [clauseEnd:: message end].
-
 	^UnresolvedSendAST new
 		receiver: sc;
-		message: message;
+		message: parseSuperclassMessage;
 		start: clauseStart; end: clauseEnd
 )
 public parseSuperclassMessage = (
 	tokenKind = #identifier ifTrue: [^parseUnaryMessage].
 	tokenKind = #binary ifTrue: [^parseBinaryMessage].
 	tokenKind = #keyword ifTrue: [^parseKeywordMessage].
-	^MessageAST new send: #new with: {}
+	^MessageAST new send: #new with: {}; start: 1; end: 1
 )
 public parseTemporariesOpt = (
 	| temps = List new. body |
@@ -839,21 +853,6 @@ public parseTuple = (
 	advanceToken. (* Consume } *)
 
 	^TupleAST new elements: elements; start: tupleStart; end: tupleEnd
-)
-public parseType = (
-	(* :todo: We're just diet parsing here. Do real parsing. *)
-
-	(tokenKind = #binary and: [tokenValue = '<']) ifFalse:
-		[expected: '<'].
-	advanceToken.
-
-	[tokenKind = #end] whileFalse:
-		[
-		(tokenKind = #binary and: [tokenValue = '>']) ifTrue:
-			[advanceToken. ^nil].
-		advanceToken].
-
-	expected: '>'
 )
 public parseUnaryExpression = (
 	(* unaryExpression = primary, unaryMsg star. *)
@@ -980,6 +979,146 @@ unaryImplicitReceiverSend = (
 	                	start: tokenStart; end: tokenEnd]]].
 
 	^VariableAST new name: selector; start: tokenStart; end: tokenEnd.
+)
+public parseTypeTerm = (
+       (* typeTerm = typeFactor, identifier star *)
+       | tfactor = parseTypeFactor. operators = List new. end |
+       end:: tfactor end.
+       [tokenKind = #identifier] whileTrue: [
+         operators add: tokenValue.
+	 end:: tokenEnd.
+	 advanceToken.
+       ].
+       ^operators inject: tfactor into: [:te <TypeExpression> :op |
+	   UnaryTypeOpAST new operand: te; operator: op;
+	                     start: te start; end: end
+	   ]
+)
+public parseTupleType = (
+       (* tupleType = lcurly, (typeExpr starSeparatedBy: dot), rcurly *)
+       | tupleTypeStart  tupleTypeEnd elements = List new. |
+       tokenKind = #'{' ifFalse: [expected: '{'].
+	tupleTypeStart:: tokenStart.
+	advanceToken.
+	[tokenKind = #'}'] whileFalse:
+		[elements add: parseTypeExpr.
+		 tokenKind = #'.' ifTrue: [advanceToken]].
+
+	tupleTypeEnd:: tokenEnd.
+	advanceToken. (* Consume } *)
+	^ParameterizedTypeAST new generic: (TypeIdAST new name: #Tuple);
+	                                     arguments: elements;
+	                                     start: tupleTypeStart;
+	                                     end: tupleTypeEnd
+)
+public parseTypeFactor = (
+       (* typeFactor = typePrimary | blockType | tupleType | parenthesizedTypeExpression *)
+       tokenKind = #identifier ifTrue: [^parseTypePrimary].
+       tokenKind = #'[' ifTrue: [^parseBlockType].
+       tokenKind = #'{' ifTrue: [^parseTupleType].
+       tokenKind = #'(' ifTrue: [^parseParenthesizedTypeExpression].
+       expected: 'identifier or [ or { or ('.  
+)
+public parseTypeExpr = (
+       (* typeExpr = typeTerm, ((vbar | semicolon | slash), typeExpr) *)
+       | tterm = parseTypeTerm. texp op |
+       ((tokenKind = #binary and: [tokenValue = '|']) or: [tokenKind = #';' or: [tokenKind = #'/']]) 
+          ifTrue: [
+	       op = tokenValue.
+	       advanceToken.
+	       texp:: parseTypeExpr.
+	      ^BinaryTypeOpAST new leftOperand: tterm;
+	                         operator: op;
+	                         rightOperand: texp;
+	                         start: tterm start;
+	                         end: texp end
+	     ].
+	  ^tterm
+)
+public parseBlockArgType = (
+       (* blockArgType = colon, typeTerm *)
+       tokenKind = #':' ifTrue: [
+         advanceToken.
+	    ^parseTypeTerm
+       ].
+       expected: ':'
+)
+public parseTypeArguments = (
+       (* typeArguments = lbracket, (typeExpr plusSeparatedBy: comma), rbracket *)
+       | tas = List new. |
+       tokenKind = #'[' ifFalse: [expected: '['].
+       advanceToken.
+       tas add: parseTypeExpr.
+       [tokenKind = #binary and: [tokenValue = ',']] whileTrue: [
+	     advanceToken.
+         tas add: parseTypeExpr.
+       ].
+       ^tas
+)
+public parseNonEmptyBlockArgList = (
+       (* nonEmptyBlockArgList = blockArgType plus, (vbar, blockReturnType) opt *)
+       | bargs = List new. |
+       bargs add: parseBlockArgType.
+       [tokenKind = #':'] whileTrue: [
+         bargs add: parseBlockArgType.
+       ].
+       (tokenKind = #binary and: [tokenValue = '|']) ifTrue: [
+         advanceToken.
+	     bargs add: parseBlockReturnType.
+       ] ifFalse: [bargs add: (TypeIdAST new name: #Object)].
+       ^bargs
+)
+public parseTypePrimary = (
+       (* typePrimary = identifier, typeArguments opt *)
+       | tid  tas start end |
+       tokenKind = #identifier ifFalse: [expected: 'identifier'].
+       tid:: TypeIdAST new name: tokenValue; start: tokenStart; end: tokenEnd.
+       start:: tokenStart.
+       advanceToken.
+       tokenKind = #'[' ifFalse: [^tid].
+       tas:: parseTypeArguments.
+       tokenKind = #']' ifFalse: [expected: ']'].
+       end: tokenEnd.
+       advanceToken.
+       ^ParameterizedTypeAST new generic: tid;
+	                         arguments: tas;
+	                         start: start;
+	                         end: end
+)
+public parseType = (
+    | type |
+
+    (tokenKind = #binary and: [tokenValue = '<']) ifFalse: [expected: '<'].
+    advanceToken.
+    type:: parseTypeExpr.
+    (tokenKind = #binary and: [tokenValue = '>']) ifTrue: [
+          advanceToken. 
+          ^type
+        ].
+    expected: '>'
+)
+public parseBlockType = (
+       (* blockType = lbracket, (nonEmptyBlockArgList | blockReturnType opt), rbracket *)
+       | blockStart blockEnd blockArgs ::= List new. blockReturn |
+      tokenKind = #'[' ifFalse: [expected: '['].
+      blockStart:: tokenStart.
+      advanceToken.
+      tokenKind = #':'
+        ifTrue: [blockArgs:: parseNonEmptyBlockArgList. blockReturn:: blockArgs last]
+        ifFalse: [
+	  (tokenKind = #identifier or: [
+	  tokenKind = #'[' or: [
+	  tokenKind = #'{' or: [
+	  tokenKind = #'(']]]) ifTrue: [
+	    blockReturn:: parseBlockReturnType
+	    ]
+	  ]. 
+      tokenKind = #']' ifFalse: [expected: ']'].
+      blockEnd:: tokenEnd.
+      advanceToken.
+      blockArgs isEmpty ifFalse: [blockArgs removeLast].
+      ^(BlockTypeAST formals: blockArgs  return: blockReturn)
+        start: blockStart; end: blockEnd
 )
 ) : (
 )
@@ -1199,7 +1338,7 @@ private scanMaybeExponent ^<Integer> = (
 			 position:: position + 1].
 
 	neg ifTrue: [exp:: exp * -1].
-	^10 raisedTo: exp
+	^10 ** exp
 )
 private scanMaybeFraction: radix <Integer> ^<Fraction> = (
 	| numerator denominator byte digit |
@@ -1363,7 +1502,6 @@ class Token value: v = (
 public value = v.
 public start
 public end
-public preambleEnd
 |) (
 ) : (
 )
