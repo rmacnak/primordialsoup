@@ -568,16 +568,6 @@ public enclosingClass ^<ClassDeclarationBuilder> = (
 	enclosingBuilder instanceSide. (* Populate for incremental scope building. *)
 	^enclosingBuilder
 )
-public install ^<ClassDeclarationMirror> = (
-	| installer outermost |
-	installer:: AtomicInstaller new.
-	outermost:: intermediate.
-	[nil = outermost enclosingClass] whileFalse:
-		[outermost:: outermost enclosingClass declaration].
-	installer install: {outermost}.
-	nil = intermediate existingMixin ifTrue: [halt].
-	^ClassDeclarationMirror reflecting: intermediate existingMixin
-)
 public instanceSide ^<MixinBuilder> = (
 	| ir builder |
 	ir:: intermediate instanceSide.
@@ -606,6 +596,24 @@ private to: sb writeClassDeclaration: declIR = (
 	declIR classSide methods do:
 		[:method | sb writeln: method source].
 	sb writeln: ')'.
+)
+ensureIRForToplevel = (
+(* The enclosing IR is computed lazily. Proior to installation, we need to be sure it exists all the way to the top level *)
+	| outermost |
+	outermost:: self.
+	[nil = outermost enclosingClass] whileFalse:
+		[outermost:: outermost enclosingClass].
+)
+public install ^<ClassDeclarationMirror> = (
+	| installer outermost |
+	installer:: AtomicInstaller new.
+    ensureIRForToplevel.
+	outermost:: intermediate.
+	[nil = outermost enclosingClass] whileFalse:
+		[outermost:: outermost enclosingClass declaration].
+	installer install: {outermost}.
+	nil = intermediate existingMixin ifTrue: [halt].
+	^ClassDeclarationMirror reflecting: intermediate existingMixin
 )
 ) : (
 public fromSource: source <String> ^<ClassDeclarationBuilder> = (
