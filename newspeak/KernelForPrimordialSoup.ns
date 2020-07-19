@@ -2034,6 +2034,20 @@ public collect: transform <[:E | F]> ^<Array[F]> = (
 		results at: index put: (transform value: (self at: index))].
 	^results
 )
+public select: predicate <[:E | Boolean]> ^<List[E]>  = (
+  | count ::= 0. index ::= 0. ta result |
+  ta:: collect: [:e | (predicate value: e) ifTrue: [count:: count + 1. e]].
+  result:: _Array new: count.
+  ta do: [:e | nil = e ifFalse: [ index:: index + 1. result at: index put: e.] ].
+  ^result
+)
+public reject: predicate <[:E | Boolean]> ^<List[E]>  = (
+  | count ::= 0. index ::= 0. ta result |
+  ta:: collect: [:e | (predicate value: e) ifFalse: [count:: count + 1. e]].
+  result:: _Array new: count.
+  ta do: [:e | nil = e ifFalse: [ index:: index + 1. result at: index put: e.] ].
+  ^result
+)
 public copy ^<Array[E]> = (
 	| newArray = Array new: self size. |
 	newArray replaceFrom: 1 to: self size with: self startingAt: 1.
