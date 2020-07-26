@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class KernelForPrimordialSoup = (|
 private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
@@ -2141,6 +2141,11 @@ public with:  other <List[X def]> do: action <[:E :X]> = (
   1 to: size do: [:index <Integer> |
     action value: (at: index) value: (other at: index)
   ]
+)
+public reverse ^ <Array[T]> = (
+  | reversed <Array[t]> = _Array new: size. |
+  size to: 1 by: -1 do: [:i | reversed at: size - i + 1put: (at: i)].
+  ^reversed
 )
 ) : (
 public new: size <Integer> ^<Array[E]> = (
