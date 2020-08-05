@@ -4,7 +4,6 @@ class KernelForPrimordialSoup = (|
 private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
- <[:e :signaler]>
 |) (
 public class Activation _cannotInstantiate = (
 (* A reified activation record.
@@ -497,6 +496,16 @@ public do: action <[:E]> separatedBy: betweenAction <[]> = (
 public flatMap: map <[:E | R def]> ^<Collection[R]> = (
 	^self flatten collect: map
 )
+public flatten ^ <Array> = (
+	| totalSize <Integer> ::= 0. c <Array> index <Integer> ::= 1. |
+	self do: [:e <E> | totalSize:: totalSize + (e isKindOfCollection ifTrue: [e size] ifFalse: [1])].
+	c:: Array new: totalSize.
+	do: [:e <E> | e isKindOfCollection
+					ifTrue: [e do: [:x | c at: index put: x. index:: index + 1]]
+					ifFalse: [c at: index put: e. index:: index + 1]
+		].
+	^c
+)
 public includes: object <Object> ^<Boolean> = (
 	self do: [:element <E> | element = object ifTrue: [^true]].
 	^false
@@ -551,16 +560,6 @@ public size ^<Integer> = (
 	self do: [:ignore | count:: count + 1].
 	^count
 )
-public flatten ^ <Array> = (
-	| totalSize <Integer> ::= 0. c <Array> index <Integer> ::= 1. |
-	do: [:e <E> | totalSize:: totalSize + (e isKindOfCollection ifTrue: [e size] ifFalse: [1])].
-	c:: Array new: totalSize.
-	do: [:e <E> | e isKindOfCollection
-					ifTrue: [e do: [:x | c at: index put: x. index:: index + 1]]
-					ifFalse: [c at: index put: e. index:: index + 1]
-		].
-	^c
-)
 ) : (
 )
 public class Ephemeron = (|
@@ -576,6 +575,23 @@ private signalActivation <Activation>
 private handlerActivation <Activation>
 public messageText (* squeak compatibility for Minitest *)
 |) (
+private invokeNextHandler = (
+	| activation <Activation> |
+
+	activation:: handlerActivation sender.
+	[nil = activation] whileFalse:
+		[activation method primitive = 142 ifTrue:
+			[returnToSimulationRoot: activation.
+			 halt].
+		 activation method primitive = 116 ifTrue:
+			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
+				[(activation tempAt: 3) ifTrue:
+					[^invokeOnDoHandler: activation]]].
+		 activation:: activation sender].
+
+	messageLoop unhandledException: self from: signalActivation sender.
+	halt.
+)
 private invokeOnDoHandler: handler <Activation> = (
 	| handlerResult |
 	handler tempAt: 3 put: false. (* handlerActive:: false. *)
@@ -650,22 +666,6 @@ public signal: message <String> = (
 	(* squeak compatibility for Minitest *)
 	messageText:: message.
 	^self signal
-)
-private invokeNextHandler = (
-	| activation <Activation> |
-
-	activation:: handlerActivation sender.
-	[nil = activation] whileFalse:
-		[activation method primitive = 142 ifTrue:
-			[returnToSimulationRoot: activation.
-			 halt].
-		 activation method primitive = 116 ifTrue:
-			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
-				[(activation tempAt: 3) ifTrue:
-					[^invokeOnDoHandler: activation]]].
-		 activation:: activation sender].
-	messageLoop unhandledException: self from: signalActivation sender.
-	halt.
 )
 ) : (
 public signal: message <String> = (
@@ -794,6 +794,13 @@ public subtractFromFraction: left = (
 public tan ^<Float> = (
 	(* :literalmessage: primitive: 25 *)
 	halt.
+)
+private pow: exponent <Float> ^<Float> = (
+	(* :literalmessage: primitive: 131 *)
+	^(ArgumentError value: exponent) signal
+)
+public ** exponent <Number> ^<Float> = (
+	^self pow: exponent asFloat
 )
 ) : (
 public parse: string <String> ^<Float> = (
@@ -1576,9 +1583,6 @@ public quo: other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 7 *)
 	^(ArgumentError value: other) signal
 )
-public raisedTo: other = (
-	halt.
-)
 public rem: other <Number> ^<Number> = (
 	(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
 	(* :literalmessage: primitive: 8 *)
@@ -1593,6 +1597,13 @@ public sqrt ^<Float> = (
 public tan ^<Float> = (
 	^self asFloat tan
 )
+public to: stop <Number> ^ <Array[Number]> = (
+	| result = Array new: (stop - self + 1) abs. |
+	result keysAndValuesDo: [:i <integer> :e <Object> |
+	  result at: i put: self + i - 1.
+	  ].
+	^result
+)
 public to: stop <Number> by: step <Number> do: action <[:Number]> = (
 	| current ::= self. |
 	[current <= stop] whileTrue: [action value. current:: step + current].
@@ -1604,6 +1615,22 @@ public to: stop <Number> do: action <[:Number]> = (
 	[current <= stop] whileTrue: [action value. current:: 1 + current].
 
 	^nil (* To match the inlined version *)
+)
+public ** exponent <Number> ^<Number> = (
+	exponent isKindOfInteger ifTrue: [^self raisedToInteger: exponent].
+	^self asFloat ** exponent
+)
+private raisedToInteger: exponent <Integer> ^<Integer | Fraction> = (
+	| result base e |
+	exponent < 0 ifTrue: [^1 / (self raisedToInteger: 0 - exponent)].
+	result:: 1.
+	base:: self.
+	e:: exponent.
+	[e > 0] whileTrue:
+		[(e bitAnd: 1) = 0 ifFalse: [result:: result * base].
+		 e:: e >> 1.
+		 base:: base * base].
+	^result
 )
 ) : (
 )
@@ -2128,6 +2155,17 @@ private sort: source into: destination from: start to: stop by: lessOrEqual = (
 )
 public sortFrom: start to: stop by: lessOrEqual <[:E :E | Boolean]> = (
 	self sort: (self copyWithSize: stop - start + 1) into: self from: start to: stop by: lessOrEqual.
+)
+public with:  other <List[X def]> do: action <[:E :X]> = (
+  assert: [self size = other size] message: 'Cannot jointly iterate collections of different sizes'.
+  1 to: size do: [:index <Integer> |
+    action value: (at: index) value: (other at: index)
+  ]
+)
+public reverse ^ <Array[T]> = (
+  | reversed <Array[t]> = _Array new: size. |
+  size to: 1 by: -1 do: [:i | reversed at: size - i + 1put: (at: i)].
+  ^reversed
 )
 ) : (
 public new: size <Integer> ^<Array[E]> = (
