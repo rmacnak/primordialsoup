@@ -1,5 +1,5 @@
 Newspeak3
-'Root'
+'NS2PrimordialSoup'
 class KernelForPrimordialSoup = (|
 private messageLoop <MessageLoop>
 private symbolTable <WeakArray[Symbol]>
