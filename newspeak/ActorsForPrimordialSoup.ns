@@ -561,6 +561,7 @@ private finish: wakeup = (
 )
 public unhandledException: exception from: signalActivationSender = (
 	| activation |
+
 	'Unhandled exception: ' out.
 	exception out.
 	activation:: signalActivationSender.
@@ -681,17 +682,17 @@ public reactResolved: r = (
 class Ref wrapping: ref = (|
 protected internalRef = ref.
 |internalRefs at: self put: ref) (
+protected yourself = (
+	^super yourself
+)
+public isKindOfPromise ^ <Boolean> = (
+	^true
+)
 protected doesNotUnderstand: message <Message> = (
 	(* For the debugger/inspector. Questionable. *)
 	(* Should probably override public method of Object as well. *)
-	0 = message arguments size ifTrue: [(message selector startsWith: 'is') ifTrue: [^false]].
+	0 = message arguments size ifTrue: [(message selector startsWith: 'isKindOf') ifTrue: [^false]].
 	^internalRef immediateSend: message
-)
-public isPromise = (
-	^true
-)
-protected yourself = (
-	^super yourself
 )
 ) : (
 )
@@ -707,7 +708,7 @@ public break: error <E> = (
 public fulfill: value <V> = (
 	internalResolver internalResolve: (asInternalRef: value).
 )
-public isResolver ^<Boolean> = (
+public isKindOfResolver ^<Boolean> = (
 	^true
 )
 ) : (
