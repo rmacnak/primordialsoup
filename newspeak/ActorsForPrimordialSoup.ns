@@ -247,7 +247,7 @@ public immediateSend: message <Message> ^<Object> = (
 )
 public internalResolve: internalRef <InternalRef> = (
 	state = #unresolved ifFalse: [^Error signal: 'Already resolved'].
-	internalRef isInternalRef ifFalse: [halt].
+	internalRef isKindOfInternalRef ifFalse: [halt].
 
 	state:: #resolving.
 	internalRef checkCycle
@@ -258,6 +258,9 @@ public internalResolve: internalRef <InternalRef> = (
 	nil = reactors ifFalse:
 		[reactors do: [:reactor | resolution addReactor: reactor].
 		reactors:: nil].
+)
+public isResolved ^<Boolean> = (
+	^#resolved = state
 )
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise |
@@ -323,7 +326,7 @@ public externalRef = (
 public immediateSend: message <Message> ^<Object> = (
 	subclassResponsibility
 )
-public isInternalRef ^<Boolean> = (
+public isKindOfInternalRef ^<Boolean> = (
 	^true
 )
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
@@ -382,7 +385,7 @@ public immediateSend: message <Message> ^<Object> = (
 )
 public internalResolve: internalRef <InternalRef> = (
 	state = #unresolved ifFalse: [^Error signal: 'Already resolved'].
-	internalRef isInternalRef ifFalse: [halt].
+	internalRef isKindOfInternalRef ifFalse: [halt].
 
 	state:: #resolving.
 	internalRef checkCycle
@@ -684,10 +687,10 @@ protected internalRef = ref.
 protected doesNotUnderstand: message <Message> = (
 	(* For the debugger/inspector. Questionable. *)
 	(* Should probably override public method of Object as well. *)
-	0 = message arguments size ifTrue: [(message selector startsWith: 'is') ifTrue: [^false]].
+	0 = message arguments size ifTrue: [(message selector startsWith: 'isKindOf') ifTrue: [^false]].
 	^internalRef immediateSend: message
 )
-public isPromise = (
+public isKindOfPromise = (
 	^true
 )
 protected yourself = (
@@ -707,8 +710,11 @@ public break: error <E> = (
 public fulfill: value <V> = (
 	internalResolver internalResolve: (asInternalRef: value).
 )
-public isResolver ^<Boolean> = (
+public isKindOfResolver ^<Boolean> = (
 	^true
+)
+public isResolved ^<Boolean> = (
+	^internalResolver isResolved
 )
 ) : (
 )
@@ -721,7 +727,7 @@ public cancel = (
 public isActive ^<Boolean> = (
 	^internalTimer isActive
 )
-public isTimer ^<Boolean> = (
+public isKindOfTimer ^<Boolean> = (
 	^true
 )
 ) : (

@@ -177,9 +177,9 @@ public testChainAfterForwarded = (
 	p:: r promise.
 	r2:: Resolver new.
 	p2:: r2 promise.
-	when: p fulfilled: [:res | deny: res isPromise].
+	when: p fulfilled: [:res | deny: res isKindOfPromise].
 	p3:: [ (*A*) [ when: p (*B*) fulfilled: [r2 fulfill: 42]] <-: value. 21] <-: value.
-	assert: [p3 isPromise].
+	assert: [p3 isKindOfPromise].
 	r fulfill: p3.
 
 	(* No way to guarantee B happens after p is resolved to p3, but this happens in the current implementation. *)
@@ -200,14 +200,14 @@ public testChainAfterResolved = (
 public testChainPromiseToError = (
 	| p |
 	p:: self <-: returnBrokenPromise.
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 
 	^assert: p smashedWith: MessageNotUnderstood.
 )
 public testChainPromiseToValue = (
 	| p |
 	p:: self <-: returnPromise.
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 
 	^assert: p resolvesTo: self.
 )
@@ -222,7 +222,7 @@ public testDatalock = (
 public testDeeplyChainedPromise = (
 	| p |
 	p:: self <-: returnPromise: 20.
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 
 	^assert: p resolvesTo: self.
 )
@@ -272,28 +272,28 @@ public testDoubleResolution = (
 public testEventualSendToNearPromiseError = (
 	| p |
 	p:: (self <-: yourself) <-: doesNotExist.
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 
 	^assert: p smashedWith: MessageNotUnderstood.
 )
 public testEventualSendToNearPromiseValue = (
 	| p |
 	p:: (self <-: yourself) <-: yourself.
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 
 	^assert: p resolvesTo: self.
 )
 public testEventualSendToNearRefError = (
 	| p |
 	p:: self <-: doesNotExist.
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 
 	^assert: p smashedWith: MessageNotUnderstood.
 )
 public testEventualSendToNearRefValue = (
 	| p |
 	p:: self <-: yourself.
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 
 	^assert: p resolvesTo: self.
 )
@@ -322,11 +322,27 @@ public testImmediateSendToUnresolved = (
 	p:: Resolver new promise.
 	should: [p size] signal: Error.
 )
+public testIsKindOfPromise = (
+	| r p |
+	r:: Resolver new.
+	p:: r promise.
+	assert: p isKindOfPromise.
+	deny: r isKindOfPromise.
+	deny: nil isKindOfPromise.
+)
+public testIsKindOfResolver = (
+	| r p |
+	r:: Resolver new.
+	p:: r promise.
+	assert: r isKindOfResolver.
+	deny: p isKindOfResolver.
+	deny: nil isKindOfResolver.
+)
 public testMissingWhenBroken = (
 	| r p |
 	r:: Resolver new.
 	p:: when: r promise fulfilled: [:v | halt].
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 	r break: Error new.
 
 	^assert: p smashedWith: Error.
@@ -344,7 +360,7 @@ public testPromiseStopContagion = (
 	p:: when: (self <-: signalError)
 		fulfilled: [halt]
 		broken: [:e | 'Return without exception'].
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 
 	^assert: p resolvesTo: 'Return without exception'.
 )
@@ -367,11 +383,10 @@ public testResolveBeforeWhen = (
 	^assert: p resolvesTo: 1.
 )
 public testUnresolved = (
-	| r p |
+	| r |
 	r:: Resolver new.
-	p:: r promise.
 
-	deny: [p isResolved].
+	deny: [r isResolved].
 )
 public testViciousResolutionDirect = (
 	| r p |
@@ -407,7 +422,7 @@ public testWhenBrokenError = (
 	p:: when: r promise
 		fulfilled: [:v | halt]
 		broken: [:e | doesNotExist].
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 	r break: Error new.
 
 	^assert: p smashedWith: MessageNotUnderstood.
@@ -418,7 +433,7 @@ public testWhenBrokenValue = (
 	p:: when: r promise
 		fulfilled: [:v | halt]
 		broken: [:e | 42].
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 	r break: Error new.
 
 	^assert: p resolvesTo: 42.
@@ -429,7 +444,7 @@ public testWhenResolvedError = (
 	p:: when: r promise
 		fulfilled: [:v | Error signal: 'Something']
 		broken: [:e | fail].
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 	r fulfill: 21.
 
 	^assert: p smashedWith: Error.
@@ -440,7 +455,7 @@ public testWhenResolvedValue = (
 	p:: when: r promise
 		fulfilled: [:v | v * 2]
 		broken: [:e | fail].
-	assert: [p isPromise].
+	assert: [p isKindOfPromise].
 	r fulfill: 21.
 
 	^assert: p resolvesTo: 42.
@@ -482,6 +497,7 @@ public testOneShotTimer = (
 	| r t |
 	r:: Resolver new.
 	t:: Timer after: 100 do: [deny: [t isActive]. r fulfill: 42].
+	assert: [t isKindOfTimer].
 	assert: [t isActive].
 
 	^assert: r promise resolvesTo: 42
@@ -509,6 +525,8 @@ public testRepeatingTimer = (
 		assert: [timer isActive].
 		count = 5 ifTrue: [timer cancel. deny: [timer isActive]. r fulfill: 42].
 		count > 5 ifTrue: [failWithMessage: 'Cancel failed']].
+	assert: [t isKindOfTimer].
+	assert: [t isActive].
 
 	^assert: r promise resolvesTo: 42
 )

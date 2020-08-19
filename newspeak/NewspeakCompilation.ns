@@ -647,10 +647,10 @@ processImplicitReceiverSend: node <UnresolvedSendAST> = (
 	binding isNil ifTrue:
 		[^processImplicitReceiverSend: message binding: nil].
 
-	binding isLocalBinding ifTrue:
+	binding isKindOfLocalBinding ifTrue:
 		[^processLocalAccess: message of: binding].
 
-	binding isMappedBinding ifTrue:
+	binding isKindOfMappedBinding ifTrue:
 		[^processMappedVariable: message decl: binding].
 
 	^processImplicitReceiverSend: message binding: binding
@@ -868,10 +868,10 @@ public setterSendNode: node <SetterSendAST> ^<AST> = (
 	binding isNil ifTrue:
 		[^processSetterSend: node binding: nil].
 
-	binding isLocalBinding ifTrue:
+	binding isKindOfLocalBinding ifTrue:
 		[^processLocalAccess: message of: binding].
 
-	binding isMappedBinding ifTrue:
+	binding isKindOfMappedBinding ifTrue:
 		[^processMappedVariable: message decl: binding].
 
 	^processSetterSend: node binding: binding
@@ -957,7 +957,7 @@ public remote
 public remoteVector2
 public remoteOffset
 |) (
-public isLocalBinding ^<Boolean> = (
+public isKindOfLocalBinding ^<Boolean> = (
 	^true
 )
 public name = (
@@ -968,11 +968,7 @@ public printOn: stream = (
 )
 ) : (
 )
-class MethodEntry forDeclaration: decl atDepth: d = SymbolTableEntry forAST: decl atDepth: d (
-) (
-public isMethodBinding ^<Boolean> = (
-	^true
-)
+class MethodEntry forDeclaration: decl atDepth: d = SymbolTableEntry forAST: decl atDepth: d () (
 ) : (
 )
 class Namer = () (
@@ -1065,13 +1061,10 @@ class SymbolTableEntry forAST: tree atDepth: d = (
 public ast <AST> = tree.
 public depth <Integer> = d.
 |) (
-public isLocalBinding ^<Boolean> = (
+public isKindOfLocalBinding ^<Boolean> = (
 	^false
 )
-public isMappedBinding = (
-	^false
-)
-public isMethodBinding ^<Boolean> = (
+public isKindOfMappedBinding = (
 	^false
 )
 ) : (

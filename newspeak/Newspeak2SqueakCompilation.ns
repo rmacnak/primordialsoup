@@ -2936,7 +2936,7 @@ class ContextMappedEntry name: nom mapper: mapper = SymbolTableEntry forAST: nil
 public getterAst = (
 	^debugMapper getterAstFor: name.
 )
-public isMappedBinding = (
+public isKindOfMappedBinding = (
 	^true
 )
 public setterAst: newVal = (
@@ -2954,7 +2954,7 @@ public getterAst = (
 			selector: #at:;
 			arguments: {SymbolAST new value: name})
 )
-public isMappedBinding = (
+public isKindOfMappedBinding = (
 	^true
 )
 private mapAst = (
