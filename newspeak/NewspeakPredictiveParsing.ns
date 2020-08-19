@@ -9,7 +9,6 @@ Brazil 1021 -> 50ms.
 NewspeakCompilation  250 -> 16ms.
 
 Todo:
- - Parse types according to the spec'd grammar. Currently we diet parse for a closing >.
  - Accept class declarations without bodies.
  - Attach better source positions for synthetic parts like the default superclass clause.
  - Separate the AST building from the parsing, something like the parser calling various #acceptFoo methods that subclasses should implement. Then add the colorizing and source mirror subclasses. *)
@@ -323,6 +322,28 @@ public parseClosure = (
 		start: closureStart;
 		end: closureEnd
 )
+public parseClosureType = (
+	(* blockType = lbracket, (nonEmptyBlockArgList | blockReturnType opt), rbracket *)
+	(* :note: Closure types accept parameters without a pipe, but closures require the pipe when there are parameters. *)
+	tokenKind = #'[' ifFalse: [expected: '['].
+	advanceToken.
+
+	tokenKind = #':' ifTrue:
+		[[tokenKind = #':' ifFalse: [expected: ':'].
+		  advanceToken.
+		  parseTypeTerm.
+		  tokenKind = #']' ifTrue:
+			[advanceToken.
+			 ^nil].
+		  tokenKind = #binary and: [tokenValue = '|']] whileFalse.
+		  advanceToken].
+
+	tokenKind = #']' ifFalse: [parseTypeTerm].
+
+	tokenKind = #']' ifFalse: [expected: ']'].
+	advanceToken.
+	^nil
+)
 public parseCodeBody = (
 	(* codeBody = (literalMessageComment | comment | whitespace) star, temporaries opt, statements. *)
 	| body statements |
@@ -629,6 +650,16 @@ public parseParenthesizedExpression = (
 	advanceToken.
 	^result
 )
+public parseParenthesizedTypeExpression = (
+	(* parenthesizedTypeExpression = lparen, typeExpr, rparen *)
+	| result |
+	tokenKind = #'(' ifFalse: [expected: '('].
+	advanceToken.
+	result:: parseTypeExpression.
+	tokenKind = #')' ifFalse: [expected: ')'].
+	advanceToken.
+	^result
+)
 public parsePrimary = (
 	(* primary = slotName | literal | block | parenthesizedExpression. *)
 	| send |
@@ -835,20 +866,65 @@ public parseTuple = (
 
 	^TupleAST new elements: elements; start: tupleStart; end: tupleEnd
 )
+public parseTupleType = (
+	(* tupleType = lcurly, (typeExpr starSeparatedBy: dot), rcurly *)
+	tokenKind = #'{' ifFalse: [expected: '{'].
+	advanceToken.
+	[tokenKind = #'}'] whileFalse:
+		[parseTypeExpression.
+		 tokenKind = #'.' ifTrue: [advanceToken]].
+	advanceToken. (* Consume } *)
+	^nil
+)
 public parseType = (
-	(* :todo: We're just diet parsing here. Do real parsing. *)
-
+	| type |
 	(tokenKind = #binary and: [tokenValue = '<']) ifFalse:
 		[expected: '<'].
 	advanceToken.
-
-	[tokenKind = #end] whileFalse:
-		[
-		(tokenKind = #binary and: [tokenValue = '>']) ifTrue:
-			[advanceToken. ^nil].
-		advanceToken].
-
-	expected: '>'
+	type:: parseTypeExpression.
+	(tokenKind = #binary and: [tokenValue = '>']) ifFalse:
+		[expected: '<'].
+	advanceToken.
+	^type
+)
+public parseTypeArgumentsOpt = (
+	(* typeArguments = lbracket, (typeExpr plusSeparatedBy: comma), rbracket *)
+	tokenKind = #'[' ifFalse: [^nil].
+	advanceToken.
+	[parseTypeExpression.
+	 tokenKind = #binary and: [tokenValue = ',']]
+		whileTrue: [advanceToken].
+	tokenKind = #']' ifFalse: [expected: ']'].
+	advanceToken.
+	^nil
+)
+public parseTypeExpression = (
+	(* typeExpr = typeTerm, ((vbar | semicolon | slash), typeExpr) *)
+	[parseTypeTerm.
+	 peekHasTypeOperator]
+		whileTrue: [advanceToken].
+	^nil
+)
+public parseTypeFactor = (
+	(* typeFactor = typePrimary | blockType | tupleType | parenthesizedTypeExpression *)
+	tokenKind = #'[' ifTrue: [^parseClosureType].
+	tokenKind = #'{' ifTrue: [^parseTupleType].
+	tokenKind = #'(' ifTrue: [^parseParenthesizedTypeExpression].
+	^parseTypePrimary
+)
+public parseTypePrimary = (
+	(* typePrimary = identifier, typeArguments opt *)
+	tokenKind = #identifier ifFalse: [expected: 'identifier'].
+	advanceToken.
+	parseTypeArgumentsOpt.
+	^nil
+)
+public parseTypeTerm = (
+	(* typeTerm = typeFactor, identifier star *)
+	parseTypeFactor.
+	[tokenKind = #identifier]
+		whileTrue: [advanceToken].
+	^nil
 )
 public parseUnaryExpression = (
 	(* unaryExpression = primary, unaryMsg star. *)
@@ -948,6 +1024,14 @@ peekHasKeywordMessage = (
 	result:: tokenKind = #keyword.
 	restoreContext: context.
 	^result
+)
+peekHasTypeOperator = (
+	(* LL(1) *)
+	tokenKind = #binary ifFalse: [^false].
+	tokenValue = '|' ifTrue: [^true].
+	tokenValue = ';' ifTrue: [^true].
+	tokenValue = '/' ifTrue: [^true].
+	^false
 )
 peekHasUnaryMessage = (
 	(* LL(2) *)
