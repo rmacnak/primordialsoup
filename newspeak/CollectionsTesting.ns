@@ -329,6 +329,42 @@ public testListConcatenation = (
 	assert: (b at: 2) equals: 'orange'.
 	assert: (b at: 3) equals: 'strawberry'.
 )
+public testListCopyFromTo = (
+	| list result |
+	list:: List withAll: {10. 20. 30. 40. 50. 60. 70}.
+
+	result:: list copyFrom: 1 to: 7.
+	deny: result isKindOfArray.
+	assert: result isKindOfList.
+	assertList: result equals: {10. 20. 30. 40. 50. 60. 70}.
+	result at: 1 put: nil.
+	result at: 7 put: nil.
+	assertList: list equals: {10. 20. 30. 40. 50. 60. 70}.
+
+	result:: list copyFrom: 1 to: 0.
+	deny: result isKindOfArray.
+	assert: result isKindOfList.
+	assertList: result equals: {}.
+
+	result:: list copyFrom: 1 to: 1.
+	deny: result isKindOfArray.
+	assert: result isKindOfList.
+	assertList: result equals: {10}.
+
+	result:: list copyFrom: 2 to: 6.
+	deny: result isKindOfArray.
+	assert: result isKindOfList.
+	assertList: result equals: {20. 30. 40. 50. 60}.
+
+	result:: list copyFrom: 7 to: 7.
+	deny: result isKindOfArray.
+	assert: result isKindOfList.
+	assertList: result equals: {70}.
+
+	should: [list copyFrom: -1 to: 1] signal: Error.
+	should: [list copyFrom: 0 to: 1] signal: Error.
+	should: [list copyFrom: 7 to: 8] signal: Error.
+)
 public testListEnumeration = (
 	| list evens odds sum |
 	list:: List withAll: {1. 2. 3. 4. 5. 6. 7. 8. 9}.

@@ -114,6 +114,7 @@ const bool kFailure = false;
   V(78, Closure_copiedAtPut)                                                   \
   V(79, ByteArray_replaceFromToWithStartingAt)                                 \
   V(80, Array_replaceFromToWithStartingAt)                                     \
+  V(81, Array_copyFromTo)                                                      \
   V(85, Object_class)                                                          \
   V(86, Object_identical)                                                      \
   V(87, Object_identityHash)                                                   \
@@ -1470,6 +1471,33 @@ DEFINE_PRIMITIVE(Array_replaceFromToWithStartingAt) {
   }
 
   RETURN_SELF();
+}
+
+DEFINE_PRIMITIVE(Array_copyFromTo) {
+  ASSERT(num_args == 2);
+
+  if (!I->Stack(1)->IsSmallInteger()) return kFailure;
+  intptr_t start = static_cast<SmallInteger>(I->Stack(1))->value();
+
+  if (!I->Stack(0)->IsSmallInteger()) return kFailure;
+  intptr_t stop = static_cast<SmallInteger>(I->Stack(0))->value();
+
+  if (!I->Stack(2)->IsArray()) return kFailure;
+
+  Array array = static_cast<Array>(I->Stack(2));
+  if ((start <= 0) || (stop > array->Size())) return kFailure;
+
+  intptr_t subsize = stop - (start - 1);
+  if (subsize < 0) {
+    return kFailure;
+  }
+
+  Array result = H->AllocateArray(subsize);  // SAFEPOINT
+  array = static_cast<Array>(I->Stack(2));
+  for (intptr_t i = 0; i < subsize; i++) {
+    result->set_element(i, array->element(i + start - 1));
+  }
+  RETURN(result);
 }
 
 DEFINE_PRIMITIVE(String_at) {

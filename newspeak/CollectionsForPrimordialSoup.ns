@@ -50,7 +50,7 @@ public addLast: element <E> ^<E> = (
 	^element
 )
 public asArray ^<Array[E]> = (
-	^data copyWithSize: size_
+	^data copyFrom: 1 to: size_
 )
 public at: index <Integer> ^<E> = (
 	index > size_ ifTrue: [^(ArgumentError value: index) signal].
@@ -59,6 +59,15 @@ public at: index <Integer> ^<E> = (
 public at: index <Integer> put: value <E> ^<E> = (
 	index > size_ ifTrue: [^(ArgumentError value: index) signal].
 	^data at: index put: value
+)
+public copyFrom: start <Integer> to: stop <Integer> ^<List[E]> = (
+	| localData result |
+	start <= 0 ifTrue: [^(ArgumentError value: start) signal].
+	stop > size_ ifTrue: [^(ArgumentError value: stop) signal].
+	result:: List new: stop - start + 1.
+	localData:: data.
+	start to: stop do: [:index | result add: (localData at: index)].
+	^result
 )
 public do: action <[:E]> = (
 	1 to: size_ do: [:index | action value: (data at: index)].
