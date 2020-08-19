@@ -100,16 +100,6 @@ public variableNode: aNode <VariableAST> = (
 )
 ) : (
 )
-public class BinaryTypeOpAST = AST (|
-	public leftOperand <TypeAST>
-	public rightOperand <TypeAST>
-	public operator <Symbol>
-|) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool binaryTypeOpNode: self
-)
-) : (
-)
 public class BlockAST = AST (|
 	public body <CodeBodyAST>
 |) (
@@ -119,15 +109,6 @@ public apply: tool <ASTTool[T]> ^<T> = (
 public isKindOfBlockNode ^<Boolean> = ( ^true )
 public parameters ^ <List[ParameterAST]> = (
 	^body parameters
-)
-) : (
-)
-public class BlockTypeAST formals: f return: r = AST (|
-	public formals = f.
-	public return = r.
-|) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool blockTypeNode: self
 )
 ) : (
 )
@@ -327,38 +308,10 @@ public class InitializerAST slots: s initializerExpressions: es comment: c slots
 |) (
 ) : (
 )
-public class KeywordPatternAST = PatternAST (|
-	public keywords <TupleAST>
-	public patterns <TupleAST>
-|) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool keywordPatternNode: self
-)
-) : (
-)
-public class KeywordPatternPairAST = AST (|
-	keyword <Symbol>
-	pattern
-|) (
-) : (
-)
 public class LiteralAST = AST (|
 	public value <Object>
 |) (
 public isKindOfLiteralNode ^<Boolean> = (^true)
-public printOn: stream = (
-	stream nextPutAll: class simpleName.
-	stream nextPutAll: ': '.
-	value printOn: stream.
-)
-) : (
-)
-public class LiteralPatternAST = PatternAST (|
-	public literal <LiteralAST>
-|) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool literalPatternNode: self
-)
 ) : (
 )
 public class MessageAST = AST (|
@@ -418,10 +371,6 @@ public pattern: p <MessagePatternAST> body: b <CodeBodyAST> accessModifier: am <
 	body: b.
 	accessModifier: am.
 )
-public printOn: stream = (
-	stream nextPutAll: 'MethodAST: '.
-	stream nextPutAll: selector
-)
 public selector ^<Symbol> = (
 	^pattern selector
 )
@@ -471,19 +420,6 @@ public apply: tool <ASTTool[T]> ^<T> = (
 public isKindOfNumberNode ^<Boolean> = ( ^true )
 ) : (
 )
-public class ParameterizedTypeAST = AST (|
-	public generic <TypeIdAST>
-	public arguments <List[TypeAST]>
-|) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool genericInvocationNode: self
-)
-) : (
-)
-public class PatternAST = LiteralAST (
-) (
-) : (
-)
 public class ReturnStatAST = AST (|
 	public expression <ExpressionAST>
 |) (
@@ -510,10 +446,6 @@ public class SetterSendAST to: r <ExpressionAST> send: m <MessageAST> start: s <
 ) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool setterSendNode: self
-)
-public printOn: stream = (
-	stream nextPutAll: 'SetterSendAST: '.
-	stream nextPutAll: message selector.
 )
 ) : (
 )
@@ -542,9 +474,6 @@ public isMutable ^ <Boolean> = (self subclassResponsibility)
 public name ^ <Symbol> = (
 	^slotDecl name
 )
-public type ^ <TypeAST> = (
-	^slotDecl type
-)
 ) : (
 )
 public class StringAST = LiteralAST () (
@@ -568,20 +497,6 @@ public apply: tool <ASTTool[T]> ^<T> = (
 public isKindOfTupleNode ^<Boolean> = ( ^true )
 ) : (
 )
-public class TypeIdAST = AST (|
-	public name <Symbol>
-|) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool typeIdNode: self
-)
-) : (
-)
-public class UnaryTypeOpAST = AST (| public operand <TypeAST> public operator <Symbol> |) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool unaryTypeOpNode: self
-)
-) : (
-)
 public class UnresolvedSendAST = SendAST (|
 	public receiver <ExpressionAST>
 |) (
@@ -590,10 +505,6 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 public isKindOfUnresolvedSendNode ^<Boolean> = (
 	^true
-)
-public printOn: stream = (
-	stream nextPutAll: 'NormalSendAST: '.
-	stream nextPutAll: message selector.
 )
 public to: anExpression <ExpressionAST> send: aMessage <MessageAST> = (
 	self receiver: anExpression; message: aMessage
@@ -619,23 +530,7 @@ public apply: tool <ASTTool[T]> ^<T> = (
 	^tool variableNode: self.
 )
 public isKindOfVariableNode ^<Boolean> = (^true)
-public printOn: stream = (
-	stream nextPutAll: class simpleName.
-	stream nextPutAll: ': '.
-	stream nextPutAll: name.
-)
 ) : (
-)
-public class VariablePatternAST = PatternAST (|
-	variableName <Symbol>
-|) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool variablePatternNode: self
-)
-) : (
-public variableName: vn start: s end: e = (
-	^self new variableName: vn; start: s; end: e; yourself
-)
 )
 public class WildcardPatternAST = PatternAST (
 ) (

@@ -16,9 +16,7 @@ Todo:
 |
 	private List = platform collections List.
 
-	private BinaryTypeOpAST = asts BinaryTypeOpAST.
 	private BlockAST = asts BlockAST.
-	private BlockTypeAST = asts BlockTypeAST.
 	private CascadedSendAST = asts CascadedSendAST.
 	private CharacterAST = asts CharacterAST.
 	private ClassBodyAST = asts ClassBodyAST.
@@ -28,13 +26,11 @@ Todo:
 	private CodeBodyAST = asts CodeBodyAST.
 	private ImmutableSlotDefAST = asts ImmutableSlotDefAST.
 	private InitializerAST = asts InitializerAST.
-	private ParameterizedTypeAST = asts ParameterizedTypeAST.
 	private MessageAST = asts MessageAST.
 	private MessagePatternAST = asts MessagePatternAST.
 	private MethodAST = asts MethodAST.
 	private MixinApplicationClassAST = asts MixinApplicationClassAST.
 	private MutableSlotDefAST = asts MutableSlotDefAST.
-	private UnresolvedSendAST = asts UnresolvedSendAST.
 	private NumberAST = asts NumberAST.
 	private ReturnStatAST = asts ReturnStatAST.
 	private SetterSendAST = asts SetterSendAST.
@@ -42,8 +38,7 @@ Todo:
 	private StringAST = asts StringAST.
 	private SymbolAST = asts SymbolAST.
 	private TupleAST = asts TupleAST.
-	private TypeIdAST = asts TypeIdAST.
-	private UnaryTypeOpAST = asts UnaryTypeOpAST.
+	private UnresolvedSendAST = asts UnresolvedSendAST.
 	private VarDeclAST = asts VarDeclAST.
 	private VariableAST = asts VariableAST.
 |) (
