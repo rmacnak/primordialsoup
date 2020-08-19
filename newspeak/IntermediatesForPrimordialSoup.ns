@@ -50,8 +50,7 @@ public bytes <OrderedCollection[Byte]> ::= List new.
 public selector <Symbol>
 public methodMixin <AbstractMixin>
 public source <String>
-public pragmas
-public psPrimitive ::= 0.
+public primitive ::= 0.
 public accessModifier <Symbol>
 
 public category
@@ -81,7 +80,7 @@ public compiledMethod ^<CompiledMethod> = (
 	method header:
 		(Method
 			headerForAccessModifier: accessModifier
-			primitive: psPrimitive
+			primitive: primitive
 			numTemps: maxLocals
 			numArgs: argCount).
 

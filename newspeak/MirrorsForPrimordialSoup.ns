@@ -2162,7 +2162,7 @@ private constructCompiler = (
 	intermediatesX:: namespace Intermediates
 		usingPlatform: cachedPlatform
 		internalKernel: internalKernel.
-	compilation:: namespace Newspeak2SqueakCompilation
+	compilation:: namespace Newspeak2PrimordialSoupCompilation
 		usingPlatform: cachedPlatform
 		asts: asts
 		newspeakParser: parsingX

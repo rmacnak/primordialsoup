@@ -1,6 +1,6 @@
 Newspeak3
-'NS2Squeak'
-class Newspeak2SqueakCompilation usingPlatform: platform
+'NS2PrimordialSoup'
+class Newspeak2PrimordialSoupCompilation usingPlatform: platform
  asts: asts
  newspeakParser: ns3Parser
  intermediates: i = NewspeakCompilation
@@ -47,9 +47,6 @@ Copyright 2012-2013 Gilad Bracha, Ryan Macnak and Cadence Design Systems
 	private TupleAST = asts TupleAST.
 	private VarDeclAST = asts VarDeclAST.
 	private VariableAST = asts VariableAST.
-
-	private Pragma = [platform squeak Pragma] on: Error do: [:ex | nil].
-	private ProcessorAssociation = [platform squeak Smalltalk associationAt: #Processor] on: Error do: [:ex | nil].
 
 	private IntermediateClassDeclaration = i IntermediateClassDeclaration.
 	private IntermediateSlotDeclaration = i IntermediateSlotDeclaration.
@@ -675,7 +672,6 @@ astForContextAtDepth: targetDepth <Integer> ^<AST> = (
 	^returnContext
 )
 bci = (
-	isSqueak ifTrue: [^context pc - context method initialPC + 1].
 	^context bci
 )
 contextAtDepth: targetDepth <Integer> ^<MethodContext> = (
@@ -1163,19 +1159,12 @@ popAndStoreInto: var <AllocatedLocal> = (
 				inVector: var remoteVector offset]
 )
 processLiteralMessagesOf: node <MethodAST> = (
-	| pragmas bodyLitMessages |
-	pragmas:: List new.
+	| bodyLitMessages |
 	bodyLitMessages:: node body literalMessages.
 	nil = bodyLitMessages ifFalse:
 		[bodyLitMessages do: [:messageAST |
 			(messageAST selector = #primitive:) ifTrue:
-				[cgen code psPrimitive: messageAST arguments first value].
-			nil = Pragma ifFalse:
-				[pragmas add: (Pragma
-					keyword: messageAST selector
-					arguments: (messageAST arguments collect: [:symbolAST | symbolAST value]) asArray)]]].
-
-	cgen code pragmas: pragmas.
+				[cgen code primitive: messageAST arguments first value]]].
 )
 public receiverNode: node = (
 	valueExpected ifFalse: [^self].
@@ -1847,7 +1836,7 @@ public mixinNode: node <MixinClassNode> = (
 )
 processEventualSend: node <NormalSendAST> = (
 	| Processor receiver selector arguments |
-	Processor:: GlobalAST association: ProcessorAssociation.
+	Processor:: GlobalAST association: nil.
 
 	receiver:: node receiver apply: self.
 	selector:: (SymbolAST new value: node message selector) apply: self.
@@ -2993,9 +2982,6 @@ SymbolTableEntry = (
 )
 assert: c = (
 	self assert: c message: 'Assert failed'.
-)
-private isSqueak = (
-	^'A' first isKindOfCharacter
 )
 namer = (
 	^super namer
