@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class RuntimeWithMirrorsForPrimordialSoup packageRuntimeUsing: manifest = (|
 private Kernel = manifest Kernel.
 public InternalKernel = manifest KernelForPrimordialSoup.
@@ -10,7 +10,7 @@ private Actors = manifest ActorsForPrimordialSoup.
 public NewspeakASTs = manifest NewspeakASTs.
 public NewspeakPredictiveParsing = manifest NewspeakPredictiveParsing.
 public Intermediates = manifest IntermediatesForPrimordialSoup.
-public Newspeak2SqueakCompilation = manifest Newspeak2SqueakCompilation mixinApply: manifest NewspeakCompilation.
+public Newspeak2PrimordialSoupCompilation = manifest Newspeak2PrimordialSoupCompilation mixinApply: manifest NewspeakCompilation.
 
 private PrimordialFuel = manifest PrimordialFuel.
 private Zircon = manifest Zircon.

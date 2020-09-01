@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class IntermediatesForPrimordialSoup usingPlatform: p internalKernel: k = (|
 private List = p collections List.
 private Map = p collections Map.
@@ -51,7 +51,7 @@ public selector <Symbol>
 public methodMixin <AbstractMixin>
 public source <String>
 public pragmas
-public psPrimitive ::= 0.
+public primitive ::= 0.
 public accessModifier <Symbol>
 
 public category
@@ -81,7 +81,7 @@ public compiledMethod ^<CompiledMethod> = (
 	method header:
 		(Method
 			headerForAccessModifier: accessModifier
-			primitive: psPrimitive
+			primitive: primitive
 			numTemps: maxLocals
 			numArgs: argCount).
 

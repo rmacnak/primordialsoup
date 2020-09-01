@@ -51,9 +51,6 @@ public addLast: element <E> ^<E> = (
 	data at: size_ put: element.
 	^element
 )
-public asArray ^<Array[E]> = (
-	^data copyWithSize: size_
-)
 public at: index <Integer> ^<E> = (
 	index > size_ ifTrue: [^(ArgumentError value: index) signal].
 	^data at: index
@@ -146,16 +143,22 @@ public with: other <List[X def]> do: action <[:E :X]> = (
 		action value: (at: index) value: (other at: index)
 		]
 )
-public copyFrom: start <Integer> to: stop <Integer> ^ <List[E]> = (
-  | cp <List[E]> contents = data. |
-  cp:: List new: (stop - start) + 1.
-  1 to: (stop - start) + 1 do: [:i <Integer> | cp add: (contents at: i + start -1)].
-  ^cp
-)
 public reverse ^ <List[T]> = (
   | reversed <List[t]> = List new: size. |
   size to: 1 by: -1 do: [:i | reversed add: (at: i)].
   ^reversed
+)
+public copyFrom: start <Integer> to: stop <Integer> ^ <List[E]> = (
+	| localData result |
+	start <= 0 ifTrue: [^(ArgumentError value: start) signal].
+	stop > size_ ifTrue: [^(ArgumentError value: stop) signal].
+	result:: List new: stop - start + 1.
+	localData:: data.
+	start to: stop do: [:index | result add: (localData at: index)].
+	^result
+)
+public asArray ^<Array[E]> = (
+	^data copyFrom: 1 to: size_
 )
 ) : (
 public new ^<List[E]> = (
@@ -465,16 +468,6 @@ public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
 public removeAll: collection <Collection[E]> = (
 	collection do: [:element | self remove: element].
 )
-public removeAllSuchThat: predicate <[:E | Boolean]> = (
-	|
-	originalTable = table.
-	copyTable = table copy.
-	|
-	copyTable do: [:entry |
-		originalTable = entry ifFalse:
-			[(predicate value: entry) ifTrue:
-				[self remove: entry]]].
-)
 scanFor: element <K> ^<Integer> = (
 	| index start |
 	index:: start:: element hash \\ table size + 1.
@@ -496,11 +489,406 @@ scanForEmptySlotFor: key = (
 public size ^<Integer> = (
 	^size_
 )
+public removeAllSuchThat: predicate <[:E | Boolean]> = (
+	asArray do:
+		[:element | (predicate value: element) ifTrue:
+			[self remove: element]].
+)
 ) : (
 public new ^<Set[E]> = (
 	^self new: 2
 )
 public withAll: collection <Collection[E]> ^<Set[E]> = (
+	^(self new: collection size) addAll: collection; yourself
+)
+)
+public class OrderedMap new: capacity <Integer> = (
+(* Like Map, but iteration happens in insertion order.
+
+If the value associated with a key changes while the key is already in the map, the key's order does not change. Removing a key and adding it back will change the key's order to last. *)
+	|
+	protected nextKeyIndex_ <Integer>
+	protected deleted_ <Integer>
+	protected buckets_ <Integer>
+	protected table_ <Array>
+	|
+	createTable: capacity.
+) (
+public at: key <K> ^<V> = (
+	^self at: key ifAbsent: [(NotFound element: key) signal]
+)
+public at: key <K> ifAbsent: onAbsent <X def> ^<K | X> = (
+	| bucketIndex keyIndex |
+	bucketIndex:: scanFor: key.
+	bucketIndex < 0 ifTrue:
+		[^onAbsent value].
+	keyIndex:: table_ at: bucketIndex.
+	^table_ at: 1 + keyIndex
+)
+public at: key <K> ifAbsentPut: valueGenerator <[V]> ^<V> = (
+	| bucketIndex keyIndex |
+	bucketIndex:: scanFor: key.
+	bucketIndex < 0 ifTrue:
+		[^insert: 0 - bucketIndex key: key value: valueGenerator value].
+	keyIndex:: table_ at: bucketIndex.
+	^table_ at: 1 + keyIndex
+)
+public at: key <K> put: value ^<V> = (
+	| bucketIndex keyIndex |
+	bucketIndex:: scanFor: key.
+	bucketIndex < 0 ifTrue:
+		[^insert: 0 - bucketIndex key: key value: value].
+	keyIndex:: table_ at: bucketIndex.
+	^table_ at: 1 + keyIndex put: value
+)
+checkRehash = (
+	| oldTable oldFirstKeyIndex oldLastKeyIndex |
+	nextKeyIndex_ + 2 < table_ size ifTrue: [^self].
+
+	oldTable:: table_.
+	oldFirstKeyIndex:: 1 + buckets_.
+	oldLastKeyIndex:: nextKeyIndex_ - 1.
+
+	createTable: size << 1.
+
+	oldFirstKeyIndex to: oldLastKeyIndex by: 2 do:
+		[:oldKeyIndex | | key newBucketIndex newKeyIndex |
+		 key:: oldTable at: oldKeyIndex.
+		 oldTable = key ifFalse:
+			[newBucketIndex:: scanForEmptySlotFor: key.
+			 newKeyIndex:: nextKeyIndex_.
+			 nextKeyIndex_:: 2 + newKeyIndex.
+			 table_
+				at: newBucketIndex put: newKeyIndex;
+				at: newKeyIndex put: key;
+				at: 1 + newKeyIndex put: (oldTable at: 1 + oldKeyIndex)]].
+)
+public collect: transform <[:V | W]> ^<Map[K, W]> = (
+	|
+	result = OrderedMap new: size.
+	table = table_.
+	|
+	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
+		[:keyIndex | | key |
+		 key:: table at: keyIndex.
+		 table = key ifFalse:
+			[result at: key put: (transform value: (table at: 1 + keyIndex))]].
+	^result
+)
+createTable: numElements <Integer> = (
+	(* [1, buckets_] is the hash table. 0 means empty, 1 means deleted, otherwise the index of the key.
+	   [buckets_ + 1, size] are the keys and values in insertion order. table_ means deleted. *)
+	numElements < 0 ifTrue: [^(ArgumentError value: numElements) signal].
+	buckets_:: numElements + 1 * 4 // 3.
+	nextKeyIndex_:: 1 + buckets_.
+	table_:: Array new: numElements + 1 << 1 + buckets_.
+	deleted_:: 0.
+	1 to: buckets_ do: [:hashIndex | table_ at: hashIndex put: 0].
+)
+public do: action <[:V]> = (
+	| table = table_. |
+	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
+		[:keyIndex | | key |
+		 key:: table at: keyIndex.
+		 table = key ifFalse:
+			[action value: (table at: 1 + keyIndex)]].
+)
+public includesKey: key <K> ^<Boolean> = (
+	^(scanFor: key) > 0
+)
+insert: bucketIndex key: key value: value = (
+	| keyIndex |
+	keyIndex:: nextKeyIndex_.
+	nextKeyIndex_:: 2 + keyIndex.
+	table_
+		at: bucketIndex put: keyIndex;
+		at: keyIndex put: key;
+		at: 1 + keyIndex put: value.
+	checkRehash.
+	^value
+)
+public isEmpty ^<Boolean> = (
+	^0 = size
+)
+public isKindOfMap ^<Boolean> = (
+	^true
+)
+public isKindOfOrderedMap ^<Boolean> = (
+	^true
+)
+public keys ^<OrderedSet[V]> = (
+	|
+	result = OrderedSet new: size.
+	table = table_.
+	|
+	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
+		[:keyIndex | | key |
+		 key:: table at: keyIndex.
+		 table = key ifFalse: [result add: key]].
+	^result
+)
+public keysAndValuesDo: action <[:K :V]>  = (
+	| table = table_. |
+	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
+		[:keyIndex | | key |
+		 key:: table at: keyIndex.
+		 table = key ifFalse:
+			[action value: key value: (table at: 1 + keyIndex)]].
+)
+public reject: predicate <[:V | Boolean]> ^<Map[K, V]> = (
+	|
+	result = OrderedMap new: size.
+	table = table_.
+	|
+	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
+		[:keyIndex | | key |
+		 table = (key:: table at: keyIndex) ifFalse:
+			[ | value = table at: 1 + keyIndex. |
+			 (predicate value: value) ifFalse:
+				[result at: key put: value]]].
+	^result
+)
+public removeKey: key <K> ^<V> = (
+	^self removeKey: key ifAbsent: [(NotFound element: key) signal]
+)
+public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^<V | X> = (
+	| bucketIndex table keyIndex oldValue |
+	bucketIndex:: scanFor: key.
+	bucketIndex < 0 ifTrue:
+		[^onAbsent value].
+	table:: table_.
+	keyIndex:: table at: bucketIndex.
+	table at: bucketIndex put: 1 (* deleted *).
+	deleted_:: 1 + deleted_.
+	oldValue:: table at: 1 + keyIndex.
+	table at: 1 + keyIndex put: table.
+	table at: keyIndex put: table.
+	^oldValue
+)
+scanFor: key <K> ^<Integer> = (
+	(* Positive: key present. Negative: insert point. *)
+	| table buckets bucketIndex start |
+	table:: table_.
+	buckets:: buckets_.
+	bucketIndex:: start:: key hash \\ buckets + 1.
+	[ | keyIndex |
+	 0 (* empty *) = (keyIndex:: table at: bucketIndex) ifTrue:
+		[^0 - bucketIndex].
+	 1 (* deleted *) = keyIndex ifFalse:
+		[key = (table at: keyIndex) ifTrue:
+			[^bucketIndex]].
+	 (bucketIndex:: bucketIndex \\ buckets + 1) = start] whileFalse.
+	self errorNoFreeSpace
+)
+scanForEmptySlotFor: key <K> ^<Integer> = (
+	| table buckets bucketIndex start |
+	table:: table_.
+	buckets:: buckets_.
+	bucketIndex:: start:: key hash \\ buckets + 1.
+	[0 = (table at: bucketIndex) ifTrue: [^bucketIndex].
+	 (bucketIndex:: bucketIndex \\ buckets + 1) = start] whileFalse.
+	self errorNoFreeSpace
+)
+public select: predicate <[:V | Boolean]> ^<Map[K, V]> = (
+	|
+	result = OrderedMap new: size.
+	table = table_.
+	|
+	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
+		[:keyIndex | | key |
+		 table = (key:: table at: keyIndex) ifFalse:
+			[ | value = table at: 1 + keyIndex. |
+			 (predicate value: value) ifTrue:
+				[result at: key put: value]]].
+	^result
+)
+public size ^<Integer> = (
+	^(nextKeyIndex_ - buckets_) >> 1 - deleted_
+)
+public values ^<List[V]> = (
+	|
+	result = List new: size.
+	table = table_.
+	|
+	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
+		[:keyIndex |
+		 table = (table at: keyIndex) ifFalse:
+			[result add: (table at: 1 + keyIndex)]].
+	^result
+)
+) : (
+public new ^<OrderedMap[K, V]> = (
+	^self new: 3
+)
+)
+public class OrderedSet new: capacity <Integer> = Collection (
+(* Like Set, but iteration happens in insertion order.
+
+If element is added while the element is already in the set, the element's order does not change. Removing an element and adding it back will change the element's order to last. *)
+	|
+	protected nextKeyIndex_ <Integer>
+	protected deleted_ <Integer>
+	protected buckets_ <Integer>
+	protected table_ <Array>
+	|
+	createTable: capacity.
+) (
+public add: element <E> ^<E> = (
+	| bucketIndex keyIndex |
+	bucketIndex:: scanFor: element.
+	bucketIndex < 0 ifTrue:
+		[^insert: 0 - bucketIndex element: element].
+	keyIndex:: table_ at: bucketIndex.
+	^table_ at: keyIndex put: element
+)
+public addAll: collection <Collection[E]> = (
+	collection do: [:element | self add: element].
+)
+public asArray ^<Array[E]> = (
+	|
+	result = Array new: size.
+	table = table_.
+	cursor ::= 1.
+	|
+	1 + buckets_ to: nextKeyIndex_ - 1 do:
+		[:keyIndex | | entry |
+		 entry:: table at: keyIndex.
+		 table = entry ifFalse:
+			[result at: cursor put: entry.
+			 cursor:: 1 + cursor]].
+	^result
+)
+checkRehash = (
+	| oldTable oldFirstKeyIndex oldLastKeyIndex |
+	nextKeyIndex_ + 1 < table_ size ifTrue: [^self].
+
+	oldTable:: table_.
+	oldFirstKeyIndex:: 1 + buckets_.
+	oldLastKeyIndex:: nextKeyIndex_ - 1.
+
+	createTable: size << 1.
+
+	oldFirstKeyIndex to: oldLastKeyIndex do:
+		[:oldKeyIndex | | element newBucketIndex newKeyIndex |
+		 element:: oldTable at: oldKeyIndex.
+		 oldTable = element ifFalse:
+			[newBucketIndex:: scanForEmptySlotFor: element.
+			 newKeyIndex:: nextKeyIndex_.
+			 nextKeyIndex_:: 1 + newKeyIndex.
+			 table_
+				at: newBucketIndex put: newKeyIndex;
+				at: newKeyIndex put: element]].
+)
+createTable: numElements <Integer> = (
+	(* [1, buckets_] is the hash table. 0 means empty, 1 means deleted, otherwise the index of the element.
+	   [buckets_ + 1, size] are the elements in insertion order. table_ means deleted. *)
+	numElements < 0 ifTrue: [^(ArgumentError value: numElements) signal].
+	buckets_:: numElements + 1 * 4 // 3.
+	nextKeyIndex_:: 1 + buckets_.
+	table_:: Array new: numElements + 1 + buckets_.
+	deleted_:: 0.
+	1 to: buckets_ do: [:hashIndex | table_ at: hashIndex put: 0].
+)
+public do: action <[:V]> = (
+	| table = table_. |
+	1 + buckets_ to: nextKeyIndex_ - 1 do:
+		[:keyIndex | | element |
+		 element:: table at: keyIndex.
+		 table = element ifFalse:
+			[action value: element]].
+)
+public include: element <E> ^<E> = (
+	^self add: element
+)
+public include: element <E> ifNew: onNew <[]> ^<E> = (
+	| bucketIndex keyIndex |
+	bucketIndex:: scanFor: element.
+	bucketIndex < 0 ifTrue:
+		[insert: 0 - bucketIndex element: element.
+		 onNew value].
+	^element
+)
+public includes: element <E> ^<Boolean> = (
+	^(scanFor: element) > 0
+)
+insert: bucketIndex element: element = (
+	| keyIndex |
+	keyIndex:: nextKeyIndex_.
+	nextKeyIndex_:: 1 + keyIndex.
+	table_
+		at: bucketIndex put: keyIndex;
+		at: keyIndex put: element.
+	checkRehash.
+	^element
+)
+public isEmpty ^<Boolean> = (
+	^0 = size
+)
+public isKindOfOrderedSet ^<Boolean> = (
+	^true
+)
+public isKindOfSet ^<Boolean> = (
+	^true
+)
+protected newForCollectUsingAdd: capacity = (
+	^OrderedSet new: capacity
+)
+public remove: element <E> ^<E> = (
+	^self remove: element ifAbsent: [(NotFound element: element) signal].
+)
+public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
+	| bucketIndex table keyIndex oldElement |
+	bucketIndex:: scanFor: element.
+	bucketIndex < 0 ifTrue:
+		[^onAbsent value].
+	table:: table_.
+	keyIndex:: table at: bucketIndex.
+	table at: bucketIndex put: 1 (* deleted *).
+	deleted_:: 1 + deleted_.
+	oldElement:: table at: keyIndex.
+	table at: keyIndex put: table.
+	^oldElement
+)
+public removeAll: collection <Collection[E]> = (
+	collection do: [:element | self remove: element].
+)
+public removeAllSuchThat: predicate <[:E | Boolean]> = (
+	asArray do:
+		[:element | (predicate value: element) ifTrue:
+			[self remove: element]].
+)
+scanFor: key <K> ^<Integer> = (
+	(* Positive: key present. Negative: insert point. *)
+	| table buckets bucketIndex start |
+	table:: table_.
+	buckets:: buckets_.
+	bucketIndex:: start:: key hash \\ buckets + 1.
+	[ | keyIndex |
+	 0 (* empty *) = (keyIndex:: table at: bucketIndex) ifTrue:
+		[^0 - bucketIndex].
+	 1 (* deleted *) = keyIndex ifFalse:
+		[key = (table at: keyIndex) ifTrue:
+			[^bucketIndex]].
+	 (bucketIndex:: bucketIndex \\ buckets + 1) = start] whileFalse.
+	self errorNoFreeSpace
+)
+scanForEmptySlotFor: key <K> ^<Integer> = (
+	| table buckets bucketIndex start |
+	table:: table_.
+	buckets:: buckets_.
+	bucketIndex:: start:: key hash \\ buckets + 1.
+	[0 = (table at: bucketIndex) ifTrue: [^bucketIndex].
+	 (bucketIndex:: bucketIndex \\ buckets + 1) = start] whileFalse.
+	self errorNoFreeSpace
+)
+public size ^<Integer> = (
+	^(nextKeyIndex_ - buckets_ - 1) - deleted_
+)
+) : (
+public new ^<OrderedSet[E]> = (
+	^self new: 2
+)
+public withAll: collection <Collection[E]> ^<OrderedSet[E]> = (
 	^(self new: collection size) addAll: collection; yourself
 )
 )

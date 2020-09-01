@@ -1,5 +1,5 @@
 Newspeak3
-'Actors'
+'Root'
 class ActorsForPrimordialSoup usingPlatform: p = (|
 private WeakMap = p kernel WeakMap.
 private List = p collections List.
@@ -245,20 +245,6 @@ public immediateSend: message <Message> ^<Object> = (
 	state = #resolved ifTrue: [^resolution immediateSend: message].
 	^Error signal: 'Cannot immediate-send to an eventual ref: ', message selector
 )
-public internalResolve: internalRef <InternalRef> = (
-	state = #unresolved ifFalse: [^Error signal: 'Already resolved'].
-	internalRef isInternalRef ifFalse: [halt].
-
-	state:: #resolving.
-	internalRef checkCycle
-		ifTrue: [resolution:: InternalBrokenRef problem: (Error new messageText: 'Cyclic resolution')]
-		ifFalse: [resolution:: internalRef].
-	state:: #resolved.
-
-	nil = reactors ifFalse:
-		[reactors do: [:reactor | resolution addReactor: reactor].
-		reactors:: nil].
-)
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise |
 	state = #resolved ifTrue: [^resolution whenFulfilled: onValue whenBroken: onError].
@@ -270,6 +256,20 @@ public wrapFor: targetActor = (
 	state = #resolved ifTrue: [^resolution wrapFor: targetActor].
 
 	^(InternalRemotePromise target: self targetsActor: currentActor) externalRef
+)
+public internalResolve: internalRef <InternalRef> = (
+	state = #unresolved ifFalse: [^Error signal: 'Already resolved'].
+	internalRef isKindOfInternalRef ifFalse: [halt].
+
+	state:: #resolving.
+	internalRef checkCycle
+		ifTrue: [resolution:: InternalBrokenRef problem: (Error new messageText: 'Cyclic resolution')]
+		ifFalse: [resolution:: internalRef].
+	state:: #resolved.
+
+	nil = reactors ifFalse:
+		[reactors do: [:reactor | resolution addReactor: reactor].
+		reactors:: nil].
 )
 ) : (
 )
@@ -323,14 +323,14 @@ public externalRef = (
 public immediateSend: message <Message> ^<Object> = (
 	subclassResponsibility
 )
-public isInternalRef ^<Boolean> = (
-	^true
-)
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	subclassResponsibility
 )
 public wrapFor: targetActor = (
 	subclassResponsibility
+)
+public isKindOfInternalRef ^<Boolean> = (
+	^true
 )
 ) : (
 )
@@ -380,16 +380,6 @@ public immediateSend: message <Message> ^<Object> = (
 	state = #resolved ifTrue: [^resolution immediateSend: message].
 	^Error signal: 'Cannot immediate-send to an eventual ref: ', message selector
 )
-public internalResolve: internalRef <InternalRef> = (
-	state = #unresolved ifFalse: [^Error signal: 'Already resolved'].
-	internalRef isInternalRef ifFalse: [halt].
-
-	state:: #resolving.
-	internalRef checkCycle
-		ifTrue: [resolution:: InternalBrokenRef problem: (Error new messageText: 'Cyclic resolution')]
-		ifFalse: [resolution:: internalRef].
-	state:: #resolved.
-)
 public redirectFrom: sourceActor to: destinationActor resolving: resolver = (
 	| redirector |
 	destinationActor = targetsActor ifTrue:
@@ -432,6 +422,16 @@ public wrapFor: targetActor = (
 	targetActor = targetsActor ifTrue: [^target externalRef].
 
 	^(InternalRemotePromise target: target targetsActor: targetsActor) externalRef
+)
+public internalResolve: internalRef <InternalRef> = (
+	state = #unresolved ifFalse: [^Error signal: 'Already resolved'].
+	internalRef isKindOfInternalRef ifFalse: [halt].
+
+	state:: #resolving.
+	internalRef checkCycle
+		ifTrue: [resolution:: InternalBrokenRef problem: (Error new messageText: 'Cyclic resolution')]
+		ifFalse: [resolution:: internalRef].
+	state:: #resolved.
 )
 ) : (
 )
@@ -491,6 +491,7 @@ public isActive = (
 class MessageLoop application: a platform: p = (|
 	application ::= a.
 	platform ::= p.
+	ultimateHandler <[:e :signaler]>
 |) (
 private dispatchHandle: handle status: status signals: signals count: count = (
 	| handler |
@@ -559,10 +560,19 @@ private finish: wakeup = (
 	(* :literalmessage: primitive: 139 *)
 	halt.
 )
+public ultimateExceptionHandler: handler <[:e :signaler]> = (
+  ultimateHandler:: handler
+)
 public unhandledException: exception from: signalActivationSender = (
 	| activation |
 
 	'Unhandled exception: ' out.
+	ultimateHandler isNil ifFalse: [
+		'setting handler' out.
+		ultimateHandler value: exception value: signalActivationSender. 
+		'handler set' out.
+		^self
+		].
 	exception out.
 	activation:: signalActivationSender.
 	[nil = activation] whileFalse:
@@ -886,6 +896,9 @@ private isValueObject: object <Object> ^<Boolean> = (
 	object isKindOfBehavior ifTrue: [^true (* ^isValueObject: object enclosingClass *)].
 	Promise = object ifTrue: [^true].
 	^false
+)
+public ultimateExceptionHandler: handler <[:e :signaler]> = (
+  messageLoop ultimateExceptionHandler: handler
 )
 private wrapArgument: argument from: sourceActor to: targetActor = (
 	(* [argument] lives in [sourceActor], answer the corresponding proxy that lives in [targetActor] *)

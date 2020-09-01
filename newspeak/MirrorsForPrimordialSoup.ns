@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns = (|
 private Collection = platform collections Collection.
 private List = platform collections List.
@@ -2218,23 +2218,6 @@ public compiler = (
 	nil = compilerX ifTrue: [constructCompiler].
 	^compilerX
 )
-private constructCompiler = (
-	| asts compilation |
-	asts:: namespace NewspeakASTs
-		usingLib: cachedPlatform.
-	parsingX:: namespace NewspeakPredictiveParsing
-		usingPlatform: cachedPlatform
-		asts: asts.
-	intermediatesX:: namespace Intermediates
-		usingPlatform: cachedPlatform
-		internalKernel: internalKernel.
-	compilation:: namespace Newspeak2SqueakCompilation
-		usingPlatform: cachedPlatform
-		asts: asts
-		newspeakParser: parsingX
-		intermediates: intermediatesX.
-	compilerX:: compilation Compiler new.
-)
 private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
 	(* :literalmessage: primitive: 77 *)
 	halt.
@@ -2325,6 +2308,23 @@ private subclassesOf: klass = (
 )
 private superclassOf: behavior = (
 	^self slotOf: behavior at: 1
+)
+private constructCompiler = (
+	| asts compilation |
+	asts:: namespace NewspeakASTs
+		usingLib: cachedPlatform.
+	parsingX:: namespace NewspeakPredictiveParsing
+		usingPlatform: cachedPlatform
+		asts: asts.
+	intermediatesX:: namespace Intermediates
+		usingPlatform: cachedPlatform
+		internalKernel: internalKernel.
+	compilation:: namespace Newspeak2PrimordialSoupCompilation
+		usingPlatform: cachedPlatform
+		asts: asts
+		newspeakParser: parsingX
+		intermediates: intermediatesX.
+	compilerX:: compilation Compiler new.
 )
 ) : (
 )
