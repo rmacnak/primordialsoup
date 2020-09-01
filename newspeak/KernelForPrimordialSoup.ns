@@ -2061,31 +2061,6 @@ public collect: transform <[:E | F]> ^<Array[F]> = (
 		results at: index put: (transform value: (self at: index))].
 	^results
 )
-public select: predicate <[:E | Boolean]> ^<List[E]>  = (
-  | count ::= 0. index ::= 0. ta result |
-  ta:: collect: [:e | (predicate value: e) ifTrue: [count:: count + 1. e]].
-  result:: _Array new: count.
-  ta do: [:e | nil = e ifFalse: [ index:: index + 1. result at: index put: e.] ].
-  ^result
-)
-public reject: predicate <[:E | Boolean]> ^<List[E]>  = (
-  | count ::= 0. index ::= 0. ta result |
-  ta:: collect: [:e | (predicate value: e) ifFalse: [count:: count + 1. e]].
-  result:: _Array new: count.
-  ta do: [:e | nil = e ifFalse: [ index:: index + 1. result at: index put: e.] ].
-  ^result
-)
-public copy ^<Array[E]> = (
-	| newArray = Array new: self size. |
-	newArray replaceFrom: 1 to: self size with: self startingAt: 1.
-	^newArray
-)
-public copyFrom: start <integer> to: stop <Integer> ^ <Array[E]> = (
-  | cp <Array[E]> |
-  cp:: Array new: (stop - start) + 1.
-  1 to: cp size do: [:i <Integer> | cp at: i put: (self at: i + start -1)].
-  ^cp
-)
 public copyWith: newElement <E> ^<Array[E]> = (
 	|
 	newArray = Array new: 1 + self size.
@@ -2173,6 +2148,35 @@ public reverse ^ <Array[T]> = (
   | reversed <Array[t]> = _Array new: size. |
   size to: 1 by: -1 do: [:i | reversed at: size - i + 1put: (at: i)].
   ^reversed
+)
+public copyFrom: start <Integer> to: stop <Integer> ^<Array[E]> = (
+	(* :literalmessage: primitive: 81 *)
+	^ArgumentError new signal
+)
+public reject: predicate <[:E | Boolean]> ^<Array[E]> = (
+	| result cursor |
+	result:: Array new: self size.
+	cursor:: 0.
+	1 to: self size do:
+		[:index | | element <E> |
+		 element:: self at: index.
+		 (predicate value: element) ifFalse:
+			[result at: (cursor:: 1 + cursor) put: element]].
+	^result copyFrom: 1 to: cursor
+)
+public select: predicate <[:E | Boolean]> ^<Array[E]> = (
+	| result cursor |
+	result:: Array new: self size.
+	cursor:: 0.
+	1 to: self size do:
+		[:index | | element <E> |
+		 element:: self at: index.
+		 (predicate value: element) ifTrue:
+			[result at: (cursor:: 1 + cursor) put: element]].
+	^result copyFrom: 1 to: cursor
+)
+public copy ^<Array[E]> = (
+  ^self copyFrom: 1 to: self size.
 )
 ) : (
 public new: size <Integer> ^<Array[E]> = (
