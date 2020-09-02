@@ -50,7 +50,6 @@ public bytes <OrderedCollection[Byte]> ::= List new.
 public selector <Symbol>
 public methodMixin <AbstractMixin>
 public source <String>
-public pragmas
 public primitive ::= 0.
 public accessModifier <Symbol>
 
