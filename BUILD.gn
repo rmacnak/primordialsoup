@@ -181,7 +181,7 @@ action("snapshots") {
     "newspeak/NLRImmediate.ns",
     "newspeak/NLRLoop.ns",
     "newspeak/NS2PrimordialSoupCompilerTestingConfiguration.ns",
-    "newspeak/Newspeak2SqueakCompilation.ns",
+    "newspeak/Newspeak2PrimordialSoupCompilation.ns",
     "newspeak/NewspeakASTs.ns",
     "newspeak/NewspeakCompilation.ns",
     "newspeak/NewspeakPredictiveParsing.ns",
