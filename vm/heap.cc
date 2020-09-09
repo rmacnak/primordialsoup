@@ -1075,6 +1075,7 @@ void Heap::MournClassTableForwarded() {
       continue;
     }
 
+    ASSERT(i >= kFirstRegularObjectCid);
     class_table_[i] = SmallInteger::New(class_table_free_);
     class_table_free_ = i;
   }
@@ -1203,6 +1204,9 @@ void Heap::ForwardClassIds() {
     if (!old_class->IsForwardingCorpse()) {
       continue;
     }
+    if (old_class->is_marked()) {
+      continue;  // Already swapped: don't swap back.
+    }
 
     Behavior new_class = static_cast<Behavior>(
         static_cast<ForwardingCorpse>(old_class)->target());
@@ -1210,13 +1214,21 @@ void Heap::ForwardClassIds() {
 
     if (new_class->id() != nil) {
       ASSERT(new_class->id()->IsSmallInteger());
-      // Arraynge for instances with new_cid to be migrated to i.
+      // Arrange for instances with new_cid to be migrated to old_cid.
       intptr_t new_cid = new_class->id()->value();
       class_table_[new_cid] = old_class;
     }
 
     new_class->set_id(SmallInteger::New(old_cid));
     class_table_[old_cid] = new_class;
+    old_class->set_is_marked(true);
+  }
+
+  for (intptr_t cid = kFirstLegalCid; cid < class_table_size_; cid++) {
+    Behavior klass = static_cast<Behavior>(class_table_[cid]);
+    if (klass->IsForwardingCorpse()) {
+      klass->set_is_marked(false);
+    }
   }
 }
 
