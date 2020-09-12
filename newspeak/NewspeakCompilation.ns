@@ -184,8 +184,8 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 	incStat			<StatementAST>
 	|
 
-	assert: [ step isKindOfNumberNode and: [step value isKindOfInteger] ] message: 'Loop with non-integer step'.
-	assert: [ block isKindOfBlockNode ] message: 'Loop with block that is not a BlockAST'.
+	assert: [step isKindOfNumberNode] message: 'Loop with non-number step'.
+	assert: [block isKindOfBlockNode] message: 'Loop with block that is not a BlockAST'.
 
 	isWhileTrue:: true.
 	prologue:: emptyBody.
@@ -527,32 +527,6 @@ isImplicitReceiverNode: node <AST> ^<Boolean> = (
 	node isKindOfVariableNode ifFalse: [^false].
 	^node name = #'@here'
 )
-isInlineableConditional: node <NormalSendAST> ^<Boolean> = (
-	canInlineSeqexps ifFalse: [valueExpected ifTrue: [^false]].
-	node message isEventual ifTrue: [^false].
-	({#ifTrue:. #ifFalse:. #ifTrue:ifFalse:. #ifFalse:ifTrue:} includes: node message selector)
-	     ifFalse: [^false].
-	node message arguments do: [:arg <AST> | (isRemovableBlock: arg withArgs: 0) ifFalse: [^false]].
-	^true
-)
-isInlineableLoop: node <NormalSendAST> ^<Boolean> = (
-	| selector <Symbol> args |
-	canInlineSeqexps ifFalse: [valueExpected ifTrue: [^false]].
-	node message isEventual ifTrue: [^false].
-	selector:: node message selector.
-	args:: node message arguments.
-	({#whileTrue. #whileFalse. #whileTrue:. #whileFalse:. #repeat} includes: selector) ifTrue:
-		[args do:
-			[:each |
-			(isRemovableBlock: each withArgs: 0) ifFalse: [^false]].
-		^isRemovableBlock: node receiver withArgs: 0].
-
-	(selector = #timesRepeat:) ifTrue: [^isRemovableBlock: args last withArgs: 0].
-	({#to:do:. #to:by:do:} includes: selector) ifFalse: [^false].
-	(isRemovableBlock: args last withArgs: 1) ifFalse: [^false].
-	(selector = #to:do:) ifTrue: [^true].
-	^args size = 3
-)
 isOuterNode: node <AST> ^<Boolean> = (
 	node isKindOfVariableNode ifFalse: [^false].
 	^node name = #outer
@@ -663,72 +637,6 @@ processImplicitReceiverSend: msg <MessageAST> binding: binding <ClassEntry | Slo
 		message: (msg apply: self))
 		copyPositionFrom: msg
 )
-processInlineableConditional: node <NormalSendAST> = (
-	|
-	receiver = node receiver apply: self.
-	selector = node message selector.
-	numArgs = node message arguments size.
-	arg1 = numArgs > 0 ifTrue:
-		[(rewriteInlinedBlockNode: (node message arguments at: 1) forValue: valueExpected) body].
-	arg2 = numArgs > 1 ifTrue:
-		[(rewriteInlinedBlockNode: (node message arguments at: 2) forValue: valueExpected) body].
-	|
-	selector = #ifTrue:
-		ifTrue: [^ConditionalAST if: receiver is: true then: arg1 forValue: valueExpected].
-	selector = #ifFalse:
-		ifTrue: [^ConditionalAST if: receiver is: false then: arg1 forValue: valueExpected].
-	selector = #ifTrue:ifFalse:
-		ifTrue: [^ConditionalAST if: receiver is: true then: arg1 else: arg2].
-	selector = #ifFalse:ifTrue:
-		ifTrue: [^ConditionalAST if: receiver is: false then: arg1 else: arg2].
-	assert: [false] message: 'Unknown conditional selector'
-)
-processInlineableLoop: node <NormalSendAST> ^<LoopAST> = (
-	|
-	rcvr = node receiver.
-	msg = node message.
-	sel = msg selector.
-	numArgs = msg arguments size.
-	arg1 = numArgs >= 1 ifTrue: [msg arguments at: 1].
-	arg2 = numArgs >= 2 ifTrue: [msg arguments at: 2].
-	arg3 = numArgs >= 3 ifTrue: [msg arguments at: 3].
-	|
-
-	sel = #whileTrue ifTrue: [^LoopAST new
-		while: true
-		do: (rewriteInlinedBlockNode: rcvr forValue: true) body].
-	sel = #whileFalse ifTrue: [^LoopAST new
-		while: false
-		do: (rewriteInlinedBlockNode: rcvr forValue: true) body].
-	sel = #whileTrue: ifTrue: [^LoopAST new
-		while: (rewriteInlinedBlockNode: rcvr forValue: true) body
-		is: true
-		do: (rewriteInlinedBlockNode: arg1 forValue: false) body].
-	sel = #whileFalse: ifTrue: [^LoopAST new
-		while: (rewriteInlinedBlockNode: rcvr forValue: true) body
-		is: false
-		do: (rewriteInlinedBlockNode: arg1 forValue: false) body].
-
-	sel = #repeat ifTrue: [^LoopAST new
-		repeat: (rewriteInlinedBlockNode: rcvr forValue: false) body].
-
-	sel = #timesRepeat: ifTrue: [^LoopAST new
-		do: (rcvr apply: self)
-		timesRepeat: arg1].
-
-	sel = #to:do: ifTrue: [^LoopAST new
-		from: (rcvr apply: self)
-		to: (arg1 apply: self)
-		do: arg2].
-
-	sel = #to:by:do: ifTrue: [^LoopAST new
-		from: (rcvr apply: self)
-		to: (arg1 apply: self)
-		by: (arg2 apply: self)
-		do: arg3].
-
-	assert: [false] message: 'Unknown loop selector'
-)
 processLocalAccess: msg <MessageAST> of: decl <SlotEntry> = (
 	^(msg selector endsWith: ':')
 		ifTrue: [processLocalWrite: msg to: decl]
@@ -748,10 +656,9 @@ processLocalWrite: message <MessageAST> to: declaration <LocalEntry> = (
 		copyPositionFrom: message
 )
 processOrdinarySend: node <UnresolvedSendAST> ^<AST> = (
-	(isInlineableConditional: node)
-		ifTrue: [^processInlineableConditional: node].
-	(isInlineableLoop: node)
-		ifTrue: [^processInlineableLoop: node].
+	| inlined |
+	inlined:: tryInlineSend: node.
+	nil = inlined ifFalse: [^inlined].
 
 	(* And lo, we really have a normal send. *)
 	^(OrdinarySendAST
@@ -881,6 +788,151 @@ public stringNode: node <StringAST> = (
 )
 public symbolNode: node <SymbolAST> = (
 	^node
+)
+tryInlineIfFalse: node <UnresolvedSendAST> = (
+	| then = node message arguments at: 1. |
+	(isRemovableBlock: then withArgs: 0) ifFalse: [^nil].
+	^ConditionalAST
+		if: (node receiver apply: self)
+		is: false
+		then: (rewriteInlinedBlockNode: then forValue: valueExpected) body
+		forValue: valueExpected
+)
+tryInlineIfFalseIfTrue: node <UnresolvedSendAST> = (
+	|
+	then = node message arguments at: 1.
+	else = node message arguments at: 2.
+	|
+	(isRemovableBlock: then withArgs: 0) ifFalse: [^nil].
+	(isRemovableBlock: else withArgs: 0) ifFalse: [^nil].
+	^ConditionalAST
+		if: (node receiver apply: self)
+		is: false
+		then: (rewriteInlinedBlockNode: then forValue: valueExpected) body
+		else: (rewriteInlinedBlockNode: else forValue: valueExpected) body
+)
+tryInlineIfTrue: node <UnresolvedSendAST> = (
+	| then = node message arguments at: 1. |
+	(isRemovableBlock: then withArgs: 0) ifFalse: [^nil].
+	^ConditionalAST
+		if: (node receiver apply: self)
+		is: true
+		then: (rewriteInlinedBlockNode: then forValue: valueExpected) body
+		forValue: valueExpected
+)
+tryInlineIfTrueIfFalse: node <UnresolvedSendAST> = (
+	|
+	then = node message arguments at: 1.
+	else = node message arguments at: 2.
+	|
+	(isRemovableBlock: then withArgs: 0) ifFalse: [^nil].
+	(isRemovableBlock: else withArgs: 0) ifFalse: [^nil].
+	^ConditionalAST
+		if: (node receiver apply: self)
+		is: true
+		then: (rewriteInlinedBlockNode: then forValue: valueExpected) body
+		else: (rewriteInlinedBlockNode: else forValue: valueExpected) body
+)
+tryInlineRepeat: node <UnresolvedSendAST> = (
+	| body = node receiver. |
+	(isRemovableBlock: body withArgs: 0) ifFalse: [^nil].
+	^LoopAST new
+		repeat: (rewriteInlinedBlockNode: body forValue: false) body
+)
+tryInlineSend: node <UnresolvedSendAST> = (
+	| selector = node message selector. |
+	canInlineSeqexps ifFalse: [valueExpected ifTrue: [^false]].
+
+	#ifTrue: = selector ifTrue: [^tryInlineIfTrue: node].
+	#ifFalse: = selector ifTrue: [^tryInlineIfFalse: node].
+	#ifTrue:ifFalse: = selector ifTrue: [^tryInlineIfTrueIfFalse: node].
+	#ifFalse:ifTrue: = selector ifTrue: [^tryInlineIfFalseIfTrue: node].
+
+	#whileTrue = selector ifTrue: [^tryInlineWhileTrue: node].
+	#whileFalse = selector ifTrue: [^tryInlineWhileFalse: node].
+	#whileTrue: = selector ifTrue: [^tryInlineWhileTrueColon: node].
+	#whileFalse: = selector ifTrue: [^tryInlineWhileFalseColon: node].
+	#repeat = selector ifTrue: [^tryInlineRepeat: node].
+	#timesRepeat: = selector ifTrue: [^tryInlineTimesRepeat: node].
+	#to:do: = selector ifTrue: [^tryInlineToDo: node].
+	#to:by:do: = selector ifTrue: [^tryInlineToByDo: node].
+
+	^nil
+)
+tryInlineTimesRepeat: node <UnresolvedSendAST> = (
+	|
+	count = node receiver.
+	body = node message arguments at: 1.
+	|
+	(isRemovableBlock: body withArgs: 0) ifFalse: [^nil].
+	^LoopAST new
+		do: (count apply: self)
+		timesRepeat: body
+)
+tryInlineToByDo: node <UnresolvedSendAST> = (
+	|
+	start = node receiver.
+	stop = node message arguments at: 1.
+	step = node message arguments at: 2.
+	body = node message arguments at: 3.
+	|
+	step isKindOfNumberNode ifFalse: [^nil].
+	(isRemovableBlock: body withArgs: 1) ifFalse: [^nil].
+	^LoopAST new
+		from: (start apply: self)
+		to: (stop apply: self)
+		by: (step apply: self)
+		do: body
+)
+tryInlineToDo: node <UnresolvedSendAST> = (
+	|
+	start = node receiver.
+	stop = node message arguments at: 1.
+	body = node message arguments at: 2.
+	|
+	(isRemovableBlock: body withArgs: 1) ifFalse: [^nil].
+	^LoopAST new
+		from: (start apply: self)
+		to: (stop apply: self)
+		do: body
+)
+tryInlineWhileFalse: node <UnresolvedSendAST> = (
+	| cond = node receiver. |
+	(isRemovableBlock: cond withArgs: 0) ifFalse: [^nil].
+	^LoopAST new
+		while: false
+		do: (rewriteInlinedBlockNode: cond forValue: true) body
+)
+tryInlineWhileFalseColon: node <UnresolvedSendAST> = (
+	|
+	cond = node receiver.
+	body = node message arguments at: 1.
+	|
+	(isRemovableBlock: cond withArgs: 0) ifFalse: [^nil].
+	(isRemovableBlock: body withArgs: 0) ifFalse: [^nil].
+	^LoopAST new
+		while: (rewriteInlinedBlockNode: cond forValue: true) body
+		is: false
+		do: (rewriteInlinedBlockNode: body forValue: false) body
+)
+tryInlineWhileTrue: node <UnresolvedSendAST> = (
+	| cond = node receiver. |
+	(isRemovableBlock: cond withArgs: 0) ifFalse: [^nil].
+	^LoopAST new
+		while: true
+		do: (rewriteInlinedBlockNode: cond forValue: true) body
+)
+tryInlineWhileTrueColon: node <UnresolvedSendAST> = (
+	|
+	cond = node receiver.
+	body = node message arguments at: 1.
+	|
+	(isRemovableBlock: cond withArgs: 0) ifFalse: [^nil].
+	(isRemovableBlock: body withArgs: 0) ifFalse: [^nil].
+	^LoopAST new
+		while: (rewriteInlinedBlockNode: cond forValue: true) body
+		is: true
+		do: (rewriteInlinedBlockNode: body forValue: false) body
 )
 public tupleNode: node <TupleAST> = (
 	^TupleAST new

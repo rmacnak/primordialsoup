@@ -2150,6 +2150,14 @@ public testTimesRepeat = (
 	 ) '
 	with: 'assert: sample testTimesRepeat equals: 74.'
 )
+public testTimesRepeatNonLiteralBlock = (
+	testSampleMethod: 'public testTimesRepeatNonLiteralBlock = (
+		| sum ::= 0. block = [sum:: sum + 1]. |
+		10 timesRepeat: block.
+		^sum
+	)'
+	with: 'assert: sample testTimesRepeatNonLiteralBlock equals: 10.'
+)
 public testToByDo1 = (
 	testSampleMethod: 'public testToByDo1 = (
 	| ta tb  tc td te tf tg th |
@@ -2167,6 +2175,22 @@ public testToByDo2 = (
 	^tf
 	 ) '
 	with: 'assert: sample testToByDo2 equals: 39.'
+)
+public testToByDoNonLiteralBlock = (
+	testSampleMethod: 'public testToByDoNonLiteralBlock = (
+		| sum ::= 0. block = [:value | sum:: sum + value]. |
+		0 to: 100 by: 25 do: block.
+		^sum
+	) '
+	with: 'assert: sample testToByDoNonLiteralBlock equals: 250.'
+)
+public testToByDoNonLiteralStep = (
+	testSampleMethod: 'public testToByDoNonLiteralStep = (
+		| start = 0. stop = 100. step = 25. sum ::= 0. |
+		start to: stop by: step do: [:value | sum:: sum + value].
+		^sum
+	) '
+	with: 'assert: sample testToByDoNonLiteralStep equals: 250.'
 )
 public testToDo1 = (
 	testSampleMethod: 'public testToDo1 = (
@@ -2194,6 +2218,14 @@ public testToDo3 = (
 		^tf
 	)'
 	with: 'assert: sample testToDo3 equals: 74.'
+)
+public testToDoNonLiteralBlock = (
+	testSampleMethod: 'public testToDoNonLiteralBlock = (
+		| sum ::= 0. block = [:value | sum:: sum + value]. |
+		0 to: 10 do: block.
+		^sum
+	) '
+	with: 'assert: sample testToDoNonLiteralBlock equals: 55.'
 )
 public testToDoByCapturesUniqueVariables = (
 	testSampleMethod: 'public testToDoByCapturesUniqueVariables = (
