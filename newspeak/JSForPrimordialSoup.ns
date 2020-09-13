@@ -19,12 +19,14 @@ private asJSSelector: nsSelector <String> ^<String> = (
 	^nsSelector copyFrom: 1 to: position - 1
 )
 public at: key = (
+	(* JavaScript: this[key] *)
 	rawPushAlien: self index.
 	rawPush: key.
 	rawPerformGet.
 	^rawPop
 )
 public at: key put: value = (
+	(* JavaScript: this[key] = value *)
 	rawPushAlien: self index.
 	rawPush: key.
 	rawPush: value.
@@ -41,13 +43,31 @@ protected doesNotUnderstand: message = (
 		ifTrue: [self newWithArguments: message arguments]
 		ifFalse: [self perform: jsSelector withArguments: message arguments]
 )
+public includesKey: key ^<Boolean> = (
+	(* JavaScript: key in this *)
+	rawPushAlien: self index.
+	rawPush: key.
+	rawPerformHas.
+	^rawPop
+)
+public instanceOf: constructor ^<Boolean> = (
+	(* JavaScript: this instanceof constructor *)
+	rawPushAlien: self index.
+	rawPush: constructor.
+	rawPerformInstanceOf.
+	^rawPop
+)
 public isKindOfClosure ^<Boolean> = (
 	^false
+)
+public isKindOfJSAlien ^<Boolean> = (
+	^true
 )
 public isUndefined ^<Boolean> = (
 	^0 = index
 )
 public newWithArguments: arguments <Array> = (
+	(* JavaScript: new this(arguments[0], ..., arguments[n-1]) *)
 	rawPushAlien: self index.
 	1 to: arguments size do:
 		[:argumentIndex | rawPush: (arguments at: argumentIndex)].
@@ -55,6 +75,7 @@ public newWithArguments: arguments <Array> = (
 	^rawPop
 )
 public perform: selector <String> withArguments: arguments <Array> = (
+	(* JavaScript: this.selector(arguments[0], ..., arguments[n-1]) *)
 	rawPushAlien: self index.
 	rawPush: selector.
 	1 to: arguments size do:
@@ -90,6 +111,14 @@ private rawPerformGet = (
 	(* :literalmessage: primitive: 160 *)
 	^Error signal: rawPop printString
 )
+private rawPerformHas = (
+	(* :literalmessage: primitive: 167 *)
+	^Error signal: rawPop printString
+)
+private rawPerformInstanceOf = (
+	(* :literalmessage: primitive: 166 *)
+	^Error signal: rawPop printString
+)
 private rawPerformNew: numArgs = (
 	(* :literalmessage: primitive: 164 *)
 	^Error signal: rawPop printString
@@ -121,6 +150,7 @@ private rawPushExpat: expatIndex = (
 	halt
 )
 public removeKey: key = (
+	(* JavaScript: delete this[key] *)
 	rawPushAlien: self index.
 	rawPush: key.
 	rawPerformDelete.
