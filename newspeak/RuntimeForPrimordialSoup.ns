@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class RuntimeForPrimordialSoup packageRuntimeUsing: manifest = (|
 private Kernel = manifest Kernel.
 public InternalKernel = manifest KernelForPrimordialSoup.
@@ -24,4 +24,7 @@ public operatingSystem ^<String> = (
 ) : (
 )
 ) : (
+public keepsSources ^ <Boolean> = (
+  ^false
+)
 )

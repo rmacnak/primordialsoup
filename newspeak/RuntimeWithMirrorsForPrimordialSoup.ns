@@ -32,4 +32,7 @@ public operatingSystem ^<String> = (
 ) : (
 )
 ) : (
+public keepsSources ^ <Boolean> = (
+  ^true
+)
 )

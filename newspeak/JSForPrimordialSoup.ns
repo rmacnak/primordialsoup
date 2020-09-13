@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class JSForPrimordialSoup usingPlatform: platform = (
 	|
 	public undefined = Alien withIndex: 0.
@@ -125,6 +125,12 @@ public removeKey: key = (
 	rawPush: key.
 	rawPerformDelete.
 	^rawPop
+)
+public isKindOfAlien ^ <Boolean> = (
+  ^true
+)
+public isKindOfJSAlien ^ <Boolean> = (
+  ^true
 )
 ) : (
 )

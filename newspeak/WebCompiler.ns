@@ -1,10 +1,10 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class WebCompiler packageUsing: manifest = (
 (*
 The web compiler is a command line app used to create vfuel files for execution by Psoup in the web browser. 
-It expects the a series of strings denoting paths to resources, followed by a series of 
-triples of the form runtime-name app-name vfuel-file-name.vfuel. Each such triple specifies that the given vfuel file eill be reasted to represent for the given app, using the given runtime. Example:
+It expects a series of strings denoting paths to resources, followed by a series of 
+triples of the form runtime-name app-name vfuel-file-name.vfuel. Each such triple specifies that the given vfuel file will be created to represent for the given app, using the given runtime. Example:
 
 WebCompiler.vfuel \
     *.ns \
@@ -84,20 +84,6 @@ loadResource: path <String> ^ <{String. String. String | Class}> = (
 
 	Error signal: 'Unknown resource type: ', path
 )
-public main: args <Sequence[String]> = (
-	| index ::= 1. |
-(* Phase 1: process resource arguments; collect them under their
-    names, in a map *)
-	[((args at: index) indexOf: '.') > 0] whileTrue:
-		[ | resource <{String. String. String | Class}> |
-		 resource:: loadResource: (args at: index).
-		 namespace at: (resource at: 1) put: resource.
-		 index:: index + 1].
-(* Phase 2: process vfel file specifications (triples). *)
-	[(index + 2) <= args size] whileTrue:
-		[assembleRuntime: (args at: index) application: (args at: index + 1) to: (args at: index + 2).
-		 index:: index + 3].
-)
 readFileAsBytes: filename = (
 	(* :literalmessage: primitive: 130 *)
 	halt.
@@ -108,6 +94,20 @@ readFileAsString: filename = (
 writeBytes: bytes toFileNamed: filename = (
 	(* :literalmessage: primitive: 128 *)
 	halt.
+)
+public main: args <Sequence[String]> = (
+	| index ::= 1. |
+(* Phase 1: process resource arguments; collect them under their
+    names, in a map *)
+	[((args at: index) indexOf: '.') > 0] whileTrue:
+		[ | resource <{String. String. String | Class}> |
+		 resource:: loadResource: (args at: index).
+		 namespace at: (resource at: 1) put: resource.
+		 index:: index + 1].
+(* Phase 2: process vfuel file specifications (triples). *)
+	[(index + 2) <= args size] whileTrue:
+		[assembleRuntime: (args at: index) application: (args at: index + 1) to: (args at: index + 2).
+		 index:: index + 3].
 )
 ) : (
 )
@@ -166,9 +166,9 @@ unpackResourceType: type <String> payload: payload <String | Class> platform: pl
 )
 class RecordingManifest namespace: ns <Map[{String. String. String | Class}]> accessedResources: list <List[{String. String. String | Class}]> = (
 (* This class is used to record the dependencies of an app, based on a provided map of names to resource triples. 
-    Instantiating the app with an instance of thsi class as its manifest will record every resource accessed via the manifest, 
-    in the provided list. The overall set of resources is given in the provided map. The app is of course, provided with actual
-    value desired, which the third element of the resource triple. 
+    Instantiating the app with an instance of this class as its manifest will record every resource accessed via the manifest, 
+    in the provided list. The overall set of resources is given in the provided map. The app is of course, provided with the actual
+    value desired, which is the third element of the resource triple. 
  *)
 	|
 	protected namespace <Map[{String. String. String | Class}]> = ns.
