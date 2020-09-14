@@ -4,7 +4,7 @@ class JSON usingPlatform: platform = (|
 private ArgumentError = platform kernel ArgumentError.
 private StringBuilder = platform kernel StringBuilder.
 private List = platform collections List.
-private Map = platform collections Map.
+private OrderedMap = platform collections OrderedMap.
 |) (
 class Decoder on: b = (|
 protected string <ByteArray | String> = b.
@@ -64,13 +64,11 @@ parseList = (
 	16r5B = byte ifFalse: [^error: 'list expected'].
 	position:: 1 + position.
 	result:: List new.
-
 	skipWhitespace.
 	byte:: string at: position.
 	16r5D = byte ifTrue:
 		[position:: 1 + position.
 		 ^result].
-
 	[result add: parseValue.
 	 skipWhitespace.
 	 byte:: string at: position.
@@ -87,14 +85,12 @@ parseMap = (
 	byte:: string at: position.
 	16r7B = byte ifFalse: [^error: 'map expected'].
 	position:: 1 + position.
-	result:: Map new.
-
+	result:: OrderedMap new.
 	skipWhitespace.
 	byte:: string at: position.
 	16r7D = byte ifTrue:
 		[position:: 1 + position.
 		 ^result].
-
 	[parseProperty: result.
 	 skipWhitespace.
 	 byte:: string at: position.
@@ -119,17 +115,14 @@ parseNumber= (
 	| neg byte result |
 	position <= size ifFalse: [error: 'number expected'].
 	(neg:: 16r2D = (string at: position)) ifTrue: [position:: 1 + position].
-
 	position <= size ifFalse: [error: 'number expected'].
 	byte:: string at: position.
 	(isDigit: byte) ifFalse: [error: 'number expected'].
-
 	result:: 0.
 	[position <= size and: [isDigit: (byte:: string at: position)]]
 		whileTrue:
 			[result:: result * 10 + (byte - 48).
 			 position:: position + 1].
-
 	result:: result + parseOptionalFraction.
 	result:: result * parseOptionalExponent.
 	^neg ifTrue: [-1 * result] ifFalse: [result]
@@ -141,24 +134,20 @@ parseOptionalExponent = (
 	16r45 = (string at: position) ifFalse:
 		[16r65 = (string at: position) ifFalse: [^1]].
 	position:: 1 + position.
-
 	position <= size ifFalse: [error: 'number expected'].
 	byte:: string at: position.
 	16r2B = byte ifTrue: [position:: 1 + position].
 	(neg:: 16r2D = byte) ifTrue: [position:: 1 + position].
-
 	position <= size ifFalse: [error: 'number expected'].
 	byte:: string at: position.
 	(isDigit: byte) ifFalse: [error: 'number expected'].
-
 	exp:: 0.
 	[position <= size and: [isDigit: (byte:: string at: position)]]
 		whileTrue:
 			[exp:: exp * 10 + (byte - 48).
 			 position:: position + 1].
-
 	neg ifTrue: [exp:: -1 * exp].
-	^10 ** exp
+	^10 raisedTo: exp
 )
 parseOptionalFraction = (
 	(* ("." digit+) *)
@@ -166,11 +155,9 @@ parseOptionalFraction = (
 	position <= size ifFalse: [^0].
 	16r2E = (string at: position) ifFalse: [^0].
 	position:: 1 + position.
-
 	position <= size ifFalse: [error: 'number expected'].
 	byte:: string at: position.
 	(isDigit: byte) ifFalse: [error: 'number expected'].
-
 	num:: 0.
 	denom:: 1.
 	[position <= size and: [isDigit: (byte:: string at: position)]]
@@ -178,7 +165,6 @@ parseOptionalFraction = (
 			[num:: num * 10 + (byte - 48).
 			 denom:: denom * 10.
 			 position:: position + 1].
-
 	^num / denom
 )
 parseProperty: result = (
@@ -199,18 +185,15 @@ parseString = (
 	byte:: string at: position.
 	16r22 = byte ifFalse: [^error: 'string expected'].
 	position:: 1 + position.
-
 	position <= size ifFalse: [^error: 'end of string expected'].
 	byte:: string at: position.
 	result:: StringBuilder new.
-
 	[16r22 = byte] whileFalse:
 		[result addByte: (16r5C = byte ifTrue: [parseEscapedCharacter] ifFalse: [byte]).
 		 position:: 1 + position.
 		 position <= size ifFalse: [^error: 'end of string expected'].
 		 byte:: string at: position].
 	position:: 1 + position.
-
 	^result asString
 )
 parseTrue = (
@@ -228,7 +211,6 @@ public parseValue = (
 	skipWhitespace.
 	position <= size ifFalse: [error: 'value expected'].
 	byte:: string at: position.
-
 	16r5B = byte ifTrue: [^parseList].
 	16r7B = byte ifTrue: [^parseMap].
 	16r22 = byte ifTrue: [^parseString].
@@ -236,7 +218,6 @@ public parseValue = (
 	16r66 = byte ifTrue: [^parseFalse].
 	16r6E = byte ifTrue: [^parseNull].
 	(isNumberStart: byte) ifTrue: [^parseNumber].
-
 	^error: 'value expected'
 )
 skipWhitespace = (
@@ -271,8 +252,11 @@ protected writeMap: map = (
 	builder add: '{'.
 	map keysAndValuesDo:
 		[:key :value |
-		 first ifFalse: [builder add: ','. first:: false].
-		 writeString: key. builder add: ':'. writeValue: value].
+		 first ifFalse: [builder add: ','].
+		 first:: false.
+		 writeString: key.
+		 builder add: ':'.
+		 writeValue: value].
 	builder add: '}'.
 )
 writeString: string = (

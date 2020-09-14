@@ -191,6 +191,8 @@ const bool kFailure = false;
   V(163, JS_performInvoke)                                                     \
   V(164, JS_performNew)                                                        \
   V(165, ZXStatus_getString)                                                   \
+  V(166, JS_performInstanceOf)                                                 \
+  V(167, JS_performHas)                                                        \
   V(200, quickReturnSelf)                                                      \
 
 
@@ -3251,6 +3253,32 @@ EM_JS(bool, _JS_performNew, (intptr_t numArgs), {
     return false;
   }
 });
+EM_JS(bool, _JS_performInstanceOf, (), {
+  var aliens = Module.aliens;
+  var constructor = aliens.pop();
+  var receiver = aliens.pop();
+  try {
+    var result = receiver instanceof constructor;
+    aliens.push(result);
+    return true;
+  } catch (exception) {
+    aliens.push(exception);
+    return false;
+  }
+});
+EM_JS(bool, _JS_performHas, (), {
+  var aliens = Module.aliens;
+  var selector = aliens.pop();
+  var receiver = aliens.pop();
+  try {
+    var result = Reflect.has(receiver, selector);
+    aliens.push(result);
+    return true;
+  } catch (exception) {
+    aliens.push(exception);
+    return false;
+  }
+});
 #endif  // defined(OS_EMSCRIPTEN)
 
 DEFINE_PRIMITIVE(JS_pushValue) {
@@ -3422,6 +3450,30 @@ DEFINE_PRIMITIVE(JS_performNew) {
   ASSERT(num_args == 1);
   SMI_ARGUMENT(js_num_args, 0);
   if (_JS_performNew(js_num_args)) {
+    RETURN_SELF();
+  }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_performInstanceOf) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 0);
+  if (_JS_performInstanceOf()) {
+    RETURN_SELF();
+  }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(JS_performHas) {
+#if !defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
+  ASSERT(num_args == 0);
+  if (_JS_performHas()) {
     RETURN_SELF();
   }
   return kFailure;

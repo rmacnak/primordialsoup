@@ -1299,6 +1299,8 @@ public subtractFromFraction: left = (
 )
 public timesRepeat: action <[]> ^<Integer> = (
 	1 to: self do: [:ignore | action value].
+
+	^nil (* To match the inlined version *)
 )
 public | other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 17 *)
@@ -1606,13 +1608,13 @@ public to: stop <Number> ^ <Array[Number]> = (
 )
 public to: stop <Number> by: step <Number> do: action <[:Number]> = (
 	| current ::= self. |
-	[current <= stop] whileTrue: [action value. current:: step + current].
+	[current <= stop] whileTrue: [action value: current. current:: step + current].
 
 	^nil (* To match the inlined version *)
 )
 public to: stop <Number> do: action <[:Number]> = (
 	| current ::= self. |
-	[current <= stop] whileTrue: [action value. current:: 1 + current].
+	[current <= stop] whileTrue: [action value: current. current:: 1 + current].
 
 	^nil (* To match the inlined version *)
 )
