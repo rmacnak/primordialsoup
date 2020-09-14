@@ -578,9 +578,6 @@ private to: sb writeClassDeclaration: declIR = (
 )
 ) : (
 public fromSource: source <String> ^<ClassDeclarationBuilder> = (
-	^self fromUnitSource: 'Newspeak3 ''Category'' ', source
-)
-public fromUnitSource: source <String> ^<ClassDeclarationBuilder> = (
 	| ir <IntermediateClassDeclaration> builder |
 	ir:: compiler compileClassSource: source within: nil.
 	builder:: self fromIntermediate: ir.
@@ -706,10 +703,6 @@ public name: newName <String> = (
 	(* patch header source with the new name *)
 	token:: (parsing Parser for: source) advanceToken parseClassHeaderForName.
 	newClassSource::
-		(intermediate isTopLevel
-			(* only top-level classes can specify categories *)
-			ifTrue: [ 'Newspeak3 ''Category'' ' ]
-			ifFalse: [ ' ' ]),
 		(source copyFrom: 1 to: token start - 1) ,
 		newName,
 		(source copyFrom: token end + 1 to: source size).
@@ -738,14 +731,9 @@ public source ^<String> = (
 public source: newHeader <String> = (
 	| prefix newIR |
 
-	(* only top-level classes can specify categories *)
-	prefix:: intermediate isTopLevel
-		ifTrue: [ 'Newspeak3 ''Category'' ' ]
-		ifFalse: [ '' ].
-
 	intermediate builder enclosingClass. (* For side effect. *)
 	newIR:: compiler
-		compileClassHeader: (prefix, newHeader)
+		compileClassHeader: newHeader
 		within: intermediate enclosingClass.
 
 	checkForHeaderConflicts: newIR.
@@ -2133,7 +2121,6 @@ buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClass
 	i headerSource: mixin _headerSource.
 	i factoryName: mixin _primaryFactorySelector.
 	i comment: nil.
-	i category: 42.
 	i enclosingClass: ec.
 	i existingMixin: mixin.
 	buildIntermediate: i instanceSide from: mixin within: i.
@@ -2165,7 +2152,7 @@ private constructCompiler = (
 	compilation:: namespace Newspeak2PrimordialSoupCompilation
 		usingPlatform: cachedPlatform
 		asts: asts
-		newspeakParser: parsingX
+		parsing: parsingX
 		intermediates: intermediatesX.
 	compilerX:: compilation Compiler new.
 )

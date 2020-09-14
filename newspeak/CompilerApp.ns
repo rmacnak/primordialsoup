@@ -24,7 +24,7 @@ childMain: args = (
 compileFile: filename = (
 	| source builder |
 	source:: readFileAsString: filename.
-	builder:: ClassDeclarationBuilder fromUnitSource: source.
+	builder:: ClassDeclarationBuilder fromSource: source.
 	^builder install applyToObject reflectee.
 )
 decodeUtf8: bytes = (

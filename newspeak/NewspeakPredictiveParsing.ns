@@ -41,21 +41,6 @@ Todo:
 	private VarDeclAST = asts VarDeclAST.
 	private VariableAST = asts VariableAST.
 |) (
-public class CommonParser = () (
-public parseClassDeclaration: input <String> = (
-	^(Parser for: input) advanceToken parseClassDeclarationEnd
-)
-public parseCompilationUnit: input <String> = (
-	^(Parser for: input) advanceToken parseCompilationUnit
-)
-public parseExpression: input <String> = (
-	^(Parser for: input) advanceToken parseDoItExpressionEnd
-)
-public parseMethodDeclaration: input <String> = (
-	^(Parser for: input) advanceToken parseMethodDeclarationEnd
-)
-) : (
-)
 class ParseError message: m position: p = Error (
 	|
 	message <String> = m.
@@ -174,8 +159,7 @@ public parseCascadedMessageExpression = (
 public parseClassDeclaration = (
 	(* classDeclaration = classHeader, sideDecl, classSideDecl opt *)
 
-	| declStart header instanceSide classSide declEnd |
-	declStart:: tokenStart.
+	| header instanceSide classSide |
 	header:: parseClassHeader.
 	instanceSide:: parseInstanceSide.
 	tokenKind = #':'
@@ -185,8 +169,7 @@ public parseClassDeclaration = (
 	^ClassDeclarationAST new
 		header: header;
 		instanceSide: instanceSide;
-		classSide: classSide;
-		start: declStart; end: 0
+		classSide: classSide
 )
 public parseClassDeclarationEnd = (
 	| result = parseClassDeclaration. |
@@ -204,6 +187,12 @@ public parseClassHeader = (
 
 	| declStart am name constructor superclassCall comment preambleEnd tempsBody inits declEnd |
 	declStart:: tokenStart.
+	(* transition: accept optional language id and category *)
+	tokenKind = #identifier ifTrue:
+		[(tokenValue startsWith: 'New') ifTrue:
+			[advanceToken.
+			 tokenKind = #string ifFalse: [expected: 'string'].
+			 advanceToken]].
 	am:: parseAccessModifierOpt.
 
 	(tokenKind = #identifier and: [tokenValue = 'class']) ifFalse: [expected: 'class'].
@@ -247,7 +236,6 @@ public parseClassHeader = (
 		slots: tempsBody temporaries;
 		isSeq: tempsBody isSeq;
 		initExprs: inits;
-		category: 'Unclassified';
 		classComment: ((Token value: comment) preambleEnd: preambleEnd);
 		inheritanceChain: {superclassCall};
 		accessModifier: am;
@@ -350,22 +338,6 @@ public parseCodeBody = (
 	body:: parseTemporariesOpt.
 	body statements: parseStatements.
 	^body
-)
-public parseCompilationUnit = (
-	(* compilationUnit = languageId, toplevelClass, eoi. *)
-	| category result |
-	tokenKind = #identifier ifFalse: [expected: 'identifier'].
-	advanceToken.
-
-	tokenKind = #string ifFalse: [expected: 'string'].
-	category:: tokenValue.
-	advanceToken.
-
-	result:: parseClassDeclaration.
-	result category: category asSymbol.
-
-	tokenKind = #end ifFalse: [expected: 'end of input'].
-	^result
 )
 public parseDoItExpressionEnd = (
 	| result = parseCodeBody. |
@@ -536,7 +508,7 @@ public parseLiteral = (
 
 	tokenKind = #character ifTrue:
 		[n:: CharacterAST new
-			value: ("a" = 'a' ifTrue: [tokenValue asSymbol] ifFalse: [tokenValue]);
+			value: tokenValue asSymbol;
 			start: tokenStart; end: tokenEnd.
 		 advanceToken.
 		 ^n].

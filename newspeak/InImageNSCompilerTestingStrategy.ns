@@ -87,7 +87,7 @@ assertionMethodsSource ^<String> = (
 )
 compileClassSource: src <String> ^<Class> = (
 	(* Compile and install a top-level class and return the class object. *)
-	^(ClassDeclarationBuilder fromUnitSource: src) install applyToObject reflectee
+	^(ClassDeclarationBuilder fromSource: src) install applyToObject reflectee
 )
 runMethodSource ^<String> = (
 	^'public runIfFailure: failureBlock ifError: errorBlock = (
@@ -102,8 +102,6 @@ sourceOfModuleWithSample: sampleClassSource <String> test: testerClassSource <St
 	| sb |
 	sb:: StringBuilder new.
 	sb
-		writeln: 'Newsqueak2';
-		writeln: '''InImageNSCompilerTesting-tmp''';
 		writeln: 'class TestModule platform: platform = ( |
 			private platform = platform.
 			private MessageNotUnderstood = platform kernel MessageNotUnderstood.

@@ -10,7 +10,6 @@ public simpleName
 public headerSource
 public factoryName
 public comment
-public category
 public instanceSide = IntermediateMixin for: self isMeta: false.
 public classSide = IntermediateMixin for: self isMeta: true.
 public enclosingClass <IntermediateMixin>
@@ -53,7 +52,6 @@ public source <String>
 public primitive ::= 0.
 public accessModifier <Symbol>
 
-public category
 public isSynthetic ::= false.
 public builder
 |) (

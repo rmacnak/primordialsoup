@@ -172,12 +172,6 @@ public accessModifier ^<Symbol> = (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool classNode: self
 )
-public category ^ <CategoryAST> = (
-	^header category
-)
-public category: cat <CategoryAST> = (
-	header category: cat
-)
 public classComment ^ <String> = (
 	^header classComment
 )
@@ -235,7 +229,6 @@ public class ClassHeaderAST = AST (|
 	public slots <List[SlotDefAST]>
 	public isSeq <Boolean>
 	public classComment <String>
-	public category <CategoryAST>
 	public initExprs <List[ExpressionAST]>
 	public inheritanceChain <List[SendAST]>
  |) (
@@ -256,17 +249,13 @@ public class ClassPrefixAST name: n
 	superclassCall: scc
 	superConstructorCall: sk = AST (
 (* A class prefix defines everything about a class except for its mixin.
-It is intended to serve as a common component between ordinary class declarations and mixin applications.
-
-For Squeak compatibility, we maintain a category as well (ugh).
-*)
+It is intended to serve as a common component between ordinary class declarations and mixin applications. *)
 |
 	public name <Symbol> = n.
 	public constructor <MessagePatternAST> = k.
 	public superclassName <Symbol> = sn.
 	public superclassCall <NormalSendAST> = scc.
 	public superConstructorCall <MessageAST> = sk.
-	public category <CategoryAST>
 |) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool classPrefix: self
@@ -399,7 +388,6 @@ public class MixinApplicationClassAST named: klassName factoryMsg: cons inheriti
 	public name <Symbol> = klassName asSymbol.
 	public constructor <MessagePatternAST> = cons.
 	public inheritanceChain <List[SendAST]> = iList.
-	public category <CategoryAST>
 |) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool mixinApplicationClass: self

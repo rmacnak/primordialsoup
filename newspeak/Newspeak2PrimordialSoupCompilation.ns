@@ -2,7 +2,7 @@ Newspeak3
 'NS2PrimordialSoup'
 class Newspeak2PrimordialSoupCompilation usingPlatform: platform
  asts: asts
- newspeakParser: ns3Parser
+ parsing: parsing
  intermediates: i = NewspeakCompilation
  usingPlatform: platform
  asts: asts (
@@ -48,12 +48,13 @@ Copyright 2012-2013 Gilad Bracha, Ryan Macnak and Cadence Design Systems
 	private VarDeclAST = asts VarDeclAST.
 	private VariableAST = asts VariableAST.
 
+	private Parser = parsing Parser.
+
 	private IntermediateClassDeclaration = i IntermediateClassDeclaration.
 	private IntermediateSlotDeclaration = i IntermediateSlotDeclaration.
 	private IntermediateMethod = i IntermediateMethod.
 	private IntermediateMixin = i IntermediateMixin.
 	private IntermediateTransientSlot = i IntermediateTransientSlot.
-	protected parser <CommonParser> = ns3Parser CommonParser new.
 |) (
 public class Compiler = super Compiler (
 (* The compiler has three main entry points: compileClassSource:Within:, compileClassHeader: within: and compileMethodSource:within:. These compile an entire class declaration, a class header, and a method, respectively.
@@ -2389,7 +2390,6 @@ private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration>
 	classDecl headerSource: (sourceForNode: headerNode).
 	classDecl factoryName: headerNode constructor selector.
 	classDecl comment: (headerNode classComment isNil ifTrue: [''] ifFalse: [headerNode classComment]).
-	classDecl category: headerNode category.
 
 	currentDepth:: currentDepth + 1.
 	within: classDecl instanceSide compileInstanceSide: node.
@@ -2406,7 +2406,7 @@ public compileClassHeader2: src <String> within: enclosing <InstanceMixin> ^<Int
 	currentDepth:: 0.
 
 	nil = enclosing ifFalse: [buildIncrementalScopeFor: enclosing].
-	tree:: parser parseClassDeclaration: src , '()'.
+	tree:: parseClassDeclaration: src , '()'.
 
 	toScope: currentScope addClass: tree.
 
@@ -2426,12 +2426,8 @@ public compileClassSource: src <String> within: enclosingIR <IntermediateMixin> 
 	currentScope:: Scope new.
 	currentDepth:: 0.
 
-	nil = enclosingIR
-		ifTrue:
-			[tree:: parser parseCompilationUnit: src]
-		ifFalse:
-			[buildIncrementalScopeFor: enclosingIR builder.
-			 tree:: parser parseClassDeclaration: src].
+	nil = enclosingIR ifFalse: [buildIncrementalScopeFor: enclosingIR builder].
+	tree:: parseClassDeclaration: src.
 
 	toScope: currentScope addClass: tree.
 
@@ -2455,7 +2451,7 @@ public compileExpressionSource: src <String> debugMapper: debugMapper <MethodCon
 	buildIncrementalScopeFor: enclosing.
 
 	(* Parse as a code body *)
-	body:: parser parseExpression: src.
+	body:: parseExpression: src.
 
 	(* Ensure last statement is a return statement *)
 	body statements isEmpty ifFalse:
@@ -2514,7 +2510,7 @@ public compileMethodSource: src <String> within: enclosing <IntermediateMixin> ^
 
 	buildIncrementalScopeFor: enclosing.
 
-	tree:: parser parseMethodDeclaration: src.
+	tree:: parseMethodDeclaration: src.
 
 	^compileMethod: tree.
 )
@@ -2601,7 +2597,7 @@ futureFor: expression <ExpressionAST> ^<ExpressionAST> = (
 )
 hereNode ^<VariableAST> = (
 	(* Generates an AST representing the implicit receiver. Note we use a name that is not a legal identifier. *)
-	^VariableAST new name: #'@here'; start: 0; end: 0.
+	^VariableAST new name: #'@here'
 )
 hereSendFrom: arg <VarDeclAST> ^<MessageNode> = (
 	^UnresolvedSendAST new
@@ -2636,7 +2632,6 @@ initializerSelectorNameFor: selector <Symbol> ^<Symbol> = (
 )
 mixinApplicationClassNode: nc <MixinApplicationClassAST>
  in: mixinIR <IntermediateMixin>
- category: cat <String>
  ^<IntermediateClassDeclaration> = (
 	|
 	classDecl = IntermediateClassDeclaration new.
@@ -2655,7 +2650,6 @@ mixinApplicationClassNode: nc <MixinApplicationClassAST>
 
 	classDecl headerSource: hdrSource.
 	classDecl factoryName: nc constructor selector.
-	classDecl category: cat.
 	classDecl comment: ''.
 	init isSubinitializer: true.
 	init metadata at: #hasBody put: false.
@@ -2735,7 +2729,7 @@ pushScope: scope <Scope> = (
 	currentScope:: scope
 )
 selfNode ^<VariableAST> = (
-	^VariableAST new name: #self; start: 0; end: 0
+	^VariableAST new name: #self
 )
 sourceForNode: node <AST> ^ <String> = (
 	^currentSource copyFrom: node start to: node end
@@ -2810,7 +2804,7 @@ private within: mixinIR <IntermediateMixin> compileClassNoAdd: nestedClassNode <
 	| nestedClassIR |
 	nestedClassIR:: nestedClassNode isKindOfClassDeclarationNode
 		ifTrue: [compileClass: nestedClassNode]
-		ifFalse: [mixinApplicationClassNode: nestedClassNode in: mixinIR category: 'XYZ'].
+		ifFalse: [mixinApplicationClassNode: nestedClassNode in: mixinIR].
 	nestedClassIR enclosingClass: mixinIR.
 	nestedClassIR accessor: (createNestedClassAccessorFrom: nestedClassNode).
 	^nestedClassIR
@@ -2864,7 +2858,6 @@ private within: mixinIR <IntermediateMixin> compileInstanceSide: classNode <Clas
 )
 private within: mixinIR <IntermediateMixin> compileMethod: methodNode <MethodAST> = (
 	| methodIR = compileMethod: methodNode. |
-	methodIR category: 'as yet unclassified'.
 	mixinIR methods add: methodIR.
 )
 private within: mixinIR <IntermediateMixin> compileSlot: slotNode <SlotDefAST> = (
@@ -2878,9 +2871,8 @@ private within: mixinIR <IntermediateMixin> compileTransientSlot: transientSlotN
 	mixinIR transientSlots add: (within: mixinIR compileTransientSlotNoAdd: transientSlotNode)
 )
 private within: enclosingIR <IntermediateMixin> compileTransientSlotNoAdd: tree <SlotDefAST> = (
-	| intermediateTS treeMainMethod mixinIR name initMethod mainMethod category source |
+	| intermediateTS treeMainMethod mixinIR name initMethod mainMethod source |
 
-	category:: #'transientslots'.
 	mixinIR: enclosingIR.
 	name: tree name.
 	intermediateTS:: IntermediateTransientSlot new.
@@ -2893,7 +2885,6 @@ private within: enclosingIR <IntermediateMixin> compileTransientSlotNoAdd: tree 
 		[:treeInitMethod :newSource |
 		initMethod:: compileMethod: treeInitMethod.
 		initMethod isSynthetic: false.
-		initMethod category: category.
 		initMethod source: newSource.
 		intermediateTS intermediateInitMethod: initMethod].
 
@@ -2901,7 +2892,6 @@ private within: enclosingIR <IntermediateMixin> compileTransientSlotNoAdd: tree 
 	treeMainMethod:: astForTransientSlotGetter: tree.
 	mainMethod:: compileMethod: treeMainMethod.
 	mainMethod isSynthetic: false.
-	mainMethod category: category.
 	mainMethod source: source.
 	intermediateTS intermediateMainMethod: mainMethod.
 
@@ -2911,7 +2901,6 @@ private within: enclosingIR <IntermediateMixin> compileTransientSlotNoAdd: tree 
 		treeSetterMethod:: astForTransientSlotSetter: tree.
 		setterMethod:: compileMethod: treeSetterMethod.
 		setterMethod isSynthetic: false.
-		setterMethod category: category.
 		intermediateTS intermediateSetterMethod: setterMethod].
 
 	^intermediateTS
@@ -2985,6 +2974,15 @@ assert: c = (
 )
 namer = (
 	^super namer
+)
+parseClassDeclaration: input <String> = (
+	^(Parser for: input) advanceToken parseClassDeclarationEnd
+)
+parseExpression: input <String> = (
+	^(Parser for: input) advanceToken parseDoItExpressionEnd
+)
+parseMethodDeclaration: input <String> = (
+	^(Parser for: input) advanceToken parseMethodDeclarationEnd
 )
 ) : (
 )
