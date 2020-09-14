@@ -6,7 +6,6 @@ class CommandLineCompiler usingPlatform: platform = (
 |
 	private List = platform collections List.
 	private Map = platform collections Map.
-	private Stopwatch = platform kernel Stopwatch.
 	private ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
 	private Port = platform actors Port.
 	private Snapshotter = platform victoryFuel Snapshotter.
@@ -23,12 +22,24 @@ childMain: args = (
 )
 compileFile: filename = (
 	| source builder |
-	source:: readFileAsString: filename.
-	builder:: ClassDeclarationBuilder fromSource: source.
-	^builder install applyToObject reflectee.
+	source:: String withAll: (readFileAsBytes: filename).
+	^[builder:: ClassDeclarationBuilder fromSource: source.
+	  builder install applyToObject reflectee]
+		on: Exception
+		do: [:ex | describeError: ex path: filename source: source. ex pass].
 )
-decodeUtf8: bytes = (
-	^String withAll: bytes
+describeError: ex path: path source: source = (
+	ex isKindOfParseError
+		ifTrue:
+			[ | line ::= 1. lastLine ::= 0. column |
+			 1 to: ex position do:
+				[:index | (source at: index) = 10 (* LF *) ifTrue:
+					[line:: line + 1. lastLine:: index]].
+			 column:: ex position - lastLine.
+			 (* This matches GCC's format, which lets various tools automatically jump to the position. *)
+			 (path, ':', line asString, ':', column asString, ': error: ', ex message) out]
+		ifFalse:
+			[(path, ':0: error: ', ex printString) out].
 )
 public main: args = (
 	(args at: 1) = 'child'
@@ -46,8 +57,6 @@ parentMain: args = (
 	index ::= 1.
 	outstanding ::= 0.
 	|
-
-	stopwatch:: Stopwatch new start.
 
 	workLists:: Array new: numJobs.
 	1 to: numJobs do: [:i | workLists at: i put: List new].
@@ -68,32 +77,22 @@ parentMain: args = (
 		outstanding:: outstanding - 1.
 		outstanding = 0 ifTrue:
 			[port close.
-			 (* ('Compiled in ', stopwatch elapsedMilliseconds printString, ' ms') out. *)
-
 			 [(index + 2) <= args size] whileTrue:
 				[ | runtimeName appName snapshotName runtime app fuel bytes |
 				runtimeName:: args at: index.
 				appName:: args at: index + 1.
 				snapshotName:: args at: index + 2.
 				index:: index + 3.
-				(* ('Runtime configuration: ', runtimeName) out.
-				('Application configuration: ', appName) out. *)
 
 				runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.
 				app:: (namespace at: appName) packageUsing: manifest.
 
-				stopwatch:: Stopwatch new start.
 				bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
-				writeBytes: bytes toFileNamed: snapshotName.
-
-				(* ('Serialized in ', stopwatch elapsedMilliseconds printString, ' ms') out *)]]].
+				writeBytes: bytes toFileNamed: snapshotName]]].
 )
 readFileAsBytes: filename = (
 	(* :literalmessage: primitive: 130 *)
 	halt.
-)
-readFileAsString: filename = (
-	^decodeUtf8: (readFileAsBytes: filename)
 )
 writeBytes: bytes toFileNamed: filename = (
 	(* :literalmessage: primitive: 128 *)

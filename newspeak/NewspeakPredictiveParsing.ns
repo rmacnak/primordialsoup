@@ -43,10 +43,13 @@ Todo:
 |) (
 class ParseError message: m position: p = Error (
 	|
-	message <String> = m.
-	position <Integer> = p.
+	public message <String> = m.
+	public position <Integer> = p.
 	|
 ) (
+public isKindOfParseError ^<Boolean> = (
+	^true
+)
 public printString = (
 	^'ParseError: ' , message , ' at position ' , position asString
 )
