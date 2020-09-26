@@ -1216,56 +1216,10 @@ aboutToReturn: result through: firstUnwindActivation = (
 	activate: method receiver: activation arguments: {result. firstUnwindActivation}.
 )
 public activate: newMethod receiver: newReceiver arguments: arguments = (
-	| primitive = newMethod primitive. result newActivation |
+	| newActivation |
 
-	0 = primitive ifFalse:
-		[(* Simulation guard *)
-		112 = primitive ifTrue: ['simulation guard' out. halt. ].
-
-		(* Current activation *)
-		133 = primitive ifTrue: [activation push: activation. ^self].
-
-		(* Closure activation *)
-		90 = primitive ifTrue:
-			[newReceiver numArgs = 0 ifTrue:
-				[^activateClosure: newReceiver arguments: arguments]].
-		91 = primitive ifTrue:
-			[newReceiver numArgs = 1 ifTrue:
-				[^activateClosure: newReceiver arguments: arguments]].
-		92 = primitive ifTrue:
-			[newReceiver numArgs = 2 ifTrue:
-				[^activateClosure: newReceiver arguments: arguments]].
-		93 = primitive ifTrue:
-			[newReceiver numArgs = 3 ifTrue:
-				[^activateClosure: newReceiver arguments: arguments]].
-		94 = primitive ifTrue: [
-			| closureArgs = arguments at: 1. |
-			(Array = (classOf: closureArgs)) ifTrue:
-				[closureArgs size = newReceiver numArgs ifTrue:
-					[^activateClosure: newReceiver arguments: closureArgs]]].
-
-		(* Jump *)
-		95 = primitive ifTrue: [
-			activation:: arguments at: 1.
-			^self].
-
-		(* Perform *)
-		89 = primitive ifTrue: [
-			| object selector performArguments |
-			object:: arguments at: 1.
-			selector:: arguments at: 2.
-			performArguments:: arguments at: 3.
-			(* :todo: Where should we fail on arity mismatch? *)
-			(String = (classOf: selector)) ifTrue:
-				[(Array = (classOf: performArguments)) ifTrue:
-					[activation push: object.
-					performArguments do: [:arg | activation push: arg].
-					^ordinarySend: selector numArgs: performArguments size]]].
-
-		result:: doPrimitive: primitive receiver: newReceiver arguments: arguments.
-		arguments = result ifFalse:
-			[activation push: result.
-			 ^self]].
+	(tryPrimitive: newMethod primitive receiver: newReceiver arguments: arguments)
+		ifTrue: [^self].
 
 	newActivation:: Activation new.
 	newActivation sender: activation.
@@ -1740,6 +1694,64 @@ superSend: selectorOffset numArgs: numArgs = (
 	messageReceiver:: activation receiver.
 	methodMixinApplication:: findApplicationOf: activation method mixin startingAt: (classOf: messageReceiver).
 	^sendProtected: selector to: messageReceiver arguments: arguments startingAt: (superclassOf: methodMixinApplication)
+)
+tryPrimitive: primitive receiver: newReceiver arguments: arguments = (
+	| result |
+
+	0 = primitive ifTrue: [^false].
+
+	(* Simulation guard *)
+	112 = primitive ifTrue: ['simulation guard' out. halt].
+
+	(* Current activation *)
+	133 = primitive ifTrue: [activation push: activation. ^true].
+
+	(* Closure activation *)
+	90 = primitive ifTrue:
+		[newReceiver numArgs = 0 ifFalse: [^false].
+		 activateClosure: newReceiver arguments: arguments.
+		 ^true].
+	91 = primitive ifTrue:
+		[newReceiver numArgs = 1 ifFalse: [^false].
+		 activateClosure: newReceiver arguments: arguments.
+		 ^true].
+	92 = primitive ifTrue:
+		[newReceiver numArgs = 2 ifFalse: [^false].
+		 activateClosure: newReceiver arguments: arguments.
+		 ^true].
+	93 = primitive ifTrue:
+		[newReceiver numArgs = 3 ifFalse: [^false].
+		 activateClosure: newReceiver arguments: arguments.
+		 ^true].
+	94 = primitive ifTrue:
+		[ | closureArgs = arguments at: 1. |
+		 Array = (classOf: closureArgs) ifFalse: [^false].
+		 closureArgs size = newReceiver numArgs ifFalse: [^false].
+		 activateClosure: newReceiver arguments: closureArgs.
+		 ^true].
+
+	(* Jump *)
+	95 = primitive ifTrue: [activation:: arguments at: 1. ^true].
+
+	(* Perform *)
+	89 = primitive ifTrue:
+		[ | object selector performArguments |
+		object:: arguments at: 1.
+		selector:: arguments at: 2.
+		performArguments:: arguments at: 3.
+		(* :todo: Where should we fail on arity mismatch? *)
+		(String = (classOf: selector)) ifFalse: [^false].
+		(Array = (classOf: performArguments)) ifFalse: [^false].
+		activation push: object.
+		performArguments do: [:arg | activation push: arg].
+		ordinarySend: selector numArgs: performArguments size.
+		^true].
+
+	result:: doPrimitive: primitive receiver: newReceiver arguments: arguments.
+	arguments = result ifFalse:
+		[activation push: result.
+		 ^true].
+	^false
 )
 ) : (
 public bciBefore: afterBci in: method = (

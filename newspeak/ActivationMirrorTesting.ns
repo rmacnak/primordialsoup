@@ -1472,6 +1472,12 @@ public testSimulationValueArray = (
 	assertSimulation: [closure valueWithArguments: {4. 8. 16}] answers: (closure valueWithArguments: {4. 8. 16}).
 	indirect:: 4. (* write after capture forces use of indirection vector *)
 )
+public testSimulationValueBadArity = (
+	assertSimulation: [[] value:  1 value: 2 value: 3] signals: [:e | ].
+	assertSimulation: [[:a |] value:  1 value: 2] signals: [:e | ].
+	assertSimulation: [[:a :b |] value:  1] signals: [:e | ].
+	assertSimulation: [[:a :b :c |] value] signals: [:e | ].
+)
 ) : (
 TEST_CONTEXT = ()
 )
