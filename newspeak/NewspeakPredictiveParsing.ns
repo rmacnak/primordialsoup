@@ -1,5 +1,3 @@
-Newspeak3
-'Newspeak'
 class NewspeakPredictiveParsing usingPlatform: platform asts: asts = (
 (* A predictive LL(3) parser for Newspeak.
 

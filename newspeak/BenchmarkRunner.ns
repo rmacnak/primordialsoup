@@ -1,5 +1,3 @@
-Newspeak3
-'Benchmarks'
 class BenchmarkRunner packageUsing: manifest = (
 (*Infrastructure to run a set of benchmarks and gather average run times.
 

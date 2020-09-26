@@ -1,5 +1,3 @@
-Newspeak3
-'Mirrors'
 class ActivationMirrorTestingConfiguration packageTestsUsing: manifest = (|
 private ActivationMirrorTesting = manifest ActivationMirrorTesting.
 |) (

@@ -1,5 +1,3 @@
-Newspeak3
-'Newspeak'
 class NewspeakASTs usingLib: platform = (
 (* Abstract syntax tree node classes for Newspeak.
 

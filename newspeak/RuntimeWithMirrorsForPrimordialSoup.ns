@@ -1,5 +1,3 @@
-Newspeak3
-'NS2PrimordialSoup'
 class RuntimeWithMirrorsForPrimordialSoup packageRuntimeUsing: manifest = (|
 private Kernel = manifest Kernel.
 public InternalKernel = manifest KernelForPrimordialSoup.

@@ -1,5 +1,3 @@
-Newspeak3
-'NSCollections'
 class CollectionsTestingConfiguration packageTestsUsing: manifest = (|
 private CollectionsTesting = manifest CollectionsTesting.
 |) (

@@ -1,5 +1,3 @@
-Newspeak3
-'Mirrors'
 class ActivationMirrorTesting usingPlatform: p minitest: m = (|
 private ClassDeclarationBuilder = p mirrors ClassDeclarationBuilder.
 private ObjectMirror = p mirrors ObjectMirror.

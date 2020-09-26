@@ -1,5 +1,3 @@
-Newspeak3
-'Benchmarks'
 class SlotRead usingPlatform: p = (| slot |) (
 public bench = (
 	self slot: 'something'.

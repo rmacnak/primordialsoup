@@ -1,5 +1,3 @@
-Newspeak3
-'Fuchsia'
 class ZirconTesting usingPlatform: platform minitest: minitest = (
 |
 	private zx = platform zircon.

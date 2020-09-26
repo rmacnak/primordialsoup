@@ -1,5 +1,3 @@
-Newspeak3
-'Benchmarks'
 class ClosureFibonacci usingPlatform: p = (
 (*A microbenchmark stressing closure evalutation and integer arithmetic.
 

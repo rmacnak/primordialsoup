@@ -1,5 +1,3 @@
-Newspeak3
-'Actors'
 class ActorsTesting usingPlatform: p actors: a testActor: ta minitest: m = (|
 	private TestActor = ta.
 	private TestContext = m TestContext.

@@ -1,5 +1,3 @@
-Newspeak3
-'Mirrors'
 class MirrorTestingModel = () (
 public class Klass factory: arg = SuperKlass superFactory: arg (|
 public publicSlot = 1.

@@ -1,5 +1,3 @@
-Newspeak3
-'NS2Squeak'
 class InImageNSCompilerTestingStrategy platform: platform mirrors: mirrors = (
 (* An implementation of a compiler testing strategy that performs the tests by compiling them in the current image.
 

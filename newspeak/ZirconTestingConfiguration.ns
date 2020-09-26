@@ -1,5 +1,3 @@
-Newspeak3
-'Fuchsia'
 class ZirconTestingConfiguration packageTestsUsing: manifest = (
 |
 	private ZirconTesting = manifest ZirconTesting.

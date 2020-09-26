@@ -1,5 +1,3 @@
-Newspeak3
-'AccessModifierTests'
 class AccessModifierTestingConfiguration packageTestsUsing: manifest = (|
 private AccessModifierTesting = manifest AccessModifierTesting.
 |) (

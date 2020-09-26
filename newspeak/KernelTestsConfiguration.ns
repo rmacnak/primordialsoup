@@ -1,5 +1,3 @@
-Newspeak3
-'Newspeak'
 class KernelTestsConfiguration packageTestsUsing: manifest = (|
 private KernelTests = manifest KernelTests.
 |) (

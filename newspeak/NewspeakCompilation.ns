@@ -1,5 +1,3 @@
-Newspeak3
-'Newspeak'
 class NewspeakCompilation usingPlatform: p asts: asts = (
 (* Facilities common to each of the Newspeak compilers, such as scopes and the scope builder. A common Rewriter should eventually be located here as well.
 

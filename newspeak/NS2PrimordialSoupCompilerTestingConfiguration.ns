@@ -1,5 +1,3 @@
-Newspeak3
-'NS2PrimordialSoup'
 class NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest = (
 (* A replacement of NSCompilerTestConfiguration to pass a pluggable testing strategy to NSCompilerTesting. See the class comment of InImageNSCompilerTestingStrategy for a description of testing strategies.
 

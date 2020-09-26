@@ -1,5 +1,3 @@
-Newspeak3
-'NS2PrimordialSoup'
 class CompilerApp packageUsing: manifest = (
 ) (
 class CommandLineCompiler usingPlatform: platform = (

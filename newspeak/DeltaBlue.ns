@@ -1,5 +1,3 @@
-Newspeak3
-'Benchmarks'
 class DeltaBlue usingPlatform: p = (
 (* One-way constraint solver, originally written in Smalltalk by John Maloney and Mario Wolczko. *)
 |

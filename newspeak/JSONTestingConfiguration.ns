@@ -1,5 +1,3 @@
-Newspeak3
-'NS2PrimordialSoup'
 class JSONTestingConfiguration packageTestsUsing: manifest = (|
 private JSON = manifest JSON.
 private JSONTesting = manifest JSONTesting.

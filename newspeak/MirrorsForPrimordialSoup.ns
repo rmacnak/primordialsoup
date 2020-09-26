@@ -1,5 +1,3 @@
-Newspeak3
-'NS2PrimordialSoup'
 class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns = (|
 private Collection = platform collections Collection.
 private List = platform collections List.

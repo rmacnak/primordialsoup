@@ -1,5 +1,3 @@
-Newspeak3
-'Actors'
 class ActorsForPrimordialSoup usingPlatform: p = (|
 private WeakMap = p kernel WeakMap.
 private List = p collections List.

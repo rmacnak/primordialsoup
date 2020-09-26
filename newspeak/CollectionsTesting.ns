@@ -1,5 +1,3 @@
-Newspeak3
-'NSCollections'
 class CollectionsTesting usingCollections: c minitest: m = (|
 private TestContext = m TestContext.
 

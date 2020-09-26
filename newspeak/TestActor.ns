@@ -1,5 +1,3 @@
-Newspeak3
-'Actors'
 class TestActor = (|
 	public Promise
 	public link

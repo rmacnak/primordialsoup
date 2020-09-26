@@ -1,5 +1,3 @@
-Newspeak3
-'Actors'
 class ActorsTestingConfigurationForPrimordialSoup packageTestsUsing: manifest = (|
 private ActorsTesting = manifest ActorsTesting.
 private TestActor = manifest TestActor.

@@ -1,5 +1,3 @@
-Newspeak3
-'Minitest'
 class MinitestTestsConfiguration packageTestsUsing: ideNamespace = (
 (* Runs MinitestTests. *)
 |

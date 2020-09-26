@@ -1,5 +1,3 @@
-Newspeak3
-'Benchmarks'
 class MethodFibonacci usingPlatform: p = (
 (*A microbenchmark stressing method invocations and integer arithmetic.
 

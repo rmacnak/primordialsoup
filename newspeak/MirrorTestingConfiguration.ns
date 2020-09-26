@@ -1,5 +1,3 @@
-Newspeak3
-'Mirrors'
 class MirrorTestingConfiguration packageTestsUsing: manifest = (|
 private MirrorTesting = manifest MirrorTesting.
 private MirrorTestingModel = manifest MirrorTestingModel.

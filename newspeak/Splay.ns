@@ -1,5 +1,3 @@
-Newspeak3
-'Benchmarks'
 class Splay usingPlatform: p = (
 (*This benchmark is based on a JavaScript log processing module used by the V8 profiler to generate execution time profiles for runs of JavaScript applications, and it effectively measures how fast the JavaScript engine is at allocating nodes and reclaiming the memory used for old nodes. Because of the way splay trees work, the engine also has to deal with a lot of changes to the large tree object graph.
 

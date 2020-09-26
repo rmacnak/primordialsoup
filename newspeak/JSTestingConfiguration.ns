@@ -1,5 +1,3 @@
-Newspeak3
-'Aliens'
 class JSTestingConfiguration packageTestsUsing: manifest = (
 |
 	private JSTesting = manifest JSTesting.
