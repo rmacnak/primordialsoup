@@ -113,15 +113,9 @@ class Interpreter {
  private:
   void Interpret();
 
-  INLINE void PushLiteralVariable(intptr_t offset);
-  INLINE void PushTemporary(intptr_t offset);
-  INLINE void PushRemoteTemp(intptr_t vector_offset, intptr_t offset);
-
-  INLINE void StoreIntoTemporary(intptr_t offset);
-  INLINE void StoreIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
-
-  INLINE void PopIntoTemporary(intptr_t offset);
-  INLINE void PopIntoRemoteTemp(intptr_t vector_offset, intptr_t offset);
+  INLINE void PushIndirectLocal(intptr_t vector_offset, intptr_t offset);
+  INLINE void PopIntoIndirectLocal(intptr_t vector_offset, intptr_t offset);
+  INLINE void StoreIntoIndirectLocal(intptr_t vector_offset, intptr_t offset);
 
   INLINE void PushLiteral(intptr_t offset);
   INLINE void PushEnclosingObject(intptr_t depth);
@@ -174,7 +168,6 @@ class Interpreter {
   NOINLINE void Activate(Method method, intptr_t num_args);
   NOINLINE void StackOverflow();
 
-  INLINE void MethodReturn(Object result);
   INLINE void LocalReturn(Object result);
   NOINLINE void LocalBaseReturn(Object result);
   NOINLINE void NonLocalReturn(Object result);

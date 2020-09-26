@@ -80,6 +80,17 @@ static void FrameActivationPut(Object* fp, Activation activation) {
 
 static Object FrameReceiver(Object* fp) { return fp[-4]; }
 
+static Object FrameParameter(Object* fp, intptr_t index) {
+  ASSERT(index <= FlagsNumArgs(FrameFlags(fp)));
+  return fp[1 + index];
+}
+static Object FrameLocal(Object* fp, intptr_t index) {
+  return fp[-5 - index];
+}
+static void FrameLocalPut(Object* fp, intptr_t index, Object value) {
+  fp[-5 - index] = value;
+}
+
 static Object FrameTemp(Object* fp, intptr_t index) {
   intptr_t num_args = FlagsNumArgs(FrameFlags(fp));
   if (index < num_args) {
@@ -139,78 +150,38 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
 #endif
 }
 
-
 Interpreter::~Interpreter() {
   free(stack_limit_);
 }
 
-
-void Interpreter::PushLiteralVariable(intptr_t offset) {
-  // Not used in Newspeak, except by the implementation of eventual sends.
-  // TODO(rmacnak): Add proper eventual send bytecode.
-  Push(object_store()->message_loop());
-}
-
-
-void Interpreter::PushTemporary(intptr_t offset) {
-  Object temp = FrameTemp(fp_, offset);
-  Push(temp);
-}
-
-
-void Interpreter::PushRemoteTemp(intptr_t vector_offset, intptr_t offset) {
-  Object vector = FrameTemp(fp_, vector_offset);
+void Interpreter::PushIndirectLocal(intptr_t vector_offset, intptr_t offset) {
+  Object vector = FrameLocal(fp_, vector_offset);
   ASSERT(vector->IsArray());
   Object temp = static_cast<Array>(vector)->element(offset);
   Push(temp);
 }
 
-
-void Interpreter::StoreIntoTemporary(intptr_t offset) {
-  Object top = Stack(0);
-  FrameTempPut(fp_, offset, top);
-}
-
-
-void Interpreter::StoreIntoRemoteTemp(intptr_t vector_offset, intptr_t offset) {
-  Object top = Stack(0);
-  Object vector = FrameTemp(fp_, vector_offset);
+void Interpreter::PopIntoIndirectLocal(intptr_t vector_offset,
+                                       intptr_t offset) {
+  Object top = Pop();
+  Object vector = FrameLocal(fp_, vector_offset);
   ASSERT(vector->IsArray());
   static_cast<Array>(vector)->set_element(offset, top);
 }
 
-
-void Interpreter::PopIntoTemporary(intptr_t offset) {
-  Object top = Pop();
-  FrameTempPut(fp_, offset, top);
-}
-
-
-void Interpreter::PopIntoRemoteTemp(intptr_t vector_offset, intptr_t offset) {
-  Object top = Pop();
-  Object vector = FrameTemp(fp_, vector_offset);
+void Interpreter::StoreIntoIndirectLocal(intptr_t vector_offset,
+                                         intptr_t offset) {
+  Object top = Stack(0);
+  Object vector = FrameLocal(fp_, vector_offset);
   ASSERT(vector->IsArray());
   static_cast<Array>(vector)->set_element(offset, top);
 }
-
 
 void Interpreter::PushLiteral(intptr_t offset) {
-  Method method = FrameMethod(fp_);
-  Object literal;
-  if (offset == method->literals()->Size() + 1) {
-    // Hack. When transforming from Squeak CompiledMethod, we drop
-    // the last two literals (the selector/AdditionalMethodState and
-    // the mixin class association) because we put them in the Method
-    // instead of the literal array. The mixin class associtation is
-    // accessed by nested class accessors.
-    literal = method->mixin();
-  } else {
-    ASSERT((offset >= 0) && (offset < method->literals()->Size()));
-    literal = method->literals()->element(offset);
-  }
-  Push(literal);
+  Array literals = FrameMethod(fp_)->literals();;
+  ASSERT((offset >= 0) && (offset < literals->Size()));
+  Push(literals->element(offset));
 }
-
 
 void Interpreter::PushEnclosingObject(intptr_t depth) {
   ASSERT(depth > 0);  // Compiler should have used push receiver.
@@ -228,7 +199,6 @@ void Interpreter::PushEnclosingObject(intptr_t depth) {
   Push(enclosing_object);
 }
 
-
 void Interpreter::PushNewArrayWithElements(intptr_t size) {
   Array result = H->AllocateArray(size);  // SAFEPOINT
   for (intptr_t i = 0; i < size; i++) {
@@ -238,7 +208,6 @@ void Interpreter::PushNewArrayWithElements(intptr_t size) {
   PopNAndPush(size, result);
 }
 
-
 void Interpreter::PushNewArray(intptr_t size) {
   Array result = H->AllocateArray(size);  // SAFEPOINT
   for (intptr_t i = 0; i < size; i++) {
@@ -246,7 +215,6 @@ void Interpreter::PushNewArray(intptr_t size) {
   }
   Push(result);
 }
-
 
 void Interpreter::PushClosure(intptr_t num_copied,
                               intptr_t num_args,
@@ -266,23 +234,21 @@ void Interpreter::PushClosure(intptr_t num_copied,
   PopNAndPush(num_copied, result);
 }
 
-
 void Interpreter::Perform(String selector, intptr_t num_args) {
   OrdinarySend(selector, num_args);  // SAFEPOINT
 }
-
 
 void Interpreter::CommonSend(intptr_t offset) {
   Array common_selectors = object_store()->common_selectors();
   String selector =
       static_cast<String>(common_selectors->element(offset * 2));
+  ASSERT(selector->IsString());
   ASSERT(selector->is_canonical());
   SmallInteger arity =
       static_cast<SmallInteger>(common_selectors->element(offset * 2 + 1));
   ASSERT(arity->IsSmallInteger());
   OrdinarySend(selector, arity->value());  // SAFEPOINT
 }
-
 
 Method Interpreter::MethodAt(Behavior cls, String selector) {
   ASSERT(selector->IsString());
@@ -301,18 +267,15 @@ Method Interpreter::MethodAt(Behavior cls, String selector) {
   return static_cast<Method>(nil);
 }
 
-
 bool Interpreter::HasMethod(Behavior cls, String selector) {
   return MethodAt(cls, selector) != nil;
 }
-
 
 void Interpreter::OrdinarySend(intptr_t selector_index,
                                intptr_t num_args) {
   String selector = SelectorAt(selector_index);
   OrdinarySend(selector, num_args);  // SAFEPOINT
 }
-
 
 void Interpreter::OrdinarySend(String selector,
                                intptr_t num_args) {
@@ -327,7 +290,6 @@ void Interpreter::OrdinarySend(String selector,
 
   OrdinarySendMiss(selector, num_args);  // SAFEPOINT
 }
-
 
 void Interpreter::OrdinarySendMiss(String selector,
                                    intptr_t num_args) {
@@ -357,7 +319,6 @@ void Interpreter::OrdinarySendMiss(String selector,
           receiver_class, present_receiver);  // SAFEPOINT
 }
 
-
 Behavior Interpreter::FindApplicationOf(AbstractMixin mixin,
                                         Behavior klass) {
   while (klass->mixin() != mixin) {
@@ -368,7 +329,6 @@ Behavior Interpreter::FindApplicationOf(AbstractMixin mixin,
   }
   return klass;
 }
-
 
 void Interpreter::SuperSend(intptr_t selector_index,
                             intptr_t num_args) {
@@ -394,7 +354,6 @@ void Interpreter::SuperSend(intptr_t selector_index,
   SuperSendMiss(selector, num_args);  // SAFEPOINT
 }
 
-
 void Interpreter::SuperSendMiss(String selector,
                                 intptr_t num_args) {
   Object receiver = FrameReceiver(fp_);
@@ -408,7 +367,6 @@ void Interpreter::SuperSendMiss(String selector,
                 method_mixin_app->superclass(),
                 kSuper);  // SAFEPOINT
 }
-
 
 void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
                                        intptr_t num_args) {
@@ -434,7 +392,6 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
 
   return ImplicitReceiverSendMiss(selector, num_args);  // SAFEPOINT
 }
-
 
 void Interpreter::ImplicitReceiverSendMiss(String selector,
                                            intptr_t num_args) {
@@ -466,7 +423,6 @@ void Interpreter::ImplicitReceiverSendMiss(String selector,
                 kImplicitReceiver);  // SAFEPOINT
 }
 
-
 void Interpreter::OuterSend(intptr_t selector_index,
                             intptr_t num_args,
                             intptr_t depth) {
@@ -491,7 +447,6 @@ void Interpreter::OuterSend(intptr_t selector_index,
   OuterSendMiss(selector, num_args, depth);  // SAFEPOINT
 }
 
-
 void Interpreter::OuterSendMiss(String selector,
                                 intptr_t num_args,
                                 intptr_t depth) {
@@ -507,7 +462,6 @@ void Interpreter::OuterSendMiss(String selector,
   }
   LexicalSend(selector, num_args, receiver, target_mixin, depth);  // SAFEPOINT
 }
-
 
 void Interpreter::SelfSend(intptr_t selector_index,
                            intptr_t num_args) {
@@ -532,14 +486,12 @@ void Interpreter::SelfSend(intptr_t selector_index,
   SelfSendMiss(selector, num_args);  // SAFEPOINT
 }
 
-
 void Interpreter::SelfSendMiss(String selector,
                                intptr_t num_args) {
   Object receiver = FrameReceiver(fp_);
   AbstractMixin method_mixin = FrameMethod(fp_)->mixin();
   LexicalSend(selector, num_args, receiver, method_mixin, kSelf);  // SAFEPOINT
 }
-
 
 void Interpreter::LexicalSend(String selector,
                               intptr_t num_args,
@@ -565,7 +517,6 @@ void Interpreter::LexicalSend(String selector,
   ProtectedSend(selector, num_args, receiver,
                 receiver_class, rule);  // SAFEPOINT
 }
-
 
 void Interpreter::ProtectedSend(String selector,
                                 intptr_t num_args,
@@ -594,7 +545,6 @@ void Interpreter::ProtectedSend(String selector,
   DNUSend(selector, num_args, receiver, mixin_application,
           present_receiver);  // SAFEPOINT
 }
-
 
 void Interpreter::DNUSend(String selector,
                           intptr_t num_args,
@@ -656,7 +606,6 @@ void Interpreter::DNUSend(String selector,
   Activate(method, 1);  // SAFEPOINT
 }
 
-
 void Interpreter::SendCannotReturn(Object result) {
   if (TRACE_SPECIAL_CONTROL) {
     OS::PrintErr("#cannotReturn:\n");
@@ -687,7 +636,6 @@ void Interpreter::SendCannotReturn(Object result) {
   Push(result);
   Activate(method, 1);  // SAFEPOINT
 }
-
 
 void Interpreter::SendAboutToReturnThrough(Object result,
                                            Activation unwind) {
@@ -723,7 +671,6 @@ void Interpreter::SendAboutToReturnThrough(Object result,
   Activate(method, 2);  // SAFEPOINT
 }
 
-
 void Interpreter::SendNonBooleanReceiver(Object non_boolean) {
   // Note that Squeak instead sends #mustBeBoolean to the non-boolean.
   if (TRACE_SPECIAL_CONTROL) {
@@ -756,7 +703,6 @@ void Interpreter::SendNonBooleanReceiver(Object non_boolean) {
   Activate(method, 1);  // SAFEPOINT
 }
 
-
 void Interpreter::InsertAbsentReceiver(Object receiver, intptr_t num_args) {
   ASSERT(num_args >= 0);
   ASSERT(num_args < 255);
@@ -769,14 +715,12 @@ void Interpreter::InsertAbsentReceiver(Object receiver, intptr_t num_args) {
   StackPut(num_args, receiver);
 }
 
-
 void Interpreter::ActivateAbsent(Method method,
                                  Object receiver,
                                  intptr_t num_args) {
   InsertAbsentReceiver(receiver, num_args);
   Activate(method, num_args);  // SAFEPOINT
 }
-
 
 void Interpreter::Activate(Method method, intptr_t num_args) {
   ASSERT(num_args == method->NumArgs());
@@ -835,7 +779,6 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
   }
 }
 
-
 void Interpreter::ActivateClosure(intptr_t num_args) {
   Closure closure = static_cast<Closure>(Stack(num_args));
   ASSERT(closure->IsClosure());
@@ -865,7 +808,6 @@ void Interpreter::ActivateClosure(intptr_t num_args) {
     StackOverflow();
   }
 }
-
 
 void Interpreter::CreateBaseFrame(Activation activation) {
   ASSERT(activation->IsActivation());
@@ -921,7 +863,6 @@ void Interpreter::CreateBaseFrame(Activation activation) {
   ASSERT(FrameReceiver(fp_) == activation->receiver());
 }
 
-
 void Interpreter::StackOverflow() {
   if (checked_stack_limit_ == reinterpret_cast<Object*>(-1)) {
     // Interrupt.
@@ -934,7 +875,6 @@ void Interpreter::StackOverflow() {
   CreateBaseFrame(FlushAllFrames());  // SAFEPOINT
 }
 
-
 String Interpreter::SelectorAt(intptr_t index) {
   Array literals = FrameMethod(fp_)->literals();
   ASSERT((index >= 0) && (index < literals->Size()));
@@ -943,7 +883,6 @@ String Interpreter::SelectorAt(intptr_t index) {
   ASSERT(static_cast<String>(selector)->is_canonical());
   return static_cast<String>(selector);
 }
-
 
 void Interpreter::LocalReturn(Object result) {
   Object* saved_fp = FrameSavedFP(fp_);
@@ -957,7 +896,6 @@ void Interpreter::LocalReturn(Object result) {
   fp_ = saved_fp;
   Push(result);
 }
-
 
 void Interpreter::LocalBaseReturn(Object result) {
   // Returning from the base frame.
@@ -981,7 +919,6 @@ void Interpreter::LocalBaseReturn(Object result) {
   CreateBaseFrame(sender);
   Push(result);
 }
-
 
 void Interpreter::NonLocalReturn(Object result) {
   // Search the static chain for the enclosing method activation.
@@ -1079,19 +1016,6 @@ void Interpreter::NonLocalReturn(Object result) {
   Push(result);
 }
 
-
-void Interpreter::MethodReturn(Object result) {
-  // TODO(rmacnak): Squeak groups the syntactically similar method return and
-  // non-local return into the same bytecode. Change the bytecodes to group the
-  // functionally similar method return with closure local return instead.
-  if (!FlagsIsClosure(FrameFlags(fp_))) {
-    LocalReturn(result);
-  } else {
-    NonLocalReturn(result);
-  }
-}
-
-
 void Interpreter::Enter() {
   intptr_t saved_handles = H->handles();
   jmp_buf* saved_environment = environment_;
@@ -1107,7 +1031,6 @@ void Interpreter::Enter() {
   environment_ = saved_environment;
   H->set_handles(saved_handles);
 }
-
 
 void Interpreter::Exit() {
   ASSERT(environment_ != NULL);
@@ -1145,8 +1068,6 @@ void Interpreter::PrintStack() {
 }
 
 void Interpreter::Interpret() {
-  uintptr_t extA = 0;
-  uintptr_t extB = 0;
   for (;;) {
     ASSERT(ip_ != 0);
     ASSERT(sp_ != 0);
@@ -1156,53 +1077,94 @@ void Interpreter::Interpret() {
     switch (byte1) {
     case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
     case 8: case 9: case 10: case 11: case 12: case 13: case 14: case 15:
-      FATAL("Unused bytecode");  // V4: push receiver variable
+      ip_ -= (byte1 & 15);
       break;
     case 16: case 17: case 18: case 19: case 20: case 21: case 22: case 23:
     case 24: case 25: case 26: case 27: case 28: case 29: case 30: case 31:
-      PushLiteralVariable(byte1 - 16);
+      ip_ += (byte1 & 15);
       break;
     case 32: case 33: case 34: case 35: case 36: case 37: case 38: case 39:
-    case 40: case 41: case 42: case 43: case 44: case 45: case 46: case 47:
-    case 48: case 49: case 50: case 51: case 52: case 53: case 54: case 55:
-    case 56: case 57: case 58: case 59: case 60: case 61: case 62: case 63:
-      PushLiteral(byte1 - 32);
-      break;
-    case 64: case 65: case 66: case 67: case 68: case 69: case 70: case 71:
-    case 72: case 73: case 74: case 75:
-      PushTemporary(byte1 - 64);
-      break;
-    case 76:
-      Push(FrameReceiver(fp_));
-      break;
-    case 77:
-      switch (extB) {
-        case 0:
-          Push(false_);
-          break;
-        case 1:
-          Push(true_);
-          break;
-        case 2:
-          Push(nil_);
-          break;
-        case 3:
-          FATAL("Unused bytecode");  // V4: push thisContext
-          break;
-        default:
-          PushEnclosingObject(-extB);
-          break;
+    case 40: case 41: case 42: case 43: case 44: case 45: case 46: case 47: {
+      Object top = Pop();
+      if (top == true_) {
+        ip_ += (byte1 & 15);
+      } else if (top != false_) {
+        SendNonBooleanReceiver(top);
       }
-      extB = 0;
       break;
-    case 78:
-      Push(SmallInteger::New(0));
+    }
+    case 48: case 49: case 50: case 51: case 52: case 53: case 54: case 55:
+    case 56: case 57: case 58: case 59: case 60: case 61: case 62: case 63: {
+      Object top = Pop();
+      if (top == false_) {
+        ip_ += (byte1 & 15);
+      } else if (top != true_) {
+        SendNonBooleanReceiver(top);
+      }
       break;
-    case 79:
-      Push(SmallInteger::New(1));
+    }
+    case 64: case 65: case 66: case 67:
+    case 68: case 69: case 70: case 71:
+    case 72: case 73: case 74: case 75:
+    case 76: case 77: case 78: case 79:
+      OrdinarySend(byte1 & 7, (byte1 >> 3) & 1);
       break;
+    case 80: case 81: case 82: case 83:
+    case 84: case 85: case 86: case 87:
+    case 88: case 89: case 90: case 91:
+    case 92: case 93: case 94: case 95:
+      SelfSend(byte1 & 7, (byte1 >> 3) & 1);
+      break;
+    case 96: case 97: case 98: case 99:
+    case 100: case 101: case 102: case 103:
+    case 104: case 105: case 106: case 107:
+    case 108: case 109: case 110: case 111:
+      ImplicitReceiverSend(byte1 & 7, (byte1 >> 3) & 1);
+      break;
+    case 112: case 113: case 114: case 115:
+    case 116: case 117: case 118: case 119:
+      Push(FrameParameter(fp_, byte1 & 7));
+      break;
+    case 120: case 121: case 122: case 123:
+    case 124: case 125: case 126: case 127:
+      Push(FrameLocal(fp_, byte1 & 7));
+      break;
+    case 128: case 129: case 130: case 131:
+    case 132: case 133: case 134: case 135:
+      FrameLocalPut(fp_, byte1 & 7, Pop());
+      break;
+    case 136: case 137: case 138: case 139:
+    case 140: case 141: case 142: case 143:
+      FrameLocalPut(fp_, byte1 & 7, Stack(0));
+      break;
+    case 144: case 145: case 146: case 147:
+    case 148: case 149: case 150: case 151:
+      PushLiteral(byte1 & 7);
+      break;
+    case 152: Push(nil_); break;
+    case 153: Push(false_); break;
+    case 154: Push(true_); break;
+    case 155: Push(FrameReceiver(fp_)); break;
+    case 156: Push(FrameMethod(fp_)->mixin()); break;
+    case 157: Push(object_store()->message_loop()); break;
+    case 158: Pop(); break;
+    case 159: Push(Stack(0)); break;
+    case 160: Push(SmallInteger::New(-1)); break;
+    case 161: Push(SmallInteger::New(0)); break;
+    case 162: Push(SmallInteger::New(1)); break;
+    case 163: Push(SmallInteger::New(2)); break;
+    case 166: LocalReturn(nil_); break;
+    case 167: LocalReturn(false_); break;
+    case 168: LocalReturn(true_); break;
+    case 169: LocalReturn(FrameReceiver(fp_)); break;
+    case 170: LocalReturn(Pop()); break;
+    case 171: NonLocalReturn(nil_); break;
+    case 172: NonLocalReturn(false_); break;
+    case 173: NonLocalReturn(true_); break;
+    case 174: NonLocalReturn(FrameReceiver(fp_)); break;
+    case 175: NonLocalReturn(Pop()); break;
 #if STATIC_PREDICTION_BYTECODES
-    case 80: {
+    case 176: {
       // +
       Object left = Stack(1);
       Object right = Stack(0);
@@ -1215,10 +1177,9 @@ void Interpreter::Interpret() {
           break;
         }
       }
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 81: {
+    case 177: {
       // -
       Object left = Stack(1);
       Object right = Stack(0);
@@ -1231,105 +1192,17 @@ void Interpreter::Interpret() {
           break;
         }
       }
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 82: {
-      // <
-      Object left = Stack(1);
-      Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        if (static_cast<intptr_t>(left) <
-            static_cast<intptr_t>(right)) {
-          PopNAndPush(2, true_);
-        } else {
-          PopNAndPush(2, false_);
-        }
-        break;
-      }
-      CommonSend(byte1 - 80);
-      break;
-    }
-    case 83: {
-      // >
-      Object left = Stack(1);
-      Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        if (static_cast<intptr_t>(left) >
-            static_cast<intptr_t>(right)) {
-          PopNAndPush(2, true_);
-        } else {
-          PopNAndPush(2, false_);
-        }
-        break;
-      }
-      CommonSend(byte1 - 80);
-      break;
-    }
-    case 84: {
-      // <=
-      Object left = Stack(1);
-      Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        if (static_cast<intptr_t>(left) <=
-            static_cast<intptr_t>(right)) {
-          PopNAndPush(2, true_);
-        } else {
-          PopNAndPush(2, false_);
-        }
-        break;
-      }
-      CommonSend(byte1 - 80);
-      break;
-    }
-    case 85: {
-      // >=
-      Object left = Stack(1);
-      Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        if (static_cast<intptr_t>(left) >=
-            static_cast<intptr_t>(right)) {
-          PopNAndPush(2, true_);
-        } else {
-          PopNAndPush(2, false_);
-        }
-        break;
-      }
-      CommonSend(byte1 - 80);
-      break;
-    }
-    case 86: {
-      // =
-      Object left = Stack(1);
-      Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        if (static_cast<intptr_t>(left) ==
-            static_cast<intptr_t>(right)) {
-          PopNAndPush(2, true_);
-        } else {
-          PopNAndPush(2, false_);
-        }
-        break;
-      }
-      CommonSend(byte1 - 80);
-      break;
-    }
-    case 87: {
-      // ~=
-      CommonSend(byte1 - 80);
-      break;
-    }
-    case 88: {
+    case 178: {
       // *
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 89: {
-      // /
-      CommonSend(byte1 - 80);
-      break;
+    case 179: {
+      // //
+      goto CommonSendDispatch;
     }
-    case 90: {
+    case 180: {
       /* \\ */
       Object left = Stack(1);
       Object right = Stack(0);
@@ -1343,53 +1216,117 @@ void Interpreter::Interpret() {
           break;
         }
       }
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 91: {
-      // @
-      CommonSend(byte1 - 80);
-      break;
+    case 181: {
+      // <<
+      goto CommonSendDispatch;
     }
-    case 92: {
-      // bitShift:
-      CommonSend(byte1 - 80);
-      break;
+    case 182: {
+      // >>
+      goto CommonSendDispatch;
     }
-    case 93: {
-      // //
-      CommonSend(byte1 - 80);
-      break;
-    }
-    case 94: {
-      // bitAnd:
+    case 183: {
+      // &
       Object left = Stack(1);
       Object right = Stack(0);
       if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        intptr_t raw_left = static_cast<SmallInteger>(left)->value();
-        intptr_t raw_right = static_cast<SmallInteger>(right)->value();
-        intptr_t raw_result = raw_left & raw_right;
-        PopNAndPush(2, SmallInteger::New(raw_result));
+        PopNAndPush(2, static_cast<SmallInteger>(
+            static_cast<intptr_t>(left) & static_cast<intptr_t>(right)));
         break;
       }
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 95: {
-      // bitOr:
+    case 184: {
+      // |
       Object left = Stack(1);
       Object right = Stack(0);
       if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        intptr_t raw_left = static_cast<SmallInteger>(left)->value();
-        intptr_t raw_right = static_cast<SmallInteger>(right)->value();
-        intptr_t raw_result = raw_left | raw_right;
-        PopNAndPush(2, SmallInteger::New(raw_result));
+        PopNAndPush(2, static_cast<SmallInteger>(
+            static_cast<intptr_t>(left) | static_cast<intptr_t>(right)));
         break;
       }
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 96: {
+    case 185: {
+      // <
+      Object left = Stack(1);
+      Object right = Stack(0);
+      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+        if (static_cast<intptr_t>(left) < static_cast<intptr_t>(right)) {
+          PopNAndPush(2, true_);
+        } else {
+          PopNAndPush(2, false_);
+        }
+        break;
+      }
+      goto CommonSendDispatch;
+    }
+    case 186: {
+      // >
+      Object left = Stack(1);
+      Object right = Stack(0);
+      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+        if (static_cast<intptr_t>(left) > static_cast<intptr_t>(right)) {
+          PopNAndPush(2, true_);
+        } else {
+          PopNAndPush(2, false_);
+        }
+        break;
+      }
+      goto CommonSendDispatch;
+    }
+    case 187: {
+      // <=
+      Object left = Stack(1);
+      Object right = Stack(0);
+      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+        if (static_cast<intptr_t>(left) <= static_cast<intptr_t>(right)) {
+          PopNAndPush(2, true_);
+        } else {
+          PopNAndPush(2, false_);
+        }
+        break;
+      }
+      goto CommonSendDispatch;
+    }
+    case 188: {
+      // >=
+      Object left = Stack(1);
+      Object right = Stack(0);
+      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+        if (static_cast<intptr_t>(left) >= static_cast<intptr_t>(right)) {
+          PopNAndPush(2, true_);
+        } else {
+          PopNAndPush(2, false_);
+        }
+        break;
+      }
+      goto CommonSendDispatch;
+    }
+    case 189: {
+      // =
+      Object left = Stack(1);
+      Object right = Stack(0);
+      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+        if (static_cast<intptr_t>(left) == static_cast<intptr_t>(right)) {
+          PopNAndPush(2, true_);
+        } else {
+          PopNAndPush(2, false_);
+        }
+        break;
+      }
+      goto CommonSendDispatch;
+    }
+    case 190: {
+      // new
+      goto CommonSendDispatch;
+    }
+    case 191: {
+      // new:
+      goto CommonSendDispatch;
+    }
+    case 192: {
       // at:
       Object array = Stack(1);
       SmallInteger index = static_cast<SmallInteger>(Stack(0));
@@ -1411,10 +1348,9 @@ void Interpreter::Interpret() {
           }
         }
       }
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 97: {
+    case 193: {
       // at:put:
       Object array = Stack(2);
       SmallInteger index = static_cast<SmallInteger>(Stack(1));
@@ -1440,10 +1376,9 @@ void Interpreter::Interpret() {
           }
         }
       }
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 98: {
+    case 194: {
       // size
       Object array = Stack(0);
       if (array->IsArray()) {
@@ -1453,276 +1388,190 @@ void Interpreter::Interpret() {
         PopNAndPush(1, static_cast<Bytes>(array)->size());
         break;
       }
-      CommonSend(byte1 - 80);
-      break;
+      goto CommonSendDispatch;
     }
-    case 99: case 100: case 101: case 102: case 103:
-    case 104: case 105: case 106: case 107:
-    case 108: case 109: case 110: case 111:
-      CommonSend(byte1 - 80);
+    case 195:
+    case 196: case 197: case 198: case 199:
+    case 200: case 201: case 202: case 203:
+    case 204: case 205: case 206: case 207:
+      CommonSendDispatch:
+      CommonSend(byte1 - 176);
       break;
 #else  // !STATIC_PREDICTION_BYTECODES
-    case 80: case 81: case 82: case 83:
-    case 84: case 85: case 86: case 87:
-    case 88: case 89: case 90: case 91:
-    case 92: case 93: case 94: case 95:
-      CommonSend(byte1 - 80);
-      break;
-    case 96: case 97: case 98: case 99:
-    case 100: case 101: case 102: case 103:
-    case 104: case 105: case 106: case 107:
-    case 108: case 109: case 110: case 111:
-      CommonSend(byte1 - 80);
-      break;
-#endif  // STATIC_PREDICTION_BYTECODES
-    case 112: case 113: case 114: case 115:
-    case 116: case 117: case 118: case 119:
-    case 120: case 121: case 122: case 123:
-    case 124: case 125: case 126: case 127:
-      OrdinarySend(byte1 & 15, 0);
-      break;
-    case 128: case 129: case 130: case 131:
-    case 132: case 133: case 134: case 135:
-    case 136: case 137: case 138: case 139:
-    case 140: case 141: case 142: case 143:
-      OrdinarySend(byte1 & 15, 1);
-      break;
-    case 144: case 145: case 146: case 147:
-    case 148: case 149: case 150: case 151:
-    case 152: case 153: case 154: case 155:
-    case 156: case 157: case 158: case 159:
-      OrdinarySend(byte1 & 15, 2);
-      break;
-    case 160: case 161: case 162: case 163:
-    case 164: case 165: case 166: case 167:
-    case 168: case 169: case 170: case 171:
-    case 172: case 173: case 174: case 175:
-      ImplicitReceiverSend(byte1 & 15, 0);
-      break;
     case 176: case 177: case 178: case 179:
     case 180: case 181: case 182: case 183:
-      FATAL("Unused bytecode");  // V4: pop into receiver variable
-      break;
     case 184: case 185: case 186: case 187:
     case 188: case 189: case 190: case 191:
-      PopIntoTemporary(byte1 & 7);
+    case 192: case 193: case 194: case 195:
+    case 196: case 197: case 198: case 199:
+    case 200: case 201: case 202: case 203:
+    case 204: case 205: case 206: case 207:
+      CommonSend(byte1 - 176);
       break;
-    case 192: case 193: case 194: case 195:  // V4: short jump
-    case 196: case 197: case 198: case 199:  // V4: short jump
-    case 200: case 201: case 202: case 203:  // V4: short branch true
-    case 204: case 205: case 206: case 207:  // V4: short branch true
-    case 208: case 209: case 210: case 211:  // V4: short branch false
-    case 212: case 213: case 214: case 215:  // V4: short branch false
-      FATAL("Unused bytecode");
-      break;
-    case 216:
-      MethodReturn(FrameReceiver(fp_));
-      break;
-    case 217:
-      MethodReturn(Pop());
-      break;
-    case 218:
-      ASSERT(FlagsIsClosure(FrameFlags(fp_)));
-      LocalReturn(Pop());
-      break;
-    case 219:
-      Push(Stack(0));
-      break;
-    case 220:
-      Drop(1);
-      break;
-    case 221:  // V4: nop
-    case 222:  // V4: break
-    case 223:  // V4: not assigned
-      FATAL("Unused bytecode");
-      break;
-    case 224: {
+#endif  // STATIC_PREDICTION_BYTECODES
+    case 222: {
       uint8_t byte2 = *ip_++;
-      extA = (extA << 8) + byte2;
+      PushNewArray(byte2);
       break;
     }
-    case 225: {
+    case 223: {
       uint8_t byte2 = *ip_++;
-      if (extB == 0 && byte2 > 127) {
-        extB = byte2 - 256;
-      } else {
-        extB = (extB << 8) + byte2;
-      }
-      break;
-    }
-    case 226:
-      FATAL("Unused bytecode");  // V4: push receiver variable
-      break;
-    case 227: {
-      uint8_t byte2 = *ip_++;
-      PushLiteralVariable((extA << 8) + byte2);
-      extA = 0;
+      PushNewArrayWithElements(byte2);
       break;
     }
     case 228: {
       uint8_t byte2 = *ip_++;
-      PushLiteral(byte2 + extA * 256);
-      extA = 0;
+      Push(FrameParameter(fp_, byte2));
       break;
     }
     case 229: {
       uint8_t byte2 = *ip_++;
-      Push(SmallInteger::New((extB << 8) + byte2));
-      extB = 0;
+      ASSERT(byte2 < StackDepth());
+      Push(FrameLocal(fp_, byte2));
       break;
     }
     case 230: {
       uint8_t byte2 = *ip_++;
-      PushTemporary(byte2);
+      ASSERT(byte2 < StackDepth());
+      FrameLocalPut(fp_, byte2, Pop());
       break;
     }
     case 231: {
       uint8_t byte2 = *ip_++;
-      if (byte2 < 128) {
-        PushNewArray(byte2);
-      } else {
-        PushNewArrayWithElements(byte2 - 128);
-      }
+      ASSERT(byte2 < StackDepth());
+      FrameLocalPut(fp_, byte2, Stack(0));
       break;
     }
-    case 232:  // V4: store into receiver variable
-    case 233:  // V4: store into literal variable
-      FATAL("Unused bytecode");
-      break;
-    case 234: {
+    case 233: {
       uint8_t byte2 = *ip_++;
-      StoreIntoTemporary(byte2);
+      PushEnclosingObject(byte2);
       break;
     }
-    case 235:  // V4: pop into receiver variable
-    case 236:  // V4: pop into literal variable
-      FATAL("Unused bytecode");
-      break;
-    case 237: {
-      uint8_t byte2 = *ip_++;
-      PopIntoTemporary(byte2);
-      break;
-    }
-    case 238: {
-      uint8_t byte2 = *ip_++;
-      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB << 3) | (byte2 & 7);
-      extA = extB = 0;
-      OrdinarySend(selector_index, num_args);
-      break;
-    }
-    case 239:
-      FATAL("Unused bytecode");  // V4: static super send
-      break;
     case 240: {
       uint8_t byte2 = *ip_++;
-      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB << 3) | (byte2 & 7);
-      extA = extB = 0;
-      ImplicitReceiverSend(selector_index, num_args);
+      uint8_t byte3 = *ip_++;
+      intptr_t delta = (byte3 << 8) | byte2;
+      ip_ -= delta;
       break;
     }
     case 241: {
       uint8_t byte2 = *ip_++;
-      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB << 3) | (byte2 & 7);
-      extA = extB = 0;
-      SuperSend(selector_index, num_args);
+      uint8_t byte3 = *ip_++;
+      intptr_t delta = (byte3 << 8) | byte2;
+      ip_ += delta;
       break;
     }
     case 242: {
       uint8_t byte2 = *ip_++;
-      intptr_t delta = (extB << 8) + byte2;
-      extB = 0;
-      ip_ += delta;
-      break;
-    }
-    case 243: {
-      uint8_t byte2 = *ip_++;
-      intptr_t delta = (extB << 8) + byte2;
-      extB = 0;
+      uint8_t byte3 = *ip_++;
+      intptr_t delta = (byte3 << 8) | byte2;
       Object top = Pop();
-      if (top == false_) {
-      } else if (top == true_) {
+      if (top == true_) {
         ip_ += delta;
-      } else {
+      } else if (top != false_) {
         SendNonBooleanReceiver(top);
       }
       break;
     }
-    case 244: {
+    case 243: {
       uint8_t byte2 = *ip_++;
-      intptr_t delta = (extB << 8) + byte2;
-      extB = 0;
+      uint8_t byte3 = *ip_++;
+      intptr_t delta = (byte3 << 8) | byte2;
       Object top = Pop();
-      if (top == true_) {
-      } else if (top == false_) {
+      if (top == false_) {
         ip_ += delta;
-      } else {
+      } else if (top != true_) {
         SendNonBooleanReceiver(top);
       }
       break;
     }
     case 245: {
       uint8_t byte2 = *ip_++;
-      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB << 3) | (byte2 & 7);
-      extA = extB = 0;
-      SelfSend(selector_index, num_args);
+      uint8_t byte3 = *ip_++;
+      PushIndirectLocal(byte3, byte2);
       break;
     }
-    case 246:  // V4: unassigned
-    case 247:  // V4: unassigned
-    case 248:  // V4: unassigned
-    case 249:  // V4: call primitive
-      FATAL("Unused bytecode");
+    case 246: {
+      uint8_t byte2 = *ip_++;
+      uint8_t byte3 = *ip_++;
+      PopIntoIndirectLocal(byte3, byte2);
+      break;
+    }
+    case 247: {
+      uint8_t byte2 = *ip_++;
+      uint8_t byte3 = *ip_++;
+      StoreIntoIndirectLocal(byte3, byte2);
+      break;
+    }
+    case 248: {
+      uint8_t byte2 = *ip_++;
+      uint8_t byte3 = *ip_++;
+      PushLiteral((byte3 << 8) | byte2);
+      break;
+    }
+    case 249: {
+      uint8_t byte2 = *ip_++;
+      int8_t byte3 = *ip_++;
+      Push(SmallInteger::New((byte3 << 8) | byte2));
+      break;
+    }
     case 250: {
       uint8_t byte2 = *ip_++;
       uint8_t byte3 = *ip_++;
-      PushRemoteTemp(byte3, byte2);
+      intptr_t num_args = byte3 >> 4;
+      intptr_t selector_index = ((byte3 & 0xF) << 8) | byte2;
+      OrdinarySend(selector_index, num_args);
       break;
     }
     case 251: {
       uint8_t byte2 = *ip_++;
       uint8_t byte3 = *ip_++;
-      StoreIntoRemoteTemp(byte3, byte2);
+      intptr_t num_args = byte3 >> 4;
+      intptr_t selector_index = ((byte3 & 0xF) << 8) | byte2;
+      SelfSend(selector_index, num_args);
       break;
     }
     case 252: {
       uint8_t byte2 = *ip_++;
       uint8_t byte3 = *ip_++;
-      PopIntoRemoteTemp(byte3, byte2);
+      intptr_t num_args = byte3 >> 4;
+      intptr_t selector_index = ((byte3 & 0xF) << 8) | byte2;
+      SuperSend(selector_index, num_args);
       break;
     }
     case 253: {
       uint8_t byte2 = *ip_++;
       uint8_t byte3 = *ip_++;
-      intptr_t num_copied = (byte2 >> 3 & 7) + ((extA / 16) << 3);
-      intptr_t num_args = (byte2 & 7) + ((extA % 16) << 3);
-      intptr_t block_size = byte3 + (extB << 8);
-      extA = extB = 0;
-      PushClosure(num_copied, num_args, block_size);
+      intptr_t num_args = byte3 >> 4;
+      intptr_t selector_index = ((byte3 & 0xF) << 8) | byte2;
+      ImplicitReceiverSend(selector_index, num_args);
       break;
     }
     case 254: {
       uint8_t byte2 = *ip_++;
       uint8_t byte3 = *ip_++;
-      intptr_t selector_index = (extA << 5) + (byte2 >> 3);
-      intptr_t num_args = (extB << 3) | (byte2 & 7);
-      intptr_t depth = byte3;
-      extA = extB = 0;
+      uint8_t byte4 = *ip_++;
+      intptr_t num_args = byte3 >> 4;
+      intptr_t selector_index = ((byte3 & 0xF) << 8) | byte2;
+      intptr_t depth = byte4;
       OuterSend(selector_index, num_args, depth);
       break;
     }
-    case 255:
-      FATAL("Unused bytecode");  // V4: unassigned
+    case 255: {
+      uint8_t byte2 = *ip_++;
+      uint8_t byte3 = *ip_++;
+      uint8_t byte4 = *ip_++;
+      intptr_t num_copied = byte2 >> 4;
+      intptr_t num_args = byte2 & 7;
+      intptr_t block_size = byte3 | (byte4 << 8);
+      PushClosure(num_copied, num_args, block_size);
       break;
+    }
     default:
-      UNREACHABLE();
+      FATAL("Unused bytecode");
     }
   }
 }
-
 
 Activation Interpreter::EnsureActivation(Object* fp) {
   Activation activation = FrameActivation(fp);
@@ -1796,7 +1645,6 @@ Activation Interpreter::FlushAllFrames() {
   return top;
 }
 
-
 bool Interpreter::HasLivingFrame(Activation activation) {
   if (!activation->sender()->IsSmallInteger()) {
     return false;
@@ -1820,11 +1668,9 @@ bool Interpreter::HasLivingFrame(Activation activation) {
   return false;
 }
 
-
 Activation Interpreter::CurrentActivation() {
   return EnsureActivation(fp_);  // SAFEPOINT
 }
-
 
 void Interpreter::SetCurrentActivation(Activation new_activation) {
   ASSERT(new_activation->IsActivation());
@@ -1836,7 +1682,6 @@ void Interpreter::SetCurrentActivation(Activation new_activation) {
 
   CreateBaseFrame(new_activation);
 }
-
 
 Object Interpreter::ActivationSender(Activation activation) {
   if (HasLivingFrame(activation)) {
@@ -1850,7 +1695,6 @@ Object Interpreter::ActivationSender(Activation activation) {
     return activation->sender();
   }
 }
-
 
 void Interpreter::ActivationSenderPut(Activation activation,
                                       Activation new_sender) {
@@ -1869,7 +1713,6 @@ void Interpreter::ActivationSenderPut(Activation activation,
     activation->set_sender(new_sender);
   }
 }
-
 
 Object Interpreter::ActivationBCI(Activation activation) {
   if (activation->sender()->IsSmallInteger()) {
@@ -1894,7 +1737,6 @@ Object Interpreter::ActivationBCI(Activation activation) {
   return activation->bci();
 }
 
-
 void Interpreter::ActivationBCIPut(Activation activation,
                                    SmallInteger new_bci) {
   if (HasLivingFrame(activation)) {
@@ -1911,7 +1753,6 @@ void Interpreter::ActivationBCIPut(Activation activation,
   }
 }
 
-
 void Interpreter::ActivationMethodPut(Activation activation,
                                       Method new_method) {
   if (HasLivingFrame(activation)) {
@@ -1927,7 +1768,6 @@ void Interpreter::ActivationMethodPut(Activation activation,
     activation->set_method(new_method);
   }
 }
-
 
 void Interpreter::ActivationClosurePut(Activation activation,
                                        Closure new_closure) {
@@ -1962,7 +1802,6 @@ void Interpreter::ActivationReceiverPut(Activation activation,
   }
 }
 
-
 Object Interpreter::ActivationTempAt(Activation activation, intptr_t index) {
   if (HasLivingFrame(activation)) {
     Object* fp = activation->sender_fp();
@@ -1971,7 +1810,6 @@ Object Interpreter::ActivationTempAt(Activation activation, intptr_t index) {
     return activation->temp(index);
   }
 }
-
 
 void Interpreter::ActivationTempAtPut(Activation activation,
                                       intptr_t index,
@@ -1983,8 +1821,6 @@ void Interpreter::ActivationTempAtPut(Activation activation,
     return activation->set_temp(index, value);
   }
 }
-
-
 
 intptr_t Interpreter::ActivationTempSize(Activation activation) {
   if (activation->sender()->IsSmallInteger()) {
@@ -2010,7 +1846,6 @@ intptr_t Interpreter::ActivationTempSize(Activation activation) {
   return activation->stack_depth()->value();
 }
 
-
 void Interpreter::ActivationTempSizePut(Activation activation,
                                         intptr_t new_size) {
   if (HasLivingFrame(activation)) {
@@ -2035,7 +1870,6 @@ void Interpreter::ActivationTempSizePut(Activation activation,
   }
 }
 
-
 void Interpreter::GCPrologue() {
   // Convert IPs to BCIs. The makes every slot on the stack a valid object
   // pointer. Frame flags and saved FPs are valid as SmallIntegers.
@@ -2051,7 +1885,6 @@ void Interpreter::GCPrologue() {
     fp = FrameSavedFP(fp);
   }
 }
-
 
 void Interpreter::GCEpilogue() {
   // Convert BCIs to IPs. Invalidate lookup caches.

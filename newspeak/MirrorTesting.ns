@@ -299,7 +299,7 @@ public testMetaRelationships = (
 	mClass = (classOf: mClassMirrorTests) superclass.
 	mMetaclass = classOf: (classOf: mClassMirrorTests).
 	|
-	assert: [mObject mixin name = 'Object' or: [mObject mixin name = '_Object']].
+	assert: mObject mixin name equals: 'Object'.
 	assert: mClass mixin name equals: 'Class'.
 	assert: mMetaclass mixin name equals: 'Metaclass'.
 

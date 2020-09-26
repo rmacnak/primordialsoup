@@ -53,7 +53,6 @@ parentMain: args = (
 	port = Port new.
 	numJobs = 4.
 	workLists
-	stopwatch
 	index ::= 1.
 	outstanding ::= 0.
 	|
@@ -87,7 +86,10 @@ parentMain: args = (
 				runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.
 				app:: (namespace at: appName) packageUsing: manifest.
 
-				bytes:: Snapshotter new snapshotApp: app withRuntime: runtime.
+				bytes:: Snapshotter new
+					snapshotApp: app
+					withRuntime: runtime
+					keepSource: (appName = 'TestRunner').
 				writeBytes: bytes toFileNamed: snapshotName]]].
 )
 readFileAsBytes: filename = (

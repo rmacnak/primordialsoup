@@ -70,9 +70,7 @@ Messages between isolates use the same snapshot format, but they contain partial
 
 ## Bytecode
 
-Primordial Soup uses the Newsqueak V4 bytecode of the [Cog VM](http://www.mirandabanda.org/cogblog/about-cog/), but only the subset required by Newspeak. A description of this bytecode set may be found in the class comment of EncoderForNewsqueakV4 in a [VMMaker](http://www.mirandabanda.org/cogblog/build-image/) or [Newspeak-on-Squeak](http://www.newspeaklanguage.org/downloads) image.
-
-Using this bytecode set allows us to take advantage of the existing Newspeak-on-Squeak bytecode compiler. Eventually we may use a modified bytecode set to make use of the opcode space occupied by Smalltalk-only bytecodes and to add VM-level support for eventual sends.
+Primordial Soup uses a variable-length, stack-machine bytecode derived from the Newsqueak V4 bytecode of the [Cog VM](http://www.mirandabanda.org/cogblog/about-cog/).
 
 ## Stack-to-Context Mapping
 

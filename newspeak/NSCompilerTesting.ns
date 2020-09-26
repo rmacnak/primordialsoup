@@ -2219,14 +2219,6 @@ public testToDo3 = (
 	)'
 	with: 'assert: sample testToDo3 equals: 74.'
 )
-public testToDoNonLiteralBlock = (
-	testSampleMethod: 'public testToDoNonLiteralBlock = (
-		| sum ::= 0. block = [:value | sum:: sum + value]. |
-		0 to: 10 do: block.
-		^sum
-	) '
-	with: 'assert: sample testToDoNonLiteralBlock equals: 55.'
-)
 public testToDoByCapturesUniqueVariables = (
 	testSampleMethod: 'public testToDoByCapturesUniqueVariables = (
 	| closures = Array new: 5. |
@@ -2246,6 +2238,14 @@ public testToDoCapturesUniqueVariables = (
 	assert: (closures at: 3) value equals: 3.
 	)'
 	with: 'sample testToDoCapturesUniqueVariables'
+)
+public testToDoNonLiteralBlock = (
+	testSampleMethod: 'public testToDoNonLiteralBlock = (
+		| sum ::= 0. block = [:value | sum:: sum + value]. |
+		0 to: 10 do: block.
+		^sum
+	) '
+	with: 'assert: sample testToDoNonLiteralBlock equals: 55.'
 )
 public testTupleLiteral0 = (
 	testSampleMethod: 'public tupleLiteral0 = ({})'

@@ -74,10 +74,6 @@ public apply: tool <ASTTool[T]> ^<T> = (
 	^tool boolNode: self
 )
 public isKindOfLiteralNode ^<Boolean> = (^true)
-public printOn: stream = (
-	stream nextPutAll: 'BooleanAST: '.
-	value printOn: stream.
-)
 ) : (
 )
 public class ConditionalAST if: cond is: ifTrue_ then: t else: e = AST (|
@@ -271,6 +267,9 @@ public class NilAST = AST () (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool nilNode: self
 )
+public isKindOfNilNode ^<Boolean> = (
+	^true
+)
 ) : (
 )
 public class NonlocalReturnAST expression: e = ReturnAST expression: e () (
@@ -306,9 +305,6 @@ public class ParameterAST name: n type: t = AST (|
 |) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool parameterDeclNode: self
-)
-public printOn: stream = (
-	stream nextPutAll: 'ParameterAST('; nextPutAll: name; nextPutAll: ')'.
 )
 ) : (
 )
@@ -364,9 +360,6 @@ public class TemporaryAST name: n type: t = AST (|
 |) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool temporaryDeclNode: self
-)
-public printOn: stream = (
-	stream nextPutAll: 'TemporaryAST('; nextPutAll: name; nextPutAll: ')'.
 )
 ) : (
 )
@@ -1015,9 +1008,6 @@ public isKindOfLocalBinding ^<Boolean> = (
 public name = (
 	^ast name
 )
-public printOn: stream = (
-	stream nextPutAll: 'LocalEntry('; nextPutAll: name; nextPutAll: '#'; print: hash; nextPutAll: ')'.
-)
 ) : (
 )
 class MethodEntry forDeclaration: decl atDepth: d = SymbolTableEntry forAST: decl atDepth: d () (
@@ -1087,14 +1077,6 @@ public depth ^<Integer> = (
 )
 public includesKeyLocal: key = (
 	^bindings includesKey: key
-)
-public printOn: stm = (
-	stm nextPutAll: 'Scope('.
-	bindings keys
-		do: [:key | stm nextPutAll: key]
-		separatedBy: [ stm nextPutAll: ', '].
-	stm nextPutAll: ') in '.
-	parent printOn: stm.
 )
 ) : (
 public new = (

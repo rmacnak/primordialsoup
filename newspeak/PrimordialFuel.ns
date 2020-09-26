@@ -11,7 +11,7 @@ private LargeInteger = k LargeInteger.
 private Float = k Float.
 private ByteArray = k ByteArray.
 private String = k String.
-private Array = k _Array.
+private Array = k Array.
 private WeakArray = k WeakArray.
 private Ephemeron = k Ephemeron.
 private Activation = k Activation.
@@ -834,9 +834,9 @@ public serialize: root = (
 
 	^stream stealBytes
 )
-public snapshotApp: app withRuntime: runtime = (
+public snapshotApp: app withRuntime: runtime keepSource: s = (
 	| newPlatform newKernel methods objectStore |
-	keepSource:: (classOf: app) name = 'TestRunner'.
+	keepSource:: s.
 	newKernel:: runtime InternalKernel new.
 	newPlatform:: runtime Platform internalKernel: newKernel.
 	objectStore:: newKernel
@@ -844,8 +844,8 @@ public snapshotApp: app withRuntime: runtime = (
 		platform: newPlatform
 		symbols: symbolTablePlaceholder.
 
-	slotOf: newKernel _Object at: 1 put: nil. (* superclass *)
-	methods:: slotOf: newKernel _Object at: 2.
+	slotOf: newKernel Object at: 1 put: nil. (* superclass *)
+	methods:: slotOf: newKernel Object at: 2.
 	1 to: methods size do: [:index |
 		| method = methods at: index. |
 		method selector = #'initializer`new' ifTrue: [
@@ -853,7 +853,7 @@ public snapshotApp: app withRuntime: runtime = (
 			method bytecode: nil]].
 
 	replaceClass: Activation with: newKernel Activation.
-	replaceClass: Array with: newKernel _Array.
+	replaceClass: Array with: newKernel Array.
 	replaceClass: ByteArray with: newKernel ByteArray.
 	replaceClass: String with: newKernel String.
 	replaceClass: Closure with: newKernel Closure.
@@ -867,7 +867,7 @@ public snapshotApp: app withRuntime: runtime = (
 	replaceClass: False with: newKernel False.
 	replaceClass: UndefinedObject with: newKernel UndefinedObject.
 	replaceClass: Fraction with: newKernel Fraction.
-	replaceClass: Object with: newKernel _Object.
+	replaceClass: Object with: newKernel Object.
 	replaceClass: Method with: newKernel Method.
 	replaceClass: Class with: newKernel Class.
 	replaceClass: Metaclass with: newKernel Metaclass.
