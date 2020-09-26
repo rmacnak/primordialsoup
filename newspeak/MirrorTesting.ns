@@ -201,7 +201,7 @@ public testClassMirrorMethods = (
 	mirror:: ClassMirror reflecting: model Klass.
 	assertSet: ((mirror methods reject: [:method | method definingMixin = object])
 		collect: [:method | method name])
-	equals: {'superMethod'. '>>>'. 'defaultMethod'. 'keyword:method:'. 'privateMethod'. 'protectedMethod'. 'publicMethod'}.
+	equals: {'superMethod'. '>>>'. 'defaultMethod'. 'keyword:method:'. 'privateMethod'. 'protectedMethod'. 'publicMethod'. 'selectorsTest'. 'literalsTest'}.
 
 	mirror:: classOf: mirror.
 	mirror methods.
@@ -399,6 +399,24 @@ public testMethodMirrorEquality = (
 	deny: mirror equals: nil.
 	deny: nil equals: mirror.
 )
+public testMethodMirrorLiterals = (
+	| method |
+	method::
+		in: (ClassMirror reflecting: model Klass) mixin methods
+		findMirrorNamed: #literalsTest.
+
+	assertSet: method literals equals:
+		{#selectorAndALiteral. 0. 16r7F. 16r7FFF. 16r10000. nil. false. true. #symbolLiteral. 'string literal'. 3.5}.
+)
+public testMethodMirrorSelectors = (
+	| method |
+	method::
+		in: (ClassMirror reflecting: model Klass) mixin methods
+		findMirrorNamed: #selectorsTest.
+
+	assertSet: method selectors equals:
+		{#ordinaryExample. #selfExample. #superExample. #outerExample. #implicitReceiverExample. #+. #-. #*. #//. #\\. #at:. #at:put:. #size. #new. #new:}.
+)
 ) : (
 TEST_CONTEXT = ()
 )
@@ -475,7 +493,7 @@ public testMixinMirrorMethods = (
 	| mirror |
 	mirror:: (ClassMirror reflecting: model Klass) mixin.
 	assertSet: (mirror methods collect: [:method | method name])
-	equals: {'>>>'. 'defaultMethod'. 'keyword:method:'. 'privateMethod'. 'protectedMethod'. 'publicMethod'}.
+	equals: {'>>>'. 'defaultMethod'. 'keyword:method:'. 'privateMethod'. 'protectedMethod'. 'publicMethod'. 'selectorsTest'. 'literalsTest'}.
 	mirror methods do: [:method | assert: method definingMixin equals: mirror].
 
 	mirror:: mirror declaration classSide.

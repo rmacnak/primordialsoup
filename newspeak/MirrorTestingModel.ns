@@ -31,11 +31,52 @@ defaultMethod = (
 )
 keyword: kw1 method: kw2 = (
 )
+literalsTest = (
+	nil ordinaryNotALiteral.
+	self selfNotALiteral.
+	super superNotALiteral.
+	outer MirrorTestingModel outerNotALiteral.
+	implicitReceiverNotALiteral.
+
+	selectorAndALiteral.
+	use: #selectorAndALiteral.
+
+	use: 0.
+	use: 16r7F.
+	use: 16r7FFF.
+	use: 16r10000.
+	use: nil. (* Push oddball *)
+	use: [false]. (* Local return oddball *)
+	use: [^true]. (* Non-local return oddball *)
+	use: #symbolLiteral.
+	use: 'string literal'.
+	use: 3.5. (* Fraction literal *)
+)
 private privateMethod = (
 )
 protected protectedMethod = (
 )
 public publicMethod = (
+)
+selectorsTest = (
+	(* One of each lookup type. *)
+	nil ordinaryExample.
+	self selfExample.
+	super superExample.
+	outer MirrorTestingModel outerExample.
+	implicitReceiverExample.
+
+	(* Selectors with special bytecodes. *)
+	nil + nil.
+	nil - nil.
+	nil * nil.
+	nil \\ nil.
+	nil // nil.
+	nil at: nil.
+	nil at: nil put: nil.
+	nil size.
+	nil new.
+	nil new: 0.
 )
 ) : (
 public classMethod = (

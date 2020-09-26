@@ -2,6 +2,7 @@ class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namesp
 private Collection = platform collections Collection.
 private List = platform collections List.
 private Map = platform collections Map.
+private Set = platform collections Set.
 private WeakMap = platform kernel WeakMap.
 private StringBuilder = platform kernel StringBuilder.
 private IdentityMap = ik IdentityMap.
@@ -1056,8 +1057,14 @@ public hash ^<Integer> = (
 public isKindOfMethodMirror ^<Boolean> = (
 	^true
 )
+public literals ^<Set[Object]> = (
+	^(Printer for: method) literals
+)
 public name = (
 	^method selector
+)
+public selectors ^<Set[String]> = (
+	^(Printer for: method) selectors
 )
 public source ^<String> = (
 	(* :todo: Should this be async? *)
@@ -1358,6 +1365,70 @@ public setSlot: name to: value = (
 	| index raw |
 	index:: indexOfSlotNamed: name in: (classOf: reflectee).
 	slotOf: reflectee at: index put: value.
+)
+) : (
+)
+class Printer for: method_ = InstructionStream (
+	|
+	bci ::= 1.
+	method = method_.
+	public selectors = Set new.
+	public literals = Set new.
+	|
+	scan.
+) (
+dup = ()
+implicitReceiverSend: selector numArgs: numArgs = (
+	selectors add: selector.
+)
+jump: delta = ()
+ordinarySend: selector numArgs: numArgs = (
+	selectors add: selector.
+)
+outerSend: selector numArgs: numArgs depth: depth = (
+	selectors add: selector.
+)
+pop = ()
+popIntoIndirectLocal: offset inVector: vectorOffset = ()
+popIntoLocal: offset = ()
+popJumpFalse: delta = ()
+popJumpTrue: delta = ()
+push: value = (
+	literals add: value.
+)
+pushClosureNumCopied: numCopied numArgs: numArgs blockSize: blockSize = ()
+pushEnclosingObject: depth = ()
+pushIndirectLocal: offset inVector: vectorOffset = ()
+pushLocal: offset = ()
+pushMessageLoop = ()
+pushMixin = ()
+pushNewArray: size = ()
+pushNewArrayWithElements: size = ()
+pushParameter: offset = ()
+pushReceiver = ()
+returnLocal: value = (
+	literals add: value.
+)
+returnLocalReceiver = ()
+returnLocalTop = ()
+returnNonLocal: value = (
+	literals add: value.
+)
+returnNonLocalReceiver = ()
+returnNonLocalTop = ()
+scan = (
+	| end |
+	nil = method bytecode ifTrue: [^self].
+	end:: method bytecode size.
+	[bci <= end] whileTrue: [self interpretNextInstruction].
+)
+selfSend: selector numArgs: numArgs = (
+	selectors add: selector.
+)
+storeIntoIndirectLocal: offset inVector: vectorOffset = ()
+storeIntoLocal: offset = ()
+superSend: selector numArgs: numArgs = (
+	selectors add: selector.
 )
 ) : (
 )
