@@ -87,6 +87,13 @@ public testClassHeaderMirrorEquality = (
 	mirror2:: (ObjectMirror reflecting: model) getClass mixin declaration header.
 	deny: mirror equals: mirror2.
 )
+public testClassHeaderMirrorLiterals = (
+	| header |
+	header:: (ClassMirror reflecting: model Klass) mixin declaration header.
+
+	assertSet: header literals equals:
+		{0. 1. 2. 3. 4. 5. 6}.
+)
 public testClassHeaderMirrorName = (
 	| mirror |
 	mirror:: (ClassMirror reflecting: model Klass) mixin declaration header.
@@ -94,6 +101,13 @@ public testClassHeaderMirrorName = (
 
 	mirror:: (ObjectMirror reflecting: model) getClass mixin declaration header.
 	assert: mirror name equals: 'MirrorTestingModel'.
+)
+public testClassHeaderMirrorSelectors = (
+	| header |
+	header:: (ClassMirror reflecting: model Klass) mixin declaration header.
+
+	assertSet: header selectors equals:
+		{#SuperKlass. #superFactory:. #+}.
 )
 public testIsKindOfClassHeaderMirror = (
 	|

@@ -765,15 +765,60 @@ public classComment ^<String> = (
 public hash ^<Integer> = (
 	^mixin hash bitXor: class hash
 )
+private initializer ^<Method> = (
+	| name = 'initializer`', mixin _primaryFactorySelector. |
+	^mixin _methods detect: [:method | method selector = name]
+)
 public isKindOfClassHeaderMirror ^<Boolean> = (
 	^true
+)
+public literals ^<Set[Object]> = (
+	^(Printer for: initializer) literals
 )
 public name = (
 	^mixin _name
 )
+private nestedClassAccessor ^<Method> = (
+	|
+	name = mixin _name.
+	enclosing = mixin _enclosingMixin.
+	|
+	nil = enclosing ifTrue: [^nil].
+	^enclosing  _methods detect: [:method | method selector = name]
+)
 public preamble ^<String> = (
 	(* :todo: This is pretty sugary; does it belong in mirrors? *)
 	^preambleFromHeader: source
+)
+public selectors ^<Set[String]> = (
+	| accessor selectors |
+
+	(* Nested classes accessor: keep only superclass send. *)
+	accessor:: self nestedClassAccessor.
+	nil = accessor
+		ifTrue:
+			[selectors:: Set new.
+			 selectors add: #Object]
+		ifFalse:
+			[selectors:: (Printer for: accessor) selectors.
+			 selectors
+				removeAllSuchThat: [:selector | (selector indexOf: '`') > 0];
+				remove: #nestedMixins;
+				remove: #at:;
+				remove: #=;
+				remove: #value;
+				remove: #applyTo:withEnclosingObject:].
+
+	(* Initializer: Demangle super factory. Remove slot initializers. *)
+	(Printer for: initializer) selectors do:
+		[:selector |
+		 (selector startsWith: 'initializer`') ifTrue:
+			[selectors add: (selector copyFrom: 13 to: selector size) asSymbol].
+		 (selector indexOf: '`') > 0 ifFalse:
+			[selectors add: selector]].
+
+	(* Factory: No user selectors. *)
+	^selectors
 )
 public source ^<String> = (
 	^mixin _headerSource
