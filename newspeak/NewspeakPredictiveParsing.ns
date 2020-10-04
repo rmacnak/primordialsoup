@@ -187,7 +187,7 @@ public parseClassHeader = (
 		slotDecls opt,  initExprs, rparen). *)
 
 	| declStart am name constructor superclassCall comment preambleEnd tempsBody inits declEnd |
-	declStart:: tokenStart.
+	declStart:: extendedStart.
 	(* transition: accept optional language id and category *)
 	tokenKind = #identifier ifTrue:
 		[(tokenValue startsWith: 'New') ifTrue:
@@ -567,7 +567,7 @@ public parseMessagePattern = (
 public parseMethodDeclaration = (
 	(* methodDecl = accessModifier opt, messagePattern, equalSign, lparen, codeBody, rparen. *)
 	| declStart am pattern pragmas body declEnd |
-	declStart:: tokenStart.
+	declStart:: extendedStart.
 	am:: parseAccessModifierOpt.
 
 	pattern:: parseMessagePattern.
@@ -1072,6 +1072,7 @@ Frequency of Newspeak tokens:
 	public tokenStart <Integer> ::= 0.
 	public tokenKind <Symbol>
 	public tokenValue (* The evaluated token, not it's substring in the source. *)
+	public extendedStart
 |) (
 public advanceToken = (
 	| byte |
@@ -1176,7 +1177,7 @@ protected restoreContext: context = (
 	advanceToken.
 )
 protected saveContext = (
-	^tokenStart
+	^extendedStart
 )
 private scanBinarySelector = (
 	[position <= size and: [isSpecialCharacter: (input at: position)]]
@@ -1371,6 +1372,7 @@ private skipComment = (
 	position + 1 <= size ifFalse: [^false].
 	(input at: position) = 40 (* ( *) ifFalse: [^false].
 	(input at: position + 1) = 42 (* * *) ifFalse: [^false].
+	nil = extendedStart ifTrue: [extendedStart:: position].
 	position:: position + 2.
 
 	[position + 1 <= size] whileTrue:
@@ -1396,6 +1398,7 @@ protected skipWhitespace = (
 )
 private skipWhitespaceAndComments = (
 	| outerLoopPosition ::= 0. |
+	extendedStart:: nil.
 	[outerLoopPosition = position] whileFalse:
 		[outerLoopPosition:: position.
 		 [position <= input size
@@ -1403,6 +1406,8 @@ private skipWhitespaceAndComments = (
 			ifTrue: [(input at: position) <= 32]]
 				whileTrue: [position:: position + 1].
 		 skipComment].
+	nil = extendedStart ifTrue:
+		[extendedStart:: position].
 )
 public tokenEnd = (
 	^position - 1

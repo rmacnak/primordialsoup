@@ -990,6 +990,26 @@ public testShapeChangeWithHostileEquals = (
 	assert: instance1 newSlot equals: nil.
 	assert: instance2 newSlot equals: nil.
 )
+public testSourceKeepsLeadingComments = (
+	|
+	builder <ClassDeclarationBuilder>
+	klass <Class>
+	mirror <ClassMirror>
+	|
+
+	builder:: ClassDeclarationBuilder fromSource:
+		'  (* comment1 *) (* comment2 *) class C = () ()  '.
+	builder instanceSide methods addFromSource:
+		'  (* comment1 *) (* comment2 *) method = ()  '.
+	klass:: builder install applyToObject reflectee.
+	mirror:: ClassMirror reflecting: klass.
+
+	assert: mirror mixin declaration header source equals:
+		'(* comment1 *) (* comment2 *) class C = ()'.
+
+	assert: (in: mirror mixin methods findMirrorNamed: #method) source equals:
+		'(* comment1 *) (* comment2 *) method = ()'.
+)
 ) : (
 TEST_CONTEXT = ()
 )

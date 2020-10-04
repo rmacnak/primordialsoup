@@ -1,4 +1,4 @@
-class NewspeakASTs usingLib: platform = (
+class NewspeakASTs usingPlatform: platform = (
 (* Abstract syntax tree node classes for Newspeak.
 
 Issues:
