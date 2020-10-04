@@ -737,6 +737,75 @@ public testActivationSourceRange = (
 
 	assert: thread isFulfilled.
 )
+public testActivationSourceRangeIfTrueIfFalse = (
+	| closure thread activation |
+	closure:: [true ifTrue: [3] ifFalse: [4]].
+	thread:: ActivationMirror invokeSuspended: closure.
+	assert: thread isSuspended.
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'true'.
+	thread stepInto. (* Push true *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'ifTrue: [3] ifFalse: [4]'.
+	thread stepInto. (* Pop and branch *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: '3'.
+	thread stepInto. (* Push 3 *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'ifTrue: [3] ifFalse: [4]'.
+	thread stepInto. (* Jump (join) *)
+)
+public testActivationSourceRangeToDo = (
+	| closure thread activation |
+	closure:: [1 to: 2 do: [:each | yourself]].
+	thread:: ActivationMirror invokeSuspended: closure.
+	assert: thread isSuspended.
+
+	assert: (currentSnippet: thread suspendedActivation) equals: nil.
+	thread stepInto. (* Push nil (create temp) *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: '1'.
+	thread stepInto. (* Push 1 *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: nil.
+	thread stepInto. (* Pop into temp *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: '2'.
+	thread stepInto. (* Push 2 *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: '[:each | yourself]'.
+	thread stepInto. (* Push temp *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: nil.
+	thread stepInto. (* Send >= *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'to: 2 do: [:each | yourself]'.
+	thread stepInto. (* Branch *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'yourself'.
+	thread stepInto. (* Send yourself *)
+)
+public testActivationSourceRangeWhileTrue = (
+	| closure thread activation |
+	closure:: [[true] whileTrue: [yourself]].
+	thread:: ActivationMirror invokeSuspended: closure.
+	assert: thread isSuspended.
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'true'.
+	thread stepInto. (* Push true *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'whileTrue: [yourself]'.
+	thread stepInto. (* Pop and branch *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'yourself'.
+	thread suspendedActivation stepOver. (* Send yourself *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: nil.
+	thread stepInto. (* Pop *)
+
+	assert: (currentSnippet: thread suspendedActivation) equals: 'whileTrue: [yourself]'.
+	thread stepInto. (* Jump (join) *)
+)
 public testActivationStepInto = (
 	| thread activation |
 	thread:: ActivationMirror invokeSuspended: seven.

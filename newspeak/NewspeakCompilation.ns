@@ -704,7 +704,10 @@ processSetterSend: node <SetterSendAST> binding: binding ^<AST> = (
 
 	(* setter: t *)
 	setterTempRead:: LocalReadAST of: setterTempBinding.
-	message:: MessageAST new selector: node message selector; arguments: {setterTempRead}.
+	message:: MessageAST new
+		selector: node message selector;
+		arguments: {setterTempRead};
+		copyPositionFrom: node message.
 	assert: [isImplicitReceiverNode: node receiver] message: 'Setter send receiver should be implicit'.
 	depth:: binding isNil ifTrue: [0] ifFalse: [offsetOfImplicitReceiverTarget: binding].
 	send:: ImplicitReceiverSendAST new
@@ -783,11 +786,12 @@ public symbolNode: node <SymbolAST> = (
 tryInlineIfFalse: node <UnresolvedSendAST> = (
 	| then = node message arguments at: 1. |
 	(isRemovableBlock: then withArgs: 0) ifFalse: [^nil].
-	^ConditionalAST
+	^(ConditionalAST
 		if: (node receiver apply: self)
 		is: false
 		then: (rewriteInlinedBlockNode: then forValue: valueExpected) body
-		forValue: valueExpected
+		forValue: valueExpected)
+			copyPositionFrom: node message
 )
 tryInlineIfFalseIfTrue: node <UnresolvedSendAST> = (
 	|
@@ -796,20 +800,22 @@ tryInlineIfFalseIfTrue: node <UnresolvedSendAST> = (
 	|
 	(isRemovableBlock: then withArgs: 0) ifFalse: [^nil].
 	(isRemovableBlock: else withArgs: 0) ifFalse: [^nil].
-	^ConditionalAST
+	^(ConditionalAST
 		if: (node receiver apply: self)
 		is: false
 		then: (rewriteInlinedBlockNode: then forValue: valueExpected) body
-		else: (rewriteInlinedBlockNode: else forValue: valueExpected) body
+		else: (rewriteInlinedBlockNode: else forValue: valueExpected) body)
+			copyPositionFrom: node message
 )
 tryInlineIfTrue: node <UnresolvedSendAST> = (
 	| then = node message arguments at: 1. |
 	(isRemovableBlock: then withArgs: 0) ifFalse: [^nil].
-	^ConditionalAST
+	^(ConditionalAST
 		if: (node receiver apply: self)
 		is: true
 		then: (rewriteInlinedBlockNode: then forValue: valueExpected) body
-		forValue: valueExpected
+		forValue: valueExpected)
+			copyPositionFrom: node message
 )
 tryInlineIfTrueIfFalse: node <UnresolvedSendAST> = (
 	|
@@ -818,17 +824,19 @@ tryInlineIfTrueIfFalse: node <UnresolvedSendAST> = (
 	|
 	(isRemovableBlock: then withArgs: 0) ifFalse: [^nil].
 	(isRemovableBlock: else withArgs: 0) ifFalse: [^nil].
-	^ConditionalAST
+	^(ConditionalAST
 		if: (node receiver apply: self)
 		is: true
 		then: (rewriteInlinedBlockNode: then forValue: valueExpected) body
-		else: (rewriteInlinedBlockNode: else forValue: valueExpected) body
+		else: (rewriteInlinedBlockNode: else forValue: valueExpected) body)
+			copyPositionFrom: node message
 )
 tryInlineRepeat: node <UnresolvedSendAST> = (
 	| body = node receiver. |
 	(isRemovableBlock: body withArgs: 0) ifFalse: [^nil].
-	^LoopAST new
-		repeat: (rewriteInlinedBlockNode: body forValue: false) body
+	^(LoopAST new
+		repeat: (rewriteInlinedBlockNode: body forValue: false) body)
+			copyPositionFrom: node message
 )
 tryInlineSend: node <UnresolvedSendAST> = (
 	| selector = node message selector. |
@@ -856,9 +864,10 @@ tryInlineTimesRepeat: node <UnresolvedSendAST> = (
 	body = node message arguments at: 1.
 	|
 	(isRemovableBlock: body withArgs: 0) ifFalse: [^nil].
-	^LoopAST new
+	^(LoopAST new
 		do: (count apply: self)
-		timesRepeat: body
+		timesRepeat: body)
+			copyPositionFrom: node message
 )
 tryInlineToByDo: node <UnresolvedSendAST> = (
 	|
@@ -869,11 +878,12 @@ tryInlineToByDo: node <UnresolvedSendAST> = (
 	|
 	step isKindOfNumberNode ifFalse: [^nil].
 	(isRemovableBlock: body withArgs: 1) ifFalse: [^nil].
-	^LoopAST new
+	^(LoopAST new
 		from: (start apply: self)
 		to: (stop apply: self)
 		by: (step apply: self)
-		do: body
+		do: body)
+			copyPositionFrom: node message
 )
 tryInlineToDo: node <UnresolvedSendAST> = (
 	|
@@ -882,17 +892,19 @@ tryInlineToDo: node <UnresolvedSendAST> = (
 	body = node message arguments at: 2.
 	|
 	(isRemovableBlock: body withArgs: 1) ifFalse: [^nil].
-	^LoopAST new
+	^(LoopAST new
 		from: (start apply: self)
 		to: (stop apply: self)
-		do: body
+		do: body)
+			copyPositionFrom: node message
 )
 tryInlineWhileFalse: node <UnresolvedSendAST> = (
 	| cond = node receiver. |
 	(isRemovableBlock: cond withArgs: 0) ifFalse: [^nil].
-	^LoopAST new
+	^(LoopAST new
 		while: false
-		do: (rewriteInlinedBlockNode: cond forValue: true) body
+		do: (rewriteInlinedBlockNode: cond forValue: true) body)
+			copyPositionFrom: node message
 )
 tryInlineWhileFalseColon: node <UnresolvedSendAST> = (
 	|
@@ -901,17 +913,19 @@ tryInlineWhileFalseColon: node <UnresolvedSendAST> = (
 	|
 	(isRemovableBlock: cond withArgs: 0) ifFalse: [^nil].
 	(isRemovableBlock: body withArgs: 0) ifFalse: [^nil].
-	^LoopAST new
+	^(LoopAST new
 		while: (rewriteInlinedBlockNode: cond forValue: true) body
 		is: false
-		do: (rewriteInlinedBlockNode: body forValue: false) body
+		do: (rewriteInlinedBlockNode: body forValue: false) body)
+			copyPositionFrom: node message
 )
 tryInlineWhileTrue: node <UnresolvedSendAST> = (
 	| cond = node receiver. |
 	(isRemovableBlock: cond withArgs: 0) ifFalse: [^nil].
-	^LoopAST new
+	^(LoopAST new
 		while: true
-		do: (rewriteInlinedBlockNode: cond forValue: true) body
+		do: (rewriteInlinedBlockNode: cond forValue: true) body)
+			copyPositionFrom: node message
 )
 tryInlineWhileTrueColon: node <UnresolvedSendAST> = (
 	|
@@ -920,10 +934,11 @@ tryInlineWhileTrueColon: node <UnresolvedSendAST> = (
 	|
 	(isRemovableBlock: cond withArgs: 0) ifFalse: [^nil].
 	(isRemovableBlock: body withArgs: 0) ifFalse: [^nil].
-	^LoopAST new
+	^(LoopAST new
 		while: (rewriteInlinedBlockNode: cond forValue: true) body
 		is: true
-		do: (rewriteInlinedBlockNode: body forValue: false) body
+		do: (rewriteInlinedBlockNode: body forValue: false) body)
+			copyPositionFrom: node message
 )
 public tupleNode: node <TupleAST> = (
 	^TupleAST new

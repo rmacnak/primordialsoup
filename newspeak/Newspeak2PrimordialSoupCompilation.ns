@@ -936,6 +936,7 @@ public conditionalNode: node <IfAST> = (
 	(* cond. branch(L1). then. L1: *)
 
 	self applyForValueTo: node condition.
+	addDebugInfo: node.
 	cgen jumpIf: node ifTrue not by: 0. (* jump to else (but needs patching) *)
 	ifPos: cgen bci. (* remember patch address *)
 
@@ -948,6 +949,7 @@ public conditionalNode: node <IfAST> = (
 			 endThen: cgen bci]
 		ifFalse:
 			[cgen currentStackDepth: depth.
+			 addDebugInfo: node.
 			 cgen jumpBy: 0. (* jump to end (but needs patching) *)
 			 endThen:: cgen bci. (* remember patch address *)
 			 node else apply: self.
@@ -1025,12 +1027,14 @@ public loopNode: node <LoopAST> = (
 
 	localVariableDebugInfos addAll: (self applyForValueTo: node condition).
 
+	addDebugInfo: node.
 	cgen jumpIf: node isWhileTrue not by: 0.
 	whilePos:: cgen bci. (* remember patch address *)
 
 	nil = node body ifFalse:
 		[self applyForEffectTo: node body].
 
+	addDebugInfo: node.
 	cgen jumpBackTo: topOfLoop.
 
 	cgen patchJumpIfAt: whilePos with: cgen bci - whilePos.
@@ -1608,7 +1612,8 @@ public loopNode: node <LoopAST> = (
 		prologue: (nullableCodeBodyNode: node prologue);
 		condition: (nullableCodeBodyNode: node condition);
 		isWhileTrue: node isWhileTrue;
-		body: (nullableCodeBodyNode: node body)
+		body: (nullableCodeBodyNode: node body);
+		copyPositionFrom: node
 )
 public messageLoopNode: node <MessageLoopAST> = (
 	^node
