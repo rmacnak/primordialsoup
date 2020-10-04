@@ -506,6 +506,20 @@ public testBooleanPrintString = (
 	assert: true printString equals: 'true'.
 	assert: false printString equals: 'false'.
 )
+public testIsKindOfBoolean = (
+	deny: 'foo' isKindOfBoolean.
+	deny: #foo isKindOfBoolean.
+	deny: ('foo', 'bar') isKindOfBoolean.
+	deny: 'Îñţérñåţîöñåļîžåţîờñ' isKindOfBoolean.
+	deny: 1 isKindOfBoolean.
+	deny: 1.5 isKindOfBoolean.
+	deny: 1.5 asFloat isKindOfBoolean.
+	assert: true isKindOfBoolean.
+	assert: false isKindOfBoolean.
+	deny: nil isKindOfBoolean.
+	deny: {} isKindOfBoolean.
+	deny: [] isKindOfBoolean.
+)
 ) : (
 TEST_CONTEXT = ()
 )

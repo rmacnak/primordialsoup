@@ -383,6 +383,9 @@ public mixinApply: superklass = (
 ) : (
 )
 public class Boolean = () (
+public isKindOfBoolean ^<Boolean> = (
+	^true
+)
 ) : (
 )
 public class ByteArray _cannotInstantiate = Collection (
