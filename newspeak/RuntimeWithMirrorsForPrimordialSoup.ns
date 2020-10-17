@@ -25,7 +25,7 @@ public js = JS usingPlatform: self.
 |) (
 public operatingSystem ^<String> = (
 	(* :literalmessage: primitive: 99 *)
-	halt.
+	panic.
 )
 ) : (
 )

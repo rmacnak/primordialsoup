@@ -894,7 +894,7 @@ class TemporaryClass withFormat: fmt = (|
 |) (
 public vfBasicNew = (
 	(* :literalmessage: primitive: 34 *)
-	halt.
+	panic.
 )
 ) : (
 )
@@ -955,31 +955,31 @@ public unsigned: value = (
 )
 private class: klass adoptInstance: object = (
 	(* :literalmessage: primitive: 134 *)
-	halt.
+	panic.
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
-	halt.
+	panic.
 )
 private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
 	(* :literalmessage: primitive: 77 *)
-	halt.
+	panic.
 )
 private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Object> = (
 	(* :literalmessage: primitive: 78 *)
-	halt.
+	panic.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
-	halt.
+	panic.
 )
 private initialBCIOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 73 *)
-	halt.
+	panic.
 )
 private isCanonical: object = (
 	(* :literalmessage: primitive: 126 *)
-	halt.
+	panic.
 )
 private kActivationCid = ( ^12 )
 private kArrayCid = ( ^9 )
@@ -994,7 +994,10 @@ private kStringCid = ( ^8 )
 private kWeakArrayCid = ( ^10 )
 private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 70 *)
-	halt.
+	panic.
+)
+private panic = (
+	(* :literalmessage: primitive: 103 *)
 )
 sharedObjects = (
 	^{
@@ -1027,11 +1030,11 @@ sharedObjects = (
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)
-	halt.
+	panic.
 )
 private slotOf: object at: index put: value = (
 	(* :literalmessage: primitive: 36 *)
-	halt.
+	panic.
 )
 private version = ( ^0 )
 ) : (

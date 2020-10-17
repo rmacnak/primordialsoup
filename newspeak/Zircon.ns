@@ -73,7 +73,7 @@ public class VMO handle: h = ZirconObject handle: h (
 ) (
 private rawGetSize: handle <Integer> multipleReturn: _ <Array> = (
 	(* :literalmessage: primitive: 150 *)
-	^halt
+	panic.
 )
 private rawRead: handle <Integer> size: readSize offset: offset multipleReturn: _ <Array> = (
 	(* :literalmessage: primitive: 152 *)
@@ -124,7 +124,7 @@ public printString ^<String> = (
 )
 private statusGetString: status = (
 	(* :literalmessage: primitive: 165 *)
-	halt
+	panic
 )
 ) : (
 )
@@ -148,15 +148,15 @@ protected onStatus: status signals: pending = (
 )
 private rawAwait: h signals: s = (
 	(* :literalmessage: primitive: 143 *)
-	halt
+	panic
 )
 private rawCancelWait: waitId = (
 	(* :literalmessage: primitive: 144 *)
-	halt
+	panic
 )
 private rawClose: handle <Integer> = (
 	(* :literalmessage: primitive: 145 *)
-	^halt
+	panic
 )
 public takeHandle ^<Integer> = (
 	| result = handle. |
@@ -179,6 +179,9 @@ public OK = ( ^0 )
 public VMO_RESIZABLE = ( ^1 << 1 )
 private checkStatus: status = (
 	OK = status ifFalse: [^(ZirconException status: status) signal].
+)
+private panic = (
+	(* :literalmessage: primitive: 103 *)
 )
 ) : (
 )

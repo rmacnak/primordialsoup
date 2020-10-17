@@ -131,7 +131,7 @@ const bool kFailure = false;
   V(100, Time_monotonicNanos)                                                  \
   V(101, Time_utcEpochNanos)                                                   \
   V(102, print)                                                                \
-  V(103, halt)                                                                 \
+  V(103, panic)                                                                \
   V(104, flushCache)                                                           \
   V(105, collectGarbage)                                                       \
   V(107, MessageLoop_exit)                                                     \
@@ -2078,8 +2078,8 @@ DEFINE_PRIMITIVE(print) {
 }
 
 
-DEFINE_PRIMITIVE(halt) {
-  OS::PrintErr("Halt:\n");
+DEFINE_PRIMITIVE(panic) {
+  OS::PrintErr("Panic:\n");
   I->PrintStack();
   OS::Exit(-1);
   UNREACHABLE();

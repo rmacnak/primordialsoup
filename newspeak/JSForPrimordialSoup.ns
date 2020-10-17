@@ -131,7 +131,7 @@ private rawPop = (
 )
 private rawPopAgain = (
 	(* :literalmessage: primitive: 158 *)
-	halt
+	panic
 )
 private rawPush: object = (
 	(* :literalmessage: primitive: 154 *)
@@ -141,11 +141,11 @@ private rawPush: object = (
 )
 private rawPushAlien: alienIndex = (
 	(* :literalmessage: primitive: 155 *)
-	halt
+	panic
 )
 private rawPushExpat: expatIndex = (
 	(* :literalmessage: primitive: 156 *)
-	halt
+	panic
 )
 public removeKey: key = (
 	(* JavaScript: delete this[key] *)
@@ -155,6 +155,9 @@ public removeKey: key = (
 	^rawPop
 )
 ) : (
+)
+private panic = (
+	(* :literalmessage: primitive: 103 *)
 )
 ) : (
 )

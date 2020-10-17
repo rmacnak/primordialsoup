@@ -24,11 +24,11 @@ private aboutToReturn: result through: firstUnwindActivation = (
 )
 public bci = (
 	(* :literalmessage: primitive: 57 *)
-	halt.
+	panic.
 )
 public bci: value = (
 	(* :literalmessage: primitive: 58 *)
-	halt.
+	panic.
 )
 private cannotReturn: result = (
 	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer be reached along the chain of senders. *)
@@ -36,11 +36,11 @@ private cannotReturn: result = (
 )
 public closure = (
 	(* :literalmessage: primitive: 61 *)
-	halt.
+	panic.
 )
 public closure: value = (
 	(* :literalmessage: primitive: 62 *)
-	halt.
+	panic.
 )
 public findNextUnwindContextUpTo: activation = (
 	(* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
@@ -79,11 +79,11 @@ public isUnwindContext ^<Boolean> = (
 )
 public method = (
 	(* :literalmessage: primitive: 59 *)
-	halt.
+	panic.
 )
 public method: value = (
 	(* :literalmessage: primitive: 60 *)
-	halt.
+	panic.
 )
 private nonBooleanReceiver: nonBoolean = (
 	(* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
@@ -125,11 +125,11 @@ public push: value = (
 )
 public receiver = (
 	(* :literalmessage: primitive: 63 *)
-	halt.
+	panic.
 )
 public receiver: value = (
 	(* :literalmessage: primitive: 64 *)
-	halt.
+	panic.
 )
 public resume: value = (
 	| unwindActivation unwindBlock |
@@ -152,19 +152,19 @@ public return: value = (
 )
 public sender = (
 	(* :literalmessage: primitive: 55 *)
-	halt.
+	panic.
 )
 public sender: value = (
 	(* :literalmessage: primitive: 56 *)
-	halt.
+	panic.
 )
 public size = (
 	(* :literalmessage: primitive: 67 *)
-	halt.
+	panic.
 )
 public size: newDepth = (
 	(* :literalmessage: primitive: 140 *)
-	halt.
+	panic.
 )
 public tempAt: index = (
 	(* :literalmessage: primitive: 65 *)
@@ -199,7 +199,7 @@ public top = (
 ) : (
 public new ^<Activation> = (
 	(* :literalmessage: primitive: 68 *)
-	halt.
+	panic.
 )
 )
 public class ArgumentError value: v = Exception (|
@@ -451,7 +451,7 @@ public replaceFrom: start <Integer> to: stop <Integer> with: replacement <ByteAr
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 49 *)
-	halt.
+	panic.
 )
 public startsWith: prefix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 117 *)
@@ -488,7 +488,7 @@ private subclasses <WeakArray>
 protected basicNew = (
 	(* Sent by the compiler from factory methods. *)
 	(* :literalmessage: primitive: 34 *)
-	halt.
+	panic.
 )
 public name ^<String> = (
 	^self nameS
@@ -554,7 +554,7 @@ public isKindOfClosure ^<Boolean> = (
 )
 public numArgs ^<Integer> = (
 	(* :literalmessage: primitive: 75 *)
-	halt.
+	panic.
 )
 private numArgsError: argsProvided = (
 	(* :bogus: *)
@@ -575,22 +575,22 @@ public repeat = (
 public value = (
 	(* :literalmessage: primitive: 90 *)
 	self numArgs = 0 ifFalse: [^numArgsError: 0].
-	halt.
+	panic.
 )
 public value: arg1 = (
 	(* :literalmessage: primitive: 91 *)
 	self numArgs = 1 ifFalse: [^numArgsError: 1].
-	halt.
+	panic.
 )
 public value: arg1 value: arg2 = (
 	(* :literalmessage: primitive: 92 *)
 	self numArgs = 2 ifFalse: [^numArgsError: 2].
-	halt.
+	panic.
 )
 public value: arg1 value: arg2 value: arg3 = (
 	(* :literalmessage: primitive: 93 *)
 	self numArgs = 3 ifFalse: [^numArgsError: 3].
-	halt.
+	panic.
 )
 public valueWithArguments: arguments = (
 	(* :literalmessage: primitive: 94 *)
@@ -600,7 +600,7 @@ public valueWithArguments: arguments = (
 private valueWithArgumentsAgain: arguments = (
 	(* :literalmessage: primitive: 94 *)
 	self numArgs = arguments size ifFalse: [^numArgsError: arguments size].
-	halt.
+	panic.
 )
 public whileFalse = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers. *)
@@ -727,7 +727,7 @@ private invokeNextHandler = (
 	[nil = activation] whileFalse:
 		[activation method primitive = 142 ifTrue:
 			[returnToSimulationRoot: activation.
-			 halt].
+			 panic].
 		 activation method primitive = 116 ifTrue:
 			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
 				[(activation tempAt: 3) ifTrue:
@@ -735,7 +735,7 @@ private invokeNextHandler = (
 		 activation:: activation sender].
 
 	messageLoop unhandledException: self from: signalActivation sender.
-	halt.
+	panic.
 )
 private invokeOnDoHandler: handler <Activation> = (
 	| handlerResult |
@@ -757,13 +757,13 @@ private is: handlerExceptionClass <Any> interestedIn: signaledExceptionClass <Be
 )
 private jumpTo: activation = (
 	(* :literalmessage: primitive: 95 *)
-	halt.
+	panic.
 )
 public pass = (
 	(* Yield control to the next enclosing #on:do: handler. *)
 	nil = handlerActivation ifTrue: [^error].
 	invokeNextHandler.
-	halt.
+	panic.
 )
 public printString ^<String> = (
 	nil = messageText ifTrue: [^super class name].
@@ -778,9 +778,9 @@ public resume: resumptionValue = (
 	^savedSignalActivation return: resumptionValue
 )
 public retry = (
-	halt. (* Needs test *)
+	panic. (* Needs test *)
 	handlerActivation restart.
-	halt.
+	panic.
 )
 public return: returnValue = (
 	(* Returns the argument as the result of the current #on:do: message. *)
@@ -809,7 +809,7 @@ public signal = (
 	(* Yields control to an enclosing #on:do: handler. *)
 	handlerActivation:: signalActivation:: currentActivation.
 	invokeNextHandler.
-	halt.
+	panic.
 )
 public signal: message <String> = (
 	(* squeak compatibility for Minitest *)
@@ -890,31 +890,31 @@ public asStringPrecision: precision <Integer> ^<String> = (
 )
 public ceiling ^<Float> = (
 	(* :literalmessage: primitive: 22 *)
-	halt.
+	panic.
 )
 public cos ^<Float> = (
 	(* :literalmessage: primitive: 24 *)
-	halt.
+	panic.
 )
 public divideFromFraction: left = (
 	^left asFloat / self
 )
 public exp ^<Float> = (
 	(* :literalmessage: primitive: 30 *)
-	halt.
+	panic.
 )
 public floor ^<Float> = (
 	(* :literalmessage: primitive: 21 *)
-	halt.
+	panic.
 )
 public hash ^<Integer> = (
 	^self asInteger
 )
 public isFinite ^<Boolean> = (
-	halt.
+	panic.
 )
 public isInfinite ^<Boolean> = (
-	halt.
+	panic.
 )
 public isKindOfFloat ^<Boolean> = (
 	^true
@@ -924,11 +924,11 @@ public isNaN ^<Boolean> = (
 )
 public ln ^<Float> = (
 	(* :literalmessage: primitive: 31 *)
-	halt.
+	panic.
 )
 public log ^<Float> = (
 	(* :literalmessage: primitive: 32 *)
-	halt.
+	panic.
 )
 public multiplyFromFraction: left = (
 	^left asFloat * self
@@ -942,22 +942,22 @@ public raisedTo: exponent <Number> ^<Float> = (
 )
 public rounded ^<Float> = (
 	(* :literalmessage: primitive: 125 *)
-	halt.
+	panic.
 )
 public sin ^<Float> = (
 	(* :literalmessage: primitive: 23 *)
-	halt.
+	panic.
 )
 public sqrt ^<Float> = (
 	(* :literalmessage: primitive: 33 *)
-	halt.
+	panic.
 )
 public subtractFromFraction: left = (
 	^left asFloat - self
 )
 public tan ^<Float> = (
 	(* :literalmessage: primitive: 25 *)
-	halt.
+	panic.
 )
 ) : (
 public parse: string <String> ^<Float> = (
@@ -1436,7 +1436,7 @@ public hash ^<Integer> = (
 	^self
 )
 public inverseMod: modulus <Integer> ^<Integer> = (
-	halt.
+	panic.
 )
 public isKindOfFraction ^<Boolean> = (
 	^true
@@ -1512,7 +1512,7 @@ public selector <Symbol> = s.
 public arguments <Array[Object]> = a.
 |) (
 public sendEventualTo: receiver = (
-	halt.
+	panic.
 )
 public sendTo: receiver = (
 	(* Send a message to the argument according as an ordinary send. *)
@@ -1559,7 +1559,7 @@ public accessModifier ^<Symbol> = (
 	0 = ac ifTrue: [^#public].
 	1 = ac ifTrue: [^#protected].
 	2 = ac ifTrue: [^#private].
-	halt.
+	panic.
 )
 public isPrivate ^<Boolean> = (
 	^#private = accessModifier
@@ -1699,7 +1699,7 @@ public abs ^<Number> = (
 )
 public asFloat ^<Float> = (
 	(* :literalmessage: primitive: 15 *)
-	halt.
+	panic.
 )
 public asInteger ^<Integer> = (
 	(* :literalmessage: primitive: 14 *)
@@ -1707,7 +1707,7 @@ public asInteger ^<Integer> = (
 )
 public asString ^<String> = (
 	(* :literalmessage: primitive: 111 *)
-	halt.
+	panic.
 )
 public between: min <Number> and: max <Number> ^<Boolean> = (
 	^self <= max and: [self >= min]
@@ -1819,7 +1819,7 @@ public = other <Object> ^<Boolean> = (
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
 
 	(* :literalmessage: primitive: 86 *)
-	halt.
+	panic.
 )
 protected Array = (
 	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
@@ -1863,15 +1863,12 @@ protected class ^<Behavior> = (
 	This method is not public to make it easier to separate the authority of an instance from the authority of its class. This is similar to how the flatness of the metaclass heirarchy separates the interface of an object from the interface of its class. *)
 
 	(* :literalmessage: primitive: 85 *)
-	halt.
+	panic.
 )
 protected doesNotUnderstand: message <Message> = (
 	(0 = message arguments size and: [message selector startsWith: 'isKindOf']) ifTrue: [^false].
 
 	^(MessageNotUnderstood receiver: self message: message) signal
-)
-protected halt = (
-	(* :literalmessage: primitive: 103 *)
 )
 public hash ^<Integer> = (
 	(* Answers the hash code for the receiver.
@@ -1880,7 +1877,7 @@ public hash ^<Integer> = (
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
 
 	(* :literalmessage: primitive: 87 *)
-	halt.
+	panic.
 )
 public isNil ^<Boolean> = (
 	^false
@@ -1958,7 +1955,7 @@ public , other <String> ^<String> = (
 )
 public = other <Object> ^<Boolean> = (
 	(* :literalmessage: primitive: 114 *)
-	halt.
+	panic.
 )
 public asString ^<String> = (
 	^self
@@ -1995,7 +1992,7 @@ public first ^<Integer> = (
 )
 public hash ^<Integer> = (
 	(* :literalmessage: primitive: 54 *)
-	halt.
+	panic.
 )
 public indexOf: substring <ByteArray | String> ^<Integer> = (
 	^self indexOf: substring startingAt: 1
@@ -2028,7 +2025,7 @@ public printString ^<String> = (
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 53 *)
-	halt.
+	panic.
 )
 public startsWith: prefix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 117 *)
@@ -2045,7 +2042,7 @@ public withAll: bytes <Collection[Integer] | ByteArray | String> ^<String> = (
 )
 private withAllAgain: bytes <ByteArray> ^<String> = (
 	(* :literalmessage: primitive: 124 *)
-	halt
+	panic
 )
 )
 public class StringBuilder new: capacity <Integer> = (|
@@ -2183,7 +2180,7 @@ public isEmpty ^<Boolean> = (
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 45 *)
-	halt.
+	panic.
 )
 ) : (
 public new: size <Integer> ^<WeakArray[E]> = (
@@ -2315,19 +2312,19 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
-	halt.
+	panic.
 )
 private currentActivation ^<Activation> = (
 	(* :literalmessage: primitive: 133 *)
-	halt.
+	panic.
 )
 private currentMonotonicNanos = (
 	(* :literalmessage: primitive: 100 *)
-	halt.
+	panic.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
-	halt.
+	panic.
 )
 private enclosingObjectOf: behavior = (
 	^self slotOf: behavior at: 3
@@ -2343,15 +2340,15 @@ private formatOf: behavior put: value = (
 )
 public garbageCollect = (
 	(* :literalmessage: primitive: 105 *)
-	halt.
+	panic.
 )
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
-	halt.
+	panic.
 )
 private instantiate: klass = (
 	(* :literalmessage: primitive: 34 *)
-	halt.
+	panic.
 )
 private intern: string = (
 	| table capacity index reuseIndex symbol |
@@ -2380,11 +2377,11 @@ private intern: string = (
 )
 private is: a identicalTo: b = (
 	(* :literalmessage: primitive: 86 *)
-	halt.
+	panic.
 )
 private isCanonical: object = (
 	(* :literalmessage: primitive: 126 *)
-	halt.
+	panic.
 )
 private methodsOf: behavior = (
 	^self slotOf: behavior at: 2
@@ -2406,7 +2403,10 @@ private nameOf: klass put: value = (
 )
 private object: rcvr perform: sel with: arguments = (
 	(* :literalmessage: primitive: 89 *)
-	halt.
+	panic.
+)
+private panic = (
+	(* :literalmessage: primitive: 103 *)
 )
 print: message = (
 	(* :literalmessage: primitive: 102 *)
@@ -2442,15 +2442,15 @@ private rehashSymbolTable = (
 )
 private setCanonical: object = (
 	(* :literalmessage: primitive: 127 *)
-	halt.
+	panic.
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)
-	halt.
+	panic.
 )
 private slotOf: object at: index put: value = (
 	(* :literalmessage: primitive: 36 *)
-	halt.
+	panic.
 )
 private subclassesOf: klass = (
 	^self slotOf: klass at: 8

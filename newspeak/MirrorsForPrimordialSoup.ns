@@ -88,7 +88,7 @@ private computeDebugInfo = (
 				compileClassHeader2: definingMixin _instanceMixin _headerSource
 				within: (mxn: definingMixin _enclosingMixin)) factory debugInfo]].
 
-	halt.
+	panic.
 )
 private computeDebugMapper = (
 	^computeDebugInfo mapperForContext: reflectee
@@ -164,7 +164,7 @@ public method ^<MethorMirror> = (
 				name: rawMethod selector
 				source: definingMixin _instanceMixin _headerSource]].
 
-	halt.
+	panic.
 )
 private mxn: mixin = (
 	nil = mixin ifTrue: [^nil].
@@ -515,9 +515,9 @@ public enclosingClass ^<ClassDeclarationBuilder> = (
 	nil = enclosingIR ifFalse:
 		[^enclosingIR declaration builder].
 	nil = intermediate existingMixin ifTrue:
-		[intermediate isTopLevel ifFalse: [halt]. ^nil].
+		[intermediate isTopLevel ifFalse: [panic]. ^nil].
 	nil = intermediate existingMixin _enclosingMixin ifTrue:
-		[intermediate isTopLevel ifFalse: [halt]. ^nil].
+		[intermediate isTopLevel ifFalse: [panic]. ^nil].
 
 	enclosingIR:: buildIntermediateFor: intermediate existingMixin _enclosingMixin within: nil.
 
@@ -543,7 +543,7 @@ public install ^<ClassDeclarationMirror> = (
 	[nil = outermost enclosingClass] whileFalse:
 		[outermost:: outermost enclosingClass declaration].
 	installer install: {outermost}.
-	nil = intermediate existingMixin ifTrue: [halt].
+	nil = intermediate existingMixin ifTrue: [panic].
 	^ClassDeclarationMirror reflecting: intermediate existingMixin
 )
 public instanceSide ^<MixinBuilder> = (
@@ -642,7 +642,7 @@ public printString = (
 	^'ClassDeclarationMirror:',simpleName.
 )
 public simpleName = (
-	(* halt. TestEnvironment classAccessorName *)
+	(* panic. TestEnvironment classAccessorName *)
 	^mixin _name
 )
 public source ^<String> = (
@@ -1514,7 +1514,7 @@ public activateClosure: closure arguments: arguments = (
 	newActivation method: (definingActivationOf: closure) method.
 	newActivation closure: closure.
 	newActivation receiver: (definingActivationOf: closure) receiver.
-	arguments size = closure numArgs ifFalse: [halt].
+	arguments size = closure numArgs ifFalse: [panic].
 	arguments do:
 		[:argument | newActivation push: argument].
 	1 to: (numCopiedOf: closure) do:
@@ -1548,7 +1548,7 @@ private doPrimitive: index <Integer> receiver: receiver <Object> arguments: argu
 	index out.
 	receiver out.
 	arguments size out.
-	halt.
+	panic.
 )
 dup = (
 	activation push: activation top.
@@ -1558,7 +1558,7 @@ public findApplicationOf: mixin startingAt: startingBehavior = (
 	[nil = behavior] whileFalse:
 		[mixin = (mixinOf: behavior) ifTrue: [^behavior].
 		 behavior:: (superclassOf: behavior)].
-	halt.
+	panic.
 )
 implicitReceiverSend: selector numArgs: numArgs = (
 	| arguments candidateReceiver candidateMixin candidateMixinApplication |
@@ -1590,7 +1590,7 @@ method = (
 )
 private newClosureIn: definingActivation initialBCI: initialBCI numArgs: numArgs numCopied: numCopied = (
 	(* :literalmessage: primitive: 69 *)
-	halt.
+	panic.
 )
 nonBooleanReceiver: nonBoolean = (
 	| method |
@@ -1824,7 +1824,7 @@ tryPrimitive: primitive receiver: newReceiver arguments: arguments = (
 	0 = primitive ifTrue: [^false].
 
 	(* Simulation guard *)
-	112 = primitive ifTrue: ['simulation guard' out. halt].
+	112 = primitive ifTrue: ['simulation guard' out. panic].
 
 	(* Current activation *)
 	133 = primitive ifTrue: [activation push: activation. ^true].
@@ -1960,7 +1960,7 @@ private isBottom: activation <Activation> ^<Boolean> = (
 )
 private jumpTo: activation = (
 	(* :literalmessage: primitive: 95 *)
-	halt.
+	panic.
 )
 private lookupNewMethod: activation = (
 	| simulator oldMethod methodClass newMethod |
@@ -2050,14 +2050,14 @@ public return: returnValue from: activation = (
 )
 private simulatorRoot = (
 	(* :literalmessage: primitive: 142 *)
-	halt.
+	panic.
 )
 private simulatorRootMethod = (
 	| methods = methodsOf: self class. |
 	1 to: methods size do:
 		[:index | | method = methods at: index. |
 		method selector = #simulatorRoot ifTrue: [^method]].
-	halt.
+	panic.
 )
 public stepInto = (
 	nil = suspendedActivation ifTrue:
@@ -2093,7 +2093,7 @@ private stepUntil: predicate <[:Activation | Boolean]> = (
 	root:: createSimulationRoot.
 	simulator activation: (prepareToResumeWithRoot: root).
 
-	root = simulator activation ifTrue: [halt].
+	root = simulator activation ifTrue: [panic].
 
 	[simulator interpretNextInstruction.
 	 root = simulator activation or: [predicate value: simulator activation]] whileFalse.
@@ -2181,11 +2181,11 @@ public terminate ^<ThreadMirror> = (
 )
 private allInstancesOf: cls = (
 	(* :literalmessage: primitive: 96 *)
-	halt.
+	panic.
 )
 private allocate: cls = (
 	(* :literalmessage: primitive: 34 *)
-	halt.
+	panic.
 )
 buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec = (
 	| initializers = List new. |
@@ -2264,7 +2264,7 @@ buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClass
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
-	halt.
+	panic.
 )
 private commentFromHeader: source <String> ^<String> = (
 	nil = source ifTrue: [^nil].
@@ -2293,23 +2293,23 @@ private constructCompiler = (
 )
 private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
 	(* :literalmessage: primitive: 77 *)
-	halt.
+	panic.
 )
 private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Object> = (
 	(* :literalmessage: primitive: 78 *)
-	halt.
+	panic.
 )
 private currentActivation ^<Activation> = (
 	(* :literalmessage: primitive: 133 *)
-	halt.
+	panic.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
-	halt.
+	panic.
 )
 private elementsOf: old forwardIdentityToElementsOf: new = (
 	(* :literalmessage: primitive: 98 *)
-	halt.
+	panic.
 )
 private enclosingObjectOf: behavior = (
 	^self slotOf: behavior at: 3
@@ -2319,11 +2319,11 @@ private formatOf: behavior = (
 )
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)
-	halt.
+	panic.
 )
 private initialBCIOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 73 *)
-	halt.
+	panic.
 )
 private intermediates = (
 	nil = intermediatesX ifTrue: [constructCompiler].
@@ -2331,7 +2331,7 @@ private intermediates = (
 )
 private is: a identicalTo: b = (
 	(* :literalmessage: primitive: 86 *)
-	halt.
+	panic.
 )
 private isBehavior: object = (
 	| cls |
@@ -2359,7 +2359,10 @@ private mixinOf: behavior = (
 )
 private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 70 *)
-	halt.
+	panic.
+)
+private panic = (
+	(* :literalmessage: primitive: 103 *)
 )
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
@@ -2373,11 +2376,11 @@ private preambleFromHeader: source <String> ^<String> = (
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)
-	halt.
+	panic.
 )
 private slotOf: object at: index put: value = (
 	(* :literalmessage: primitive: 36 *)
-	halt.
+	panic.
 )
 private subclassesOf: klass = (
 	^self slotOf: klass at: 8
