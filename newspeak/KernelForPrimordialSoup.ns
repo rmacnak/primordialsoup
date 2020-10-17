@@ -569,7 +569,8 @@ public printString ^<String> = (
 	^'[closure] in ', (definingActivationOf: self) printString
 )
 public repeat = (
-	halt.
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers. *)
+	^[self value] repeat
 )
 public value = (
 	(* :literalmessage: primitive: 90 *)
@@ -602,16 +603,20 @@ private valueWithArgumentsAgain: arguments = (
 	halt.
 )
 public whileFalse = (
-	halt.
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers. *)
+	^[self value] whileFalse
 )
-public whileFalse: action = (
-	halt.
+public whileFalse: action <[]> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers/arguments. *)
+	^[self value] whileFalse: [action value]
 )
 public whileTrue = (
-	halt.
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers. *)
+	^[self value] whileTrue
 )
-public whileTrue: action = (
-	halt.
+public whileTrue: action <[]> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers/arguments. *)
+	^[self value] whileTrue: [action value]
 )
 ) : (
 )
@@ -831,15 +836,19 @@ public asString ^<String> = (
 	^'false'
 )
 public ifFalse: else <[Y def]> ^<nil | Y> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^else value
 )
 public ifFalse: else <[Y def]> ifTrue: then <[X def]> ^<X | Y> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^else value
 )
 public ifTrue: then <[X def]> ^<X | nil> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^nil
 )
 public ifTrue: then <[X def]> ifFalse: else <[Y def]> ^<X | Y> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^else value
 )
 public not ^<Boolean> = (
@@ -1448,6 +1457,7 @@ public subtractFromFraction: left = (
 	^(left numerator - (self * left denominator)) / left denominator
 )
 public timesRepeat: action <[]> ^<Integer> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	1 to: self do: [:ignore | action value].
 
 	^nil (* To match the inlined version *)
@@ -1774,12 +1784,14 @@ public tan ^<Float> = (
 	^self asFloat tan
 )
 public to: stop <Number> by: step <Number> do: action <[:Number]> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	| current ::= self. |
 	[current <= stop] whileTrue: [action value: current. current:: step + current].
 
 	^nil (* To match the inlined version *)
 )
 public to: stop <Number> do: action <[:Number]> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	| current ::= self. |
 	[current <= stop] whileTrue: [action value: current. current:: 1 + current].
 
@@ -2101,15 +2113,19 @@ public asString ^<String> = (
 	^'true'
 )
 public ifFalse: else <[Y def]> ^<nil | Y> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^nil
 )
 public ifFalse: else <[Y def]> ifTrue: then <[X def]> ^<X | Y> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^then value
 )
 public ifTrue: then <[X def]> ^<X | nil> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^then value
 )
 public ifTrue: then <[X def]> ifFalse: else <[Y def]> ^<X | Y> = (
+	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^then value
 )
 public not ^<Boolean> = (

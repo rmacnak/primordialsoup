@@ -1442,6 +1442,23 @@ assert: (-16 rem: 8) equals: 0.
 assert: (16 rem: -8) equals: 0.
 assert: (-16 rem: -8) equals: 0.'
 )
+public testRepeat = (
+	testSampleMethod: 'public testRepeat = (
+		| sum ::= 0. |
+		[sum:: sum + 20. sum > 50 ifTrue: [^sum]] repeat.
+	)'
+	with: 'assert: sample testRepeat equals: 60.'
+)
+public testRepeatNonLiteralBlock = (
+	testSampleMethod: 'public testRepeatNonLiteralBlock = (
+		|
+		sum ::= 0.
+		block = [sum:: sum + 20. sum > 50 ifTrue: [^sum]].
+		|
+		block repeat.
+	)'
+	with: 'assert: sample testRepeatNonLiteralBlock equals: 60.'
+)
 public testReservedWordsAsClasses = (
 	assertCompilationErrorIn: 'class Sample = () ( class self = ()() )'.
 	assertCompilationErrorIn: 'class Sample = () ( class super = ()() )'.
@@ -2296,6 +2313,28 @@ public testWhileFalseColon = (
 ^tg)'
 	with: 'assert: sample testWhileFalseColon equals: 18944.'
 )
+public testWhileFalseColonNonLiteralBlocks = (
+	testSampleMethod: 'public testWhileFalseColonNonLiteralBlocks = (
+		| tf tg block1 block2 |
+		tf:: 37.
+		tg:: tf * 2.
+		block1:: [tg >= 10000].
+		block2:: [tg:: tg * 2].
+		block1 whileFalse: block2.
+		^tg
+	)'
+	with: 'assert: sample testWhileFalseColonNonLiteralBlocks equals: 18944.'
+)
+public testWhileFalseNonLiteralBlock = (
+	testSampleMethod: 'public testWhileFalseNonLiteralBlock = (
+		| tf tg block |
+		tf:: 37. tg:: tf * 2.
+		block:: [tg:: tg * 2. tg > 10000].
+		block whileFalse.
+		^tg
+	)'
+	with: 'assert: sample testWhileFalseNonLiteralBlock equals: 18944.'
+)
 public testWhileTrue = (
 (* The convention for naming the methods that test control structures differs from others. We retain the leading word test. This is so name completion is not corrupted by the presence of these methods. *)
 	testSampleMethod: 'public testWhileTrue = (| ta tb  tc td te tf tg th | tf:: 37. tg:: tf *2.
@@ -2309,6 +2348,27 @@ public testWhileTrueColon = (
 [tg < 10000] whileTrue: [tg:: tg *2].
 ^tg)'
 	with: 'assert: sample testWhileTrueColon equals: 18944.'
+)
+public testWhileTrueColonNonLiteralBlocks = (
+	testSampleMethod: 'public testWhileTrueColonNonLiteralBlocks = (
+		| tf tg block1 block2 |
+		tf:: 37. tg:: tf * 2.
+		block1:: [tg < 10000].
+		block2:: [tg:: tg * 2].
+		block1 whileTrue: block2.
+		^tg
+	)'
+	with: 'assert: sample testWhileTrueColonNonLiteralBlocks equals: 18944.'
+)
+public testWhileTrueNonLiteralBlock = (
+	testSampleMethod: 'public testWhileTrueNonLiteralBlock = (
+		| tf tg block |
+		tf:: 37. tg:: tf * 2.
+		block:: [tg:: tg * 2. tg < 10000].
+		block whileTrue.
+		^tg
+	)'
+	with: 'assert: sample testWhileTrueNonLiteralBlock equals: 18944.'
 )
 public testWhileWithScope = (
 (* The convention for naming the methods that test control structures differs from others. We retain the leading word test. This is so name completion is not corrupted by the presence of these methods. *)
