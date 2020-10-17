@@ -546,6 +546,30 @@ public testClassHeaderComment = (
 	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
 	assert: builder header classComment equals: comment.
 )
+public testClassHeaderDeclaration = (
+	|
+	builder <ClassDeclarationBuilder>
+	|
+
+	builder:: ClassDeclarationBuilder fromSource: 'class Foo foo: x = ()()'.
+	assert: builder header declaration equals: builder.
+)
+public testClassHeaderFactoryName = (
+	|
+	builder <ClassDeclarationBuilder>
+	|
+
+	builder:: ClassDeclarationBuilder fromSource: 'class Foo foo: x = ()()'.
+	assert: builder header primaryFactorySelector equals: 'foo:'.
+)
+public testClassHeaderName = (
+	|
+	builder <ClassDeclarationBuilder>
+	|
+
+	builder:: ClassDeclarationBuilder fromSource: 'class Foo foo: x = ()()'.
+	assert: builder header name equals: 'Foo'.
+)
 public testClassHeaderPreamble = (
 	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)
 	|

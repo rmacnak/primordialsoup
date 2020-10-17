@@ -71,6 +71,14 @@ public testIsKindOfClassDeclarationMirror = (
 TEST_CONTEXT = ()
 )
 public class ClassHeaderMirrorTests = TestBase () (
+public testClassHeaderMirrorDeclaration = (
+	| mirror |
+	mirror:: (ClassMirror reflecting: model Klass) mixin declaration.
+	assert: mirror header declaration equals: mirror.
+
+	mirror:: (ObjectMirror reflecting: model) getClass mixin declaration.
+	assert: mirror header declaration equals: mirror.
+)
 public testClassHeaderMirrorEquality = (
 	| mirror mirror2 |
 	mirror:: (ClassMirror reflecting: model Klass) mixin declaration header.
@@ -86,6 +94,14 @@ public testClassHeaderMirrorEquality = (
 	mirror:: (ClassMirror reflecting: model Klass) mixin declaration header.
 	mirror2:: (ObjectMirror reflecting: model) getClass mixin declaration header.
 	deny: mirror equals: mirror2.
+)
+public testClassHeaderMirrorFactoryName = (
+	| mirror |
+	mirror:: (ClassMirror reflecting: model Klass) mixin declaration header.
+	assert: mirror primaryFactorySelector equals: 'factory:'.
+
+	mirror:: (ObjectMirror reflecting: model) getClass mixin declaration header.
+	assert: mirror primaryFactorySelector equals: 'new'.
 )
 public testClassHeaderMirrorLiterals = (
 	| header |

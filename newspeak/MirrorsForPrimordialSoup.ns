@@ -627,7 +627,7 @@ public hash ^<Integer> = (
 	^mixin hash bitXor: class hash
 )
 public header ^<ClassHeaderMirror> = (
-	^ClassHeaderMirror reflecting: mixin
+	^ClassHeaderMirror reflecting: mixin in: self
 )
 public instanceSide ^<MixinMirror> = (
 	^MixinMirror reflecting: mixin
@@ -640,10 +640,6 @@ public name = (
 )
 public printString = (
 	^'ClassDeclarationMirror:',simpleName.
-)
-public simpleName = (
-	(* panic. TestEnvironment classAccessorName *)
-	^mixin _name
 )
 public source ^<String> = (
 	| sb = StringBuilder new. |
@@ -682,7 +678,10 @@ public classComment ^<String> = (
 	(* :todo: This is pretty sugary; does it belong in mirrors? *)
 	^commentFromHeader: source
 )
-public name = (
+public declaration ^<ClassDeclarationBuilder> = (
+	^intermediate builder
+)
+public name ^<String> = (
 	^intermediate simpleName
 )
 public name: newName <String> = (
@@ -724,6 +723,9 @@ public preamble ^<String> = (
 	(* :todo: This is pretty sugary; does it belong in mirrors? *)
 	^preambleFromHeader: source
 )
+public primaryFactorySelector ^<String> = (
+	^intermediate factoryName
+)
 public source ^<String> = (
 	^intermediate headerSource
 )
@@ -748,9 +750,10 @@ public source: newHeader <String> = (
 )
 ) : (
 )
-private class ClassHeaderMirror reflecting: mxn = (
+private class ClassHeaderMirror reflecting: mxn in: d = (
 	|
 	mixin <InstanceMixin> = mxn.
+	public declaration <ClassDeclarationMirror> = d.
 	|
 	reflectees at: self put: mxn.
 ) (
@@ -789,6 +792,9 @@ private nestedClassAccessor ^<Method> = (
 public preamble ^<String> = (
 	(* :todo: This is pretty sugary; does it belong in mirrors? *)
 	^preambleFromHeader: source
+)
+public primaryFactorySelector ^<String> = (
+	^mixin _primaryFactorySelector
 )
 public selectors ^<Set[String]> = (
 	| accessor selectors |
