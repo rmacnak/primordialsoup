@@ -1801,13 +1801,13 @@ public tupleNode: node <TupleAST> = (
 )
 ) : (
 )
-private accessorASTForNestedClassNamed: simpleName <String> classTree: classTree <NormalSendAST> accessModifier: am <Symbol> ^<MethodAST> = (
+private accessorASTForNestedClassNamed: name <String> classTree: classTree <NormalSendAST> accessModifier: am <Symbol> ^<MethodAST> = (
 (* Build an AST for a method that would lazily create a nested class via mixin application, and cache it. The generated code has the form
 
-simpleName = (
-	self simpleName`slot isNil ifTrue:
-		[self simpleName`slot: (<classTree>)].
-	^self simpleName`slot
+name = (
+	self name`slot isNil ifTrue:
+		[self name`slot: (<classTree>)].
+	^self name`slot
 )
 
 where <classTree> is the AST that computes the class.
@@ -1821,7 +1821,7 @@ where <classTree> is the AST that computes the class.
 		with: {}.
 	nestedClassSlot:: UnresolvedSendAST new
 		to: selfNode
-		send: (namer mixinSlotNameFor: simpleName) asSymbol with: {}.
+		send: (namer mixinSlotNameFor: name) asSymbol with: {}.
 	nilCheck:: UnresolvedSendAST new
 		to: nilNode
 		send: #=
@@ -1830,7 +1830,7 @@ where <classTree> is the AST that computes the class.
 	mixinApplication:: classTree.
 	assignSlot:: UnresolvedSendAST new
 		to: selfNode
-		send: ((namer mixinSlotNameFor: simpleName), ':') asSymbol
+		send: ((namer mixinSlotNameFor: name), ':') asSymbol
 		with: {mixinApplication}.
 	block:: BlockAST new
 		body: (CodeBodyAST new
@@ -1845,7 +1845,7 @@ where <classTree> is the AST that computes the class.
 
 	^MethodAST new
 		pattern: (MessagePatternAST new
-			selector: simpleName asSymbol
+			selector: name asSymbol
 			parameters: {};
 			accessModifier: am);
 		body: (CodeBodyAST new
@@ -1969,10 +1969,10 @@ astForClassDeclarationInitializer: aNode <ClassHeaderAST> ^<MethodAST> = (
 		pattern: initHdr body: body accessModifier: #public;
 		copyPositionFrom: aNode
 )
-astForComputingClassDeclaration: simpleName <String> superCall: superCall <NormalSendAST> iList: iList <List[SendAST]> ^ <NormalSendAST> = (
+astForComputingClassDeclaration: name <String> superCall: superCall <NormalSendAST> iList: iList <List[SendAST]> ^ <NormalSendAST> = (
 (* Compute the tree for an ordinary class declaration whose superclass is a generalized mixin application. *)
 	|
-	nestedMixin = nestedMixinASTFor: simpleName asSymbol.
+	nestedMixin = nestedMixinASTFor: name asSymbol.
 	superChain = inheritanceASTWIthSuperclass: superCall receiver iList: iList.
 	|
 
@@ -1981,7 +1981,7 @@ astForComputingClassDeclaration: simpleName <String> superCall: superCall <Norma
 		send: #applyTo:withEnclosingObject:
 		with: {superChain. selfNode}
 )
-astForComputingMixinApplicationClassDeclaration: simpleName <String>
+astForComputingMixinApplicationClassDeclaration: name <String>
 superCall: superCall <NormalSendAST>
 iList: iList <List[SendAST]>
 factoryName: factoryName <Symbol> ^ <NormalSendAST> = (
@@ -1993,7 +1993,7 @@ application by applying the last element of the inheritance chain to that
 superclass.
 .*)
 	|
-	nestedMixin = nestedMixinASTFor: simpleName asSymbol.
+	nestedMixin = nestedMixinASTFor: name asSymbol.
 	superChain = inheritanceASTWIthSuperclass: (superCall receiver)  iList: iList allButLast.
 	mixinApp = UnresolvedSendAST new
 		to: (mixinSendTreeFor: iList last receiver)
@@ -2002,7 +2002,7 @@ superclass.
 			superChain.
 			UnresolvedSendAST new
 				to: (UnresolvedSendAST new
-					to: (SymbolAST new value: simpleName, '`')
+					to: (SymbolAST new value: name, '`')
 					send: #,
 					with: {UnresolvedSendAST new
 						to: (UnresolvedSendAST new to: selfNode send: #hash with: {})
@@ -2120,10 +2120,10 @@ astForPrimaryFactory: hdr <ClassHeaderAST> ^<MethodAST> = (
 astForTransientSlotGetter: tree <SlotDefAST> = (
 (* Build an AST for a method that would lazily create a execute the expression in a transient  slot, and cache it. The generated code has the form
 
-simpleName = (
-	self simpleName`slot isNil ifTrue:
-		[self simpleName`slot: initTransientSlotExpression].
-	^self simpleName`slot
+name = (
+	self name`slot isNil ifTrue:
+		[self name`slot: initTransientSlotExpression].
+	^self name`slot
 )
 
 *)
@@ -2323,7 +2323,7 @@ private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration>
 
 	headerNode:: node header.
 	classDecl:: IntermediateClassDeclaration new.
-	classDecl simpleName: headerNode name.
+	classDecl name: headerNode name.
 	classDecl headerSource: (sourceForNode: headerNode).
 	classDecl factoryName: headerNode constructor selector.
 	classDecl comment: (headerNode classComment isNil ifTrue: [''] ifFalse: [headerNode classComment]).
@@ -2486,25 +2486,25 @@ computeSlotInitializersFor: aNode <ClassHeaderAST> ^ <Collection[StmtAST]> = (
 private createNestedClassAccessorFrom: nestedClassNode <ClassDeclarationAST | MixinApplicationClassAST> = (
 	(* Create an accessor method for the nested class represented by the incoming class tree. This accessor will lazily generate the nested class when its enclosing instance is first asked for it. *)
 	|
-	simpleName <String>
+	name <String>
 	ast <MethodAST>
 	hdr <ClassHeaderAST>
 	classTree <NormalSendAST>
 	|
 
-	simpleName:: nestedClassNode name.
+	name:: nestedClassNode name.
 	classTree:: nestedClassNode isKindOfMixinApplicationClassAST
 		ifTrue:
-			[astForComputingMixinApplicationClassDeclaration: simpleName
+			[astForComputingMixinApplicationClassDeclaration: name
 				superCall: nestedClassNode inheritanceChain first
 				iList: (allButFirstOf: nestedClassNode inheritanceChain)
 				factoryName: nestedClassNode constructor selector]
 		ifFalse:
 			[hdr:: nestedClassNode header.
-			astForComputingClassDeclaration: simpleName
+			astForComputingClassDeclaration: name
 				superCall: hdr superCall
 				iList: (allButFirstOf: hdr inheritanceChain)].
-	ast:: accessorASTForNestedClassNamed: simpleName
+	ast:: accessorASTForNestedClassNamed: name
 		classTree: classTree
 		accessModifier: nestedClassNode accessModifier.
 	ast copyPositionFrom: nestedClassNode header.
@@ -2579,7 +2579,7 @@ mixinApplicationClassNode: nc <MixinApplicationClassAST>
 	hdrSource <String>
 	cmm <CompiledMixinMirror>
 	|
-	classDecl simpleName: nc name.
+	classDecl name: nc name.
 	iListSource:: nc inheritanceChain allButLast
 		 inject: '' into: [:s : e | s, (sourceForNode: e), ' <: '].
 	iListSource:: iListSource, (sourceForNode: nc inheritanceChain last).

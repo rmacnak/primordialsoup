@@ -4,7 +4,7 @@ private Map = p collections Map.
 private Method = k Method.
 |) (
 public class IntermediateClassDeclaration = (|
-public simpleName
+public name
 public headerSource
 public factoryName
 public comment
@@ -23,7 +23,7 @@ public accessModifier ^<Symbol> = (
 )
 public addSyntheticSlotsTo: slots = (
 	| slot = IntermediateSlotDeclaration new. |
-	slot name: (simpleName, '`slot') asSymbol.
+	slot name: (name, '`slot') asSymbol.
 	slot isMutable: true.
 	slot accessModifier: #private.
 	slots add: slot.
@@ -103,9 +103,6 @@ public compiledMethod ^<CompiledMethod> = (
 public name = (
 	^selector
 )
-public simpleName = (
-	^selector
-)
 ) : (
 )
 public class IntermediateMixin for: d isMeta: m = (|
@@ -142,7 +139,7 @@ public checkNameConflictsForFactory: selector <Symbol> = (
 public checkNameConflictsForMethod: selector <Symbol> = (
 	nestedClasses do:
 		[:nestedClass |
-		nestedClass simpleName = selector ifTrue:
+		nestedClass name = selector ifTrue:
 			[^Error signal: 'Class already has nested class named ', selector]].
 	slots do:
 		[:slot |
@@ -168,7 +165,7 @@ public checkNameConflictsForNestedClass: klassName <Symbol> = (
 public checkNameConflictsForSlot: slotName <Symbol> mutable: isMutable <Boolean> = (
 	nestedClasses do:
 		[:nestedClass |
-		nestedClass simpleName = slotName ifTrue:
+		nestedClass name = slotName ifTrue:
 			[^Error signal: 'Class already has nested class named ', slotName]].
 	methods do:
 		[:method |
@@ -216,9 +213,6 @@ public generateSetterForSlot: index <Integer> ^<IntermediateMethod> = (
 	method selector: method method selector.
 	method isSynthetic: true.
 	^method
-)
-public simpleName = (
-	^name
 )
 ) : (
 )

@@ -364,11 +364,11 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	mixin _accessModifier: classDecl accessModifier.
 	mixin _primaryFactorySelector: classDecl factoryName.
 	assert: [classDecl factoryName isNil not] message: 'Missing factory name'.
-	mixin _name: classDecl simpleName.
+	mixin _name: classDecl name.
 	mixin _classMixin: classMixin.
 	mixin _methods: (methodDictionaryFor: mixin from: classDecl instanceSide).
 	mixin _slots: (classDecl instanceSide assembleSlots collect:
-		[:s <IntermediateSlotDeclaration> | {s simpleName. s isMutable. s accessModifier}]) asArray.
+		[:s <IntermediateSlotDeclaration> | {s name. s isMutable. s accessModifier}]) asArray.
 
 	classMixin _instanceMixin: mixin.
 	classMixin _methods: (methodDictionaryFor: classMixin from: classDecl classSide).
@@ -527,7 +527,7 @@ public enclosingClass ^<ClassDeclarationBuilder> = (
 	(* Patch down link and accessor. *)
 	enclosingNested:: enclosingIR instanceSide nestedClasses.
 	1 to: enclosingNested size do: [:i |
-		(enclosingNested at: i) simpleName = intermediate simpleName ifTrue:
+		(enclosingNested at: i) name = intermediate name ifTrue:
 			[intermediate accessor: (enclosingNested at: i) accessor.
 			 enclosingNested at: i put: intermediate]].
 
@@ -556,7 +556,7 @@ public instanceSide ^<MixinBuilder> = (
 	^builder
 )
 public name = (
-	^intermediate simpleName
+	^intermediate name
 )
 public source ^<String> = (
 	| sb = StringBuilder new. |
@@ -639,7 +639,7 @@ public name = (
 	^mixin _name
 )
 public printString = (
-	^'ClassDeclarationMirror:',simpleName.
+	^'ClassDeclarationMirror:',name.
 )
 public source ^<String> = (
 	| sb = StringBuilder new. |
@@ -682,7 +682,7 @@ public declaration ^<ClassDeclarationBuilder> = (
 	^intermediate builder
 )
 public name ^<String> = (
-	^intermediate simpleName
+	^intermediate name
 )
 public name: newName <String> = (
 	| token newClassSource newIR |
@@ -693,7 +693,7 @@ public name: newName <String> = (
 	intermediate isTopLevel ifFalse:
 		[ | existing |
 		existing:: intermediate enclosingClass nestedClasses
-			detect: [:nested | nested simpleName = newName]
+			detect: [:nested | nested name = newName]
 			ifNone: [nil].
 		(nil = existing or: [existing = intermediate builder])
 			ifFalse: [^Error signal: 'A sibling already exists with the name ', newName]].
@@ -710,7 +710,7 @@ public name: newName <String> = (
 		compileClassHeader: newClassSource
 		within: intermediate enclosingClass.
 
-	intermediate simpleName: newIR simpleName.
+	intermediate name: newIR name.
 	intermediate headerSource: newIR headerSource.
 	intermediate factoryName: newIR factoryName.
 	intermediate comment: newIR comment.
@@ -738,7 +738,7 @@ public source: newHeader <String> = (
 		within: intermediate enclosingClass.
 
 	checkForHeaderConflicts: newIR.
-	assert: [intermediate simpleName = newIR simpleName] message: ''.
+	assert: [intermediate name = newIR name] message: ''.
 
 	intermediate headerSource: newIR headerSource.
 	intermediate factoryName: newIR factoryName.
@@ -1290,10 +1290,10 @@ public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
 		compileClassSource: source
 		within: intermediate.
 
-	intermediate checkNameConflictsForNestedClass: idecl simpleName.
+	intermediate checkNameConflictsForNestedClass: idecl name.
 
 	intermediate nestedClasses removeAllSuchThat:
-		[:nestedIR | nestedIR simpleName = idecl simpleName].
+		[:nestedIR | nestedIR name = idecl name].
 	intermediate nestedClasses add: idecl.
 
 	builder:: ClassDeclarationBuilder fromIntermediate: idecl.
@@ -1319,7 +1319,7 @@ protected newForCollectUsingAdd: capacity = (
 public removeMirrorNamed: name <Symbol> = (
 	| nestedIntermediate |
 	intermediate nestedClasses removeAllSuchThat:
-		[:inested | inested simpleName = name].
+		[:inested | inested name = name].
 )
 ) : (
 )
@@ -2247,18 +2247,18 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 		nestedIR:: buildIntermediateFor: nestedMixin within: ec.
 		i nestedClasses add: nestedIR.
 
-		accessorM:: mixin _methods detect: [:ea | ea selector = nestedIR simpleName].
+		accessorM:: mixin _methods detect: [:ea | ea selector = nestedIR name].
 		accessorIR:: intermediates IntermediateMethod new.
 		accessorIR method: accessorM.
 		accessorIR methodMixin: mixin.
-		accessorIR selector: nestedIR simpleName.
+		accessorIR selector: nestedIR name.
 		accessorIR accessModifier: accessorM accessModifier.
 		accessorIR isSynthetic: true.
 		nestedIR accessor: accessorIR].
 )
 buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClassDeclaration> = (
 	| i = intermediates IntermediateClassDeclaration new. |
-	i simpleName: mixin _name.
+	i name: mixin _name.
 	i headerSource: mixin _headerSource.
 	i factoryName: mixin _primaryFactorySelector.
 	i comment: nil.
