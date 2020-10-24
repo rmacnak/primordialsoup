@@ -1,5 +1,5 @@
 Newspeak3
-'NS2PrimordialSoup'
+'Root'
 class JSForPrimordialSoup usingPlatform: platform = (
 	|
 	public undefined = Alien withIndex: 0.
@@ -59,9 +59,6 @@ public instanceOf: constructor ^<Boolean> = (
 )
 public isKindOfClosure ^<Boolean> = (
 	^false
-)
-public isKindOfJSAlien ^<Boolean> = (
-	^true
 )
 public isUndefined ^<Boolean> = (
 	^0 = index
@@ -155,6 +152,12 @@ public removeKey: key = (
 	rawPush: key.
 	rawPerformDelete.
 	^rawPop
+)
+public isKindOfJSAlien ^ <Boolean> = (
+	^true
+)
+public isKindOfImage ^ <Boolean> = (
+  ^'IMG' = (at: 'tagName')
 )
 ) : (
 )
