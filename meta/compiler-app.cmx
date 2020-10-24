@@ -1,7 +1,7 @@
 {
     "program": {
-        "binary": "bin/app",
-        "args": [ "pkg/data/HelloApp.vfuel" ]
+        "binary": "bin/primordialsoup",
+        "args": [ "pkg/data/CompilerApp.vfuel" ]
     },
     "sandbox": {
         "features": [],

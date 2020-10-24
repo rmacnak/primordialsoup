@@ -1,7 +1,7 @@
 {
     "program": {
-        "binary": "bin/app",
-        "args": [ "pkg/data/CompilerApp.vfuel" ]
+        "binary": "bin/primordialsoup",
+        "args": [ "pkg/data/BenchmarkRunner.vfuel" ]
     },
     "sandbox": {
         "features": [],

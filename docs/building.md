@@ -60,7 +60,7 @@ After building, the test suite and some benchmarks can be run with
 On Fuchsia,
 
 ```
-run fuchsia-pkg://fuchsia.com/hello_app#meta/hello_app.cmx
-run fuchsia-pkg://fuchsia.com/test_runner#meta/test_runner.cmx
-run fuchsia-pkg://fuchsia.com/benchmark_runner#meta/benchmark_runner.cmx
+run fuchsia-pkg://fuchsia.com/hello-app#meta/hello-app.cmx
+run fuchsia-pkg://fuchsia.com/test-runner#meta/test-runner.cmx
+run fuchsia-pkg://fuchsia.com/benchmark-runner#meta/benchmark-runner.cmx
 ```
