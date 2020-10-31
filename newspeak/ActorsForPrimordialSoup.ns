@@ -9,7 +9,7 @@ public Promise = PromiseFactories new.
 private messageLoop
 private internalRefs <WeakMap[Ref, InternalRef]> = WeakMap new.
 private currentActor ::= InternalActor named: 'Initial actor'.
-private pendingActors ::= List new.
+private pendingActors = List new.
 private timerHeap = TimerHeap new.
 private portMap = Map new.
 public handleMap = Map new.
@@ -20,19 +20,10 @@ private Deserializer = p victoryFuel Deserializer.
 public class Actor named: debugName <String> = (|
 private (* N.B. Do not leak to subinstances. *) internalActor = InternalActor named: debugName.
 |) (
-public interrupt = (
-	unimplemented
-)
-public onError: onError <[:E]> = (
-	unimplemented.
-)
 public seed: value <Value> ^<FarReference[Value]> = (
 	(* Creating a far reference to a PassByCopy is questionable. It may be that this should be seed: receiver perform: selector with: argument. *)
-	(isValueObject: value) ifFalse: [Error signal: 'Cannot seed an actor with a non-Value.'].
+	(isValueObject: value) ifFalse: [^Error signal: 'Cannot seed an actor with a non-Value.'].
 	^createFarReferenceTo: value in: internalActor for: currentActor.
-)
-public terminate = (
-	unimplemented
 )
 ) : (
 )
@@ -344,7 +335,7 @@ resolution <InternalRef>
 public addReactor: reactor = (
 	state = #resolved ifTrue: [^resolution addReactor: reactor].
 	state = #unresolved ifTrue: [^reactor reactMoreResolved: self].
-	stop5.
+	panic.
 )
 public checkCycle ^<Boolean> = (
 	state = #resolving ifTrue: [^true].
@@ -625,18 +616,11 @@ public new = (
 )
 )
 class PromiseFactories = () (
-public all: refs <List[Promise[V, E]]> ^<Promise[List[V], E]> = (
-	(* Answers a promise that resolves with all the resolutions of refs, or the first problem. *)
-)
 public broken: problem <E> ^<Promise[nil, E]> = (
 	^Resolver new break: problem; promise
 )
 public fulfilled: resolution <V> ^<Promise[V, nil]> = (
 	^Resolver new fulfill: resolution; promise
-)
-public timeout: ref <Promise[V, E]> after: milliseconds <Integer> ^<Promise[V, E | TimeoutError]> = (
-	(* Answers a promise that resolves with the resolution of ref, or a TimeoutError if refs is not resolved within milliseconds. *)
-	#BOGUS. (* Should have proper duration type. *)
 )
 public when: ref <Promise[V, E]> fulfilled: onValue <[:V | V2 def]> ^<Promise[V2, E]> = (
 	(* Subscribe to notification of a reference being fulfilled. If ref is fulfilled, onValue will run in some turn after the turn that resolves ref, and the returned promise with be resolved with the result of onValue. If ref is broken, the returned promise with be broken with the same error. *)
@@ -645,9 +629,6 @@ public when: ref <Promise[V, E]> fulfilled: onValue <[:V | V2 def]> ^<Promise[V2
 public when: ref <Promise[V, E]> fulfilled: onValue <[:V | V2 def]> broken: onError <[:E | E2 def]> ^<Promise[V2, E2]> = (
 	(* Subscribe to notification of a reference being fulfilled or broken. onValue or onError respectively will run in some turn after the turn that resolves ref., and the returned promise with be resolved with the result of the callback. *)
 	^(asInternalRef: ref) whenFulfilled: onValue whenBroken: onError
-)
-public when: ref <Promise> partitioned: onPartition <[:Promise | R def] | [R def]> ^<Promise[R, nil]> = (
-	(* Subscribe to notification of a reference breaking due to partition. *)
 )
 ) : (
 )

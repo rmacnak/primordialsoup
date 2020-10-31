@@ -341,8 +341,8 @@ public class Serializer = (
 stream = WriteStream new.
 clusters = IdentityMap new: 32.
 orderedClusters = List new.
-stack ::= List new.
-refs ::= IdentityMap new: 256.
+stack = List new.
+refs = IdentityMap new: 256.
 nextRefIndex
 |
 ) (

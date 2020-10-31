@@ -363,22 +363,6 @@ public selector ^<Symbol> = (
 )
 ) : (
 )
-public class MixinApplicationAST = AST (
-(* Represents a literal mixin application. *)
-|
-	public mixinExpression <NormalSendAST>
-	public superclassExpression <NormalSendAST> (* should eventually go away *)
-	public classPrefix <ClassPrefixAST>
- |) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool mixinApplication: self
-)
-) : (
-public prefix: cp mixin: me = (
-(* ultimately should be a primary factory *)
-	^new classPrefix: cp; mixinExpr: me; superclassExpr: cp superclassCall; yourself
-)
-)
 public class MixinApplicationClassAST named: klassName factoryMsg: cons inheriting: iList = AST (
 (* This class represents a class defined via a mixin application - that is, a class that does not provide a class body. *)
 |
@@ -517,16 +501,6 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 public isKindOfVariableNode ^<Boolean> = (^true)
 ) : (
-)
-public class WildcardPatternAST = PatternAST (
-) (
-public apply: tool <ASTTool[T]> ^<T> = (
-	^tool wildcardPatternNode: self
-)
-) : (
-public start: s end: e = (
-	^self new start: s; end: e; yourself
-)
 )
 ) : (
 )

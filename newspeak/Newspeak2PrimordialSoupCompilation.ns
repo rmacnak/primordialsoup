@@ -4,7 +4,7 @@ class Newspeak2PrimordialSoupCompilation usingPlatform: platform
  intermediates: i = NewspeakCompilation
  usingPlatform: platform
  asts: asts (
-(* The Newspeak compilation module for Squeak and PrimordialSoup. For a detailed overview of compilation, see Compiler.
+(* The Newspeak compilation module for PrimordialSoup. For a detailed overview of compilation, see Compiler.
 
 Relation to parsing:
 
@@ -2017,50 +2017,6 @@ superclass.
 
 	^addInitializersToMixinApplication: mixinApp nestedMixin: nestedMixin factoryName: factoryName
 )
-astForMixinInitializer: aNode <ClassHeaderAST> ^ <MethodAST> = (
-	(* Creates the instance initializer method for the mixin. This code is shared by all invocations of the mixin defined by the argument *)
-	|
-	start <integer>
-	end <Integer>
-	stmts <List[StmtAST]>
-	initHdr <MessagePatternAST>
-	body <CodeBodyAST>
-	slots <Collection[StmtAST]>
-	subs <Collection[MethodAST]>
-	|
-	initHdr:: MessagePatternAST new
-		accessModifier: aNode constructor accessModifier;
-		selector: (mixinInitializerSelectorNameFor: aNode constructor selector);
-		parameters: aNode constructor parameters;
-		copyPositionFrom: aNode constructor.
-
-	stmts:: (aNode slots reject: [:slot | slot initializer isNil]) collect:
-		[:slot <SlotDefAST> |
-		| aMsg <MessageAST> slotInitializer <ExpressionAST> |
-		slotInitializer:: slot initializer.
-		aNode isSeq ifFalse: [slotInitializer:: futureFor: slotInitializer].
-		aMsg:: MessageAST new
-			send: (namer selectorForSlotInitializer: slot) with: {slotInitializer};
-			start: slot start;
-			end: slot end.
-		UnresolvedSendAST new
-			message: aMsg;
-			receiver: (selfNode start: aMsg start; end: aMsg end);
-			start: aMsg start; end: aMsg end].
-
-	(* then add the initializer code *)
-	aNode initExprs do:
-		[:ie <ExpressionAST> | stmts add: ie].
-	start:: stmts isEmpty ifTrue: [initHdr end+2] ifFalse: [stmts first start].
-	end:: stmts isEmpty ifTrue: [initHdr end + 3] ifFalse: [stmts last end].
-	body:: CodeBodyAST new
-		temporaries: List new
-		statements: stmts;
-		start: start; end: end.
-	^MethodAST new
-		pattern: initHdr body: body accessModifier: #public;
-		start: initHdr start; end: end.
-)
 astForPrimaryFactory: hdr <ClassHeaderAST> ^<MethodAST> = (
 	(* Manufacture a method with the given class header's primary constructor's signature, and body that creates a new instance of the class and calls its initializer.
 		| @newInstance |
@@ -2566,51 +2522,6 @@ of the various mixin applications produced conflict with each other.
 )
 initializerSelectorNameFor: selector <Symbol> ^<Symbol> = (
 	^('initializer`', selector) asSymbol
-)
-mixinApplicationClassNode: nc <MixinApplicationClassAST>
- in: mixinIR <IntermediateMixin>
- ^<IntermediateClassDeclaration> = (
-	|
-	classDecl = IntermediateClassDeclaration new.
-	scope <Scope> = scopeMap at: nc.
-	init <IntermediateMethod> =
-		processMethod: (mixinApplicationInitializerFor: nc) inScope: scope in: classDecl instanceSide.
-	iListSource <String>
-	hdrSource <String>
-	cmm <CompiledMixinMirror>
-	|
-	classDecl name: nc name.
-	iListSource:: nc inheritanceChain allButLast
-		 inject: '' into: [:s : e | s, (sourceForNode: e), ' <: '].
-	iListSource:: iListSource, (sourceForNode: nc inheritanceChain last).
-	hdrSource:: nc name, ' ',  (sourceForNode: nc constructor), ' = ', iListSource, '.'.
-
-	classDecl headerSource: hdrSource.
-	classDecl factoryName: nc constructor selector.
-	classDecl comment: ''.
-	init isSubinitializer: true.
-	init metadata at: #hasBody put: false.
-	(* classDecl instanceSide methods add: init.*)
-	processFactoryFor: nc inScope: scope in: classDecl classSide.
-	classDecl initializers: (List new add: init; yourself). (* is this it? *)
-	^classDecl
-)
-mixinApplicationInitializerFor: classDef <MixinApplicationClassAST> ^ <MethodAST> = (
-	(* Probably migrate to superclass *)
-	|
-	pattern = MessagePatternAST new
-		accessModifier: classDef constructor accessModifier;
-		selector: (initializerSelectorNameFor: classDef constructor selector);
-		parameters: classDef constructor parameters;
-		copyPositionFrom: classDef constructor.
-	iList = classDef inheritanceChain.
-	stmts = mixinInitializationCallsFor: iList.
-	body = CodeBodyAST new temporaries: {} statements: stmts.
-	mtd = MethodAST new pattern: pattern body: body accessModifier: #public.
-	|
-	body start: stmts first start; end: stmts last end.
-	mtd start: pattern start; end: body end.
-	^mtd.
 )
 mixinCall: number <Integer> inheritanceList: iList <Collection[SendAST]> ^ <NormalSendAST> = (
 	(* Probably migrate to superclass *)

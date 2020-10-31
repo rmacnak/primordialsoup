@@ -244,9 +244,6 @@ public collect: transform <[:E | F]> ^<Array[F]> = (
 		results at: index put: (transform value: (self at: index))].
 	^results
 )
-public copy ^<Array[E]> = (
-	^self copyFrom: 1 to: self size.
-)
 public copyFrom: start <Integer> to: stop <Integer> ^<Array[E]> = (
 	(* :literalmessage: primitive: 81 *)
 	^ArgumentError new signal
@@ -481,7 +478,9 @@ public printString ^<String> = (
 )
 ) : (
 )
-public class Class = Behavior (|
+public class Class = Behavior (
+(* The superclass of all metaclasses. *)
+|
 private nameS <Symbol> (* Must be slot 7, known to the VM for debug printing only. *)
 private subclasses <WeakArray>
 |) (
@@ -868,7 +867,7 @@ public | alternative <Boolean> ^<Boolean> = (
 ) : (
 )
 public class Float _cannotInstantiate = Number (
-(* A double-precision floating pointer number. *)
+(* A double-precision floating point number. *)
 ) (
 public addFromFraction: left = (
 	^left asFloat + self
@@ -1098,7 +1097,7 @@ public numerator: numerator <Integer> denominator: denominator <Integer> ^<Fract
 )
 )
 public class IdentityMap new: capacity = (
-(* A map whose keys are considering equal according to object identity. *)
+(* A map whose keys are considered equal according to object identity. *)
 |
 table ::= Array new: capacity.
 public size ::= 0.
@@ -1537,7 +1536,9 @@ public printString ^<String> = (
 )
 ) : (
 )
-public class Metaclass = Behavior (|
+public class Metaclass = Behavior (
+(* The class of all metaclasses. *)
+|
 private thisClass <Class>
 |) (
 public name ^<String> = (
@@ -1554,7 +1555,7 @@ public literals <Array> (* Must be slot 2, known to the VM. *)
 public bytecode <ByteArray> (* Must be slot 3, known to the VM. *)
 public mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
 public selector <Symbol> (* Must be slot 5, known to the VM. *)
-public metadata <String>
+public metadata
 |) (
 public accessModifier ^<Symbol> = (
 	| ac = header >> 28. |
@@ -1635,7 +1636,7 @@ class NonBooleanReceiver receiver: r = Exception (
 public receiver = r.
 |) (
 public printString ^<String> = (
-	^'NonBooleanReceiver ', receiver printString
+	^'NonBooleanReceiver: ', receiver printString
 )
 ) : (
 )
@@ -1824,11 +1825,9 @@ public = other <Object> ^<Boolean> = (
 	panic.
 )
 protected Array = (
-	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup Array
 )
 protected ByteArray = (
-	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup ByteArray
 )
 protected Error = (
@@ -1839,18 +1838,15 @@ protected Exception = (
 	^outer KernelForPrimordialSoup Exception
 )
 protected Float = (
-	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup Float
 )
 protected Integer = (
-	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup Integer
 )
 protected Object = (
 	^outer KernelForPrimordialSoup Object
 )
 protected String = (
-	(* bogus: Should return an object that is not a class so it cannot be subclassed or mixed-in. *)
 	^outer KernelForPrimordialSoup String
 )
 protected assert: blockOrBoolean message: message = (
