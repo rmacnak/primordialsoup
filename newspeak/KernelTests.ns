@@ -1890,8 +1890,21 @@ public testFloatHash = (
 	assert: minDoubleInt asFloat hash equals: minDoubleInt hash.
 	assert: maxDoubleInt asFloat hash equals: maxDoubleInt hash.
 )
+public testFloatIsFinite = (
+	deny: nan isFinite.
+	assert: e isFinite.
+	deny: infinity isFinite.
+	deny: negativeInfinity isFinite.
+)
+public testFloatIsInfinite = (
+	deny: nan isInfinite.
+	deny: e isInfinite.
+	assert: infinity isInfinite.
+	assert: negativeInfinity isInfinite.
+)
 public testFloatIsNaN = (
 	assert: nan isNaN.
+	deny: e isNaN.
 	deny: infinity isNaN.
 	deny: negativeInfinity isNaN.
 )

@@ -911,9 +911,11 @@ public hash ^<Integer> = (
 	^self asInteger
 )
 public isFinite ^<Boolean> = (
+	(* :literalmessage: primitive: 106 *)
 	panic.
 )
 public isInfinite ^<Boolean> = (
+	(* :literalmessage: primitive: 112 *)
 	panic.
 )
 public isKindOfFloat ^<Boolean> = (

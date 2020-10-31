@@ -134,11 +134,13 @@ const bool kFailure = false;
   V(103, panic)                                                                \
   V(104, flushCache)                                                           \
   V(105, collectGarbage)                                                       \
+  V(106, Double_isFinite)                                                      \
   V(107, MessageLoop_exit)                                                     \
   V(108, Double_asStringFixed)                                                 \
   V(109, Double_asStringExponential)                                           \
   V(110, Double_asStringPrecision)                                             \
   V(111, Number_asString)                                                      \
+  V(112, Double_isInfinite)                                                    \
   V(113, Closure_ensure)                                                       \
   V(114, String_equals)                                                        \
   V(115, String_concat)                                                        \
@@ -1139,6 +1141,17 @@ DEFINE_PRIMITIVE(Double_log) { FLOAT_FUNCTION_1(log10); }
 DEFINE_PRIMITIVE(Double_sqrt) { FLOAT_FUNCTION_1(sqrt); }
 DEFINE_PRIMITIVE(Double_pow) { FLOAT_FUNCTION_2(pow); }
 
+DEFINE_PRIMITIVE(Double_isFinite) {
+  ASSERT(num_args == 0);
+  FLOAT_ARGUMENT(rcvr, 0);
+  RETURN_BOOL(isfinite(rcvr));
+}
+
+DEFINE_PRIMITIVE(Double_isInfinite) {
+  ASSERT(num_args == 0);
+  FLOAT_ARGUMENT(rcvr, 0);
+  RETURN_BOOL(isinf(rcvr));
+}
 
 DEFINE_PRIMITIVE(Behavior_basicNew) {
   ASSERT((num_args == 0) || (num_args == 1));
