@@ -3135,7 +3135,8 @@ EM_JS(void, _JS_pushExpat, (intptr_t index), {
     for (var i = 0; i < arguments.length; i++) {
       aliens.push(arguments[i]);
     }
-    Module._handle_signal(index, arguments.length, 0, 0);
+    var timeout = Module._handle_signal(index, arguments.length, 0, 0);
+    scheduleTurn(timeout);
     return aliens.pop();
   }
   aliens.push(expat);
