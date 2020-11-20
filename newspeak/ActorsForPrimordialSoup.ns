@@ -491,7 +491,6 @@ public isActive = (
 class MessageLoop application: a platform: p = (|
 	application ::= a.
 	platform ::= p.
-	ultimateHandler <[:e :signaler]>
 |) (
 private dispatchHandle: handle status: status signals: signals count: count = (
 	| handler |
@@ -560,19 +559,10 @@ private finish: wakeup = (
 	(* :literalmessage: primitive: 139 *)
 	halt.
 )
-public ultimateExceptionHandler: handler <[:e :signaler]> = (
-  ultimateHandler:: handler
-)
 public unhandledException: exception from: signalActivationSender = (
 	| activation |
 
 	'Unhandled exception: ' out.
-	ultimateHandler isNil ifFalse: [
-		'setting handler' out.
-		ultimateHandler value: exception value: signalActivationSender. 
-		'handler set' out.
-		^self
-		].
 	exception out.
 	activation:: signalActivationSender.
 	[nil = activation] whileFalse:
@@ -896,9 +886,6 @@ private isValueObject: object <Object> ^<Boolean> = (
 	object isKindOfBehavior ifTrue: [^true (* ^isValueObject: object enclosingClass *)].
 	Promise = object ifTrue: [^true].
 	^false
-)
-public ultimateExceptionHandler: handler <[:e :signaler]> = (
-  messageLoop ultimateExceptionHandler: handler
 )
 private wrapArgument: argument from: sourceActor to: targetActor = (
 	(* [argument] lives in [sourceActor], answer the corresponding proxy that lives in [targetActor] *)
