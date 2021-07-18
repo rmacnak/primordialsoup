@@ -91,6 +91,18 @@ public testArrayCopyFromTo = (
 	should: [array copyFrom: 0 to: 1] signal: Error.
 	should: [array copyFrom: 7 to: 8] signal: Error.
 )
+public testArrayDo = (
+	| array count |
+	array:: Array new: 1.
+	array at: 1 put: 'apple'.
+
+	count:: 0.
+	array do:
+		[:element |
+		 count:: count + 1.
+		 assert: element equals: 'apple'].
+	assert: count equals: 1.
+)
 public testArrayEqualityIsIdentity = (
 	|
 	empty1 = Array new: 0.
@@ -156,6 +168,19 @@ public testArrayIndexOf = (
 public testArrayIsEmpty = (
 	assert: (Array new: 0) isEmpty.
 	deny: (Array new: 1) isEmpty.
+)
+public testArrayKeysAndValuesDo = (
+	| array count |
+	array:: Array new: 1.
+	array at: 1 put: 'apple'.
+
+	count:: 0.
+	array keysAndValuesDo:
+		[:index :element |
+		 count:: count + 1.
+		 assert: index equals: 1.
+		 assert: element equals: 'apple'].
+	assert: count equals: 1.
 )
 public testArrayNew = (
 	assert: (Array new: 0) size equals: 0.

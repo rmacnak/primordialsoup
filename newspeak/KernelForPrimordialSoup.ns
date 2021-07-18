@@ -331,7 +331,7 @@ public select: predicate <[:E | Boolean]> ^<Array[E]> = (
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 41 *)
-	primitiveFailed
+	panic.
 )
 public sort: lessOrEqual <[:E :E | Boolean]> = (
 	self sortFrom: 1 to: self size by: lessOrEqual.
@@ -2175,6 +2175,15 @@ public do: action <[:E]> = (
 )
 public isEmpty ^<Boolean> = (
 	^0 = self size
+)
+public isKindOfArray ^<Boolean> = (
+	^true
+)
+public isKindOfWeakArray ^<Boolean> = (
+	^true
+)
+public keysAndValuesDo: action <[:Integer :E]> = (
+	1 to: self size do: [:index | action value: index value: (self at: index)].
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 45 *)
