@@ -379,15 +379,35 @@ public testWeakArrayWeakness = (
 TEST_CONTEXT = ()
 )
 public class WeakMapTests = TestContext () (
+public testIsKindOfWeakMap = (
+	deny: (WeakMap new) isKindOfCollection.
+	deny: (WeakMap new) isKindOfMap.
+	assert: (WeakMap new) isKindOfWeakMap.
+
+	deny: (Array new: 0) isKindOfWeakMap.
+	deny: (ByteArray new: 0) isKindOfWeakMap.
+	deny: 0 isKindOfWeakMap.
+	deny: 1.5 isKindOfWeakMap.
+	deny: 'Array new' isKindOfWeakMap.
+	deny: nil isKindOfWeakMap.
+)
 public testWeakMapBasic = (
 	|
 	map = WeakMap new.
 	key = Object new.
 	|
 	assert: map isKindOfWeakMap.
+	deny: (map includesKey: key).
 	assert: (map at: key) equals: nil.
+	assert: (map removeKey: key) equals: nil.
+
 	assert: (map at: key put: 42) equals: 42.
+	assert: (map includesKey: key).
 	assert: (map at: key) equals: 42.
+
+	assert: (map removeKey: key) equals: 42.
+	deny: (map includesKey: key).
+	assert: (map at: key) equals: nil.
 )
 public testWeakMapGrowthExpand = (
 	|

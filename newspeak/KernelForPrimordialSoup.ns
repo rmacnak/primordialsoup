@@ -2187,7 +2187,11 @@ public new: size <Integer> ^<WeakArray[E]> = (
 )
 )
 public class WeakMap = (
-(* A collection of key/value associations that do not prevent the keys and values from becoming garbage collected. *)
+(* A collection of key/value associations that do not prevent the keys and values from becoming garbage collected.
+
+`nil` is not allowed as a key.
+
+Note this class does not implement Map or Collection because it does not provide enumeration. *)
 |
 private table ::= Array new: 256. (* A fairly large initial capacity because the expected usage is one per module. *)
 private used ::= 0.
@@ -2238,6 +2242,19 @@ public at: key <K> put: value <V> ^<V> = (
 
 	^value
 )
+public includesKey: key <K> ^<Boolean> = (
+	| mask index entry |
+	nil = key ifTrue: [^false].
+	mask:: table size - 1.
+	index:: 1 + ((identityHashOf: key) bitAnd: mask).
+	entry:: table at: index.
+	[nil = entry] whileFalse:
+		[(is: entry key identicalTo: key) ifTrue:
+			[^true].
+		index:: 1 + (index bitAnd: mask).
+		entry:: table at: index].
+	^false
+)
 public isKindOfWeakMap ^<Boolean> = (
 	^true
 )
@@ -2254,8 +2271,6 @@ private maybeGrow = (
 	newCapacity:: oldTable size.
 	(used - dead) > (newCapacity >> 1) ifTrue:
 		[newCapacity:: newCapacity << 1].
-
-	(* ('Rehashing weak map to ', newCapacity printString) out. *)
 
 	newTable:: Array new: newCapacity.
 	mask:: newCapacity - 1.
@@ -2274,6 +2289,21 @@ private maybeGrow = (
 
 	table:: newTable.
 	used:: newUsed.
+)
+public removeKey: key <K> ^<V> = (
+	| mask index entry |
+	nil = key ifTrue: [^nil].
+	mask:: table size - 1.
+	index:: 1 + ((identityHashOf: key) bitAnd: mask).
+	entry:: table at: index.
+	[nil = entry] whileFalse:
+		[(is: entry key identicalTo: key) ifTrue:
+			[ | oldValue = entry value. |
+			 entry key: nil; value: nil.
+			 ^oldValue].
+		index:: 1 + (index bitAnd: mask).
+		entry:: table at: index].
+	^nil
 )
 ) : (
 )
@@ -2417,8 +2447,6 @@ private rehashSymbolTable = (
 	newCapacity:: oldTable size.
 	(symbolTableUsed - dead) > (newCapacity >> 1) ifTrue:
 		[newCapacity:: newCapacity << 1].
-
-	(* ('Rehashing symbol table to ', newCapacity printString) out. *)
 
 	newTable:: WeakArray new: newCapacity.
 	1 to: newTable size do: [:index | newTable at: index put: newTable].
