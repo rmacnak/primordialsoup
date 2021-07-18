@@ -173,14 +173,7 @@ uword Heap::AllocateNew(intptr_t size) {
 }
 
 uword Heap::AllocateTenure(intptr_t size) {
-  ASSERT(size < kLargeAllocation);
-  uword result = freelist_.TryAllocate(size);
-  if (result != 0) {
-    old_size_ += size;
-  } else {
-    result = AllocateOldSmall(size, kForceGrowth);
-    ASSERT(result != 0);
-  }
+  uword result = AllocateOldSmall(size, kForceGrowth);
   PushTenureStack(result);
   return result;
 }
@@ -380,13 +373,8 @@ void Heap::Scavenge(Reason reason) {
                freed / KB, time / kNanosecondsPerMicrosecond);
 #endif
 
-  ASSERT(reason == kNewSpace ||
-         reason == kClassTable ||
-         reason == kPrimitive ||
-         reason == kSnapshotTest);
-  // kClassTable and kPrimitive will follow up with a MarkSweep anyway, so don't
-  // perform an extra one for tenure.
-  if ((reason == kNewSpace) && (old_size_ > old_limit_)) {
+  ASSERT(reason == kNewSpace);
+  if (old_size_ > old_limit_) {
     MarkSweep(kTenure);
   }
 }
