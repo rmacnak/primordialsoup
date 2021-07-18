@@ -3154,14 +3154,14 @@ EM_JS(int, _JS_peekType, (), {
     return -3;
   }
   if (typeof alien === "number") {
-    return Number.isInteger(alien) ? -4 : -5;
+    return (alien === (0 | alien)) ? -4 : -5;
   }
   if (typeof alien === "string") {
     return lengthBytesUTF8(alien);
   }
   return -6;
 });
-EM_JS(intptr_t, _JS_popInteger, (), {
+EM_JS(int32_t, _JS_popInteger, (), {
   var aliens = Module.aliens;
   return aliens.pop();
 });
@@ -3372,7 +3372,7 @@ DEFINE_PRIMITIVE(JS_popValue) {
   } else if (type == -3) {
     RETURN(I->true_obj());
   } else if (type == -4) {
-    intptr_t value = _JS_popInteger();
+    int64_t value = _JS_popInteger();
     RETURN_MINT(value);
   } else if (type == -5) {
     double value = _JS_popFloat();
