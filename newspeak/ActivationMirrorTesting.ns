@@ -383,7 +383,7 @@ public testActivationLocalsDeadHome = (
 	assert: thread isSuspended.
 
 	assertSlotsOf: thread suspendedActivation
-		haveNamesAndValues: {#a. nil. #b. nil. #c. nil. #d. nil}.
+		haveNamesAndValues: {#a. nil. #b. nil. #c. 3. #d. 4}.
 
 	thread stepInto. (* Push d *)
 	thread stepInto. (* Push c *)
@@ -391,7 +391,7 @@ public testActivationLocalsDeadHome = (
 	thread stepInto. (* Store d *)
 
 	assertSlotsOf: thread suspendedActivation
-		haveNamesAndValues: {#a. nil. #b. nil. #c. nil. #d. nil}.
+		haveNamesAndValues: {#a. nil. #b. nil. #c. 3. #d. 7}.
 
 	thread stepInto. (* Return top *)
 

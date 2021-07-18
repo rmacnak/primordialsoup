@@ -617,22 +617,6 @@ depthOfContext: ctxt <MethodContext> ^<Integer> = (
 		ifTrue: [0 (* method *)]
 		ifFalse: [1 + (depthOfContext: ctxt outerContext)]
 )
-getLeastLocalValueOf: varName <Symbol> ^<Object> = (
-	| info ctxt vector |
-	info:: leastLocalInfoFor: varName.
-	(* defensive programming, but should be unnecessary now that
-	 DebugMapper>localNames filters out variables in deeper contexts. *)
-	myDepth >= info contextDepth ifFalse:
-		[^nil].
-	info remoteVector isNil ifTrue:
-		[ctxt:: contextAtDepth: info contextDepth.
-		 ctxt size = 0 ifTrue: [^nil].
-		 ^ctxt tempAt: info zeroOriginOffset + 1].
-	vector:: getValueOf: info remoteVector.
-	vector isNil ifFalse:
-		[^vector at: info zeroOriginOffset + 1].
-	^nil
-)
 public getValueOf: varName <Symbol> ^<Object> = (
 	| info ctxt vector |
 	info:: mostLocalInfoFor: varName.
@@ -644,7 +628,7 @@ public getValueOf: varName <Symbol> ^<Object> = (
 		[ctxt:: contextAtDepth: info contextDepth.
 		 ctxt size = 0 ifTrue: [^nil].
 		 ^ctxt tempAt: info zeroOriginOffset + 1].
-	vector:: (getLeastLocalValueOf: info remoteVector).
+	vector:: (getValueOf: info remoteVector).
 	vector isNil ifFalse:
 		[^vector at: info zeroOriginOffset + 1].
 	^nil
@@ -858,7 +842,7 @@ cleanup = (
 	maxClosureContextSize: nil.
 )
 public closureNode: node <ClosureAST> = (
-	| blockPos savedStackDepth savedStackMax savedStackArgs |
+	| blockPos savedStackDepth savedStackMax savedStackArgs localVariableDebugInfos validBCIRange |
 
 	valueExpected ifFalse: [^self].
 
@@ -879,10 +863,13 @@ public closureNode: node <ClosureAST> = (
 	cgen maxStackDepth: 0.
 	cgen currentArgs: node parameters size.
 
-	(* node copiedInner do: [:var | addLocalVar: var]. --- todo for debugger *)
+	localVariableDebugInfos:: node copiedInner collect: [:var | addLocalVar: var].
 	(node pushNilCount) timesRepeat: [cgen pushNil].
 	(* These nils establish the temp frame for temps other than params and copied values. They contribute to the operand stack size, obviating the need to directly include the number of local variables in the context size *)
 	self applyForEffectTo: node body.
+
+	validBCIRange:: Interval from: blockPos to: cgen bci - 1.
+	localVariableDebugInfos do: [:each | each validBCIRange: validBCIRange].
 
 	maxClosureContextSize::
 		maxClosureContextSize max: (node parameters size + node copiedOuter size + cgen maxStackDepth).
