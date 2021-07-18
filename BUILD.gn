@@ -2,7 +2,7 @@
 # for details. All rights reserved. Use of this source code is governed by a
 # BSD-style license that can be found in the LICENSE file.
 
-import("//build/package.gni")
+import("//build/components.gni")
 
 executable("vm") {
   output_name = "primordialsoup"
@@ -13,9 +13,8 @@ executable("vm") {
     libs = [ "zircon" ]
     deps = [
       "//sdk/lib/fdio",
-      "//zircon/public/lib/async-cpp",
+      "//zircon/system/ulib/async:async-cpp",
       "//zircon/system/ulib/async-loop:async-loop-cpp",
-      "//zircon/system/ulib/async-loop:async-loop-default",
     ]
   } else {
     libs = [ "pthread" ]
@@ -246,100 +245,60 @@ action("snapshots") {
   ]
 }
 
-package("hello-app") {
-  deps = [
-    ":snapshots",
-    ":vm",
-  ]
-  binaries = [
-    {
-      name = "primordialsoup"
-    },
-  ]
-  resources = [
-    {
-      path = rebase_path(hello_snapshot)
-      dest = "HelloApp.vfuel"
-    },
-  ]
-  meta = [
-    {
-      path = rebase_path("meta/hello-app.cmx")
-      dest = "hello-app.cmx"
-    },
-  ]
+resource("hello_snapshot") {
+  deps = [ ":snapshots" ]
+  sources = [ rebase_path(hello_snapshot) ]
+  outputs = [ "data/{{source_file_part}}" ]
 }
 
-package("test-runner") {
+fuchsia_package_with_single_component("hello-app") {
   deps = [
-    ":snapshots",
+    ":hello_snapshot",
     ":vm",
   ]
-  binaries = [
-    {
-      name = "primordialsoup"
-    },
-  ]
-  resources = [
-    {
-      path = rebase_path(tests_snapshot)
-      dest = "TestRunner.vfuel"
-    },
-  ]
-  meta = [
-    {
-      path = rebase_path("meta/test-runner.cmx")
-      dest = "test-runner.cmx"
-    },
-  ]
+  manifest = "meta/hello-app.cmx"
 }
 
-package("benchmark-runner") {
-  deps = [
-    ":snapshots",
-    ":vm",
-  ]
-  binaries = [
-    {
-      name = "primordialsoup"
-    },
-  ]
-  resources = [
-    {
-      path = rebase_path(benchmarks_snapshot)
-      dest = "BenchmarkRunner.vfuel"
-    },
-  ]
-  meta = [
-    {
-      path = rebase_path("meta/benchmark-runner.cmx")
-      dest = "benchmark-runner.cmx"
-    },
-  ]
+resource("tests_snapshot") {
+  deps = [ ":snapshots" ]
+  sources = [ rebase_path(tests_snapshot) ]
+  outputs = [ "data/{{source_file_part}}" ]
 }
 
-package("compiler-app") {
+fuchsia_package_with_single_component("test-runner") {
   deps = [
-    ":snapshots",
+    ":tests_snapshot",
     ":vm",
   ]
-  binaries = [
-    {
-      name = "primordialsoup"
-    },
+  manifest = "meta/test-runner.cmx"
+}
+
+resource("benchmarks_snapshot") {
+  deps = [ ":snapshots" ]
+  sources = [ rebase_path(benchmarks_snapshot) ]
+  outputs = [ "data/{{source_file_part}}" ]
+}
+
+fuchsia_package_with_single_component("benchmark-runner") {
+  deps = [
+    ":benchmarks_snapshot",
+    ":vm",
   ]
-  resources = [
-    {
-      path = rebase_path(compiler_snapshot)
-      dest = "CompilerApp.vfuel"
-    },
+  manifest = "meta/benchmark-runner.cmx"
+}
+
+resource("compiler_snapshot") {
+  deps = [ ":snapshots" ]
+  sources = [ rebase_path(compiler_snapshot) ]
+  outputs = [ "data/{{source_file_part}}" ]
+}
+
+fuchsia_package_with_single_component("compiler-app") {
+  deps = [
+    ":compiler_snapshot",
+    ":vm",
   ]
-  meta = [
-    {
-      path = rebase_path("meta/compiler-app.cmx")
-      dest = "compiler-app.cmx"
-    },
-  ]
+  manifest = "meta/compiler-app.cmx"
 }
 
 group("packages") {

@@ -1,6 +1,6 @@
 # Building
 
-Primordial Soup has support for 32-bit and 64-bit architectures and has platform support for Android, [Emscripten](https://emscripten.org/), [Fuchsia](https://fuchsia.googlesource.com/docs/+/master/README.md), Linux, macOS and Windows.
+Primordial Soup has support for 32-bit and 64-bit architectures and has platform support for Android, [Emscripten](https://emscripten.org/), [Fuchsia](https://fuchsia.dev/), Linux, macOS and Windows.
 
 ## Dependencies
 
@@ -18,7 +18,7 @@ On Windows, install Visual Studio and SCons.
 
 To target Android, download the [Android NDK](https://developer.android.com/ndk/downloads/index.html).
 
-To target Fuchsia, [create a checkout](https://fuchsia.googlesource.com/docs/+/HEAD/development/source_code/README.md) of the garnet layer or higher.
+To target Fuchsia, [create a checkout](https://fuchsia.dev/fuchsia-src/get-started/get_fuchsia_source).
 
 ## Building
 

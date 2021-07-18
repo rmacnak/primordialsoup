@@ -10,7 +10,7 @@
   instead.
 #endif
 
-#include <lib/async-loop/cpp/loop.h>
+#include <lib/async-loop/loop.h>
 #include <lib/async/cpp/wait.h>
 #include <lib/zx/timer.h>
 

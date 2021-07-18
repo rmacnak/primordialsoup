@@ -1,4 +1,7 @@
 {
+    "include": [
+        "syslog/client.shard.cmx"
+    ],
     "program": {
         "binary": "bin/primordialsoup",
         "args": [ "pkg/data/TestRunner.vfuel" ]
