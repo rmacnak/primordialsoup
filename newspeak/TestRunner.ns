@@ -2,10 +2,10 @@ class TestRunner packageUsing: manifest = (|
 Minitest = manifest Minitest.
 testConfigs = {
 	manifest KernelTestsConfiguration packageTestsUsing: manifest.
-	manifest KernelWeakTestsPrimordialSoupConfiguration packageTestsUsing: manifest.
+	manifest KernelWeakTestsConfiguration packageTestsUsing: manifest.
 	manifest MinitestTestsConfiguration packageTestsUsing: manifest.
 	manifest AccessModifierTestingConfiguration packageTestsUsing: manifest.
-	manifest ActorsTestingConfigurationForPrimordialSoup packageTestsUsing: manifest.
+	manifest ActorsTestingConfiguration packageTestsUsing: manifest.
 	manifest CollectionsTestingConfiguration packageTestsUsing: manifest.
 	manifest PrimordialFuelTestingConfiguration packageTestsUsing: manifest.
 	manifest MirrorTestingConfiguration packageTestsUsing: manifest.

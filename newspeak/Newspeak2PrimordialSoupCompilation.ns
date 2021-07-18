@@ -205,6 +205,24 @@ public dup = (
 	code byte: 159.
 	incrementStackDepthBy: 1.
 )
+public eventualSend: selector numArgs: numArgs = (
+	|
+	selectorIndex = indexForLiteral: selector.
+	|
+
+	decrementStackDepthBy: numArgs + 1 (* the receiver *).
+	incrementStackDepthBy: 1.
+
+	assert: [selectorIndex between: 0 and: 4095]
+		message: 'Selector index out of range'.
+	assert: [numArgs between: 0 and: 31]
+		message: 'Message arity out of range'.
+
+	code
+		byte: 239;
+		byte: selectorIndex & 255;
+		byte: (selectorIndex >> 8) | (numArgs << 4).
+)
 public implicitReceiverSend: selector numArgs: numArgs = (
 	|
 	selectorIndex = indexForLiteral: selector.
@@ -411,10 +429,6 @@ public pushLocal: offset = (
 	incrementStackDepthBy: 1.
 	offset <= 7 ifTrue: [code byte: 120 + offset. ^self].
 	code byte: 229; byte: offset.
-)
-public pushMessageLoop = (
-	code byte: 157.
-	incrementStackDepthBy: 1.
 )
 public pushMixin = (
 	code byte: 156.
@@ -796,37 +810,26 @@ public boolNode: node <BoolAST> = (
 	addDebugInfo: node.
 	cgen pushLiteral: node value
 )
-cascadeNormal: node <SendAST> = (
+cascadeSend: node <SendAST> = (
 	node isKindOfCascadedSendNode
-		ifTrue: [cascadeNormal: node previousSend]
+		ifTrue: [cascadeSend: node previousSend]
 		ifFalse: [self applyForValueTo: node receiver].
 
 	cgen dup.
 	node message arguments do: [:argument | self applyForValueTo: argument].
 	addDebugInfo: node message.
-	cgen ordinarySend: node message selector numArgs: node message arguments size.
+	node message isEventual
+		ifTrue: [cgen eventualSend: node message selector numArgs: node message arguments size]
+		ifFalse: [cgen ordinarySend: node message selector numArgs: node message arguments size].
 	cgen pop.
 )
 public cascadedSendNode: node <CascadedSendAST> = (
-	| baseSend ::= node. |
-	[baseSend isKindOfCascadedSendNode]
-		whileTrue: [baseSend: baseSend previousSend].
-
-	baseSend receiver isKindOfExplicitRcvrNode ifTrue:
-		[outerCascadeNotSupported.
-		^self].
-
-	baseSend isKindOfSuperSendNode ifTrue:
-		[superCascadeNotSupported.
-		^self].
-
-	assert: [baseSend isKindOfOrdinarySendNode or: [baseSend isKindOfSelfSendNode]]
-		message: 'Unknown type of cascade'.
-
-	cascadeNormal: node previousSend.
+	cascadeSend: node previousSend.
 	node message arguments do: [:argument | self applyForValueTo: argument].
 	addDebugInfo: node message.
-	cgen ordinarySend: node message selector numArgs: node message arguments size.
+	node message isEventual
+		ifTrue: [cgen eventualSend: node message selector numArgs: node message arguments size]
+		ifFalse: [cgen ordinarySend: node message selector numArgs: node message arguments size].
 	valueExpected ifFalse: [cgen pop].
 )
 public characterNode: node <CharacterAST> = (
@@ -949,6 +952,13 @@ public enclosingObjectNode: node <EnclosingObjectAST> = (
 	addDebugInfo: node.
 	cgen pushEnclosingObject: node depth.
 )
+public eventualSendNode: node <EventualSendAST> = (
+	self applyForValueTo: node receiver.
+	node message arguments do: [:argument | self applyForValueTo: argument].
+	addDebugInfo: node message.
+	cgen eventualSend: node message selector numArgs: node message arguments size.
+	valueExpected ifFalse: [cgen pop].
+)
 public implicitReceiverSendNode: node <ImplicitReceiverSendAST> = (
 	node message arguments do: [:argument | self applyForValueTo: argument].
 	addDebugInfo: node message.
@@ -1031,10 +1041,6 @@ public loopNode: node <LoopAST> = (
 
 	localVariableDebugInfos do: [:each | each validBCIRange: (Interval from: each validBCIRange first to: cgen bci - 1)].
 )
-public messageLoopNode: node <MessageLoopAST> = (
-	valueExpected ifFalse: [^self].
-	cgen pushMessageLoop.
-)
 public methodLocalReturnNode: node <MethodLocalReturnAST> = (
 	^self localReturnNode: node
 )
@@ -1091,7 +1097,7 @@ public numberNode: node <NumberAST> = (
 	addDebugInfo: node.
 	cgen pushLiteral: node value.
 )
-public ordinarySendNode: node <NormalSendAST> = (
+public ordinarySendNode: node <OrdinarySendAST> = (
 	self applyForValueTo: node receiver.
 	node message arguments do: [:argument | self applyForValueTo: argument].
 	addDebugInfo: node message.
@@ -1191,6 +1197,10 @@ public conditionalNode: node <ConditionalAST> = (
 public enclosingObjectNode: node <EnclosingObjectAST> = (
 	(* Leaf *)
 )
+public eventualSendNode: node <EventualSendAST> = (
+	node receiver apply: self.
+	node message apply: self.
+)
 public implicitReceiverSendNode: node <ImplicitReceiverSendAST> = (
 	node message apply: self.
 )
@@ -1200,9 +1210,6 @@ public loopNode: node <LoopAST> = (
 	node condition apply: self.
 	nil = node body ifFalse:
 		[node body apply: self].
-)
-public messageLoopNode: node <MessageLoopAST> = (
-	(* Leaf *)
 )
 public messageNode: node <MessageAST> = (
 	node arguments do: [:each | each apply: self].
@@ -1378,6 +1385,10 @@ public codeBodyNode: node <CodeBodyAST> = (
 
 	addRemoteVectorForCodeBodyNode: node.
 )
+public eventualSendNode: node <EventualSendAST> = (
+	addLiteral: node message selector.
+	^super eventualSendNode: node
+)
 public implicitReceiverSendNode: node <ImplicitReceiverSendAST> = (
 	addLiteral: node message selector.
 	^super implicitReceiverSendNode: node
@@ -1407,9 +1418,6 @@ public loopNode: node <LoopAST> = (
 	(* Work around bad scoping of induction variables. *)
 	nil = node prologue ifFalse:
 		[addRemoteVectorForCodeBodyNode: node prologue].
-)
-public messageLoopNode: node <MessageLoopAST> = (
-	^node
 )
 public methodNode: node <MethodAST> = (
 	| pattern body result |
@@ -1577,6 +1585,12 @@ public conditionalNode: node <ConditionalAST> = (
 public enclosingObjectNode: node <EnclosingObjectAST> = (
 	^node
 )
+public eventualSendNode: node <EventualSendAST> = (
+	^EventualSendAST new
+		receiver: (node receiver apply: self);
+		message: (node message apply: self);
+		copyPositionFrom: node
+)
 public implicitReceiverSendNode: node <ImplicitReceiverSendAST> = (
 	^(rewriter ImplicitReceiverSendAST new
 		message: (node message apply: self);
@@ -1601,9 +1615,6 @@ public loopNode: node <LoopAST> = (
 		isWhileTrue: node isWhileTrue;
 		body: (nullableCodeBodyNode: node body);
 		copyPositionFrom: node
-)
-public messageLoopNode: node <MessageLoopAST> = (
-	^node
 )
 public messageNode: node <MessageAST> = (
 	^(MessageAST new
@@ -1691,10 +1702,17 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 ) : (
 )
-class MessageLoopAST = (
+class EventualSendAST = AST (
+|
+public receiver <AST>
+public message <MessageAST>
+|
 ) (
 public apply: tool <ASTTool[T]> ^<T> = (
-	^tool messageLoopNode: self
+	^tool eventualSendNode: self
+)
+public isKindOfSendNode ^<Boolean> = (
+	^true
 )
 ) : (
 )
@@ -1761,18 +1779,10 @@ largeTupleNode: aNode <TupleAST> = (
 public mixinNode: node <MixinClassNode> = (
 	^node
 )
-processEventualSend: node <NormalSendAST> = (
-	| receiver selector arguments |
-	receiver:: node receiver apply: self.
-	selector:: (SymbolAST new value: node message selector) apply: self.
-	arguments:: (TupleAST new elements: node message arguments) apply: self.
-
-	^(OrdinarySendAST
-		to: MessageLoopAST new
-		send: ((MessageAST new
-			send: #eventualSendTo:selector:arguments:
-			with: {receiver. selector. arguments})
-				copyPositionFrom: node message))
+processEventualSend: node <UnresolvedSendAST> = (
+	^EventualSendAST new
+		receiver: (node receiver apply: self);
+		message: (node message apply: self);
 		copyPositionFrom: node
 )
 processMappedVariable: msg decl: binding = (
@@ -1792,7 +1802,7 @@ private accessorASTForNestedClassNamed: name <String> classTree: classTree <Norm
 (* Build an AST for a method that would lazily create a nested class via mixin application, and cache it. The generated code has the form
 
 name = (
-	self name`slot isNil ifTrue:
+	nil = self name`slot ifTrue:
 		[self name`slot: (<classTree>)].
 	^self name`slot
 )
@@ -1957,16 +1967,14 @@ astForClassDeclarationInitializer: aNode <ClassHeaderAST> ^<MethodAST> = (
 		copyPositionFrom: aNode
 )
 astForComputingClassDeclaration: name <String> superCall: superCall <NormalSendAST> iList: iList <List[SendAST]> ^ <NormalSendAST> = (
-(* Compute the tree for an ordinary class declaration whose superclass is a generalized mixin application. *)
-	|
-	nestedMixin = nestedMixinASTFor: name asSymbol.
-	superChain = inheritanceASTWIthSuperclass: superCall receiver iList: iList.
-	|
-
+	(* Compute the tree for an ordinary class declaration whose superclass is a generalized mixin application. *)
 	^UnresolvedSendAST new
-		to: nestedMixin
-		send: #applyTo:withEnclosingObject:
-		with: {superChain. selfNode}
+		to: MixinAST new
+		send: #apply:to:withEnclosingObject:
+		with: {
+			SymbolAST new value: name.
+			inheritanceASTWIthSuperclass: superCall receiver iList: iList.
+			selfNode}
 )
 astForComputingMixinApplicationClassDeclaration: name <String>
 superCall: superCall <NormalSendAST>
@@ -2540,22 +2548,6 @@ mixinSendTreeFor: c <ExpressionAST> ^ <NormalSendAST> = (
 		to: c
 		send: (MessageAST new send: #mixin with: {});
 		start: c start; end: c end
-)
-private nestedMixinASTFor: nestedName <String> ^ <NormalSendAST> = (
-	|
-	mixin = UnresolvedSendAST new
-		to: MixinAST new
-		send: #value
-		with: {}.
-	nestedMixins = UnresolvedSendAST new
-		to: mixin
-		send: #nestedMixins
-		with: {}.
-	|
-	^UnresolvedSendAST new
-		to: nestedMixins
-		send: #at:
-		with: {SymbolAST new value: nestedName}
 )
 popScope = (
 	currentScope:: currentScope parent.

@@ -1,4 +1,4 @@
-class CollectionsForPrimordialSoup usingInternalKernel: ik = (
+class Collections usingInternalKernel: ik = (
 	|
 	public Collection = ik Collection.
 	private ArgumentError = ik ArgumentError.

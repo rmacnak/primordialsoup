@@ -1,4 +1,4 @@
-class IntermediatesForPrimordialSoup usingPlatform: p internalKernel: k = (|
+class Intermediates usingPlatform: p internalKernel: k = (|
 private List = p collections List.
 private Map = p collections Map.
 private Method = k Method.

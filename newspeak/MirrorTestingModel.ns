@@ -65,6 +65,7 @@ selectorsTest = (
 	super superExample.
 	outer MirrorTestingModel outerExample.
 	implicitReceiverExample.
+	nil <-: eventualExample.
 
 	(* Selectors with special bytecodes. *)
 	nil + nil.

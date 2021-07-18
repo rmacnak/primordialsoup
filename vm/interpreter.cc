@@ -703,6 +703,38 @@ void Interpreter::SendNonBooleanReceiver(Object non_boolean) {
   Activate(method, 1);  // SAFEPOINT
 }
 
+
+void Interpreter::EventualSend(intptr_t selector_index,
+                               intptr_t num_args) {
+  PushNewArrayWithElements(num_args);  // SAFEPOINT
+  Object eventual_arguments = Pop();
+  String eventual_selector = SelectorAt(selector_index);
+  Object eventual_receiver = Pop();
+  Object message_loop = object_store()->message_loop();
+  Push(message_loop);
+  Push(eventual_receiver);
+  Push(eventual_selector);
+  Push(eventual_arguments);
+
+  Behavior receiver_class = message_loop->Klass(H);
+  Behavior cls = receiver_class;
+  Method method;
+  do {
+    method = MethodAt(cls, object_store()->eventual_send());
+    if (method != nil) {
+      break;
+    }
+    cls = cls->superclass();
+  } while (cls != nil);
+
+  if (method == nil) {
+    FATAL("Missing #eventualSendTo:selector:arguments:");
+  }
+
+  Activate(method, 3);  // SAFEPOINT
+}
+
+
 void Interpreter::InsertAbsentReceiver(Object receiver, intptr_t num_args) {
   ASSERT(num_args >= 0);
   ASSERT(num_args < 255);
@@ -1146,7 +1178,6 @@ void Interpreter::Interpret() {
     case 154: Push(true_); break;
     case 155: Push(FrameReceiver(fp_)); break;
     case 156: Push(FrameMethod(fp_)->mixin()); break;
-    case 157: Push(object_store()->message_loop()); break;
     case 158: Pop(); break;
     case 159: Push(Stack(0)); break;
     case 160: Push(SmallInteger::New(-1)); break;
@@ -1445,6 +1476,14 @@ void Interpreter::Interpret() {
     case 233: {
       uint8_t byte2 = *ip_++;
       PushEnclosingObject(byte2);
+      break;
+    }
+    case 239: {
+      uint8_t byte2 = *ip_++;
+      uint8_t byte3 = *ip_++;
+      intptr_t num_args = byte3 >> 4;
+      intptr_t selector_index = ((byte3 & 0xF) << 8) | byte2;
+      EventualSend(selector_index, num_args);
       break;
     }
     case 240: {

@@ -1,4 +1,4 @@
-class KernelWeakTestsPrimordialSoupConfiguration packageTestsUsing: manifest = (|
+class KernelWeakTestsConfiguration packageTestsUsing: manifest = (|
 private KernelWeakTests = manifest KernelWeakTests.
 |) (
 public testModulesUsingPlatform: platform minitest: minitest = (

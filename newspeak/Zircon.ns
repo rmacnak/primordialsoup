@@ -1,8 +1,8 @@
-class Zircon usingPlatform: p = (
+class Zircon usingPlatform: p internalKernel: ik = (
 |
 private ArgumentError = p kernel ArgumentError.
 private multipleReturn = Array new: 4.
-private handleMap = p actors handleMap.
+private messageLoop = ik messageLoop.
 |) (
 public class Channel handle: h = ZirconObject handle: h (|
 private onReadable_
@@ -136,7 +136,7 @@ protected waiter ::= 0.
 ) (
 protected await: signals = (
 	0 = waiter ifFalse: [rawCancelWait: waiter].
-	handleMap at: handle put: [:status :pending | onStatus: status signals: pending].
+	messageLoop handleMap at: handle put: [:status :pending | onStatus: status signals: pending].
 	waiter:: rawAwait: handle signals: signals.
 )
 public close = (

@@ -445,7 +445,7 @@ public testMethodMirrorSelectors = (
 		findMirrorNamed: #selectorsTest.
 
 	assertSet: method selectors equals:
-		{#ordinaryExample. #selfExample. #superExample. #outerExample. #implicitReceiverExample. #+. #-. #*. #//. #\\. #at:. #at:put:. #size. #new. #new:}.
+		{#ordinaryExample. #selfExample. #superExample. #outerExample. #implicitReceiverExample. #eventualExample. #+. #-. #*. #//. #\\. #at:. #at:put:. #size. #new. #new:}.
 )
 ) : (
 TEST_CONTEXT = ()

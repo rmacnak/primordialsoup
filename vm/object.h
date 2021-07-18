@@ -706,7 +706,7 @@ class ObjectStore : public HeapObject {
   inline class String non_boolean_receiver() const;
   inline class String cannot_return() const;
   inline class String about_to_return_through() const;
-  inline class String unused_bytecode() const;
+  inline class String eventual_send() const;
   inline class String dispatch_message() const;
   inline class String dispatch_signal() const;
   inline Behavior Array() const;
@@ -869,7 +869,7 @@ class ObjectStore::Layout : public HeapObject::Layout {
   class String non_boolean_receiver_;
   class String cannot_return_;
   class String about_to_return_through_;
-  class String unused_bytecode_;
+  class String eventual_send_;
   class String dispatch_message_;
   class String dispatch_signal_;
   Behavior Array_;
@@ -1223,8 +1223,8 @@ class String ObjectStore::cannot_return() const {
 class String ObjectStore::about_to_return_through() const {
   return ptr()->about_to_return_through_;
 }
-class String ObjectStore::unused_bytecode() const {
-  return ptr()->unused_bytecode_;
+class String ObjectStore::eventual_send() const {
+  return ptr()->eventual_send_;
 }
 class String ObjectStore::dispatch_message() const {
   return ptr()->dispatch_message_;

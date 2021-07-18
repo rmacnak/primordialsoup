@@ -1,9 +1,9 @@
-class JSForPrimordialSoup usingPlatform: platform = (
+class JS usingPlatform: platform internalKernel: ik = (
 	|
 	public undefined = Alien withIndex: 0.
 	public global = Alien withIndex: 4.
 	private nextExpatIndex ::= 1.
-	private handleMap = platform actors handleMap.
+	private messageLoop = ik messageLoop.
 	|
 ) (
 class Alien withIndex: i = (
@@ -89,7 +89,7 @@ private pushExpat: closure = (
 	| expatIndex |
 	expatIndex:: nextExpatIndex.
 	nextExpatIndex:: 1 + expatIndex.
-	handleMap at: expatIndex put:
+	messageLoop handleMap at: expatIndex put:
 		[:status :pending |
 		| arguments = Array new: status. |
 		status to: 1 by: -1 do:

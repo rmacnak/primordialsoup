@@ -1,6 +1,6 @@
 class KernelForPrimordialSoup = (|
-private messageLoop <MessageLoop>
-private symbolTable <WeakArray[Symbol]>
+public messageLoop <MessageLoop>
+public symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
 |) (
 public class Activation _cannotInstantiate = (
@@ -1267,19 +1267,20 @@ public apply: superclass <Class> format: f withName: name <Symbol> enclosingObje
 
 	^newClass
 )
+public apply: nestedMixinName to: superclass <Class> withEnclosingObject: eo <Object> = (
+	(* Sent by the compiler in nested class accessors. *)
+	_nestedMixins do:
+		[:nestedMixin |
+			nestedMixin _name = nestedMixinName ifTrue:
+				[^nestedMixin applyTo: superclass withEnclosingObject: eo]].
+	panic.
+)
 public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Object> = (
 	(isValidSuperclass: superclass) ifFalse: [^(ArgumentError value: superclass) signal].
 	^self apply: superclass format: (formatOf: superclass) withName: name enclosingObject: eo
 )
 public applyTo: superclass <Class> withEnclosingObject: eo <Object> = (
-	(* Sent by the compiler in nested class accessors. *)
 	^apply: superclass withName: (_name , '`', eo hash printString) enclosingObject: eo
-)
-public at: nestedMixinName = (
-	(* bogus: polymorphic with nested mixins map in Squeak. *)
-	_nestedMixins do: [:nestedMixin |
-		nestedMixin _name = nestedMixinName ifTrue: [^nestedMixin]].
-	^nil
 )
 public isMeta ^<Boolean> = (
 	^false
@@ -1330,10 +1331,6 @@ private methodsWithAccessorsAtOffset: offset <Integer> ^<MethodDictionary> = (
 
 	^newMethods
 )
-public nestedMixins = (
-	(* bogus: polymorphic with nested mixins map in Squeak. *)
-	^self
-)
 public printString ^<String> = (
 	^_name, ' mixin'
 )
@@ -1349,10 +1346,6 @@ private toWeakSet: set add: element = (
 			[set at: index put: element.
 			 ^set]].
 	^set copyWith: element
-)
-public value = (
-	(* bogus: polymorphic with method class association in Squeak. *)
-	^self
 )
 ) : (
 )
@@ -2316,9 +2309,7 @@ public removeKey: key <K> ^<V> = (
 )
 ) : (
 )
-public buildObjectStoreWithApplication: app platform: platform symbols: symbols = (
-	symbolTable:: symbols.
-	messageLoop:: platform actors buildLoopForApplication: app platform: platform.
+public buildObjectStore = (
 	^{
 		nil.
 		false.
@@ -2329,7 +2320,7 @@ public buildObjectStoreWithApplication: app platform: platform symbols: symbols 
 		#nonBooleanReceiver:.
 		#cannotReturn:.
 		#aboutToReturn:through:.
-		#unusedBytecode.
+		#eventualSendTo:selector:arguments:.
 		#dispatchMessage:port:.
 		#dispatchHandle:status:signals:count:.
 		Array.

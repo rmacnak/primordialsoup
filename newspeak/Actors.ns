@@ -1,22 +1,25 @@
-class ActorsForPrimordialSoup usingPlatform: p = (|
-private WeakMap = p kernel WeakMap.
+class Actors usingPlatform: p internalKernel: k = (|
+private WeakMap = k WeakMap.
 private List = p collections List.
 private Map = p collections Map.
-private Message = p kernel Message.
+private Message = k Message.
+private Proxy = k Proxy.
 
 public Promise = PromiseFactories new.
 
-private messageLoop
+private messageLoop = MessageLoop new.
+
 private internalRefs <WeakMap[Ref, InternalRef]> = WeakMap new.
 private currentActor ::= InternalActor named: 'Initial actor'.
 private pendingActors = List new.
 private timerHeap = TimerHeap new.
 private portMap = Map new.
-public handleMap = Map new.
 
 private Serializer = p victoryFuel Serializer.
 private Deserializer = p victoryFuel Deserializer.
-|) (
+|
+k messageLoop: messageLoop.
+) (
 public class Actor named: debugName <String> = (|
 private (* N.B. Do not leak to subinstances. *) internalActor = InternalActor named: debugName.
 |) (
@@ -480,9 +483,10 @@ public isActive = (
 )
 ) : (
 )
-class MessageLoop application: a platform: p = (|
-	application ::= a.
-	platform ::= p.
+class MessageLoop = (|
+	public application
+	public platform
+	public handleMap = Map new.
 |) (
 private dispatchHandle: handle status: status signals: signals count: count = (
 	| handler |
@@ -540,7 +544,7 @@ private enqueueStartupMessage: argvOrBytes = (
 	platform:: nil.
 )
 public eventualSendTo: receiver selector: selector arguments: arguments = (
-	(* Sent from the compilation of an eventual send. *)
+	(* Also sent from the eventual send bytecode. *)
 	^(asInternalRef: receiver) eventualSend: selector arguments: arguments
 )
 private exit: code = (
@@ -660,7 +664,7 @@ public reactResolved: r = (
 )
 ) : (
 )
-class Ref wrapping: ref = (|
+class Ref wrapping: ref = Proxy (|
 protected internalRef = ref.
 |internalRefs at: self put: ref) (
 protected doesNotUnderstand: message <Message> = (
@@ -671,9 +675,6 @@ protected doesNotUnderstand: message <Message> = (
 )
 public isKindOfPromise = (
 	^true
-)
-protected yourself = (
-	^super yourself
 )
 ) : (
 )
@@ -840,9 +841,6 @@ private asInternalRef: externalRefOrUnboxedNearRef = (
 	^(isRef: externalRefOrUnboxedNearRef)
 		ifTrue: [internalRefs at: externalRefOrUnboxedNearRef]
 		ifFalse: [InternalNearRef wrapping: externalRefOrUnboxedNearRef]
-)
-public buildLoopForApplication: app platform: platform = (
-	^messageLoop:: MessageLoop application: app platform: platform
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)

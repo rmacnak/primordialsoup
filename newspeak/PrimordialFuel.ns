@@ -836,11 +836,10 @@ public snapshotApp: app withRuntime: runtime keepSource: s = (
 	| newPlatform newKernel methods objectStore |
 	keepSource:: s.
 	newKernel:: runtime InternalKernel new.
+	newKernel symbolTable: symbolTablePlaceholder.
 	newPlatform:: runtime Platform internalKernel: newKernel.
-	objectStore:: newKernel
-		buildObjectStoreWithApplication: app
-		platform: newPlatform
-		symbols: symbolTablePlaceholder.
+	newKernel messageLoop application: app; platform: newPlatform.
+	objectStore:: newKernel buildObjectStore.
 
 	slotOf: newKernel Object at: 1 put: nil. (* superclass *)
 	methods:: slotOf: newKernel Object at: 2.

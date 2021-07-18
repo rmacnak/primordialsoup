@@ -6,6 +6,7 @@ private Message = p kernel Message.
 private StringBuilder = p kernel StringBuilder.
 private List = p collections List.
 private Map = p collections Map.
+private Promise = p actors Promise.
 private TestContext = m TestContext.
 |) (
 public class ActivationTests = TestBase () (
@@ -1448,6 +1449,13 @@ public testSimulationEnclosingObject = (
 	assertSimulation: [outer SimulationTests] answers: outer SimulationTests.
 	assertSimulation: [outer ActivationMirrorTesting] answers: outer ActivationMirrorTesting.
 )
+public testSimulationEventualSend = (
+	| thread result |
+	thread:: ActivationMirror invokeSuspended: [3 <-: + 4].
+	thread resumeSlowly.
+	assert: thread isFulfilled message: 'Expected thread fulfilled'.
+	^assert: thread result reflectee resolvesTo: 7
+)
 public testSimulationImplicitReceiverSend = (
 	assertSimulation: [foo] answers: 'sub'.
 	assertSimulation: [fooWithArg: 1] answers: 'sub'.
@@ -1548,7 +1556,7 @@ public testSimulationValueBadArity = (
 ) : (
 TEST_CONTEXT = ()
 )
-class SuperSimulationTests = TestContext () (
+class SuperSimulationTests = TestBase () (
 foo = (
 	^'super'
 )
@@ -1558,6 +1566,12 @@ fooWithArg: n = (
 ) : (
 )
 class TestBase = TestContext () (
+assert: promise resolvesTo: expectedValue = (
+	^Promise
+		when: promise
+		fulfilled: [:value | assert: value equals: expectedValue]
+		broken: [:error | ^failWithMessage: 'Expected resolution of ', expectedValue printString, ' but broken with ', error printString]
+)
 assertSet: actual equals: expected = (
 	| missing extra missingString extraString |
 	missing:: Set new.

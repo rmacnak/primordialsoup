@@ -1,4 +1,4 @@
-class ActorsTestingConfigurationForPrimordialSoup packageTestsUsing: manifest = (|
+class ActorsTestingConfiguration packageTestsUsing: manifest = (|
 private ActorsTesting = manifest ActorsTesting.
 private TestActor = manifest TestActor.
 |) (

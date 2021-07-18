@@ -1,4 +1,4 @@
-class MirrorsForPrimordialSoup usingPlatform: platform internalKernel: ik namespace: ns = (|
+class Mirrors usingPlatform: platform internalKernel: ik namespace: ns = (|
 private Collection = platform collections Collection.
 private List = platform collections List.
 private Map = platform collections Map.
@@ -809,11 +809,8 @@ public selectors ^<Set[String]> = (
 			[selectors:: (Printer for: accessor) selectors.
 			 selectors
 				removeAllSuchThat: [:selector | (selector indexOf: '`') > 0];
-				remove: #nestedMixins;
-				remove: #at:;
 				remove: #=;
-				remove: #value;
-				remove: #applyTo:withEnclosingObject:].
+				remove: #apply:to:withEnclosingObject:].
 
 	(* Initializer: Demangle super factory. Remove slot initializers. *)
 	(Printer for: initializer) selectors do:
@@ -968,7 +965,6 @@ interpretNext1Byte: byte = (
 	byte = 154 ifTrue: [^self push: true].
 	byte = 155 ifTrue: [^self pushReceiver].
 	byte = 156 ifTrue: [^self pushMixin].
-	byte = 157 ifTrue: [^self pushMessageLoop].
 	byte = 158 ifTrue: [^self pop].
 	byte = 159 ifTrue: [^self dup].
 	byte = 160 ifTrue: [^self push: -1].
@@ -1004,6 +1000,8 @@ interpretNext2Byte: byte1 byte: byte2 = (
 	^self unusedBytecode
 )
 interpretNext3Byte: byte1 byte: byte2 byte: byte3 = (
+	byte1 = 239 ifTrue:
+		[^self eventualSend: (self literalAt: byte3 & 15 << 8 | byte2) numArgs: byte3 >> 4].
 	byte1 = 240 ifTrue: [^self jump: 0 - (byte3 << 8 | byte2)].
 	byte1 = 241 ifTrue: [^self jump: byte3 << 8 | byte2].
 	byte1 = 242 ifTrue: [^self popJumpTrue: byte3 << 8 | byte2].
@@ -1429,6 +1427,9 @@ class Printer for: method_ = InstructionStream (
 	scan.
 ) (
 dup = ()
+eventualSend: selector numArgs: numArgs = (
+	selectors add: selector.
+)
 implicitReceiverSend: selector numArgs: numArgs = (
 	selectors add: selector.
 )
@@ -1451,7 +1452,6 @@ pushClosureNumCopied: numCopied numArgs: numArgs blockSize: blockSize = ()
 pushEnclosingObject: depth = ()
 pushIndirectLocal: offset inVector: vectorOffset = ()
 pushLocal: offset = ()
-pushMessageLoop = ()
 pushMixin = ()
 pushNewArray: size = ()
 pushNewArrayWithElements: size = ()
@@ -1558,6 +1558,15 @@ private doPrimitive: index <Integer> receiver: receiver <Object> arguments: argu
 )
 dup = (
 	activation push: activation top.
+)
+eventualSend: selector numArgs: numArgs = (
+	| arguments receiver loop method |
+	pushNewArrayWithElements: numArgs.
+	arguments:: activation pop.
+	receiver:: activation pop.
+	loop:: internalKernel messageLoop.
+	method:: behavior: (classOf: loop) methodAt: #eventualSendTo:selector:arguments:.
+	activate: method receiver: loop arguments: {receiver. selector. arguments}.
 )
 public findApplicationOf: mixin startingAt: startingBehavior = (
 	| behavior ::= startingBehavior. |
