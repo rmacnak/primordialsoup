@@ -198,7 +198,7 @@ uword Heap::AllocateOldSmall(intptr_t size, GrowthPolicy growth) {
     }
   }
   if (addr == 0) {
-    FATAL1("Failed to allocate %" Pd " bytes\n", size);
+    FATAL("Failed to allocate %" Pd " bytes\n", size);
   }
   old_size_ += size;
 #if defined(DEBUG)
@@ -213,7 +213,7 @@ uword Heap::AllocateOldLarge(intptr_t size, GrowthPolicy growth) {
                                 growth);
   uword addr = region->TryAllocate(size);
   if (addr == 0) {
-    FATAL1("Failed to allocate %" Pd " bytes\n", size);
+    FATAL("Failed to allocate %" Pd " bytes\n", size);
   }
   old_size_ += size;
 #if defined(DEBUG)
@@ -240,7 +240,7 @@ uword Heap::AllocateSnapshotSmall(intptr_t size) {
     addr = region->TryAllocate(size);
   }
   if (addr == 0) {
-    FATAL1("Failed to allocate %" Pd " bytes\n", size);
+    FATAL("Failed to allocate %" Pd " bytes\n", size);
   }
   old_size_ += size;
 #if defined(DEBUG)
@@ -263,7 +263,7 @@ uword Heap::AllocateSnapshotLarge(intptr_t size) {
   }
   addr = region->TryAllocate(size);
   if (addr == 0) {
-    FATAL1("Failed to allocate %" Pd " bytes\n", size);
+    FATAL("Failed to allocate %" Pd " bytes\n", size);
   }
   old_size_ += size;
 #if defined(DEBUG)

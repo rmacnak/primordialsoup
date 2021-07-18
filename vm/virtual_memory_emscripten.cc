@@ -23,7 +23,7 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
                                       const char* name) {
   void* address = malloc(size);
   if (address == NULL) {
-    FATAL1("Failed to malloc %" Pd " bytes\n", size);
+    FATAL("Failed to malloc %" Pd " bytes\n", size);
   }
   return VirtualMemory(address, size);
 }

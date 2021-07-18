@@ -29,7 +29,7 @@ namespace psoup {
     const int kBufferSize = 1024;                                              \
     char error_message[kBufferSize];                                           \
     Utils::StrError(result, error_message, kBufferSize);                       \
-    FATAL2("pthread error: %d (%s)", result, error_message);                   \
+    FATAL("pthread error: %d (%s)", result, error_message);                   \
   }
 
 

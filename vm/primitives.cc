@@ -2577,7 +2577,7 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
   raw_filename[filename->Size()] = 0;
   FILE* f = fopen(raw_filename, "wb");
   if (f == NULL) {
-    FATAL1("Cannot open %s\n", raw_filename);
+    FATAL("Cannot open %s\n", raw_filename);
   }
 
   size_t length = content->Size();
@@ -2585,7 +2585,7 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
   while (start != length) {
     size_t written = fwrite(content->element_addr(start), 1, length - start, f);
     if (written == 0) {
-      FATAL1("Failed to write '%s'\n", raw_filename);
+      FATAL("Failed to write '%s'\n", raw_filename);
     }
     start += written;
   }
@@ -2610,11 +2610,11 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   raw_filename[filename->Size()] = 0;
   FILE* f = fopen(raw_filename, "rb");
   if (f == NULL) {
-    FATAL1("Failed to stat '%s'\n", raw_filename);
+    FATAL("Failed to stat '%s'\n", raw_filename);
   }
   struct stat st;
   if (fstat(fileno(f), &st) != 0) {
-    FATAL1("Failed to stat '%s'\n", raw_filename);
+    FATAL("Failed to stat '%s'\n", raw_filename);
   }
   size_t length = st.st_size;
 
@@ -2624,7 +2624,7 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   while (remaining > 0) {
     size_t bytes_read = fread(result->element_addr(start), 1, remaining, f);
     if (bytes_read == 0) {
-      FATAL1("Failed to read '%s'\n", raw_filename);
+      FATAL("Failed to read '%s'\n", raw_filename);
     }
     start += bytes_read;
     remaining -= bytes_read;
@@ -2806,7 +2806,7 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
 
   if (initial_ip != I->IPForAssert()) {
     // FP can move if the Activation setter primitives flush.
-    FATAL1("Control flow in doPrimitiveWithArgs: %" Pd, index);
+    FATAL("Control flow in doPrimitiveWithArgs: %" Pd, index);
   }
 
   if (callee_success) {

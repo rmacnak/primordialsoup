@@ -344,7 +344,7 @@ void Deserializer::Deserialize() {
   }
   uint16_t version = ReadUint16();
   if (version != 0) {
-    FATAL1("Wrong version (%d)", version);
+    FATAL("Wrong version (%d)", version);
   }
 
   num_clusters_ = ReadUint16();
@@ -508,7 +508,7 @@ Cluster* Deserializer::ReadCluster() {
       case kActivationCid: return new ActivationCluster();
       case kSmiCid: return new SmallIntegerCluster();
     }
-    FATAL1("Unknown cluster format %" Pd "\n", format);
+    FATAL("Unknown cluster format %" Pd "\n", format);
     return NULL;
   }
 }

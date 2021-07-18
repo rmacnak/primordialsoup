@@ -28,12 +28,13 @@ class Assert {
 
 }  // namespace psoup
 
-#define FATAL(error) psoup::Assert(__FILE__, __LINE__).Fail("%s", error)
-
-#define FATAL1(format, p1) psoup::Assert(__FILE__, __LINE__).Fail(format, (p1))
-
-#define FATAL2(format, p1, p2)                                                 \
-  psoup::Assert(__FILE__, __LINE__).Fail(format, (p1), (p2))
+#if defined(_MSC_VER)
+#define FATAL(format, ...)                                                     \
+  psoup::Assert(__FILE__, __LINE__).Fail(format, __VA_ARGS__)
+#else
+#define FATAL(format, ...)                                                     \
+  psoup::Assert(__FILE__, __LINE__).Fail(format, ##__VA_ARGS__)
+#endif
 
 #define UNIMPLEMENTED() FATAL("unimplemented code")
 

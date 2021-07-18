@@ -21,7 +21,7 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
                            0,
                            NULL);
   if (file == NULL) {
-    FATAL1("Failed to open '%s'\n", filename);
+    FATAL("Failed to open '%s'\n", filename);
   }
   BY_HANDLE_FILE_INFORMATION stat;
   bool r = GetFileInformationByHandle(file, &stat);
@@ -58,7 +58,7 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
 
   void* address = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, prot);
   if (address == NULL) {
-    FATAL1("Failed to VirtualAlloc %" Pd " bytes\n", size);
+    FATAL("Failed to VirtualAlloc %" Pd " bytes\n", size);
   }
 
   return VirtualMemory(address, size);
@@ -67,7 +67,7 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
 
 void VirtualMemory::Free() {
   if (VirtualFree(address_, 0, MEM_RELEASE) == 0) {
-    FATAL1("VirtualFree failed %d", GetLastError());
+    FATAL("VirtualFree failed %d", GetLastError());
   }
 }
 

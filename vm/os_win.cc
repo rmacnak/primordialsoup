@@ -103,7 +103,7 @@ static int VSNPrint(char* str, size_t size, const char* format, va_list args) {
   if (str == NULL || size == 0) {
     int retval = _vscprintf(format, args);
     if (retval < 0) {
-      FATAL1("Fatal error in OS::VSNPrint with format '%s'", format);
+      FATAL("Fatal error in OS::VSNPrint with format '%s'", format);
     }
     return retval;
   }
@@ -119,7 +119,7 @@ static int VSNPrint(char* str, size_t size, const char* format, va_list args) {
     va_copy(args_retry, args);
     written = _vscprintf(format, args_retry);
     if (written < 0) {
-      FATAL1("Fatal error in OS::VSNPrint with format '%s'", format);
+      FATAL("Fatal error in OS::VSNPrint with format '%s'", format);
     }
     va_end(args_retry);
   }

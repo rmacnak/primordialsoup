@@ -18,7 +18,7 @@ namespace psoup {
 
 #define VALIDATE_PTHREAD_RESULT(result)                                        \
   if (result != 0) {                                                           \
-    FATAL1("pthread error: %d", result);                                       \
+    FATAL("pthread error: %d", result);                                        \
   }
 
 

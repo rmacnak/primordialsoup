@@ -21,9 +21,9 @@ namespace psoup {
 #define VALIDATE_PTHREAD_RESULT(result)                                        \
   if (result != 0) {                                                           \
     const int kBufferSize = 1024;                                              \
-    char error_buf[kBufferSize];                                               \
-    FATAL2("pthread error: %d (%s)", result,                                   \
-           Utils::StrError(result, error_buf, kBufferSize));                   \
+    char error_message[kBufferSize];                                           \
+    Utils::StrError(result, error_message, kBufferSize);                       \
+    FATAL("pthread error: %d (%s)", result, error_message);                    \
   }
 
 

@@ -18,18 +18,18 @@ namespace psoup {
 VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   FILE* file = fopen(filename, "r");
   if (file == NULL) {
-    FATAL1("Failed to open '%s'\n", filename);
+    FATAL("Failed to open '%s'\n", filename);
   }
   struct stat st;
   if (fstat(fileno(file), &st) != 0) {
-    FATAL1("Failed to stat '%s'\n", filename);
+    FATAL("Failed to stat '%s'\n", filename);
   }
   intptr_t size = st.st_size;
   void* address = mmap(0, size, PROT_READ,
                        MAP_FILE | MAP_PRIVATE,
                        fileno(file), 0);
   if (address == MAP_FAILED) {
-    FATAL1("Failed to mmap '%s'\n", filename);
+    FATAL("Failed to mmap '%s'\n", filename);
   }
   int result = fclose(file);
   ASSERT(result == 0);
@@ -55,7 +55,7 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
                        MAP_PRIVATE | MAP_ANON,
                        0, 0);
   if (address == MAP_FAILED) {
-    FATAL1("Failed to mmap %" Pd " bytes\n", size);
+    FATAL("Failed to mmap %" Pd " bytes\n", size);
   }
 
   return VirtualMemory(address, size);
@@ -65,7 +65,7 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
 void VirtualMemory::Free() {
   int result = munmap(address_, size_);
   if (result != 0) {
-    FATAL1("Failed to munmap %" Pd " bytes\n", size_);
+    FATAL("Failed to munmap %" Pd " bytes\n", size_);
   }
 }
 

@@ -20,26 +20,26 @@ namespace psoup {
 VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   int fd = open(filename, O_RDONLY);
   if (fd < 0) {
-    FATAL1("Failed to open '%s'\n", filename);
+    FATAL("Failed to open '%s'\n", filename);
   }
   zx_handle_t vmo = ZX_HANDLE_INVALID;
   zx_status_t status = fdio_get_vmo_clone(fd, &vmo);
   close(fd);
   if (status != ZX_OK) {
-    FATAL1("fdio_get_vmo() failed: %s\n", zx_status_get_string(status));
+    FATAL("fdio_get_vmo() failed: %s\n", zx_status_get_string(status));
   }
   size_t size;
   status = zx_vmo_get_size(vmo, &size);
   if (status != ZX_OK) {
-    FATAL1("zx_vmo_get_size() failed: %s\n", zx_status_get_string(status));
+    FATAL("zx_vmo_get_size() failed: %s\n", zx_status_get_string(status));
   }
   zx_handle_t vmar = zx_vmar_root_self();
   uintptr_t addr;
   status = zx_vmar_map(vmar, ZX_VM_FLAG_PERM_READ, 0, vmo, 0, size, &addr);
   zx_handle_close(vmo);
   if (status != ZX_OK) {
-    FATAL2("zx_vmar_map(%" Pd ") failed: %s\n", size,
-           zx_status_get_string(status));
+    FATAL("zx_vmar_map(%" Pd ") failed: %s\n", size,
+          zx_status_get_string(status));
   }
   return VirtualMemory(reinterpret_cast<void*>(addr), size);
 }
@@ -68,8 +68,8 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
   zx_handle_t vmo = ZX_HANDLE_INVALID;
   zx_status_t status = zx_vmo_create(size, 0u, &vmo);
   if (status != ZX_OK) {
-    FATAL2("zx_vmo_create(%" Pd ") failed: %s\n", size,
-           zx_status_get_string(status));
+    FATAL("zx_vmo_create(%" Pd ") failed: %s\n", size,
+          zx_status_get_string(status));
   }
 
   ASSERT(name != NULL);
@@ -79,8 +79,8 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
   status = zx_vmar_map(vmar, prot, 0, vmo, 0, size, &addr);
   zx_handle_close(vmo);
   if (status != ZX_OK) {
-    FATAL2("zx_vmar_map(%" Pd ") failed: %s\n", size,
-           zx_status_get_string(status));
+    FATAL("zx_vmar_map(%" Pd ") failed: %s\n", size,
+          zx_status_get_string(status));
   }
 
   return VirtualMemory(reinterpret_cast<void*>(addr), size);
@@ -93,7 +93,7 @@ void VirtualMemory::Free() {
                                      reinterpret_cast<uintptr_t>(address_),
                                      size_);
   if (status != ZX_OK) {
-    FATAL1("zx_vmar_unmap failed: %s\n", zx_status_get_string(status));
+    FATAL("zx_vmar_unmap failed: %s\n", zx_status_get_string(status));
   }
 }
 
@@ -119,7 +119,7 @@ bool VirtualMemory::Protect(Protection protection) {
                                        reinterpret_cast<uintptr_t>(address_),
                                        size_);
   if (status != ZX_OK) {
-    FATAL1("zx_vmar_protect failed: %s\n", zx_status_get_string(status));
+    FATAL("zx_vmar_protect failed: %s\n", zx_status_get_string(status));
   }
   return true;
 }
