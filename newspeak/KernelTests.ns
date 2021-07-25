@@ -1,5 +1,6 @@
 class KernelTests usingPlatform: p minitest: m = (|
 private TestContext = m TestContext.
+private Message = p kernel Message.
 private MessageNotUnderstood = p kernel MessageNotUnderstood.
 private Exception = p kernel Exception.
 private Stopwatch = p kernel Stopwatch.
@@ -5140,6 +5141,52 @@ public testSmallIntegerXor = (
 
 	assert: (3 bitXor: -1) equals: -4.
 	assert: (-3 bitXor: -1) equals: 2.
+)
+) : (
+TEST_CONTEXT = ()
+)
+public class MessageTests = TestContext () (
+public testPerform = (
+	| receiver message |
+	receiver:: 'hello'.
+
+	(* Unary *)
+	message:: Message selector: #size arguments: {}.
+	assert: (message sendTo: receiver) equals: 5.
+
+	(* Binary *)
+	message:: Message selector: #, arguments: {'world'}.
+	assert: (message sendTo: receiver) equals: 'helloworld'.
+
+	(* Keyword *)
+	message:: Message selector: #startsWith: arguments: {'he'}.
+	assert: (message sendTo: receiver) equals: true.
+
+	(* MNU - no method *)
+	message:: Message selector: #doesNotExist arguments: {}.
+	should: [message sendTo: receiver] signal: MessageNotUnderstood.
+
+	(* MNU - protected method *)
+	message:: Message selector: #Array arguments: {}.
+	should: [message sendTo: receiver] signal: MessageNotUnderstood.
+)
+public testPerformNonArray = (
+	| receiver message |
+	receiver:: 'string'.
+	message:: Message selector: #size arguments: List new.
+	assert: (message sendTo: receiver) equals: 6.
+)
+public testPerformNonSymbol = (
+	| receiver message |
+	receiver:: 'string'.
+	message:: Message selector: 'si', 'ze' arguments: {}.
+	assert: (message sendTo: receiver) equals: 6.
+)
+public testPerformWrongArity = (
+	| receiver message |
+	receiver:: 'string'.
+	message:: Message selector: #size arguments: {1. 2. 3. 4}.
+	should: [message sendTo: receiver] signal: MessageNotUnderstood.
 )
 ) : (
 TEST_CONTEXT = ()

@@ -1505,6 +1505,14 @@ public class Message selector: s arguments: a = (|
 public selector <Symbol> = s.
 public arguments <Array[Object]> = a.
 |) (
+private object: receiver perform: selector with: arguments = (
+	(* :literalmessage: primitive: 89 *)
+	^object: receiver perform: selector asSymbol withAgain: (Array withAll: arguments)
+)
+private object: receiver perform: selector withAgain: arguments = (
+	(* :literalmessage: primitive: 89 *)
+	panic.
+)
 public sendEventualTo: receiver = (
 	panic.
 )
@@ -2428,10 +2436,6 @@ private nameOf: klass = (
 )
 private nameOf: klass put: value = (
 	^self slotOf: klass at: 7 put: value
-)
-private object: rcvr perform: sel with: arguments = (
-	(* :literalmessage: primitive: 89 *)
-	panic.
 )
 private panic = (
 	(* :literalmessage: primitive: 103 *)

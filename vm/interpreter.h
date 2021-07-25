@@ -31,7 +31,10 @@ class Interpreter {
   void ActivateDispatch(Method method, intptr_t num_args);
   void ReturnFromDispatch();
 
-  void Perform(String selector, intptr_t num_args);
+  void Perform(Object message,
+               Object receiver,
+               String selector,
+               Array arguments);
   Method MethodAt(Behavior cls, String selector);
   void ActivateClosure(intptr_t num_args);
 

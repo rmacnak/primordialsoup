@@ -234,8 +234,45 @@ void Interpreter::PushClosure(intptr_t num_copied,
   PopNAndPush(num_copied, result);
 }
 
-void Interpreter::Perform(String selector, intptr_t num_args) {
-  OrdinarySend(selector, num_args);  // SAFEPOINT
+void Interpreter::Perform(Object message,
+                          Object receiver,
+                          String selector,
+                          Array arguments) {
+  Behavior cls = receiver->Klass(H);
+  while (cls != nil) {
+    Method method = MethodAt(cls, selector);
+    if (method != nil) {
+      if (method->IsPublic()) {
+        intptr_t num_args = arguments->Size();
+        if (method->NumArgs() != num_args) goto DNU;
+
+        Push(receiver);
+        for (intptr_t i = 0; i < num_args; i++) {
+          Push(arguments->element(i));
+        }
+        Activate(method, num_args);  // SAFEPOINT
+        return;
+      } else if (method->IsProtected()) {
+        goto DNU;
+      }
+    }
+    cls = cls->superclass();
+  }
+
+ DNU:
+  cls = receiver->Klass(H);
+  while (cls != nil) {
+    Method method = MethodAt(cls, object_store()->does_not_understand());
+    if (method != nil) {
+      Push(receiver);
+      Push(message);
+      Activate(method, 1);  // SAFEPOINT
+      return;
+    }
+    cls = cls->superclass();
+  }
+
+  FATAL("Recursive #doesNotUnderstand:");
 }
 
 void Interpreter::CommonSend(intptr_t offset) {
@@ -1071,7 +1108,7 @@ void Interpreter::Exit() {
 
 void Interpreter::ActivateDispatch(Method method, intptr_t num_args) {
   ASSERT(method->Primitive() == 0);
-  Interpreter::Activate(method, num_args);
+  Activate(method, num_args);
 }
 
 void Interpreter::ReturnFromDispatch() {

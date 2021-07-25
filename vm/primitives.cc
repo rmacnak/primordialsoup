@@ -1895,27 +1895,18 @@ DEFINE_PRIMITIVE(Object_identityHash) {
 
 DEFINE_PRIMITIVE(Object_performWithAll) {
   ASSERT(num_args == 3);
-
+  Object message = I->Stack(3);
   Object receiver = I->Stack(2);
   String selector = static_cast<String>(I->Stack(1));
   Array arguments = static_cast<Array>(I->Stack(0));
 
-  if (!selector->IsString() ||
-      !selector->is_canonical() ||
+  if (!selector->IsString() || !selector->is_canonical() ||
       !arguments->IsArray()) {
-    UNIMPLEMENTED();
     return kFailure;
   }
 
   I->Drop(num_args + 1);
-
-  intptr_t perform_args = arguments->Size();
-  I->Push(receiver);
-  for (intptr_t i = 0; i < perform_args; i++) {
-    I->Push(arguments->element(i));
-  }
-
-  I->Perform(selector, perform_args);
+  I->Perform(message, receiver, selector, arguments);  // SAFEPOINT
   return kSuccess;
 }
 
@@ -1928,7 +1919,7 @@ DEFINE_PRIMITIVE(Closure_value0) {
     return kFailure;
   }
 
-  I->ActivateClosure(0);
+  I->ActivateClosure(0);  // SAFEPOINT
   return kSuccess;
 }
 
@@ -1941,7 +1932,7 @@ DEFINE_PRIMITIVE(Closure_value1) {
     return kFailure;
   }
 
-  I->ActivateClosure(1);
+  I->ActivateClosure(1);  // SAFEPOINT
   return kSuccess;
 }
 
@@ -1954,7 +1945,7 @@ DEFINE_PRIMITIVE(Closure_value2) {
     return kFailure;
   }
 
-  I->ActivateClosure(2);
+  I->ActivateClosure(2);  // SAFEPOINT
   return kSuccess;
 }
 
@@ -1967,7 +1958,7 @@ DEFINE_PRIMITIVE(Closure_value3) {
     return kFailure;
   }
 
-  I->ActivateClosure(3);
+  I->ActivateClosure(3);  // SAFEPOINT
   return kSuccess;
 }
 
@@ -1987,7 +1978,7 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
     I->Push(args->element(i));
   }
 
-  I->ActivateClosure(closure_args);
+  I->ActivateClosure(closure_args);  // SAFEPOINT
   return kSuccess;
 }
 
