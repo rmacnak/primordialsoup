@@ -401,7 +401,7 @@ void Heap::FlipSpaces() {
   ASSERT((top_ & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
 }
 
-static void ForwardClass(Heap* heap, HeapObject object) {
+static bool ForwardClass(Heap* heap, HeapObject object) {
   ASSERT(object->IsHeapObject());
   Behavior old_class = heap->ClassAt(object->cid());
   if (old_class->IsForwardingCorpse()) {
@@ -411,16 +411,20 @@ static void ForwardClass(Heap* heap, HeapObject object) {
     new_class->AssertCouldBeBehavior();
     ASSERT(new_class->id()->IsSmallInteger());
     object->set_cid(new_class->id()->value());
+    return new_class->IsNewObject();
   }
+  return old_class->IsNewObject();
 }
 
-static void ForwardPointer(Object* ptr) {
+static bool ForwardPointer(Object* ptr) {
   Object old_target = *ptr;
   if (old_target->IsForwardingCorpse()) {
     Object new_target = static_cast<ForwardingCorpse>(old_target)->target();
     ASSERT(!new_target->IsForwardingCorpse());
     *ptr = new_target;
+    return new_target->IsNewObject();
   }
+  return old_target->IsNewObject();
 }
 
 void Heap::ScavengeRoots() {
@@ -456,12 +460,12 @@ uword Heap::ScavengeToSpace(uword scan) {
   while (scan < top_) {
     HeapObject obj = HeapObject::FromAddr(scan);
     intptr_t cid = obj->cid();
-    ScavengeClass(cid);
     if (cid == kWeakArrayCid) {
       AddToWeakList(static_cast<WeakArray>(obj));
     } else if (cid == kEphemeronCid) {
       AddToEphemeronList(static_cast<Ephemeron>(obj));
     } else {
+      ScavengeClass(cid);
       Object* from;
       Object* to;
       obj->Pointers(&from, &to);
@@ -524,10 +528,10 @@ static void SetForwarded(HeapObject old_obj, HeapObject new_obj) {
   *reinterpret_cast<uword*>(old_obj->Addr()) = header;
 }
 
-void Heap::ScavengePointer(Object* ptr) {
+bool Heap::ScavengePointer(Object* ptr) {
   HeapObject old_target = static_cast<HeapObject>(*ptr);
   if (old_target->IsImmediateOrOldObject()) {
-    return;
+    return false;
   }
 
   DEBUG_ASSERT(InFromSpace(old_target));
@@ -557,42 +561,48 @@ void Heap::ScavengePointer(Object* ptr) {
   DEBUG_ASSERT(new_target->IsOldObject() || InToSpace(new_target));
 
   *ptr = new_target;
+  return true;
 }
 
 void Heap::ScavengeOldObject(HeapObject obj) {
   intptr_t cid = obj->cid();
-  ScavengeClass(cid);
   if (cid == kWeakArrayCid) {
     AddToWeakList(static_cast<WeakArray>(obj));
   } else if (cid == kEphemeronCid) {
     AddToEphemeronList(static_cast<Ephemeron>(obj));
   } else {
+    bool has_new_target = false;
+    if (ScavengeClass(cid)) {
+      has_new_target = true;
+    }
     Object* from;
     Object* to;
     obj->Pointers(&from, &to);
     for (Object* ptr = from; ptr <= to; ptr++) {
-      ScavengePointer(ptr);
-      if ((*ptr)->IsNewObject() && !obj->is_remembered()) {
-        AddToRememberedSet(obj);
+      if (ScavengePointer(ptr)) {
+        has_new_target = true;
       }
+    }
+    if (has_new_target) {
+      AddToRememberedSet(obj);
     }
   }
 }
 
-void Heap::ScavengeClass(intptr_t cid) {
+bool Heap::ScavengeClass(intptr_t cid) {
   ASSERT(cid < class_table_size_);
   // This is very similar to ScavengePointer.
 
   HeapObject old_target = static_cast<HeapObject>(class_table_[cid]);
   if (old_target->IsImmediateOrOldObject()) {
-    return;
+    return false;
   }
 
   DEBUG_ASSERT(InFromSpace(old_target));
 
   if (IsForwarded(old_target)) {
     // Already scavenged.
-    return;
+    return true;
   }
 
   // Target is now known to be reachable. Move it to to-space.
@@ -611,6 +621,7 @@ void Heap::ScavengeClass(intptr_t cid) {
          size);
   HeapObject new_target = HeapObject::FromAddr(new_target_addr);
   SetForwarded(old_target, new_target);
+  return true;
 }
 
 void Heap::MarkSweep(Reason reason) {
@@ -1161,16 +1172,21 @@ void Heap::ForwardHeap() {
     while (scan < region->object_end()) {
       HeapObject obj = HeapObject::FromAddr(scan);
       if (obj->cid() >= kFirstLegalCid) {
-        ForwardClass(this, obj);
+        bool has_new_target = false;
+        if (ForwardClass(this, obj)) {
+          has_new_target = true;
+        }
         obj->set_is_remembered(false);
         Object* from;
         Object* to;
         obj->Pointers(&from, &to);
         for (Object* ptr = from; ptr <= to; ptr++) {
-          ForwardPointer(ptr);
-          if ((*ptr)->IsNewObject() && !obj->is_remembered()) {
-            AddToRememberedSet(obj);
+          if (ForwardPointer(ptr)) {
+            has_new_target = true;
           }
+        }
+        if (has_new_target) {
+          AddToRememberedSet(obj);
         }
       }
       scan += obj->HeapSize();
