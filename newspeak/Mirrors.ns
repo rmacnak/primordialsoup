@@ -3,6 +3,7 @@ private Collection = platform collections Collection.
 private List = platform collections List.
 private Map = platform collections Map.
 private Set = platform collections Set.
+private WeakArray = platform kernel WeakArray.
 private WeakMap = platform kernel WeakMap.
 private StringBuilder = platform kernel StringBuilder.
 private IdentityMap = ik IdentityMap.
@@ -204,12 +205,12 @@ public sender ^<ActivationMirror> = (
 	rawSender method primitive = 142 ifTrue: [^nil (* Hide simulation root. *)].
 	^ActivationMirror reflecting: rawSender thread: thread
 )
-public slots ^<List[LocalSlotMirror]> = (
+public slots ^<List[SlotMirror]> = (
 	| mapper = computeDebugMapper. result = List new. |
 	mapper localNames do:
 		[:localName |
 		| localValue = mapper getValueOf: localName. |
-		result add: (LocalSlotMirror name: localName value: (ObjectMirror reflecting: localValue))].
+		result add: (SlotMirror name: localName value: (ObjectMirror reflecting: localValue))].
 	^result
 )
 public sourceRange ^<Interval> = (
@@ -1064,14 +1065,6 @@ literalAt: offset = (
 )
 ) : (
 )
-private class LocalSlotMirror name: n value: v = (
-|
-public name <Symbol> = n.
-public value <ObjectMirror> = v.
-|
-) (
-) : (
-)
 private class MethodBuilder reflecting: ir in: builder = (|
 private intermediate = ir.
 public definingMixin = builder.
@@ -1388,6 +1381,7 @@ public getClass ^<ClassMirror> = (
 	^ClassMirror reflecting: (classOf: reflectee)
 )
 public getSlot: name = (
+	(* :deprecated: This form cannot access shadowed slots. Use #slots instead. *)
 	| index raw |
 	index:: indexOfSlotNamed: name in: (classOf: reflectee).
 	raw:: slotOf: reflectee at: index.
@@ -1411,9 +1405,77 @@ public isKindOfObjectMirror ^<Boolean> = (
 	^true
 )
 public setSlot: name to: value = (
+	(* :deprecated: This form cannot access shadowed slots. Use #slots instead. *)
 	| index raw |
 	index:: indexOfSlotNamed: name in: (classOf: reflectee).
 	slotOf: reflectee at: index put: value.
+)
+private slot: name value: value = (
+	^SlotMirror name: name value: (ObjectMirror reflecting: value)
+)
+public slots ^<Collection[SlotMirror]> = (
+	| cls format result cursor slots |
+	cls:: classOf: reflectee.
+	Array = cls ifTrue: [^slotsIndexed].
+	WeakArray = cls ifTrue: [^slotsIndexed].
+	ByteArray = cls ifTrue: [^slotsIndexed].
+	String = cls ifTrue: [^slotsIndexed].
+	Activation = cls ifTrue: [^slotsActivation].
+	Closure = cls ifTrue: [^slotsClosure].
+	format:: formatOf: cls.
+	format < 0 ifTrue: [panic].
+	result:: Array new: format.
+	cursor:: format.
+	[slots:: (mixinOf: cls) _slots.
+	 slots size to: 1 by: -1 do:
+		[:i |
+		 result at: cursor put:
+			(slot: ((slots at: i) at: 1) value: (slotOf: reflectee at: cursor)).
+		 cursor:: cursor - 1].
+	 cls:: superclassOf: cls.
+	 cls = nil] whileFalse.
+	^result
+)
+private slotsActivation ^<Collection[SlotMirror]> = (
+	|
+	size = reflectee size.
+	result = Array new: 6 + size.
+	|
+	result at: 1 put: (slot: #sender value: reflectee sender).
+	result at: 2 put: (slot: #bci value: reflectee bci).
+	result at: 3 put: (slot: #method value: reflectee method).
+	result at: 4 put: (slot: #closure value: reflectee closure).
+	result at: 5 put: (slot: #receiver value: reflectee receiver).
+	result at: 6 put: (slot: #size value: size).
+	1 to: size do:
+		[:index | result at: 6 + index put:
+			(slot: index value: (reflectee tempAt: index))].
+	^result
+)
+private slotsClosure ^<Collection[SlotMirror]> = (
+	|
+	size = numCopiedOf: reflectee.
+	result = Array new: 4 + size.
+	|
+	result at: 1 put: (slot: #numCopied value: size).
+	result at: 2 put: (slot: #definingActivation value: (definingActivationOf: reflectee)).
+	result at: 3 put: (slot: #initialBCI value: (initialBCIOf: reflectee)).
+	result at: 4 put: (slot: #numArgs value: reflectee numArgs).
+	1 to: size do:
+		[:index | result at: 4 + index put:
+			(slot: index value: (copiedOf: reflectee at: index))].
+	^result
+)
+private slotsIndexed ^<Collection[SlotMirror]> = (
+	|
+	size = reflectee size.
+	result = Array new: 1 + size.
+	|
+	result at: 1 put: (slot: #size value: size).
+	1 to: size do:
+		[:index | result at: 1 + index put:
+			(slot: index value: (reflectee at: index))].
+	^result
 )
 ) : (
 )
@@ -1916,6 +1978,14 @@ public definingMixin = mxn.
 public isKindOfSlotDeclarationMirror ^<Boolean> = (
 	^true
 )
+) : (
+)
+private class SlotMirror name: n value: v = (
+|
+public name <Symbol> = n.
+public value <ObjectMirror> = v.
+|
+) (
 ) : (
 )
 private class SyntheticMethodMirror reflecting: m name: n source: s = MethodMirror reflecting: m (|

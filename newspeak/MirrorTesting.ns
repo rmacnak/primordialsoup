@@ -3,6 +3,7 @@ private ObjectMirror = p mirrors ObjectMirror.
 private ClassMirror = p mirrors ClassMirror.
 private Map = p collections Map.
 private Set = p collections Set.
+private WeakArray = p kernel WeakArray.
 private TestContext = m TestContext.
 private model = md.
 |) (
@@ -593,6 +594,15 @@ class C = B (
 foo = ( ^'C' )
 ) : (
 )
+class X = (| overridden = 'x'. |) (
+) : (
+)
+class Y = X (| overridden = 'y'. |) (
+) : (
+)
+private getSignaledException: closure = (
+	closure on: Exception do: [:e | ^e].
+)
 public testIsKindOfObjectMirror = (
 	|
 	objectMirror = ObjectMirror reflecting: model.
@@ -667,6 +677,7 @@ public testObjectMirrorGetClass = (
 	assert: (ObjectMirror reflecting: a) getClass reflectee equals: ErrorOnEquals.
 )
 public testObjectMirrorGetSlot = (
+	(* :todo: Remove after implementing SlotMirror>>value: *)
 	| c mirror result |
 	c:: C new.
 	c a1: 10.
@@ -695,6 +706,7 @@ public testObjectMirrorSetClass = (
 public testObjectMirrorSetClassShapeChange = (
 )
 public testObjectMirrorSetSlot = (
+	(* :todo: Remove after implementing SlotMirror>>value: *)
 	| c mirror result |
 	c:: C new.
 	c a1: 10.
@@ -728,6 +740,102 @@ public testObjectMirrorSetSlot = (
 	assert: c c2 equals: 400.
 )
 public testObjectMirrorSetSlotImmutable = (
+)
+public testObjectMirrorSlotsActivation = (
+	(* Non-portable. *)
+	| closure exception activation slots |
+	closure:: [Exception new signal].
+	exception:: ObjectMirror reflecting: (getSignaledException: closure).
+	activation:: (exception slots detect: [:slot | slot name = #signalActivation]) value.
+	assert: activation getClass mixin name equals: #Activation.
+	slots:: activation slots.
+	assert: slots size equals: 6.
+	assert: (slots at: 1) name equals: #sender.
+	assert: (slots at: 1) value reflectee equals: nil. (* dead *)
+	assert: (slots at: 2) name equals: #bci.
+	assert: (slots at: 2) value reflectee equals: nil. (* dead *)
+	assert: (slots at: 3) name equals: #method.
+	assert: (slots at: 3) value reflectee selector equals: #signal.
+	assert: (slots at: 4) name equals: #closure.
+	assert: (slots at: 4) value reflectee equals: nil.
+	assert: (slots at: 5) name equals: #receiver.
+	assert: (slots at: 5) value equals: exception.
+	assert: (slots at: 6) name equals: #size.
+	assert: (slots at: 6) value reflectee equals: 0.
+)
+public testObjectMirrorSlotsArray = (
+	| array mirror slots |
+	array:: Array new: 2.
+	array at: 1 put: 'apple'.
+	array at: 2 put: 'banana'.
+	mirror:: ObjectMirror reflecting: array.
+	slots:: mirror slots.
+	assert: slots size equals: 3.
+	assert: (slots at: 1) name equals: #size.
+	assert: (slots at: 1) value reflectee equals: 2.
+	assert: (slots at: 2) name equals: 1.
+	assert: (slots at: 2) value reflectee equals: 'apple'.
+	assert: (slots at: 3) name equals: 2.
+	assert: (slots at: 3) value reflectee equals: 'banana'.
+)
+public testObjectMirrorSlotsByteArray = (
+	| array mirror slots |
+	array:: ByteArray new: 2.
+	array at: 1 put: 16rAA.
+	array at: 2 put: 16rBB.
+	mirror:: ObjectMirror reflecting: array.
+	slots:: mirror slots.
+	assert: slots size equals: 3.
+	assert: (slots at: 1) name equals: #size.
+	assert: (slots at: 1) value reflectee equals: 2.
+	assert: (slots at: 2) name equals: 1.
+	assert: (slots at: 2) value reflectee equals: 16rAA.
+	assert: (slots at: 3) name equals: 2.
+	assert: (slots at: 3) value reflectee equals: 16rBB.
+)
+public testObjectMirrorSlotsClosure = (
+	(* Non-portable. *)
+	| copied closure array mirror slots |
+	copied:: 42.
+	closure: [^copied].
+	mirror:: ObjectMirror reflecting: closure.
+	slots:: mirror slots.
+	assert: slots size equals: 5.
+	assert: (slots at: 1) name equals: #numCopied.
+	assert: (slots at: 1) value reflectee equals: 1.
+	assert: (slots at: 2) name equals: #definingActivation.
+	assert: (slots at: 2) value getClass mixin name equals: #Activation.
+	assert: (slots at: 3) name equals: #initialBCI.
+	assert: (slots at: 3) value reflectee isKindOfInteger.
+	assert: (slots at: 4) name equals: #numArgs.
+	assert: (slots at: 4) value reflectee equals: 0.
+	assert: (slots at: 5) name equals: 1.
+	assert: (slots at: 5) value reflectee equals: 42.
+)
+public testObjectMirrorSlotsRegular = (
+	| mirror slots |
+	mirror:: ObjectMirror reflecting: Y new.
+	slots:: mirror slots.
+	assert: slots size equals: 2.
+	assert: (slots at: 1) name equals: #overridden.
+	assert: (slots at: 1) value reflectee equals: 'x'.
+	assert: (slots at: 2) name equals: #overridden.
+	assert: (slots at: 2) value reflectee equals: 'y'.
+)
+public testObjectMirrorSlotsWeakArray = (
+	| array mirror slots |
+	array:: WeakArray new: 2.
+	array at: 1 put: 'apple'.
+	array at: 2 put: 'banana'.
+	mirror:: ObjectMirror reflecting: array.
+	slots:: mirror slots.
+	assert: slots size equals: 3.
+	assert: (slots at: 1) name equals: #size.
+	assert: (slots at: 1) value reflectee equals: 2.
+	assert: (slots at: 2) name equals: 1.
+	assert: (slots at: 2) value reflectee equals: 'apple'.
+	assert: (slots at: 3) name equals: 2.
+	assert: (slots at: 3) value reflectee equals: 'banana'.
 )
 ) : (
 TEST_CONTEXT = ()
