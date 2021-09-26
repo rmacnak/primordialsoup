@@ -170,9 +170,6 @@ public accessModifier ^<Symbol> = (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool classNode: self
 )
-public classComment ^ <String> = (
-	^header classComment
-)
 public isKindOfClassDeclarationNode ^<Boolean> = (
 	^true
 )
@@ -202,7 +199,6 @@ public makeMixinNamed: klassName <Token> factoryMsg: cons <MessagePatternAST> in
 				isSeq: instanceInitializer isSeq;
 				initExprs: instanceInitializer initializationExpressions;
 				inheritanceChain: iList;
-				classComment: body instanceInitializer classComment;
 				start: klassName start; end: instanceInitializer end.
 	|
 	^new
@@ -226,7 +222,6 @@ public class ClassHeaderAST = AST (|
 	public superConstructorCall <MessageAST>
 	public slots <List[SlotDefAST]>
 	public isSeq <Boolean>
-	public classComment <String>
 	public initExprs <List[ExpressionAST]>
 	public inheritanceChain <List[SendAST]>
  |) (
@@ -290,7 +285,6 @@ public class InitializerAST slots: s initializerExpressions: es comment: c slots
 |
 	public slots = s.
 	public initializationExpressions <List[ExpressionAST]> = es.
-	public classComment = c.
 	public isSeq <Boolean> = seq.
 |) (
 ) : (

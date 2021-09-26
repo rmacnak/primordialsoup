@@ -532,19 +532,17 @@ public testClassHeaderComment = (
 	|
 
 	comment:: ' This is the (* nested *) comment. '.
-	headerSource:: 'class Foo = (
-		(*', comment, '*)
-	)'.
+	headerSource:: '(*', comment, '*) class Foo = ()'.
 
 	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
-	assert: builder header classComment equals: comment.
+	assert: builder header comment equals: comment.
 
 	klass:: builder install applyToObject reflectee.
 	mirror:: ClassMirror reflecting: klass.
-	assert: mirror mixin declaration header classComment equals: comment.
+	assert: mirror mixin declaration header comment equals: comment.
 
 	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
-	assert: builder header classComment equals: comment.
+	assert: builder header comment equals: comment.
 )
 public testClassHeaderDeclaration = (
 	|
@@ -569,72 +567,6 @@ public testClassHeaderName = (
 
 	builder:: ClassDeclarationBuilder fromSource: 'class Foo foo: x = ()()'.
 	assert: builder header name equals: 'Foo'.
-)
-public testClassHeaderPreamble = (
-	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)
-	|
-	preamble
-	headerSource
-	klass <Class>
-	builder <ClassDeclarationBuilder>
-	mirror <ClassMirror>
-	|
-
-	(* Everything explicit *)
-	preamble:: 'class Foo foo: x = Bar bar: x'.
-	headerSource:: preamble, ' ()'.
-
-	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
-	assert: builder header preamble equals: preamble.
-
-	klass:: builder install applyToObject reflectee.
-	mirror:: ClassMirror reflecting: klass.
-	assert: mirror mixin declaration header preamble equals: preamble.
-
-	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
-	assert: builder header preamble equals: preamble.
-
-	(* Default superclass factory *)
-	preamble:: 'class Foo foo: x = Bar'.
-	headerSource:: preamble, ' ()'.
-
-	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
-	assert: builder header preamble equals: preamble.
-
-	klass:: builder install applyToObject reflectee.
-	mirror:: ClassMirror reflecting: klass.
-	assert: mirror mixin declaration header preamble equals: preamble.
-
-	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
-	assert: builder header preamble equals: preamble.
-
-	(* Default superclass *)
-	preamble:: 'class Foo foo: x'.
-	headerSource:: preamble, ' = ()'.
-
-	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
-	assert: builder header preamble equals: preamble.
-
-	klass:: builder install applyToObject reflectee.
-	mirror:: ClassMirror reflecting: klass.
-	assert: mirror mixin declaration header preamble equals: preamble.
-
-	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
-	assert: builder header preamble equals: preamble.
-
-	(* Default factory *)
-	preamble:: 'class Foo'.
-	headerSource:: preamble, ' = ()'.
-
-	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
-	assert: builder header preamble equals: preamble.
-
-	klass:: builder install applyToObject reflectee.
-	mirror:: ClassMirror reflecting: klass.
-	assert: mirror mixin declaration header preamble equals: preamble.
-
-	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
-	assert: builder header preamble equals: preamble.
 )
 public testClassHeaderSource = (
 	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)
@@ -872,6 +804,31 @@ public testInstallAfterSyntaxErrorNestedClass = (
 	should: [builder instanceSide nestedClasses addFromSource: 'class Nested = (;;syntax error;;)()'] signal: syntaxError.
 	builder install.
 	assert: klass new Nested foo equals: 1. (* Unchanged. *)
+)
+public testMethodComment = (
+	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)
+	|
+	comment
+	methodSource
+	klass <Class>
+	builder <ClassDeclarationBuilder>
+	mirror <ClassMirror>
+	|
+
+	comment:: ' This is the (* nested *) comment. '.
+	methodSource:: '(*', comment, '*) private foo = (
+		^bar baz
+	)'.
+
+	builder:: ClassDeclarationBuilder fromSource: 'class C = ()(', methodSource, ')'.
+	assert: (in: builder instanceSide methods findMirrorNamed: #foo) comment equals: comment.
+
+	klass:: builder install applyToObject reflectee.
+	mirror:: ClassMirror reflecting: klass.
+	assert: (in: mirror mixin methods findMirrorNamed: #foo) comment equals: comment.
+
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	assert: (in: builder instanceSide methods findMirrorNamed: #foo) comment equals: comment.
 )
 public testMethodSource = (
 	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)

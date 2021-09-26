@@ -675,9 +675,9 @@ private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> 
 
 	intermediate classSide checkNameConflictsForFactory: newIntermediate factoryName.
 )
-public classComment ^<String> = (
+public comment ^<String> = (
 	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^commentFromHeader: source
+	^leadingComment: source
 )
 public declaration ^<ClassDeclarationBuilder> = (
 	^intermediate builder
@@ -686,7 +686,7 @@ public name ^<String> = (
 	^intermediate name
 )
 public name: newName <String> = (
-	| token newClassSource newIR |
+	| parser newClassSource newIR |
 
 	intermediate builder enclosingClass. (* For side effect. *)
 
@@ -700,11 +700,12 @@ public name: newName <String> = (
 			ifFalse: [^Error signal: 'A sibling already exists with the name ', newName]].
 
 	(* patch header source with the new name *)
-	token:: (parsing Parser for: source) advanceToken parseClassHeaderForName.
+	parser:: parsing Parser for: source.
+	parser advanceToken parseClassHeaderForName.
 	newClassSource::
-		(source copyFrom: 1 to: token start - 1) ,
+		(source copyFrom: 1 to: parser tokenStart - 1) ,
 		newName,
-		(source copyFrom: token end + 1 to: source size).
+		(source copyFrom: parser tokenEnd + 1 to: source size).
 
 	(* compile etc *)
 	newIR:: compiler
@@ -714,15 +715,10 @@ public name: newName <String> = (
 	intermediate name: newIR name.
 	intermediate headerSource: newIR headerSource.
 	intermediate factoryName: newIR factoryName.
-	intermediate comment: newIR comment.
 	intermediate accessor: newIR accessor.
 	intermediate factory: newIR factory.
 	intermediate initializers: newIR initializers.
 	intermediate instanceSide slots: newIR instanceSide slots.
-)
-public preamble ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^preambleFromHeader: source
 )
 public primaryFactorySelector ^<String> = (
 	^intermediate factoryName
@@ -743,7 +739,6 @@ public source: newHeader <String> = (
 
 	intermediate headerSource: newIR headerSource.
 	intermediate factoryName: newIR factoryName.
-	intermediate comment: newIR comment.
 	intermediate accessor: newIR accessor.
 	intermediate factory: newIR factory.
 	intermediate initializers: newIR initializers.
@@ -762,9 +757,9 @@ public = other ^<Boolean> = (
 	(mixin = (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfClassHeaderMirror
 )
-public classComment ^<String> = (
+public comment ^<String> = (
 	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^commentFromHeader: source
+	^leadingComment: source
 )
 public hash ^<Integer> = (
 	^mixin hash bitXor: class hash
@@ -789,10 +784,6 @@ private nestedClassAccessor ^<Method> = (
 	|
 	nil = enclosing ifTrue: [^nil].
 	^enclosing  _methods detect: [:method | method selector = name]
-)
-public preamble ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^preambleFromHeader: source
 )
 public primaryFactorySelector ^<String> = (
 	^mixin _primaryFactorySelector
@@ -1072,6 +1063,10 @@ public definingMixin = builder.
 public accessModifier = (
 	^intermediate accessModifier
 )
+public comment ^<String> = (
+	(* :todo: This is pretty sugary; does it belong in mirrors? *)
+	^leadingComment: source
+)
 public name = (
 	^intermediate selector
 )
@@ -1089,6 +1084,10 @@ public = other ^<Boolean> = (
 )
 public accessModifier ^<Symbol> = (
 	^method accessModifier
+)
+public comment ^<String> = (
+	(* :todo: This is pretty sugary; does it belong in mirrors? *)
+	^leadingComment: source
 )
 public definingMixin ^<MixinMirror> = (
 	^MixinMirror reflecting: method mixin
@@ -2340,7 +2339,6 @@ buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClass
 	i name: mixin _name.
 	i headerSource: mixin _headerSource.
 	i factoryName: mixin _primaryFactorySelector.
-	i comment: nil.
 	i enclosingClass: ec.
 	i existingMixin: mixin.
 	buildIntermediate: i instanceSide from: mixin within: i.
@@ -2350,10 +2348,6 @@ buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClass
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
 	panic.
-)
-private commentFromHeader: source <String> ^<String> = (
-	nil = source ifTrue: [^nil].
-	^(parsing Parser for: source) advanceToken parseClassHeader classComment value
 )
 private compiler = (
 	nil = compilerX ifTrue: [constructCompiler].
@@ -2436,6 +2430,10 @@ private isSubinitializerSelector: selector = (
 private isSyntheticSlotSelector: selector = (
 	^selector endsWith: '`slot'
 )
+private leadingComment: source <String> ^<String> = (
+	nil = source ifTrue: [^nil].
+	^(parsing Parser for: source) keepComment
+)
 private methodsOf: behavior = (
 	^self slotOf: behavior at: 2
 )
@@ -2452,12 +2450,6 @@ private panic = (
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
 	^parsingX
-)
-private preambleFromHeader: source <String> ^<String> = (
-	| headerAst |
-	nil = source ifTrue: [^nil].
-	headerAst:: (parsing Parser for: source) advanceToken parseClassHeader.
-	^source copyFrom: headerAst start to: headerAst classComment preambleEnd
 )
 private slotOf: object at: index = (
 	(* :literalmessage: primitive: 35 *)

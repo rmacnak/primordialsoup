@@ -186,7 +186,7 @@ public parseClassHeader = (
 		superclassClause opt, lparen, classComment opt,
 		slotDecls opt,  initExprs, rparen). *)
 
-	| declStart am name constructor superclassCall comment preambleEnd tempsBody inits declEnd |
+	| declStart am name constructor superclassCall tempsBody inits declEnd |
 	declStart:: extendedStart.
 	(* transition: accept optional language id and category *)
 	tokenKind = #identifier ifTrue:
@@ -201,23 +201,21 @@ public parseClassHeader = (
 
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
 	name:: tokenValue.
-	preambleEnd:: tokenEnd.
 	advanceToken.
 
 	(* Cheat: skipping binary message pattern. *)
 	(tokenKind = #identifier or: [tokenKind = #keyword])
-		ifTrue: [constructor:: parseMessagePattern. preambleEnd:: constructor end]
+		ifTrue: [constructor:: parseMessagePattern]
 		ifFalse: [constructor:: defaultConstructorPattern].
 
 	(tokenKind = #binary and: [tokenValue = '=']) ifFalse: [expected: '='].
 	advanceToken.
 
 	tokenKind = #identifier
-		ifTrue: [superclassCall:: parseSuperclassClause. preambleEnd:: superclassCall end]
+		ifTrue: [superclassCall:: parseSuperclassClause. superclassCall end]
 		ifFalse: [superclassCall:: defaultSuperclassClause].
 
 	tokenKind = #'(' ifFalse: [expected: '('].
-	comment:: keepComment.
 	advanceToken.
 
 	tempsBody:: parseTemporariesOpt.
@@ -237,7 +235,6 @@ public parseClassHeader = (
 		slots: tempsBody temporaries;
 		isSeq: tempsBody isSeq;
 		initExprs: inits;
-		classComment: ((Token value: comment) preambleEnd: preambleEnd);
 		inheritanceChain: {superclassCall};
 		accessModifier: am;
 		start: declStart; end: declEnd
@@ -259,9 +256,6 @@ public parseClassHeaderForName = (
 	advanceToken.
 
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
-	^(Token value: tokenValue)
-		start: tokenStart;
-		end: tokenEnd.
 )
 public parseClassSide = (
 	(* classSideDecl = colon, lparen, category star, rparen. *)
@@ -1160,7 +1154,7 @@ private isSpecialCharacter: byte = (
 	byte = 126 ifTrue: [^true]. (* ~ *)
 	^false
 )
-protected keepComment = (
+public keepComment = (
 	| commentStart |
 	skipWhitespace.
 	commentStart:: position.
@@ -1412,16 +1406,6 @@ private skipWhitespaceAndComments = (
 public tokenEnd = (
 	^position - 1
 )
-) : (
-)
-class Token value: v = (
-(* Only used for class comments, where the AST expects a CombinatorialParsing-style Token. *)
-|
-public value = v.
-public start
-public end
-public preambleEnd
-|) (
 ) : (
 )
 ) : (

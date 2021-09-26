@@ -2277,7 +2277,6 @@ private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration>
 	classDecl name: headerNode name.
 	classDecl headerSource: (sourceForNode: headerNode).
 	classDecl factoryName: headerNode constructor selector.
-	classDecl comment: (headerNode classComment isNil ifTrue: [''] ifFalse: [headerNode classComment]).
 
 	currentDepth:: currentDepth + 1.
 	within: classDecl instanceSide compileInstanceSide: node.

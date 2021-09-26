@@ -7,7 +7,6 @@ public class IntermediateClassDeclaration = (|
 public name
 public headerSource
 public factoryName
-public comment
 public instanceSide = IntermediateMixin for: self isMeta: false.
 public classSide = IntermediateMixin for: self isMeta: true.
 public enclosingClass <IntermediateMixin>
