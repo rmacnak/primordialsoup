@@ -834,6 +834,10 @@ public enclosingObject ^<ObjectMirror> = (
 public hash ^<Integer> = (
 	^(identityHashOf: reflectee) hash bitXor: class hash
 )
+(* Answer a collection of all objects that have the reflectee as their class. Note this means instances of subclasses of the reflectee are not included. The order of objects is undefined. The result may include objects that are otherwise unreachable because garbage collection has not completed since the last reference was erased. *)
+public instances ^<ObjectMirror[Array]> = (
+	^ObjectMirror reflecting: (allInstancesOf: reflectee)
+)
 public isKindOfClassMirror ^<Boolean> = (
 	^true
 )
@@ -891,6 +895,17 @@ public slots ^<Collection[SlotDeclarationMirror]> = (
 					accessModifier: accessModifier
 					mixin: self mixin)]]].
 	^MirrorGroup wrapping: result
+)
+(* Answer a collection of all classes that have the reflectee as their direct superclass. The order of classes is undefined. The result may include classes that are otherwise unreachable because garbage collection has not completed since the last reference was erased. *)
+public subclasses ^<Collection[ClassMirror]> = (
+	| result = List new. subclasses <WeakArray> |
+	isMeta ifTrue: [^result]. (* Newspeak does not have inheritance on the class side. *)
+	subclasses:: subclassesOf: reflectee.
+	nil = subclasses ifTrue: [^result].
+	subclasses do:
+		[:subclass | nil = subclass ifFalse:
+			[result add: (ClassMirror reflecting: subclass)]].
+	^result
 )
 public superclass ^<ClassMirror> = (
 	| s = superclassOf: reflectee. |
@@ -1176,6 +1191,18 @@ public = other ^<Boolean> = (
 	(mixin = (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfMixinMirror
 )
+(* Answer a collection of all classes that have the reflectee as their direct mixin. Note this does not include classes whose superclasses have the reflectee as their mixin. The order of classes is undefined. The result may include classes that are otherwise unreachable because garbage collection has not completed since the last reference was erased. *)
+public applications ^<Collection[ClassMirror]> = (
+	| result = List new. applications <WeakArray> |
+	applications:: (isMeta ifTrue: [mixin _instanceMixin] ifFalse: [mixin]) _applications.
+	nil = applications ifTrue: [^result].
+	applications do:
+		[:application | nil = application ifFalse:
+			[result add:
+				(ClassMirror reflecting:
+					(isMeta ifTrue: [classOf: application] ifFalse: [application]))]].
+	^result
+)
 public asBuilder ^<MixinBuilder> = (
 	^isMeta
 		ifTrue: [declaration asBuilder classSide]
@@ -1389,6 +1416,10 @@ public getSlot: name = (
 public hash ^<Integer> = (
 	^(identityHashOf: reflectee) bitXor: class hash
 )
+(* Answer the number of bytes used by the representation of the reflectee. Note that 0 is a possible answer in implementations that use either pointer tagging or NaN boxing. *)
+public heapSize ^<Integer> = (
+	^heapSizeOf: reflectee
+)
 private indexOfSlotNamed: name in: startCls = (
 	| cls slots |
 	cls:: startCls.
@@ -1402,6 +1433,9 @@ private indexOfSlotNamed: name in: startCls = (
 )
 public isKindOfObjectMirror ^<Boolean> = (
 	^true
+)
+public referringObjects ^<ObjectMirror[Array]> = (
+	^ObjectMirror reflecting: (allReferersOf: reflectee)
 )
 public setSlot: name to: value = (
 	(* :deprecated: This form cannot access shadowed slots. Use #slots instead. *)
@@ -2267,6 +2301,10 @@ private allInstancesOf: cls = (
 	(* :literalmessage: primitive: 96 *)
 	panic.
 )
+private allReferersOf: target = (
+	(* :literalmessage: primitive: 84 *)
+	panic.
+)
 private allocate: cls = (
 	(* :literalmessage: primitive: 34 *)
 	panic.
@@ -2395,6 +2433,10 @@ private enclosingObjectOf: behavior = (
 )
 private formatOf: behavior = (
 	^self slotOf: behavior at: 6
+)
+private heapSizeOf: object = (
+	(* :literalmessage: primitive: 88 *)
+	panic.
 )
 private identityHashOf: a = (
 	(* :literalmessage: primitive: 87 *)

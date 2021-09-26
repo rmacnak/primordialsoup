@@ -4,9 +4,10 @@ private ClassMirror = p mirrors ClassMirror.
 private ObjectMirror = p mirrors ObjectMirror.
 private MessageNotUnderstood = p kernel MessageNotUnderstood.
 private Map = p collections Map.
+private Set = p collections Set.
 private TestContext = m TestContext.
 |) (
-public class ClassDeclarationBuilderTests = TestContext () (
+public class ClassDeclarationBuilderTests = TestBase () (
 classFromSource: src <String> ^<Class> = (
 	^(ClassDeclarationBuilder fromSource: src) install applyToObject reflectee
 )
@@ -163,6 +164,40 @@ public testClassDeclAddSlot = (
 	assert: instance newSlot equals: 91.
 	instance newSlot: 101.
 	assert: instance newSlot equals: 101.
+)
+public testClassDeclApplications = (
+	(* Although access to applications and subclasses doesn't require builders, this is a builder test so we can create a fresh class and assert exactly the sets of application and subclasses.  Otherwise, there might be additional applications and subclasses from other test executions. *)
+	|
+	Outer
+	Class <ClassDeclarationMirror>
+	instance1
+	Super1 <ClassMirror>
+	Class1 <ClassMirror>
+	Sub1 <ClassMirror>
+	instance2
+	Super2 <ClassMirror>
+	Class2 <ClassMirror>
+	Sub2 <ClassMirror>
+	|
+	Outer:: classFromSource: 'class Outer = ()( public class Super = ()() public class Class = Super ()() public class Sub = Class ()() )'.
+	Class:: (ClassMirror reflecting: Outer) mixin nestedClasses findMirrorNamed: #Class.
+	assertSet: Class instanceSide applications equals: {}.
+
+	instance1:: Outer new.
+	Super1:: ClassMirror reflecting: instance1 Super.
+	Class1:: ClassMirror reflecting: instance1 Class.
+	Sub1:: ClassMirror reflecting: instance1 Sub.
+
+	instance2:: Outer new.
+	Super2:: ClassMirror reflecting: instance2 Super.
+	Class2:: ClassMirror reflecting: instance2 Class.
+	Sub2:: ClassMirror reflecting: instance2 Sub.
+
+	assertSet: Class instanceSide applications equals: {Class1. Class2}.
+	assert: Class1 superclass equals: Super1.
+	assert: Class2 superclass equals: Super2.
+	assertSet: Class1 subclasses equals: {Sub1}.
+	assertSet: Class2 subclasses equals: {Sub2}.
 )
 public testClassDeclCopyNested = (
 	(* The bug here seems to be the copy doesn't get its qualified name patched. *)
@@ -993,6 +1028,63 @@ public testSourceKeepsLeadingComments = (
 )
 ) : (
 TEST_CONTEXT = ()
+)
+public class HeapTests = TestBase () (
+public testHeapSize = (
+	(* The assertions here are not portable and specific to Primordial Soup. *)
+	| small large |
+	assert: (ObjectMirror reflecting: 0) heapSize equals: 0.
+	small:: (ObjectMirror reflecting: (Array new: 0)) heapSize.
+	assert: small > 0.
+	large:: (ObjectMirror reflecting: (Array new: 2)) heapSize.
+	assert: large > 0.
+	assert: large > small.
+)
+public testInstances = (
+	(* Although access to instances require builders, this is a builder test so we can create a fresh class and assert exactly the set instances. Otherwise, there might be additional instances from other test executions. *)
+	| Foo instance instances |
+	Foo:: (ClassDeclarationBuilder fromSource: 'class Foo = ()()') install applyToObject reflectee.
+	instance:: Foo new.
+	instances:: (ClassMirror reflecting: Foo) instances reflectee.
+	assertSet: instances equals: {instance}.
+)
+public testReferingObjects = (
+	| Foo referer referent referers foundReferer |
+	Foo:: (ClassDeclarationBuilder fromSource: 'class Foo = (| public x public y public z public w |)()') install applyToObject reflectee.
+	referent:: Object new.
+	referer:: Foo new.
+	referer x: nil.
+	referer y: referent.
+	referer z: 0.
+	referer w: referent.
+
+	referers:: (ObjectMirror reflecting: referent) referringObjects reflectee.
+	foundReferer:: false.
+	referers do: [:r | r = referent ifFalse: [foundReferer:: true]].
+	assert: foundReferer.
+)
+) : (
+TEST_CONTEXT = ()
+)
+class TestBase = TestContext () (
+assertSet: actual equals: expected = (
+	| missing extra missingString extraString |
+	missing:: Set new.
+	missing addAll: expected.
+	actual do: [:element | missing remove: element ifAbsent: []].
+	extra:: Set new.
+	extra addAll: actual.
+	expected do: [:element | extra remove: element ifAbsent: []].
+	(missing isEmpty and: [extra isEmpty]) ifTrue: [^self].
+
+	missingString: ''.
+	missing do: [:element | missingString: missingString, ' ', element printString].
+	extraString: ''.
+	extra do: [:element | extraString: extraString, ' ', element printString].
+
+	failWithMessage: 'Missing:', missingString, ' Extra:', extraString.
+)
+) : (
 )
 ) : (
 )

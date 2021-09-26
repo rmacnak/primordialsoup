@@ -115,9 +115,11 @@ const bool kFailure = false;
   V(79, ByteArray_replaceFromToWithStartingAt)                                 \
   V(80, Array_replaceFromToWithStartingAt)                                     \
   V(81, Array_copyFromTo)                                                      \
+  V(84, Object_referencesTo)                                                   \
   V(85, Object_class)                                                          \
   V(86, Object_identical)                                                      \
   V(87, Object_identityHash)                                                   \
+  V(88, Object_heapSize)                                                       \
   V(89, Object_performWithAll)                                                 \
   V(90, Closure_value0)                                                        \
   V(91, Closure_value1)                                                        \
@@ -2000,36 +2002,26 @@ DEFINE_PRIMITIVE(Activation_jump) {
 DEFINE_PRIMITIVE(Behavior_allInstances) {
   ASSERT(num_args == 1);
   Behavior cls = static_cast<Behavior>(I->Stack(0));
-  if (!cls->IsRegularObject()) {
-    UNREACHABLE();
-  }
-  if (cls->id() == nil) {
-    // Class not yet registered: no instance has been allocated.
-    Array result = H->AllocateArray(0);  // SAFEPOINT
-    RETURN(result);
-  }
-
-  ASSERT(cls->id()->IsSmallInteger());
-  intptr_t cid = cls->id()->value();
-  if (cid == kIllegalCid) {
-    UNREACHABLE();
-  }
-  intptr_t num_instances = H->CountInstances(cid);
-  if (cid == kArrayCid) {
-    num_instances++;
-  }
-  Array result = H->AllocateArray(num_instances);  // SAFEPOINT
-  result->set_size(SmallInteger::New(num_instances));
-  intptr_t num_instances2 = H->CollectInstances(cid, result);
-
-  ASSERT(num_instances == num_instances2);
-  // Note that if a GC happens there may be fewer instances than
-  // we initially counted. TODO(rmacnak): truncate result.
-  // OS::PrintErr("Found %" Pd " instances of %" Pd "\n", num_instances, cid);
-
+  Array result = H->InstancesOf(cls);  // SAFEPOINT
   RETURN(result);
 }
 
+DEFINE_PRIMITIVE(Object_referencesTo) {
+  ASSERT(num_args == 1);
+  Object target = I->Stack(0);
+  Array result = H->ReferencesTo(target);  // SAFEPOINT
+  RETURN(result);
+}
+
+DEFINE_PRIMITIVE(Object_heapSize) {
+  ASSERT(num_args == 1);
+  Object target = I->Stack(0);
+  intptr_t heap_size = 0;
+  if (target->IsHeapObject()) {
+    heap_size = static_cast<HeapObject>(target)->HeapSize();
+  }
+  RETURN_SMI(heap_size);
+}
 
 DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
   ASSERT(num_args == 2);

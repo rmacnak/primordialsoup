@@ -284,8 +284,8 @@ class Heap {
 
   void CollectAll(Reason reason) { MarkSweep(reason); }
 
-  intptr_t CountInstances(intptr_t cid);
-  intptr_t CollectInstances(intptr_t cid, Array array);
+  Array InstancesOf(Behavior cls);
+  Array ReferencesTo(Object target);
 
   bool BecomeForward(Array old, Array neu);
 

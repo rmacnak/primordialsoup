@@ -219,6 +219,7 @@ class HeapObject : public Object {
   inline bool is_canonical() const;
   inline void set_is_canonical(bool value);
   inline intptr_t heap_size() const;
+  inline void set_heap_size(intptr_t value);
   inline intptr_t cid() const;
   inline void set_cid(intptr_t value);
   inline intptr_t header_hash() const;
@@ -907,6 +908,13 @@ void HeapObject::set_is_canonical(bool value) {
 }
 intptr_t HeapObject::heap_size() const {
   return SizeField::decode(ptr()->header_) << kObjectAlignmentLog2;
+}
+void HeapObject::set_heap_size(intptr_t value) {
+  value >>= kObjectAlignmentLog2;
+  if (!SizeField::is_valid(value)) {
+    value = 0;
+  }
+  ptr()->header_ = SizeField::update(value, ptr()->header_);
 }
 intptr_t HeapObject::cid() const {
   return ClassIdField::decode(ptr()->header_);

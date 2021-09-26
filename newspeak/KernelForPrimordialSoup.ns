@@ -112,7 +112,8 @@ public printString ^<String> = (
 		[result:: result, '(', methodMixin _name, ')'].
 	result:: result, ' ', method selector.
 	#doesNotUnderstand: = method selector ifTrue:
-		[result:: result, ' #', (tempAt: 1) selector].
+		[self size > 0 ifTrue:
+			[result:: result, ' #', (tempAt: 1) selector]].
 	^result
 )
 public push: value = (

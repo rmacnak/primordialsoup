@@ -1300,52 +1300,180 @@ void Heap::InitializeAfterSnapshot() {
   SetOldAllocationLimit();
 }
 
-intptr_t Heap::CountInstances(intptr_t cid) {
-  intptr_t instances = 0;
-  uword scan = to_.object_start();
-  while (scan < top_) {
-    HeapObject obj = HeapObject::FromAddr(scan);
-    if (obj->cid() == cid) {
-      instances++;
+static void Truncate(Array array, intptr_t new_size) {
+  ASSERT(new_size >= 0);
+  ASSERT(new_size <= array->Size());
+
+  intptr_t old_heap_size = AllocationSize(array->Size() * sizeof(Object) +
+                                          sizeof(Array::Layout));
+  intptr_t new_heap_size = AllocationSize(new_size * sizeof(Object) +
+                                          sizeof(Array::Layout));
+
+  ASSERT(array->HeapSize() == old_heap_size);
+  ASSERT(array->HeapSizeFromClass() == old_heap_size);
+  array->set_size(SmallInteger::New(new_size));
+  array->set_heap_size(new_heap_size);
+  ASSERT(array->HeapSize() == new_heap_size);
+  ASSERT(array->HeapSizeFromClass() == new_heap_size);
+
+  intptr_t free_size = old_heap_size - new_heap_size;
+  if (free_size != 0) {
+    uword free_start = array->Addr() + new_heap_size;
+    HeapObject object =
+        HeapObject::Initialize(free_start, kFreeListElementCid, free_size);
+    FreeListElement element = static_cast<FreeListElement>(object);
+    if (element->heap_size() == 0) {
+      ASSERT(free_size > kObjectAlignment);
+      element->set_overflow_size(free_size);
     }
-    scan += obj->HeapSize();
+    ASSERT(object->HeapSize() == free_size);
+    ASSERT(element->HeapSize() == free_size);
   }
-  for (Region* region = regions_; region != nullptr; region = region->next()) {
-    uword scan = region->object_start();
-    while (scan < region->object_end()) {
-      HeapObject obj = HeapObject::FromAddr(scan);
-      if (obj->cid() == cid) {
-        instances++;
-      }
-      scan += obj->HeapSize();
-    }
-  }
-  return instances;
 }
 
-intptr_t Heap::CollectInstances(intptr_t cid, Array array) {
-  intptr_t instances = 0;
-  uword scan = to_.object_start();
-  while (scan < top_) {
+static intptr_t CountInstancesOf(intptr_t count,
+                                 intptr_t cid,
+                                 uword start,
+                                 uword end) {
+  uword scan = start;
+  while (scan < end) {
     HeapObject obj = HeapObject::FromAddr(scan);
     if (obj->cid() == cid) {
-      array->set_element(instances, obj);
-      instances++;
+      count++;
     }
     scan += obj->HeapSize();
   }
-  for (Region* region = regions_; region != nullptr; region = region->next()) {
-    uword scan = region->object_start();
-    while (scan < region->object_end()) {
-      HeapObject obj = HeapObject::FromAddr(scan);
-      if (obj->cid() == cid) {
-        array->set_element(instances, obj);
-        instances++;
-      }
-      scan += obj->HeapSize();
+  return count;
+}
+
+static intptr_t CollectInstancesOf(intptr_t cursor,
+                                   Array result,
+                                   intptr_t cid,
+                                   uword start,
+                                   uword end) {
+  uword scan = start;
+  while (scan < end) {
+    HeapObject obj = HeapObject::FromAddr(scan);
+    if (obj->cid() == cid) {
+      result->set_element(cursor++, obj);
     }
+    scan += obj->HeapSize();
   }
-  return instances;
+  return cursor;
+}
+
+Array Heap::InstancesOf(Behavior cls) {
+  if (cls->id() == interpreter_->nil_obj()) {
+    // Class not yet registered: no instance has been allocated.
+    return AllocateArray(0);  // SAFEPOINT.
+  }
+  ASSERT(cls->id()->IsSmallInteger());
+  intptr_t cid = cls->id()->value();
+
+  intptr_t count = CountInstancesOf(0, cid,
+                                    to_.object_start(), top_);
+  for (Region* region = regions_; region != nullptr; region = region->next()) {
+    count = CountInstancesOf(count, cid,
+                             region->object_start(), region->object_end());
+  }
+
+  if (cid == kArrayCid) {
+    count++;
+  }
+  if (TEST_SLOW_PATH) {
+    count++;  // Ensure truncation is needed.
+  }
+  Array result = AllocateArray(count);  // SAFEPOINT
+
+  intptr_t cursor = CollectInstancesOf(0, result, cid,
+                                       to_.object_start(), top_);
+  for (Region* region = regions_; region != nullptr; region = region->next()) {
+    cursor = CollectInstancesOf(cursor, result, cid,
+                                region->object_start(), region->object_end());
+  }
+
+  // There may be fewer instances than we initially counted if allocating the
+  // result array triggered a GC.
+  Truncate(result, cursor);
+  return result;
+}
+
+static intptr_t CountReferencesTo(intptr_t count,
+                                  Object target,
+                                  uword start,
+                                  uword end) {
+  uword scan = start;
+  while (scan < end) {
+    HeapObject obj = HeapObject::FromAddr(scan);
+    if (obj->cid() >= kFirstLegalCid) {
+      Object* from;
+      Object* to;
+      obj->Pointers(&from, &to);
+      for (Object* ptr = from; ptr <= to; ptr++) {
+        if (*ptr == target) {
+          count++;
+          break;
+        }
+      }
+    }
+    scan += obj->HeapSize();
+  }
+  return count;
+}
+
+static intptr_t CollectReferencesTo(intptr_t cursor,
+                                    Array result,
+                                    Object target,
+                                    uword start,
+                                    uword end) {
+  uword scan = start;
+  while (scan < end) {
+    HeapObject obj = HeapObject::FromAddr(scan);
+    if (obj->cid() >= kFirstLegalCid) {
+      Object* from;
+      Object* to;
+      obj->Pointers(&from, &to);
+      for (Object* ptr = from; ptr <= to; ptr++) {
+        if (*ptr == target) {
+          result->set_element(cursor++, obj);
+          break;
+        }
+      }
+    }
+    scan += obj->HeapSize();
+  }
+  return cursor;
+}
+
+Array Heap::ReferencesTo(Object target) {
+  // TODO(rmacnak): Consider reifying activations in case they refer to target.
+  intptr_t count = CountReferencesTo(0, target,
+                                     to_.object_start(), top_);
+  for (Region* region = regions_; region != nullptr; region = region->next()) {
+    count = CountReferencesTo(count, target,
+                              region->object_start(), region->object_end());
+  }
+
+  if (TEST_SLOW_PATH) {
+    count++;  // Ensure truncation is needed.
+  }
+  Array result;
+  {
+    HandleScope h1(this, &target);
+    result = AllocateArray(count);  // SAFEPOINT
+  }
+
+  intptr_t cursor = CollectReferencesTo(0, result, target,
+                                        to_.object_start(), top_);
+  for (Region* region = regions_; region != nullptr; region = region->next()) {
+    cursor = CollectReferencesTo(cursor, result, target,
+                                 region->object_start(), region->object_end());
+  }
+
+  // There may be fewer instances than we initially counted if allocating the
+  // result array triggered a GC.
+  Truncate(result, cursor);
+  return result;
 }
 
 uword FreeList::TryAllocate(intptr_t size) {
