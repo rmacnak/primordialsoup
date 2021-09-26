@@ -1,4 +1,3 @@
-class NewspeakCompilation usingPlatform: p asts: asts = (
 (* Facilities common to each of the Newspeak compilers, such as scopes and the scope builder. A common Rewriter should eventually be located here as well.
 
 It is intended that module definitions for each compilation target will be mixed-in to this module definition, and so inherit the facilities provided here. Until general mixin application is supported, the target-specific modules must use the same cheat used by BlocklessCombinatorialParsing of declaring a superclass clause matching the factory of the class it will be later mixed-in to.
@@ -12,6 +11,7 @@ Copyright 2011 Matthias Kleine, Ryan Macnak and Cadence Design Systems
 Copyright 2013 Ryan Macnak
 
 Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 *)
+class NewspeakCompilation usingPlatform: p asts: asts = (
 |
 	private Map = p collections Map.
 	private List = p collections List.
@@ -41,7 +41,6 @@ public name = (
 ) : (
 )
 class Compiler = () (
-class Rewriter = ASTTool (
 (* A common rewriter for the Newspeak compilers targeting Squeak and JavaScript.
 
  - Resolves sends to self, super, outer, implicit receiver and ordinary sends, as well as local variable reads and writes.
@@ -51,6 +50,7 @@ class Rewriter = ASTTool (
  - Adds local slot initializers to statement lists.
  - Adds temporaries to turn setter sends into regular implicit receiver sends.
  - Rewrites well-known control messages with closure literal arguments to branches and loops. *)
+class Rewriter = ASTTool (
 |
 	currentScope <Scope>
 	valueExpected <Boolean>
@@ -88,8 +88,8 @@ public if: cond <ExpressionAST> is: val <Boolean> then: t <BlockAST> forValue: f
 	^self if: cond is: val then: t else: (forValue ifTrue: [emptyBody])
 )
 )
-class EnclosingObjectAST = AST (
 (* See mailing list for debate over 'outer Foo' as an expression. *)
+class EnclosingObjectAST = AST (
 |
 	public depth <Integer>
 |) (
@@ -136,12 +136,12 @@ public name = (
 )
 ) : (
 )
-public class LoopAST = AST (
 (* This node represents a while loop. The general form of the loop is:
 
 prologue; while (cond = whileTrue) { body}
 
 *)
+public class LoopAST = AST (
 |
 	public prologue <CodeBodyAST>
 	public condition <CodeBodyAST>
@@ -1000,8 +1000,8 @@ public compileTransientSlotSource: src <String> within: enclosingIR <Intermediat
 )
 ) : (
 )
-class LocalEntry forDeclaration: decl <VarDeclAST> atDepth: d <Integer> = SymbolTableEntry forAST: decl atDepth: d (
 (* Semantic info for a parameter or temporary. *)
+class LocalEntry forDeclaration: decl <VarDeclAST> atDepth: d <Integer> = SymbolTableEntry forAST: decl atDepth: d (
 |
 (* public offset <Integer>
 public remote <Boolean> ::= false.
@@ -1102,8 +1102,8 @@ public name = (
 )
 ) : (
 )
-class SymbolTableEntry forAST: tree atDepth: d = (
 (* An entry in a scope. *)
+class SymbolTableEntry forAST: tree atDepth: d = (
 |
 public ast <AST> = tree.
 public depth <Integer> = d.

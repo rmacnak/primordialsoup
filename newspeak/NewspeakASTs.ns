@@ -1,4 +1,3 @@
-class NewspeakASTs usingPlatform: platform = (
 (* Abstract syntax tree node classes for Newspeak.
 
 Issues:
@@ -10,11 +9,12 @@ Copyright 2008 Cadence Design Systems, Inc.
 Copyright 2010 Felix Geller and Ryan Macnak
 
 Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License.  You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0 *)
+class NewspeakASTs usingPlatform: platform = (
 |
 	private List = platform collections List.
 |) (
-public class AST = (
 (* An abstract syntax tree. An AST knows where in the source code the corresponding construct is. The slots start and end are indices into the source code marking that position. *)
+public class AST = (
 |
 public start <Integer> ::= 0. (* Note that 0 is out-of-bounds in a Newspeak string. *)
 public end <Integer> ::= 0.
@@ -236,13 +236,13 @@ public superCall ^ <SendAST> = (
 )
 ) : (
 )
+(* A class prefix defines everything about a class except for its mixin.
+It is intended to serve as a common component between ordinary class declarations and mixin applications. *)
 public class ClassPrefixAST name: n
 	constructor: k
 	superclassName: sn
 	superclassCall: scc
 	superConstructorCall: sk = AST (
-(* A class prefix defines everything about a class except for its mixin.
-It is intended to serve as a common component between ordinary class declarations and mixin applications. *)
 |
 	public name <Symbol> = n.
 	public constructor <MessagePatternAST> = k.
@@ -280,8 +280,8 @@ public isMutable ^<Boolean> = (
 )
 ) : (
 )
-public class InitializerAST slots: s initializerExpressions: es comment: c slotsAreSequential: seq = AST (
 (* AST for an instance initializer clause. *)
+public class InitializerAST slots: s initializerExpressions: es comment: c slotsAreSequential: seq = AST (
 |
 	public slots = s.
 	public initializationExpressions <List[ExpressionAST]> = es.
@@ -357,8 +357,8 @@ public selector ^<Symbol> = (
 )
 ) : (
 )
-public class MixinApplicationClassAST named: klassName factoryMsg: cons inheriting: iList = AST (
 (* This class represents a class defined via a mixin application - that is, a class that does not provide a class body. *)
+public class MixinApplicationClassAST named: klassName factoryMsg: cons inheriting: iList = AST (
 |
 	public accessModifier <Symbol>
 	public name <Symbol> = klassName asSymbol.
@@ -413,8 +413,8 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 ) : (
 )
-public class SideAST = AST (
 (* An AST for one side of a class *)
+public class SideAST = AST (
 |
 	public nestedClasses <Collection[ClassDeclarationAST]>
 	public methods <Collection[MethodAST]>

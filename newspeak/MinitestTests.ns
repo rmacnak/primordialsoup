@@ -1,5 +1,5 @@
-class MinitestTests usingPlatform: platform testFramework: minitest = (
 (* Tests of the Minitest framework (that is, meta-tests). *)
+class MinitestTests usingPlatform: platform testFramework: minitest = (
 |
 	private Exception = platform kernel Exception.
 	private testFramework = minitest.
@@ -58,8 +58,8 @@ public testAssertPassExpression = (
 TEST_CONTEXT = (
 )
 )
-public class DenyTestContext = TestContext (
 (* Trial tests to verify that the various #deny... messages work correctly. *)
+public class DenyTestContext = TestContext (
 ) (
 public testDenyErrorBlock = (
 	deny: [3 zork]
@@ -86,14 +86,14 @@ public testDenyPassExpression = (
 TEST_CONTEXT = (
 )
 )
-public class ResultCreationTestContext = TestContext (
 (* This helps test to see if TestContext was deferred to for the creation of the TestFailure and TestError result. *)
+public class ResultCreationTestContext = TestContext (
 |
 	private TestFailure = testFramework TestFailure.
 	private TestError = testFramework TestError.
 |) (
-class CustomTestSuccess case: testCase = (
 (* A custom TestSuccess *)
+class CustomTestSuccess case: testCase = (
 |
 	public case ::= testCase.
 	public message = 'all good here'.
@@ -264,16 +264,16 @@ public testShouldShouldnt = (
 TEST_CONTEXT = (
 )
 )
-public class TestLifecycleTests = TestContext (
 (* Tests to verify that test cases are collected and grouped into test suites correctly across test contexts, and that test contexts and their enclosing shared state classes are instantiated the correct number of times. *)
+public class TestLifecycleTests = TestContext (
 |
 	guineaPig = GuineaPigTestModule minitest: testFramework.
 	catalog = TestCatalog forModule: guineaPig.
 |) (
-public class GuineaPigTestModule minitest: testFramework = (
 (* A fake test module for the use by tests of the enclosing class.
 
 Because this module is nested inside a test context, the test contexts and methods it contains are not included in the test catalog created for the enclosing test module. *)
+public class GuineaPigTestModule minitest: testFramework = (
 |
 	private TestContext = testFramework TestContext.
 	public DirectlyNestedTestContextInstantiationCount ::= 0.
@@ -283,12 +283,12 @@ Because this module is nested inside a test context, the test contexts and metho
 	public OuterSharedStateCleanedUp ::= false.
 	public InnerSharedStateCleanedUp ::= false.
 |) (
-public class DirectlyNestedTestContext = TestContext (
 (* A test context class directly nested inside its test module. The tests expect this class to have 3 test methods. *)
+public class DirectlyNestedTestContext = TestContext (
 |
 |DirectlyNestedTestContextInstantiationCount: DirectlyNestedTestContextInstantiationCount + 1) (
-public class DoublyNestedTestContextWhichShouldBeIgnored = TestContext (
 (* A test context inside a test context, should be ignored by the catalog building logic. *)
+public class DoublyNestedTestContextWhichShouldBeIgnored = TestContext (
 ) (
 public testCase1 = (
 )
@@ -309,18 +309,18 @@ testFoo: bar = (
 TEST_CONTEXT = (
 )
 )
-public class OuterSharedStateClass = (
 (* A non-test context class that serves as a container of shared state for its nested test contexts. *)
+public class OuterSharedStateClass = (
 |
 	outerSharedState = 42.
 |OuterSharedStateClassInstantiationCount: OuterSharedStateClassInstantiationCount + 1) (
-public class InnerSharedStateClass = (
 (* Another non-test context class. *)
+public class InnerSharedStateClass = (
 |
 	innerSharedState = 24.
 |InnerSharedStateClassInstantiationCount: InnerSharedStateClassInstantiationCount + 1) (
-public class InnerTestContext = TestContext (
 (* A test context class nested in some shared state classes. The tests expect this class to have 2 test methods. *)
+public class InnerTestContext = TestContext (
 |
 |InnerTestContextInstantiationCount: InnerTestContextInstantiationCount + 1) (
 public testCase1 = (

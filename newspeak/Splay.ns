@@ -1,8 +1,8 @@
-class Splay usingPlatform: p = (
 (*This benchmark is based on a JavaScript log processing module used by the V8 profiler to generate execution time profiles for runs of JavaScript applications, and it effectively measures how fast the JavaScript engine is at allocating nodes and reclaiming the memory used for old nodes. Because of the way splay trees work, the engine also has to deal with a lot of changes to the large tree object graph.
 
 Copyright (c) 2012 Google Inc.
 Copyright (c) 2011, the Dart project authors.  Please see the AUTHORS file for details. All rights reserved. Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.*)
+class Splay usingPlatform: p = (
 |
 List = p collections List.
 
@@ -26,8 +26,8 @@ public value = v.
 public left
 public right
 |) (
+(*Performs an ordered traversal of the subtree starting here.*)
 public traverse: f <[:Node]> = (
-	(*Performs an ordered traversal of the subtree starting here.*)
 	| current ::= self. |
 	[nil = current] whileFalse:
 		[ | left = current left. |
@@ -49,20 +49,20 @@ public generate: depth with: tag = (
 		right: (generate: depth - 1 with: tag)
 )
 )
-class SplayTree = (
 (*A splay tree is a self-balancing binary search tree with the additional property that recently accessed elements are quick to access again. It performs basic operations such as insertion, look-up and removal in O(log(n)) amortized time.*)
+class SplayTree = (
 |
 root <Node>
 |) (
+(*Returns the node having the specified [key] or null if the tree doesn't contain a node with the specified [key].*)
 public at: key <Number> ^<Node> = (
-	(*Returns the node having the specified [key] or null if the tree doesn't contain a node with the specified [key].*)
 
 	isEmpty ifTrue: [^nil].
 	splay: key.
 	^root key = key ifTrue: [root] ifFalse: [nil]
 )
+(*Inserts a node into the tree with the specified [key] and value if the tree does not already contain a node with the specified key. If the value is inserted, it becomes the root of the tree.*)
 public at: key <Number> put: value = (
-	(*Inserts a node into the tree with the specified [key] and value if the tree does not already contain a node with the specified key. If the value is inserted, it becomes the root of the tree.*)
 	| node |
 
 	isEmpty ifTrue: [root:: Node key: key value: value. ^self].
@@ -83,14 +83,14 @@ public at: key <Number> put: value = (
 			root left: nil].
 	root:: node.
 )
+(* Returns a list with all the keys of the tree. *)
 public exportKeys ^<List[Number]> = (
-	(* Returns a list with all the keys of the tree. *)
 	| result = List new. |
 	isEmpty ifFalse: [root traverse: [:node | result add: node key]].
 	^result
 )
+(*Returns the Node having the maximum key value that is less than the specified [key].*)
 public findGreatestLessThan: key <Number> ^<Node> = (
-	(*Returns the Node having the maximum key value that is less than the specified [key].*)
 	isEmpty ifTrue: [^nil].
 
 	(*Splay on the key to move the node with the given key or the last node on the search path to the top of the tree.*)
@@ -113,8 +113,8 @@ findMax: start <Node> ^<Node> = (
 isEmpty = (
 	^nil = root
 )
+(*Removes a node with the specified key from the tree if the tree contains a node with this key. The removed node is returned. If [key] is not found, an exception is thrown.*)
 public removeKey: key <Number> ^<Node> = (
-	(*Removes a node with the specified key from the tree if the tree contains a node with this key. The removed node is returned. If [key] is not found, an exception is thrown.*)
 	| removed |
 
 	isEmpty ifTrue: [error: 'Key not found: ', key printString].
@@ -133,8 +133,8 @@ public removeKey: key <Number> ^<Node> = (
 			root right: right].
 	^removed
 )
+(*Perform the splay operation for the given key. Moves the node with the given key to the top of the tree.  If no node has the given key, the last node on the search path is moved to the top of the tree. This is the simplified top-down splaying algorithm from: ''Self-adjusting Binary Search Trees'' by Sleator and Tarjan*)
 splay: key <Number> = (
-	(*Perform the splay operation for the given key. Moves the node with the given key to the top of the tree.  If no node has the given key, the last node on the search path is moved to the top of the tree. This is the simplified top-down splaying algorithm from: ''Self-adjusting Binary Search Trees'' by Sleator and Tarjan*)
 	| dummy left right current break |
 
 	isEmpty ifTrue: [^self].
@@ -188,8 +188,8 @@ splay: key <Number> = (
 public bench = (
 	exercise.
 )
+(*Replace a few nodes in the splay tree.*)
 exercise = (
-	(*Replace a few nodes in the splay tree.*)
 	kTreeModifications timesRepeat:
 		[ | key greatest |
 		key:: insertNewNode.
@@ -210,8 +210,8 @@ mysetup = (
 	tree: SplayTree new.
 	kTreeSize timesRepeat: [insertNewNode].
 )
+(*Robert Jenkins' 32 bit integer hash function.*)
 nextRandom = (
-	(*Robert Jenkins' 32 bit integer hash function.*)
 	seed:: ((seed + 16r7ED55D16) + (seed << 12)) bitAnd: 16rFFFFFFFF.
 	seed:: ((seed bitXor: 16rC761C23C) bitXor: (seed >> 19)) bitAnd: 16rFFFFFFFF.
 	seed:: ((seed + 16r165667B1) + (seed << 5)) bitAnd: 16rFFFFFFFF.

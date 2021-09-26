@@ -1,4 +1,3 @@
-class ParserCombinators usingPlatform: p = (
 (* This benchmark parses and evaluates a fixed string using a simple arithmetic
 expresssion grammar built from parser combinators. It is an example of a
 program that is natural to write in an exception-oriented style, or with
@@ -22,6 +21,7 @@ Copyright 2013 Ryan Macnak and Google Inc.
 Licensed under the Apache License, Version 2.0 (the "License"); you may not
 use this file except in compliance with the License. You may obtain a copy of
 the License at http://www.apache.org/licenses/LICENSE-2.0 *)
+class ParserCombinators usingPlatform: p = (
 |
 private List = p collections List.
 

@@ -1,20 +1,22 @@
+(* Lists, maps and sets. *)
 class Collections usingInternalKernel: ik = (
 	|
 	public Collection = ik Collection.
 	private ArgumentError = ik ArgumentError.
 	|
 ) (
-public class List new: capacity <Integer> = Collection (
 (* An ordered collection of elements.
 
 Indexing (#at: and #at:put:) happens in constant time. Insertion (#add:, #addLast) and removal (#removeLast:) at the end run in amortized constant time. Insertion (#addFirst:) and removal (#removeFirst) at the beginning run in linear time. As such, List can be used as an efficient stack, but an inefficient queue.
 
 nil is a valid element. *)
+public class List new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
 	protected data ::= Array new: capacity.
 	|
 ) (
+(* Concatenation. *)
 public , other = (
 	| result = List new: (self size + other size bitOr: 3). |
 	self do: [:element | result addLast: element].
@@ -153,7 +155,6 @@ public withAll: collection <Collection[E]> ^<List[E]> = (
 	^(self new: collection size) addAll: collection; yourself
 )
 )
-public class Map new: capacity <Integer> = Collection (
 (* A collection associating keys to values.
 
 Lookup (#at:) runs in constant time, and insertion (#at:put:) and removal (#removeKey:) run in amortized constant time, provided the #hash of keys is well distributed.
@@ -161,6 +162,7 @@ Lookup (#at:) runs in constant time, and insertion (#at:put:) and removal (#remo
 The order of iteration of keys is unspecified except for the following constraints. The iteration order only changes when the map is modified (insertion or removal). The iteration order of values and associations is consistent with the iteration order of keys.
 
 nil is a valid key and a valid value. *)
+public class Map new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
 	protected table ::= Array new: (capacityFor: capacity).
@@ -341,10 +343,10 @@ public printString = (
 )
 ) : (
 )
-public class OrderedMap new: capacity <Integer> = (
 (* Like Map, but iteration happens in insertion order.
 
 If the value associated with a key changes while the key is already in the map, the key's order does not change. Removing a key and adding it back will change the key's order to last. *)
+public class OrderedMap new: capacity <Integer> = (
 	|
 	protected nextKeyIndex_ <Integer>
 	protected deleted_ <Integer>
@@ -560,10 +562,10 @@ public new ^<OrderedMap[K, V]> = (
 	^self new: 3
 )
 )
-public class OrderedSet new: capacity <Integer> = Collection (
 (* Like Set, but iteration happens in insertion order.
 
 If element is added while the element is already in the set, the element's order does not change. Removing an element and adding it back will change the element's order to last. *)
+public class OrderedSet new: capacity <Integer> = Collection (
 	|
 	protected nextKeyIndex_ <Integer>
 	protected deleted_ <Integer>
@@ -731,14 +733,14 @@ public withAll: collection <Collection[E]> ^<OrderedSet[E]> = (
 	^(self new: collection size) addAll: collection; yourself
 )
 )
-public class Set new: capacity <Integer> = Collection (
-(* A collection elements without duplicates.
+(* A collection of elements without duplicates.
 
 Lookup (#includes:) runs in constant time, and insertion (#add:) and removal (#remove:) run in amortized constant time, provided the #hash of elements is well distributed.
 
 The order of iteration of elements is unspecified except the iteration order only changes when the set is modified (insertion or removal).
 
 nil is a valid element. *)
+public class Set new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
 	protected table ::= Array new: (capacityFor: capacity).
@@ -874,12 +876,6 @@ public new ^<Set[E]> = (
 public withAll: collection <Collection[E]> ^<Set[E]> = (
 	^(self new: collection size) addAll: collection; yourself
 )
-)
-public IdentityMap = (
-	^Map
-)
-public IdentitySet = (
-	^Set
 )
 ) : (
 )

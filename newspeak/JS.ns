@@ -1,11 +1,16 @@
+(* The foreign function interface for accessing JavaScript. *)
 class JS usingPlatform: platform internalKernel: ik = (
 	|
 	public undefined = Alien withIndex: 0.
+	(* The top-level binding of `this`; in a web browser, this is the window object. *)
 	public global = Alien withIndex: 4.
 	private nextExpatIndex ::= 1.
 	private messageLoop = ik messageLoop.
 	|
 ) (
+(* An Alien is a Newspeak proxy for a JavaScript object. Upon receiving a message, an Alien expatriates the arguments, sends the message to the target JavaScript object, and alienates the result.
+
+An Expat is a JavaScript proxy for a Newspeak object. Upon receiving a message, an Expat alienates the arguments, sends the message to the target Newspeak object, and expatriates the result. *)
 class Alien withIndex: i = (
 	|
 	public index <Integer> = i.
@@ -16,15 +21,15 @@ private asJSSelector: nsSelector <String> ^<String> = (
 	0 = position ifTrue: [^nsSelector].
 	^nsSelector copyFrom: 1 to: position - 1
 )
+(* JavaScript: this[key] *)
 public at: key = (
-	(* JavaScript: this[key] *)
 	rawPushAlien: self index.
 	rawPush: key.
 	rawPerformGet.
 	^rawPop
 )
+(* JavaScript: this[key] = value *)
 public at: key put: value = (
-	(* JavaScript: this[key] = value *)
 	rawPushAlien: self index.
 	rawPush: key.
 	rawPush: value.
@@ -41,15 +46,15 @@ protected doesNotUnderstand: message = (
 		ifTrue: [self newWithArguments: message arguments]
 		ifFalse: [self perform: jsSelector withArguments: message arguments]
 )
+(* JavaScript: key in this *)
 public includesKey: key ^<Boolean> = (
-	(* JavaScript: key in this *)
 	rawPushAlien: self index.
 	rawPush: key.
 	rawPerformHas.
 	^rawPop
 )
+(* JavaScript: this instanceof constructor *)
 public instanceOf: constructor ^<Boolean> = (
-	(* JavaScript: this instanceof constructor *)
 	rawPushAlien: self index.
 	rawPush: constructor.
 	rawPerformInstanceOf.
@@ -64,16 +69,16 @@ public isKindOfJSAlien ^<Boolean> = (
 public isUndefined ^<Boolean> = (
 	^0 = index
 )
+(* JavaScript: new this(arguments[0], ..., arguments[n-1]) *)
 public newWithArguments: arguments <Array> = (
-	(* JavaScript: new this(arguments[0], ..., arguments[n-1]) *)
 	rawPushAlien: self index.
 	1 to: arguments size do:
 		[:argumentIndex | rawPush: (arguments at: argumentIndex)].
 	rawPerformNew: arguments size.
 	^rawPop
 )
+(* JavaScript: this.selector(arguments[0], ..., arguments[n-1]) *)
 public perform: selector <String> withArguments: arguments <Array> = (
-	(* JavaScript: this.selector(arguments[0], ..., arguments[n-1]) *)
 	rawPushAlien: self index.
 	rawPush: selector.
 	1 to: arguments size do:
@@ -147,8 +152,8 @@ private rawPushExpat: expatIndex = (
 	(* :literalmessage: primitive: 156 *)
 	panic
 )
+(* JavaScript: delete this[key] *)
 public removeKey: key = (
-	(* JavaScript: delete this[key] *)
 	rawPushAlien: self index.
 	rawPush: key.
 	rawPerformDelete.

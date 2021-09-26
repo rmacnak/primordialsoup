@@ -1,9 +1,3 @@
-class Newspeak2PrimordialSoupCompilation usingPlatform: platform
- asts: asts
- parsing: parsing
- intermediates: i = NewspeakCompilation
- usingPlatform: platform
- asts: asts (
 (* The Newspeak compilation module for PrimordialSoup. For a detailed overview of compilation, see Compiler.
 
 Relation to parsing:
@@ -20,6 +14,12 @@ Copyright 2011 Matthias Kleine, Ryan Macnak and Cadence Design Systems
 Copyright 2012-2013 Gilad Bracha, Ryan Macnak and Cadence Design Systems
 
    Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License.  You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0 *)
+class Newspeak2PrimordialSoupCompilation usingPlatform: platform
+ asts: asts
+ parsing: parsing
+ intermediates: i = NewspeakCompilation
+ usingPlatform: platform
+ asts: asts (
 |
 	private Map = platform collections Map.
 	private List = platform collections List.
@@ -54,7 +54,6 @@ Copyright 2012-2013 Gilad Bracha, Ryan Macnak and Cadence Design Systems
 	private IntermediateMixin = i IntermediateMixin.
 	private IntermediateTransientSlot = i IntermediateTransientSlot.
 |) (
-public class Compiler = super Compiler (
 (* The compiler has three main entry points: compileClassSource:Within:, compileClassHeader: within: and compileMethodSource:within:. These compile an entire class declaration, a class header, and a method, respectively.
 
 The compiler returns low level (e.g., VM level) objects representing the results of compilation.
@@ -73,19 +72,19 @@ The creation of classes is based on producing an IntermediateClassDeclaration fo
 Nested classes also have an enclosing object slot pointing at the object that created them. See Behavior>>enclosingObjectSlot.
 
 The primary constructor induces a synthetic class method of the same name, which calls a synthetic instance method prefixed with initializer` me on a freshly created instance. Within that instance method is the code for all the slot initializers, as well as the superclass constructor call. See astForPrimaryFactory: and astForClassDeclarationInitializer:. *)
+public class Compiler = super Compiler (
 |
 currentSource <String>
 currentScope <Scope>
 currentDepth <Integer> (* The nesting level of the current class; top level classes are at level 0. *)
 
-literalTable <IdentityMap[Symbol, Integer]>
+literalTable <Map[Object, Integer]>
 rewriter = Rewriter new.
 methodCompiler = AST2ByteCodeCompiler new.
 
 specialSelectors =
 	{#+. #-. #*. #//. #\\. #<<. #>>. #&. #|. #<. #>. #<=. #>=. #=. #new. #new:. #at:. #at:put:. #size. #value. #value:. #value:value:. #name. #name:. #add:. #hash. #yourself. #,. #and:. #or:. #not. #basicNew.}.
 |) (
-class AST2ByteCodeCompiler = ASTTool (
 (* The compiler is a visitor on an AST that has been processed by the rewriter.
 It is a subtype of  ASTTool[Self] - that is, its methods do not return individual results, but instead
 side effect state within the compiler.
@@ -119,6 +118,7 @@ Then, the actual operand stack size we specify for the method is
 context size - #method formals - #method locals
 
 We don't do this yet.  What we do instead is often suboptimal, but sometimes insufficient. We compute the cumulative maximum operand stack size for all code in the method, including closures. The idea was that this would be conservative and simple, but in fact it may fail if a closure has a large number of arguments and copy-downs, and the actual operand stack usage is small. *)
+class AST2ByteCodeCompiler = ASTTool (
 |
 	cgen <CodeGenerator>
 	debugInfo <DebugInfo>
@@ -550,8 +550,8 @@ public superSend: selector numArgs: numArgs = (
 )
 ) : (
 )
-class DebugInfo = (
 (* Debugger information. *)
+class DebugInfo = (
 |
 	public bciSourceMapping <MutableMap[Integer, Interval]> = Map new.
 	public localVariables <MutableList[LocalVariableDebugInfo]> = List new.
@@ -742,8 +742,8 @@ public last ^<E> = (
 )
 ) : (
 )
-class LocalVariableDebugInfo = (
 (* Debugger information for a local. *)
+class LocalVariableDebugInfo = (
 |
 	public name <Symbol>
 	public validBCIRange <Interval>
@@ -1274,8 +1274,8 @@ class AllocatedLocal = (
 ) (
 ) : (
 )
-class ArrayAST = AST (
 (* To use pushFullArray/pushEmptyArray *)
+class ArrayAST = AST (
 |
 	public elements <List[AST] | nil>
 	public size <Integer>
@@ -1285,7 +1285,6 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 ) : (
 )
-class ClosureRewriter1 = ASTTraverser (
 (* Phase 1 of closure rewrite.
 
 Determines which local variables need to be made indirect/remote:
@@ -1299,6 +1298,7 @@ Determines which local variables are copied into each closure:
 
 Adds literals and selectors to the literal table.
 Adds indirection vectors to code bodies. *)
+class ClosureRewriter1 = ASTTraverser (
 |
 	closureDepth
 	captured ::= List new.
@@ -1463,11 +1463,11 @@ public symbolNode: node <SymbolAST> = (
 )
 ) : (
 )
-class ClosureRewriter2 with: cm = (
 (* Phase 2 of closure rewrite.
 
 Adds copied versions of captured variables.
 Assigns locals to context/activation slots. *)
+class ClosureRewriter2 with: cm = (
 |
 	capturedSets <Map[BlockAST, List[LocalEntry]]> = cm.
 
@@ -1723,11 +1723,11 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 ) : (
 )
-class Rewriter = super Rewriter (
 (* In addition to the common rewrites, this class
 
  - Rewrites eventual sends as immediate sends to the MessageLoop global.
  - Rewrites large tuples expressions to (Array new: n) at: 1 put: e1;...; yourself to avoid operand stack size limits. *)
+class Rewriter = super Rewriter (
 ) (
 largeTupleNode: aNode <TupleAST> = (
 	(* (Array new: n) at: 1 put: e1; ...; at: n put: en; yourself *)

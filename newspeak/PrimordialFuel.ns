@@ -1,3 +1,4 @@
+(* Serialization. *)
 class PrimordialFuel usingPlatform: p internalKernel: k = (|
 private List = p collections List.
 private IdentityMap = k IdentityMap.

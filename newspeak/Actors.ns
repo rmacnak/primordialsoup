@@ -30,10 +30,10 @@ public seed: value <Value> ^<FarReference[Value]> = (
 )
 ) : (
 )
-protected class EventualSend receiver: r selector: s arguments: a resolver: y = (
 (* A message in an actor's event queue. Every turn starts by sending #deliver.
 
 Note that all slots contain objects that belong to the actor in which the message is queued, even the resolver. *)
+protected class EventualSend receiver: r selector: s arguments: a resolver: y = (
 |
 protected receiver <Object> = r.
 protected selector <Symbol> = s.
@@ -65,10 +65,10 @@ public deliver = (
 )
 ) : (
 )
-protected class EventualSendReactor selector: s arguments: a resolver: r = (
 (* An eventual-send to a promise.
 
 Note that all slots contain objects that belong to the actor which performed the eventual send. *)
+protected class EventualSendReactor selector: s arguments: a resolver: r = (
 |
 protected selector <Symbol> = s.
 protected arguments <Array> = a.
@@ -543,8 +543,8 @@ private enqueueStartupMessage: argvOrBytes = (
 	application:: nil.
 	platform:: nil.
 )
+(* Also sent from the eventual send bytecode. *)
 public eventualSendTo: receiver selector: selector arguments: arguments = (
-	(* Also sent from the eventual send bytecode. *)
 	^(asInternalRef: receiver) eventualSend: selector arguments: arguments
 )
 private exit: code = (
@@ -626,18 +626,18 @@ public broken: problem <E> ^<Promise[nil, E]> = (
 public fulfilled: resolution <V> ^<Promise[V, nil]> = (
 	^Resolver new fulfill: resolution; promise
 )
+(* Subscribe to notification of a reference being fulfilled. If ref is fulfilled, onValue will run in some turn after the turn that resolves ref, and the returned promise with be resolved with the result of onValue. If ref is broken, the returned promise with be broken with the same error. *)
 public when: ref <Promise[V, E]> fulfilled: onValue <[:V | V2 def]> ^<Promise[V2, E]> = (
-	(* Subscribe to notification of a reference being fulfilled. If ref is fulfilled, onValue will run in some turn after the turn that resolves ref, and the returned promise with be resolved with the result of onValue. If ref is broken, the returned promise with be broken with the same error. *)
 	^(asInternalRef: ref) whenFulfilled: onValue whenBroken: [:e | e signal] (* Should we make this the behavior of a nil catch-clause instead? *)
 )
+(* Subscribe to notification of a reference being fulfilled or broken. onValue or onError respectively will run in some turn after the turn that resolves ref., and the returned promise with be resolved with the result of the callback. *)
 public when: ref <Promise[V, E]> fulfilled: onValue <[:V | V2 def]> broken: onError <[:E | E2 def]> ^<Promise[V2, E2]> = (
-	(* Subscribe to notification of a reference being fulfilled or broken. onValue or onError respectively will run in some turn after the turn that resolves ref., and the returned promise with be resolved with the result of the callback. *)
 	^(asInternalRef: ref) whenFulfilled: onValue whenBroken: onError
 )
 ) : (
 )
-protected class RedirectReactor from: s to: d resolver: r = (
 (* A bridge between InternalResolvers in different actors. *)
+protected class RedirectReactor from: s to: d resolver: r = (
 |
 protected sourceActor <Actor> = s.
 protected destinationActor <Actor> = d.
@@ -669,7 +669,6 @@ protected internalRef = ref.
 |internalRefs at: self put: ref) (
 protected doesNotUnderstand: message <Message> = (
 	(* For the debugger/inspector. Questionable. *)
-	(* Should probably override public method of Object as well. *)
 	0 = message arguments size ifTrue: [(message selector startsWith: 'isKindOf') ifTrue: [^false]].
 	^internalRef immediateSend: message
 )
@@ -678,8 +677,8 @@ public isKindOfPromise = (
 )
 ) : (
 )
-public class Resolver = (
 (*A Resolver represents the authority to resolve a Promise and is the control facet of the promise's eventual resolution.*)
+public class Resolver = (
 |
 	private (* N.B. We must not leak access to an InternalResolver via subobjects. *) internalResolver = InternalLocalPromise new.
 	public promise <Promise[V, E]> = internalResolver externalRef.
@@ -809,10 +808,10 @@ upheapFrom: startChildIndex = (
 )
 ) : (
 )
-protected class WhenReactor onValue: v onError: e resolver: r = (
 (* A when-catch for a promise.
 
 Note that all slots contain objects that belong to the actor which sent #whenResolved:. *)
+protected class WhenReactor onValue: v onError: e resolver: r = (
 |
 	protected onValue <[:V] | []> = v.
 	protected onError <[:E] | []> = e.

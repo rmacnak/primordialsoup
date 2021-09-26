@@ -3,11 +3,11 @@ public messageLoop <MessageLoop>
 public symbolTable <WeakArray[Symbol]>
 private symbolTableUsed
 |) (
-public class Activation _cannotInstantiate = (
 (* An activation record for a method or closure.
 
-Note this class only contains accessors and the logic needed for unwind-protect and exceptions. The debugger's simulator that is normally implemented in this class in Smalltalks is instead in the mirrors module.
-|
+Note this class only contains accessors and the logic needed for unwind-protect and exceptions. The debugger's simulator that is normally implemented in this class in Smalltalks is instead in the mirrors module. *)
+public class Activation _cannotInstantiate = (
+(*|
 sender <Activation | nil>
 bci <SmallInteger | nil>
 method <Method | nil>
@@ -15,11 +15,10 @@ closure <Closure | nil>
 receiver <Object>
 numTemps <SmallInteger>
 <temps>
-|
-*)
+|*)
 ) (
+(* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
 private aboutToReturn: result through: firstUnwindActivation = (
-	(* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
 	^home return: result
 )
 public bci = (
@@ -30,8 +29,8 @@ public bci: value = (
 	(* :literalmessage: primitive: 58 *)
 	panic.
 )
+(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer be reached along the chain of senders. *)
 private cannotReturn: result = (
-	(* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer be reached along the chain of senders. *)
 	^(CannotReturn result: result) signal
 )
 public closure = (
@@ -42,8 +41,8 @@ public closure: value = (
 	(* :literalmessage: primitive: 62 *)
 	panic.
 )
+(* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
 public findNextUnwindContextUpTo: activation = (
-	(* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
 	| ctx |
 	ctx:: self.
 	[nil = (ctx:: ctx sender) or: [ctx = activation]]
@@ -51,9 +50,8 @@ public findNextUnwindContextUpTo: activation = (
 			[ctx isUnwindContext ifTrue: [^ctx]].
 	^nil
 )
+(* Answer whether the receiver is strictly above context on the stack. *)
 public hasSender: context = (
-	(* Answer whether the receiver is strictly above context on the stack. *)
-
 	| s |
 	self = context ifTrue: [^false].
 	s:: sender.
@@ -85,12 +83,12 @@ public method: value = (
 	(* :literalmessage: primitive: 60 *)
 	panic.
 )
+(* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
 private nonBooleanReceiver: nonBoolean = (
-	(* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
 	^(NonBooleanReceiver receiver: nonBoolean) signal
 )
+(* Squeak compatibility for DebugMapper. *)
 public outerContext ^<Activation> = (
-	(* Squeak compatibility for DebugMapper. *)
 	| c = closure. |
 	nil = c ifTrue: [^nil].
 	^definingActivationOf: c
@@ -174,16 +172,15 @@ public tempAt: index put: value = (
 	(* :literalmessage: primitive: 66 *)
 	^(ArgumentError value: index) signal
 )
+(* Make myself unresumable. *)
 public terminate = (
-	(* Make myself unresumable. *)
 	sender:: nil.
 	bci:: nil.
 	(* Match the interpreter's behavior. Note this differs from Cog, which keeps the parameters. *)
 	size:: 0.
 )
+(* Terminate all the Contexts between me and previousContext, if previousContext is on my Context stack. Make previousContext my sender. *)
 public terminateTo: previousContext = (
-	(* Terminate all the Contexts between me and previousContext, if previousContext is on my Context stack. Make previousContext my sender. *)
-
 	| currentContext sendingContext |
 	(self hasSender: previousContext) ifTrue: [
 		currentContext:: sender.
@@ -213,9 +210,10 @@ public new = (
 	^self value: nil
 )
 )
-public class Array _cannotInstantiate = Collection (
 (* A mutable, fixed-length sequence of arbitrary elements. *)
+public class Array _cannotInstantiate = Collection (
 ) (
+(* Concatenation. *)
 public , collection = (
 	|
 	newArray = Array new: self size + collection size.
@@ -360,8 +358,8 @@ public withAll: collection <Collection[E]> ^<Array[E]> = (
 	^result
 )
 )
-public class Behavior = (
 (* My instances describe the shape and behavior of other objects. *)
+public class Behavior = (
 |
 private superclass <Behavior> (* Must be slot 1, known to the VM. *)
 private methods <Array[Method]> (* Must be slot 2, known to the VM. *)
@@ -385,8 +383,8 @@ public isKindOfBoolean ^<Boolean> = (
 )
 ) : (
 )
-public class ByteArray _cannotInstantiate = Collection (
 (* A mutable, fixed-length sequence of integers between 0 and 255. *)
+public class ByteArray _cannotInstantiate = Collection (
 ) (
 public at: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 47 *)
@@ -468,8 +466,8 @@ public withAll: bytes <Collection[Integer] | ByteArray | String> ^<ByteArray> = 
 	^result
 )
 )
-class CannotReturn result: r = Exception (
 (* Signalled when attempting to return to (or through) a nil sender or a sender that has already returned. *)
+class CannotReturn result: r = Exception (
 |
 public result = r.
 |) (
@@ -478,14 +476,14 @@ public printString ^<String> = (
 )
 ) : (
 )
-public class Class = Behavior (
 (* The superclass of all metaclasses. *)
+public class Class = Behavior (
 |
 private nameS <Symbol> (* Must be slot 7, known to the VM for debug printing only. *)
 private subclasses <WeakArray>
 |) (
+(* Sent by the compiler from factory methods. *)
 protected basicNew = (
-	(* Sent by the compiler from factory methods. *)
 	(* :literalmessage: primitive: 34 *)
 	panic.
 )
@@ -497,10 +495,10 @@ public printString ^<String> = (
 )
 ) : (
 )
-public class ClassMixin = (
 (* A class-side mixin is the difference between a metaclass and Class. (In Newspeak metaclasses are direct subclasses of Class, unlike Smalltalk where they are subclasses of the class's superclass's metaclass.) Note that class-side mixins can only introduce additional methods, unlike instance-side mixins which can introduce slots, methods and nested classes. Because of this, module definitions (top-level classes) are always stateless.
 
 Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)
+public class ClassMixin = (
 |
 public _instanceMixin <InstanceMixin>
 public _methods <Array[Method]> (* Must be slot 2, known to the VM. *)
@@ -520,7 +518,9 @@ public isMeta ^<Boolean> = (
 )
 ) : (
 )
-public class Closure _cannotInstantiate = () (
+(* A piece of delayed code; sometimes called a `block`. *)
+public class Closure _cannotInstantiate = (
+) (
 public cull: arg1 = (
 	0 = numArgs ifTrue: [^self value].
 	1 = numArgs ifTrue: [^self value: arg1].
@@ -619,8 +619,8 @@ public whileTrue: action <[]> = (
 )
 ) : (
 )
-public class Collection = (
 (* An enumerable group of elements. All operations are defined in terms of `do:`. *)
+public class Collection = (
 ) (
 public allSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
 	self do: [:element <E> | (predicate value: element) ifFalse: [^false]].
@@ -706,7 +706,9 @@ public size ^<Integer> = (
 )
 ) : (
 )
-public class Ephemeron = (|
+(* If `key` is reachable from some other object, then `value` is reachable. *)
+public class Ephemeron = (
+|
 public key (* Must be slot 1, known to the VM. *)
 public value (* Must be slot 2, known to the VM. *)
 public finalizer (* Must be slot 3, known to the VM. *)
@@ -758,8 +760,8 @@ private jumpTo: activation = (
 	(* :literalmessage: primitive: 95 *)
 	panic.
 )
+(* Yield control to the next enclosing #on:do: handler. *)
 public pass = (
-	(* Yield control to the next enclosing #on:do: handler. *)
 	nil = handlerActivation ifTrue: [^error].
 	invokeNextHandler.
 	panic.
@@ -768,8 +770,8 @@ public printString ^<String> = (
 	nil = messageText ifTrue: [^super class name].
 	^super class name, ': ', messageText
 )
+(* Returns the argument to the sender of #signal. *)
 public resume: resumptionValue = (
-	(* Returns the argument to the sender of #signal. *)
 	| savedSignalActivation = signalActivation. |
 	nil = savedSignalActivation ifTrue: [^error].
 	signalActivation:: nil.
@@ -781,8 +783,8 @@ public retry = (
 	handlerActivation restart.
 	panic.
 )
+(* Returns the argument as the result of the current #on:do: message. *)
 public return: returnValue = (
-	(* Returns the argument as the result of the current #on:do: message. *)
 	| savedHandlerActivation = handlerActivation. |
 	nil = handlerActivation ifTrue: [^error].
 	signalActivation:: nil.
@@ -804,14 +806,14 @@ private returnToSimulationRoot: simulationRoot <Activation> = (
 	simulationRoot push: self.
 	jumpTo: simulationRoot.
 )
+(* Yields control to an enclosing #on:do: handler. *)
 public signal = (
-	(* Yields control to an enclosing #on:do: handler. *)
 	handlerActivation:: signalActivation:: currentActivation.
 	invokeNextHandler.
 	panic.
 )
+(* squeak compatibility for Minitest *)
 public signal: message <String> = (
-	(* squeak compatibility for Minitest *)
 	messageText:: message.
 	^self signal
 )
@@ -820,15 +822,15 @@ public signal: message <String> = (
 	^(self new messageText: message) signal
 )
 )
-public class False _cannotInstantiate = Boolean (
 (* Defines the behavior of `false`. *)
+public class False _cannotInstantiate = Boolean (
 ) (
+(* Evaluating conjunction. *)
 public & alternative <Boolean> ^<Boolean> = (
-	(* Evaluating conjunction. *)
 	^false
 )
+(* Non-evaluating conjunction. *)
 public and: alternative <[Boolean]> ^<Boolean> = (
-	(* Non-evaluating conjunction. *)
 	^false
 )
 public asString ^<String> = (
@@ -850,26 +852,27 @@ public ifTrue: then <[X def]> ifFalse: else <[Y def]> ^<X | Y> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^else value
 )
+(* Negation. *)
 public not ^<Boolean> = (
 	^true
 )
+(* Non-evaluating disjunction. *)
 public or: alternative <[Boolean]> ^<Boolean> = (
-	(* Non-evaluating disjunction. *)
 	^alternative value
 )
 public printString ^<String> = (
 	^'false'
 )
+(* Evaluating disjunction. *)
 public | alternative <Boolean> ^<Boolean> = (
-	(* Evaluating disjunction. *)
 	^alternative
 )
 ) : (
 )
-public class Float _cannotInstantiate = Number (
 (* A double-precision floating point number. *)
+public class Float _cannotInstantiate = Number (
 ) (
-public addFromFraction: left = (
+public addFromFraction: left <Fraction> ^<Number> = (
 	^left asFloat + self
 )
 public asFloat ^<Float> = (
@@ -887,21 +890,25 @@ public asStringPrecision: precision <Integer> ^<String> = (
 	(* :literalmessage: primitive: 110 *)
 	^(ArgumentError value: precision) signal
 )
+(* Round to the smallest integer value not less than the receiver. *)
 public ceiling ^<Float> = (
 	(* :literalmessage: primitive: 22 *)
 	panic.
 )
+(* Answer the cosine of the receiver, measured in radians. *)
 public cos ^<Float> = (
 	(* :literalmessage: primitive: 24 *)
 	panic.
 )
-public divideFromFraction: left = (
+public divideFromFraction: left <Fraction> ^<Number> = (
 	^left asFloat / self
 )
+(* Answer e raised to the power of the receiver. *)
 public exp ^<Float> = (
 	(* :literalmessage: primitive: 30 *)
 	panic.
 )
+(* Round to the largest integer value not greater than the receiver. *)
 public floor ^<Float> = (
 	(* :literalmessage: primitive: 21 *)
 	panic.
@@ -923,39 +930,47 @@ public isKindOfFloat ^<Boolean> = (
 public isNaN ^<Boolean> = (
 	^(self = self) not
 )
+(* Answer the natural logarithm of the receiver. *)
 public ln ^<Float> = (
 	(* :literalmessage: primitive: 31 *)
 	panic.
 )
+(* Answer the common logarithm of the receiver. *)
 public log ^<Float> = (
 	(* :literalmessage: primitive: 32 *)
 	panic.
 )
-public multiplyFromFraction: left = (
+public multiplyFromFraction: left <Fraction> ^<Number> = (
 	^left asFloat * self
 )
 private pow: exponent <Float> ^<Float> = (
 	(* :literalmessage: primitive: 131 *)
 	^(ArgumentError value: exponent) signal
 )
+(* Answer the receiver raised to the power of the argument. *)
 public raisedTo: exponent <Number> ^<Float> = (
 	^self pow: exponent asFloat
 )
+(* Answer the receiver rounded to the nearest integer value. *)
 public rounded ^<Float> = (
+	(* :todo: ties to even? *)
 	(* :literalmessage: primitive: 125 *)
 	panic.
 )
+(* Answer the sine of the receiver measured in radians. *)
 public sin ^<Float> = (
 	(* :literalmessage: primitive: 23 *)
 	panic.
 )
+(* Answer the square root of the receiver. *)
 public sqrt ^<Float> = (
 	(* :literalmessage: primitive: 33 *)
 	panic.
 )
-public subtractFromFraction: left = (
+public subtractFromFraction: left <Fraction> ^<Number> = (
 	^left asFloat - self
 )
+(* Answer the tangent of the receiver measured in radians. *)
 public tan ^<Float> = (
 	(* :literalmessage: primitive: 25 *)
 	panic.
@@ -966,8 +981,8 @@ public parse: string <String> ^<Float> = (
 	^(ArgumentError value: string) signal
 )
 )
-public class Fraction reducedNumerator: num denominator: denom = Number (
 (* A rational number. *)
+public class Fraction reducedNumerator: num denominator: denom = Number (
 |
 public numerator <Integer> = num.
 public denominator <Integer> = denom.
@@ -1096,8 +1111,8 @@ public numerator: numerator <Integer> denominator: denominator <Integer> ^<Fract
 	^Fraction reducedNumerator: numer denominator: denom
 )
 )
-public class IdentityMap new: capacity = (
 (* A map whose keys are considered equal according to object identity. *)
+public class IdentityMap new: capacity = (
 |
 table ::= Array new: capacity.
 public size ::= 0.
@@ -1226,10 +1241,10 @@ public new = (
 	^self new: 32
 )
 )
-public class InstanceMixin = (
 (* An instance-side mixin is the difference between a (non-meta) class and its superclass: a set of additional methods, slots and nested class declarations. Instance-side mixins always have a paired class-side mixin.
 
 Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)
+public class InstanceMixin = (
 |
 public _name <Symbol>
 public _methods <Array[Method]> (* Must be slot 2, known to the VM. *)
@@ -1267,8 +1282,8 @@ public apply: superclass <Class> format: f withName: name <Symbol> enclosingObje
 
 	^newClass
 )
+(* Sent by the compiler in nested class accessors. *)
 public apply: nestedMixinName to: superclass <Class> withEnclosingObject: eo <Object> = (
-	(* Sent by the compiler in nested class accessors. *)
 	_nestedMixins do:
 		[:nestedMixin |
 			nestedMixin _name = nestedMixinName ifTrue:
@@ -1349,9 +1364,10 @@ private toWeakSet: set add: element = (
 )
 ) : (
 )
-class Integer = Number (
 (* Integers are represented by my subclasses: SmallInteger, MediumInteger and LargeInteger. *)
+class Integer = Number (
 ) (
+(* Answer the bitwise and of the receiver and argument in two's complement form. *)
 public & other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 16 *)
 	^(ArgumentError value: other) signal
@@ -1362,15 +1378,17 @@ public / other <Number> ^<Number> = (
 	0 = other ifTrue: [^(ArgumentError value: other) signal].
 	^Fraction numerator: self denominator: other
 )
+(* Two's complement shift left. *)
 public << other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 19 *)
 	^(ArgumentError value: other) signal
 )
+(* Two's complement arithmetic shift right. *)
 public >> other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 20 *)
 	^(ArgumentError value: other) signal
 )
-public addFromFraction: left = (
+public addFromFraction: left <Fraction> ^<Number> = (
 	^(left numerator + (self * left denominator)) / left denominator
 )
 public asInteger ^<Integer> = (
@@ -1390,17 +1408,21 @@ public asStringRadix: radix <Integer> ^<String> = (
 	 value > 0] whileTrue.
 	^result
 )
+(* Answer the bitwise and of the receiver and argument in two's complement form. *)
 public bitAnd: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 16 *)
 	^(ArgumentError value: other) signal
 )
+(* Answer the complement of the receiver in two's complement form. *)
 public bitInvert ^<Integer> = (
 	^-1 - self
 )
+(* Answer the bitwise inclusive or of the receiver and argument in two's complement form. *)
 public bitOr: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 17 *)
 	^(ArgumentError value: other) signal
 )
+(* Answer the bitwise exclusive or of the receiver and argument in two's complement form. *)
 public bitXor: other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 18 *)
 	^(ArgumentError value: other) signal
@@ -1411,7 +1433,7 @@ public ceiling ^<Integer> = (
 public denominator ^<Integer> = (
 	^1
 )
-public divideFromFraction: left = (
+public divideFromFraction: left <Fraction> ^<Number> = (
 	^left numerator / (left denominator * self)
 )
 public floor ^<Integer> = (
@@ -1438,7 +1460,7 @@ public isKindOfFraction ^<Boolean> = (
 public isKindOfInteger ^<Boolean> = (
 	^true
 )
-public multiplyFromFraction: left = (
+public multiplyFromFraction: left <Fraction> ^<Number> = (
 	^(left numerator * self) / left denominator
 )
 public numerator ^<Integer> = (
@@ -1447,7 +1469,7 @@ public numerator ^<Integer> = (
 public rounded ^<Integer> = (
 	^self
 )
-public subtractFromFraction: left = (
+public subtractFromFraction: left <Fraction> ^<Number> = (
 	^(left numerator - (self * left denominator)) / left denominator
 )
 public timesRepeat: action <[]> ^<Integer> = (
@@ -1456,6 +1478,7 @@ public timesRepeat: action <[]> ^<Integer> = (
 
 	^nil (* To match the inlined version *)
 )
+(* Answer the bitwise inclusive or of the receiver and argument in two's complement form. *)
 public | other <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 17 *)
 	^(ArgumentError value: other) signal
@@ -1491,13 +1514,13 @@ public parse: string <String> radix: radix <Integer> ^<Integer> = (
 	^negative ifTrue: [0 - value] ifFalse: [value]
 )
 )
-public class LargeInteger _cannotInstantiate = Integer (
 (* An arbitrary-precision integer. *)
+public class LargeInteger _cannotInstantiate = Integer (
 ) (
 ) : (
 )
-public class MediumInteger _cannotInstantiate = Integer (
 (* An integer representable as a 64-bit two's complement number. *)
+public class MediumInteger _cannotInstantiate = Integer (
 ) (
 ) : (
 )
@@ -1513,23 +1536,23 @@ private object: receiver perform: selector withAgain: arguments = (
 	(* :literalmessage: primitive: 89 *)
 	panic.
 )
+(* Send a message to the argument according as an ordinary send. *)
 public sendEventualTo: receiver = (
 	panic.
 )
 public sendTo: receiver = (
-	(* Send a message to the argument according as an ordinary send. *)
 	^object: receiver perform: selector with: arguments
 )
 ) : (
 )
-public class MessageNotUnderstood receiver: r message: m = Exception (
 (* Signalled by Object>>doesNotUnderstand:. *)
+public class MessageNotUnderstood receiver: r message: m = Exception (
 |
 public receiver <Object> = r.
 public message <Message> = m.
 |) (
+(* squeak compatibility for Minitest *)
 public messageText ^<String> = (
-	(* squeak compatibility for Minitest *)
 	^self printString
 )
 public printString ^<String> = (
@@ -1537,8 +1560,8 @@ public printString ^<String> = (
 )
 ) : (
 )
-public class Metaclass = Behavior (
 (* The class of all metaclasses. *)
+public class Metaclass = Behavior (
 |
 private thisClass <Class>
 |) (
@@ -1631,8 +1654,8 @@ public newSetterForSlot: name at: index accessModifier: am = (
 	^accessor
 )
 )
-class NonBooleanReceiver receiver: r = Exception (
 (* Signalled when the receiver of an inlined control message (such as ifTrue:) is neither `true` nor `false`. *)
+class NonBooleanReceiver receiver: r = Exception (
 |
 public receiver = r.
 |) (
@@ -1642,29 +1665,29 @@ public printString ^<String> = (
 ) : (
 )
 class Number = () (
+(* Answer the receiver multiplied by the argument. *)
 public * other <Number> ^<Number> = (
-	(* Answer the receiver multiplied by the argument. *)
 	(* :literalmessage: primitive: 3 *)
 	^other multiplyFromNumber: self
 )
+(* Answer the sum of the receiver and the argument. *)
 public + other <Number> ^<Number> = (
-	(* Answer the sum of the receiver and the argument. *)
 	(* :literalmessage: primitive: 1 *)
 	^other addFromNumber: self
 )
+(*Answer the difference of the argument from the receiver*)
 public - other <Number> ^<Number> = (
-	(*Answer the difference of the argument from the receiver*)
 	(* :literalmessage: primitive: 2 *)
 	^other subtractFromNumber: self
 )
-public / other <Number> ^<Number> = (
-	(* Answer the receiver divided by the argument.
+(* Answer the receiver divided by the argument.
 	 'Exact' division. For integer division see // and quo: *)
+public / other <Number> ^<Number> = (
 	(* :literalmessage: primitive: 4 *)
 	^other divideFromNumber: self
 )
+(* Answer the receiver divided by the argument, rounded to nearest integer toward negative infinity.  The remainder of this division is given by \\ *)
 public // other <Number> ^<Number> = (
-	(* Answer the receiver divided by the argument, rounded to nearest integer toward negative infinity.  The remainder of this division is given by \\ *)
 	(* :literalmessage: primitive: 5 *)
 	^(ArgumentError value: other) signal
 )
@@ -1692,11 +1715,12 @@ public >= other <Number> ^<Boolean> = (
 	other isKindOfFraction ifTrue: [^other < self].
 	^(ArgumentError value: other) signal
 )
+(* Answer the remainder of division rounded to the nearest integer toward negative inifinity.  The quoitent of this division is given by // *)
 public \\ other <Number> ^<Number> = (
-	(*Answer the remainder of division rounded to the nearest integer toward negative inifinity.  The quoitent of this division is given by // *)
 	(* :literalmessage: primitive: 6 *)
 	^(ArgumentError value: other) signal
 )
+(* Answer the absolute value of the receiver. *)
 public abs ^<Number> = (
 	self < 0 ifTrue: [^self negated].
 	^self
@@ -1705,6 +1729,7 @@ public asFloat ^<Float> = (
 	(* :literalmessage: primitive: 15 *)
 	panic.
 )
+(* Answer the integer part of the receiver (truncation). *)
 public asInteger ^<Integer> = (
 	(* :literalmessage: primitive: 14 *)
 	^(ArgumentError value: self) signal
@@ -1716,11 +1741,12 @@ public asString ^<String> = (
 public between: min <Number> and: max <Number> ^<Boolean> = (
 	^self <= max and: [self >= min]
 )
+(* Answer the cosine of the receiver, measured in radians. *)
 public cos ^<Float> = (
 	^self asFloat cos
 )
+(* Answer e raised to the power of the receiver. *)
 public exp ^<Float> = (
-	(*Answer e raised to the power of the receiver. *)
 	^self asFloat exp
 )
 public isKindOfFloat ^<Boolean> = (
@@ -1732,12 +1758,12 @@ public isKindOfInteger ^<Boolean> = (
 public isKindOfNumber ^<Boolean> = (
 	^true
 )
+(* Answer the natural logarithm of the receiver. *)
 public ln ^<Float> = (
-	(* Answer the natural logarithm of the receiver. *)
 	^self asFloat ln
 )
+(* Answer the common logarithm of the receiver. *)
 public log ^<Float> = (
-	(* Answer the common logarithm of the receiver. *)
 	^self asFloat log
 )
 public max: other <Number> ^<Number> = (
@@ -1752,8 +1778,8 @@ public negated ^<Number> = (
 public printString ^<String> = (
 	^self asString
 )
+(* Answer the receiver divided by the argument, rounded to nearest integer toward zero. The remainder of this division is given by rem: *)
 public quo: other <Number> ^<Number> = (
-	(* Answer the receiver divided by the argument, rounded to nearest integer toward zero. The remainder of this division is given by rem: *)
 	(* :literalmessage: primitive: 7 *)
 	^(ArgumentError value: other) signal
 )
@@ -1773,17 +1799,20 @@ private raisedToInteger: exponent <Integer> ^<Integer | Fraction> = (
 		 base:: base * base].
 	^result
 )
+(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
 public rem: other <Number> ^<Number> = (
-	(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
 	(* :literalmessage: primitive: 8 *)
 	^(ArgumentError value: other) signal
 )
+(* Answer the sine of the receiver measured in radians. *)
 public sin ^<Float> = (
 	^self asFloat sin
 )
+(* Answer the square root of the receiver. *)
 public sqrt ^<Float> = (
 	^self asFloat sqrt
 )
+(* Answer the tangent of the receiver measured in radians. *)
 public tan ^<Float> = (
 	^self asFloat tan
 )
@@ -1803,7 +1832,6 @@ public to: stop <Number> do: action <[:Number]> = (
 )
 ) : (
 )
-public class Object = super Object (
 (* Object is the root of the class hierarchy and provides behavior common to all objects.
 
 Unlike other systems inspired by Smalltalk, the number of methods in this class is deliberately kept to a minimum. Behavior should only be provided by this class if it should be considered part of the core set of features available to *all* Newspeak programmers.
@@ -1811,9 +1839,9 @@ Unlike other systems inspired by Smalltalk, the number of methods in this class 
 The security model of the Newspeak programming language is based on capabilities and it is essential that capabilities cannot leak through behavior provided by this class. For example, this class provides no mechanism for accessing instance variables of its instances. Instead such capabilities are provided to the debugger and other tools through mirror based reflection modules.
 
 Object has no instance variables, nor should any be added. Several subclasses of Object have special implementations and the VM on relies on their layout. Adding slots to Object would be fatal. *)
+public class Object = super Object (
 ) (
-public = other <Object> ^<Boolean> = (
-	(* Answers whether the receiver is considered equal to 'other'.
+(* Answers whether the receiver is considered equal to 'other'.
 	May be overridden by subclasses, and should be overridden if the method 'hash' is overridden.
 	This method must implement an equivalence relation, that is, the following must hold:
 	* x = x evaluates to true
@@ -1821,7 +1849,7 @@ public = other <Object> ^<Boolean> = (
 	* if x = y evaluates to true and y = z evaluates to true then x = z must evaluate to true.
 	Furthermore, this method must be consistent with the implementation of hash, that is:
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
-
+public = other <Object> ^<Boolean> = (
 	(* :literalmessage: primitive: 86 *)
 	panic.
 )
@@ -1831,8 +1859,8 @@ protected Array = (
 protected ByteArray = (
 	^outer KernelForPrimordialSoup ByteArray
 )
+(* squeak compatibility *)
 protected Error = (
-	(* squeak compatibility *)
 	^outer KernelForPrimordialSoup Exception
 )
 protected Exception = (
@@ -1856,11 +1884,10 @@ protected assert: blockOrBoolean message: message = (
 		ifTrue: [blockOrBoolean value ifFalse: [Exception new signal: message]]
 		ifFalse: [blockOrBoolean ifFalse: [Exception new signal: message]].
 )
-protected class ^<Behavior> = (
-	(* Answers the class of the receiver.
+(* Answers the class of the receiver.
 
 	This method is not public to make it easier to separate the authority of an instance from the authority of its class. This is similar to how the flatness of the metaclass heirarchy separates the interface of an object from the interface of its class. *)
-
+protected class ^<Behavior> = (
 	(* :literalmessage: primitive: 85 *)
 	panic.
 )
@@ -1869,12 +1896,11 @@ protected doesNotUnderstand: message <Message> = (
 
 	^(MessageNotUnderstood receiver: self message: message) signal
 )
-public hash ^<Integer> = (
-	(* Answers the hash code for the receiver.
+(* Answers the hash code for the receiver.
 	May be overridden by subclasses, and should be overridden if the method '=' is overridden.
 	The hash code must obey the requirements set forth in the method '=', that is, the following must hold:
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
-
+public hash ^<Integer> = (
 	(* :literalmessage: primitive: 87 *)
 	panic.
 )
@@ -1884,6 +1910,7 @@ public isNil ^<Boolean> = (
 public out = (
 	print:: self printString.
 )
+(* printString should only be used to provide labels for objects in the development environment. Its result is Undefined Behavior and must not be parsed. If an object has a stable string representation, it should be provided by asString instead of printString. *)
 public printString ^<String> = (
 	(* bogus: should not rely on class not being overridden *)
 	^'instance of ', class name
@@ -1893,8 +1920,8 @@ public yourself = (
 )
 ) : (
 )
-public class Proxy = (
 (* Proxy overrides all the public members of Object with protected ones. One can implement a total proxy by subclassing and implementing only #doesNotUnderstand:. *)
+public class Proxy = (
 ) (
 protected = other = (
 	^super = other
@@ -1913,13 +1940,13 @@ protected yourself = (
 )
 ) : (
 )
-public class SmallInteger _cannotInstantiate = Integer (
 (* An integer representable as a 31-/63-bit two's complement number. *)
+public class SmallInteger _cannotInstantiate = Integer (
 ) (
 ) : (
 )
-public class Stopwatch = (
 (* Measures durations using the system's monotonic clock. *)
+public class Stopwatch = (
 |
 private cumulativeNanos ::= 0.
 private startNanos
@@ -1945,9 +1972,10 @@ public stop = (
 )
 ) : (
 )
-public class String _cannotInstantiate = (
 (* An immutable, fixed-length sequence of integers between 0 and 255. Often interpreted as UTF-8. *)
+public class String _cannotInstantiate = (
 ) (
+(* Concatenation. *)
 public , other <String> ^<String> = (
 	(* :literalmessage: primitive: 115 *)
 	^(ArgumentError value: other) signal
@@ -2094,15 +2122,15 @@ public new ^<StringBuilder> = (
 	^self new: 8
 )
 )
-public class True _cannotInstantiate = Boolean (
 (* Defines the behavior of `true`. *)
+public class True _cannotInstantiate = Boolean (
 ) (
+(* Evaluating conjunction. *)
 public & alternative <Boolean> ^<Boolean> = (
-	(* Evaluating conjunction. *)
 	^alternative
 )
+(* Non-evaluating conjunction. *)
 public and: alternative <[Boolean]> ^<Boolean> = (
-	(* Non-evaluating conjunction. *)
 	^alternative value
 )
 public asString ^<String> = (
@@ -2124,24 +2152,25 @@ public ifTrue: then <[X def]> ifFalse: else <[Y def]> ^<X | Y> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^then value
 )
+(* Negation. *)
 public not ^<Boolean> = (
 	^false
 )
+(* Non-evaluating disjunction. *)
 public or: alternative <[Boolean]> ^<Boolean> = (
-	(* Non-evaluating disjunction. *)
 	^true
 )
 public printString ^<String> = (
 	^'true'
 )
+(* Evaluating disjunction. *)
 public | alternative <Boolean> ^<Boolean> = (
-	(* Evaluating disjunction. *)
 	^true
 )
 ) : (
 )
-public class UndefinedObject _cannotInstantiate = (
 (* Defines the behavior of `nil`. *)
+public class UndefinedObject _cannotInstantiate = (
 ) (
 public isNil ^<Boolean> = (
 	^true
@@ -2151,8 +2180,8 @@ public printString ^<String> = (
 )
 ) : (
 )
-public class WeakArray _cannotInstantiate = Collection (
 (* An array that does not prevent its elements from being garbage collected. *)
+public class WeakArray _cannotInstantiate = Collection (
 ) (
 public at: index <Integer> ^<E> = (
 	(* :literalmessage: primitive: 43 *)
@@ -2196,12 +2225,12 @@ public new: size <Integer> ^<WeakArray[E]> = (
 	^(ArgumentError value: size) signal
 )
 )
-public class WeakMap = (
 (* A collection of key/value associations that do not prevent the keys and values from becoming garbage collected.
 
 `nil` is not allowed as a key.
 
 Note this class does not implement Map or Collection because it does not provide enumeration. *)
+public class WeakMap = (
 |
 private table ::= Array new: 256. (* A fairly large initial capacity because the expected usage is one per module. *)
 private used ::= 0.

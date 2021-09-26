@@ -1386,8 +1386,8 @@ public testThreadTerminateTerminated = (
 ) : (
 TEST_CONTEXT = ()
 )
-public class SimulationTests = SuperSimulationTests (
 (* Test that the Newspeak bytecodes run under image-side simulation and return the same results as the VM. *)
+public class SimulationTests = SuperSimulationTests (
 ) (
 assertSimulation: block answers: expectedResult = (
 	| thread |

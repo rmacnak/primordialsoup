@@ -1,5 +1,5 @@
-class MinitestTestsConfiguration packageTestsUsing: ideNamespace = (
 (* Runs MinitestTests. *)
+class MinitestTestsConfiguration packageTestsUsing: ideNamespace = (
 |
 	Minitest = ideNamespace Minitest.
 	MinitestTests = ideNamespace MinitestTests.

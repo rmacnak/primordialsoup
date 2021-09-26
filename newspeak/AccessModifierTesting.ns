@@ -3,10 +3,10 @@ class AccessModifierTesting usingPlatform: platform  testFramework: minitest = (
 	private ClassMirror = platform mirrors ClassMirror.
 	private MessageNotUnderstood = platform kernel MessageNotUnderstood.
 |) (
-public class ClassAccessingTests = TestContext (
 (*	Try to access classes with different access modifiers, but only via public send.
 	 Class access is implemented via accessor methods - so fetching a class falls back to finding the appropriate method.
 	All kind of different method sends are already tested in the MethodAcessingTests. *)
+public class ClassAccessingTests = TestContext (
 |
 	testSubjects = TestSubjects new.
 |) (
@@ -518,10 +518,10 @@ public testSuperPublicOverriddenByProtected = (
 ) : (
 TEST_CONTEXT = ()
 )
-public class SlotAccessingTests = TestContext (
 (*	Try to access slots with different access modifiers, but only via public send.
 	 Slot access is implemented via accessor methods - so fetching a slot falls back to finding the appropriate method.
 	All kind of different method sends are already tested in the MethodAcessingTests. *)
+public class SlotAccessingTests = TestContext (
 |
 	testSubjects = TestSubjects new.
 |) (
@@ -540,19 +540,19 @@ public testPublicSlotAccess = (
 ) : (
 TEST_CONTEXT = ()
 )
-public class TestSubjects = (
 (* Holds a bunch of classes which we test against *)
+public class TestSubjects = (
 ) (
-public class AClass = (
 (* A class with a default access modifier. Slots and methods of all sort to be tested against *)
+public class AClass = (
 |
 	public		publicSlot		= #publicSlot.
 	protected	protectedSlot	= #protectedSlot.
 	private		privateSlot		= #privateSlot.
 				defaultSlot		= #defaultSlot.
 |) (
-public class AInnerClass = (
 (* A class to test outerSends with different accessModifiers.*)
+public class AInnerClass = (
 |
 	public		publicSlot		= #innerPublicSlot.
 	protected	protectedSlot	= #innerProtectedSlot.
