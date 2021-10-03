@@ -731,13 +731,11 @@ public parseStatements = (
 	 tokenKind = #']' ifTrue: [^statements].
 	 tokenKind = #')' ifTrue: [^statements].
 	 tokenKind = #'}' ifTrue: [^statements].
-	 tokenKind = #'.' ifTrue: [^statements].
-	 tokenKind = #':' ifTrue: [^statements].
-	 tokenKind = #';' ifTrue: [^statements].
 	 tokenKind = #end ifTrue: [^statements].
 
 	 statements add: parseExpression.
-	 tokenKind = #'.' ifTrue: [advanceToken]] repeat.
+	 tokenKind = #'.' ifFalse: [^statements].
+	 advanceToken] repeat.
 )
 public parseSuperclassClause = (
 	(* superclassClause = superclassPrefix opt, identifier, message opt.

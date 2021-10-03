@@ -1974,6 +1974,33 @@ withStdError: stdError <Alien | Integer>
 )'
 	with: 'assert: [true].' (* Just checking no error during compilation.  Error is avoided by removing the cascaded sends. *)
 )
+public testStatementBoundaries = (
+	assertCompilationErrorIn: 'class Sample = () ( method = ( . ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo 123 ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo (123) ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo [123] ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo {123} ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo #symbol ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo ''string'' ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo "c" ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo (bar) ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo ^bar ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo . . bar ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( foo . . ^ bar ) )'.
+
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. 123 ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. (123) ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. [123] ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. {123} ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. #symbol ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. ''string'' ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. "c" ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. (bar) ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo. ^bar ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo . bar ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo . ^ bar ) )'.
+)
 public testStringLiteral = (
 	testSampleMethod: 'public stringLiteral = (''abc'')'
 	with: 'assert: [sample = sample stringLiteral].'
