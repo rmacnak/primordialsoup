@@ -19,7 +19,7 @@ parse: input = (
 	^json decode: input
 )
 reject: input = (
-	should: [(JSONReader on: input asByteArray) parseValue] signal: Error
+	should: [parse: input] signal: Error
 )
 public testDecodeEmpty = (
 	reject: ''.
