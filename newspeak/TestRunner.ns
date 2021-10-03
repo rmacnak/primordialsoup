@@ -18,6 +18,10 @@ testConfigs = {
 }.
 Promise
 |) (
+private exit: code = (
+	(* :literalmessage: primitive: 107 *)
+	panic.
+)
 public main: platform args: args = (
 	| keepAlive stopwatch minitest testModules tester |
 	keepAlive:: platform actors Port new.
@@ -40,7 +44,7 @@ public main: platform args: args = (
 		 stopwatch elapsedMilliseconds asString, ' ms') out.
 		 '' out.
 
-		 tester haveAllTestsSucceeded ifFalse: [halt].
+		 tester haveAllTestsSucceeded ifFalse: [exit: -1].
 		 keepAlive close]
 )
 runTests: tester = (
