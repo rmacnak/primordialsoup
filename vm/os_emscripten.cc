@@ -8,12 +8,9 @@
 #include "vm/os.h"
 
 #include <emscripten.h>
-#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
-#include <unistd.h>
 
 #include "vm/assert.h"
 
@@ -24,17 +21,8 @@ void OS::Shutdown() {}
 
 
 int64_t OS::CurrentMonotonicNanos() {
-  struct timespec ts;
-  if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
-    UNREACHABLE();
-    return 0;
-  }
-  // Convert to nanoseconds.
-  int64_t result = ts.tv_sec;
-  result *= kNanosecondsPerSecond;
-  result += ts.tv_nsec;
-
-  return result;
+  double now = emscripten_get_now();
+  return now * kNanosecondsPerMillisecond;
 }
 
 

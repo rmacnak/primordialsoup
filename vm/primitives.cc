@@ -2548,6 +2548,9 @@ DEFINE_PRIMITIVE(Object_markCanonical) {
 
 
 DEFINE_PRIMITIVE(writeBytesToFile) {
+#if defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
   ASSERT(num_args == 2);
   ByteArray content = static_cast<ByteArray>(I->Stack(1));
   String filename = static_cast<String>(I->Stack(0));
@@ -2578,10 +2581,14 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
   free(raw_filename);
 
   RETURN_SELF();
+#endif
 }
 
 
 DEFINE_PRIMITIVE(readFileAsBytes) {
+#if defined(OS_EMSCRIPTEN)
+  return kFailure;
+#else
   ASSERT(num_args == 1);
   String filename = static_cast<String>(I->Stack(0));
   if (!filename->IsString()) {
@@ -2617,6 +2624,7 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   free(raw_filename);
 
   RETURN(result);
+#endif
 }
 
 
