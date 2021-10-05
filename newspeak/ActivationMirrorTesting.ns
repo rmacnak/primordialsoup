@@ -48,6 +48,9 @@ assertThread: thread atMethod: expectedMethod snippet: expectedSnippet = (
 	assert: activation method name equals: expectedMethod.
 	assert: (currentSnippet: activation) equals: expectedSnippet.
 )
+classFromSource: src <String> ^<Class> = (
+	^(ClassDeclarationBuilder fromSource: src) install applyToObject reflectee
+)
 compilationError = (
 	^Error
 )
@@ -245,16 +248,15 @@ public testActivationEvaluateWithScope = (
 	assert: eval result reflectee equals: 17.
 )
 public testActivationFactory = (
-	| src Point thread activation |
+	| Point thread activation |
 	(* Need a fresh compile to ensure consistency of the factory compilation strategy. Can be removed the next time the bootstrap compiler is updated. *)
-	src:: 'class Point x: x y: y = Object new (
+	Point:: classFromSource: 'class Point x: x y: y = Object new (
 		|
 		public x = x.
 		public y ::= y.
 		public z
 		|
 	)()'.
-	Point:: (ClassDeclarationBuilder fromSource: src) install applyToObject reflectee.
 
 	thread:: ActivationMirror invokeSuspended: [Point x: 3 y: 4].
 
@@ -1078,6 +1080,57 @@ public testActivationStepUncontinuable = (
 	thread resume.
 	assert: thread isFulfilled.
 	assert: thread result equals: (ObjectMirror reflecting: 7).
+	assert: thread suspendedActivation equals: nil.
+)
+public testActivationTransientSlotAccessors = (
+	| klass instance thread activation |
+	klass:: classFromSource: 'class C = () ( public transient seven ::= 3 + 4. )'.
+	instance:: klass new.
+
+	(* Getter and initializer *)
+	thread:: ActivationMirror invokeSuspended: [instance seven].
+
+	assertThread: thread atMethod: #testActivationTransientSlotAccessors snippet: 'instance'.
+	thread suspendedActivation stepOver. (* Push instance *)
+	assertThread: thread atMethod: #testActivationTransientSlotAccessors snippet: 'seven'.
+	thread suspendedActivation stepInto. (* Send seven *)
+	assertThread: thread atMethod: #seven snippet: nil.
+	assert: thread suspendedActivation method definingMixin name equals: #C.
+	thread suspendedActivation stepInto. (* Push nil *)
+	thread suspendedActivation stepInto. (* Send seven`slot. *)
+	thread suspendedActivation stepInto. (* Send = *)
+	thread suspendedActivation stepInto. (* Branch *)
+	assertThread: thread atMethod: #seven snippet: '3 + 4'.
+	thread suspendedActivation stepInto. (* Send seven`init *)
+	assertThread: thread atMethod: #seven snippet: '3'.
+	thread suspendedActivation stepInto. (* Push 3 *)
+	assertThread: thread atMethod: #seven snippet: '4'.
+	thread suspendedActivation stepInto. (* Push 3 *)
+	assertThread: thread atMethod: #seven snippet: '+ 4'.
+	thread suspendedActivation stepInto. (* Send + *)
+	assertThread: thread atMethod: #seven snippet: '3 + 4'.
+	thread suspendedActivation stepInto. (* Return *)
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result equals: (ObjectMirror reflecting: 7).
+	assert: thread suspendedActivation equals: nil.
+
+	(* Setter *)
+	thread:: ActivationMirror invokeSuspended: [instance seven: 42].
+
+	assertThread: thread atMethod: #testActivationTransientSlotAccessors snippet: 'instance'.
+	thread suspendedActivation stepOver. (* Push instance *)
+	assertThread: thread atMethod: #testActivationTransientSlotAccessors snippet: '42'.
+	thread suspendedActivation stepInto. (* Push 42 *)
+	assertThread: thread atMethod: #testActivationTransientSlotAccessors snippet: 'seven: 42'.
+	thread suspendedActivation stepInto. (* Send seven: 42 *)
+	assertThread: thread atMethod: #seven: snippet: nil.
+	assert: thread suspendedActivation method definingMixin name equals: #C.
+
+	thread resume.
+	assert: thread isFulfilled.
+	assert: thread result equals: (ObjectMirror reflecting: instance).
 	assert: thread suspendedActivation equals: nil.
 )
 public testBrokenThreadAtSenderOfSignal = (

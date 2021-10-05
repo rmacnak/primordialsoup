@@ -108,6 +108,7 @@ public class IntermediateMixin for: d isMeta: m = (|
 public declaration <IntermediateClassDeclaration> = d.
 public isMeta <Boolean> = m.
 public slots <List[IntermediateSlotDeclaration]> ::= List new.
+public transientSlots <List[IntermediateTransientSlotDeclaration]> ::= List new.
 public methods <List[IntermediateMethod]> = List new.
 public nestedClasses <List[IntermediateClassDeclaration]> = List new.
 public builder <MixinBuilder>
@@ -117,6 +118,7 @@ public assembleMethods = (
 	assembledMethods addAll: methods.
 	assembleSlots do: [:slot | slot addSyntheticMethodsTo: assembledMethods].
 	nestedClasses do: [:nestedClass | assembledMethods add: nestedClass accessor].
+	transientSlots do: [:transientSlot | transientSlot addSyntheticMethodsTo: assembledMethods].
 	isMeta
 		ifTrue: [assembledMethods add: declaration factory]
 		ifFalse: [assembledMethods addAll: declaration initializers].
@@ -126,55 +128,71 @@ public assembleSlots = (
 	| assembledSlots = List new. |
 	assembledSlots addAll: slots.
 	nestedClasses do: [:nestedClass | nestedClass addSyntheticSlotsTo: assembledSlots].
+	transientSlots do: [:transientSlot | transientSlot addSyntheticSlotsTo: assembledSlots].
 	^assembledSlots
 )
-public checkNameConflictsForFactory: selector <Symbol> = (
-	assert: [isMeta] message: ''.
+checkForFactory: selector = (
+	isMeta ifTrue:
+		[declaration factoryName = selector ifTrue:
+			[^Error signal: 'Class already has primary factory named ', selector]].
+)
+checkForMethod: selector = (
 	methods do:
 		[:method |
 		method selector = selector ifTrue:
 			[^Error signal: 'Class already has method named ', selector]].
 )
-public checkNameConflictsForMethod: selector <Symbol> = (
+checkForNestedClass: selector = (
 	nestedClasses do:
 		[:nestedClass |
 		nestedClass name = selector ifTrue:
 			[^Error signal: 'Class already has nested class named ', selector]].
+)
+checkForSlot: selector = (
 	slots do:
 		[:slot |
 		slot name = selector ifTrue:
 			[^Error signal: 'Class already has slot named ', selector].
 		(slot isMutable and: [(slot name, ':') = selector]) ifTrue:
 			[^Error signal: 'Class already has mutable slot named ', selector]].
-	isMeta ifTrue:
-		[declaration factoryName = selector ifTrue:
-			[^Error signal: 'Class already has primary factory named ', selector]].
+)
+checkForTransientSlot: selector = (
+	transientSlots do:
+		[:slot |
+		slot name = selector ifTrue:
+			[^Error signal: 'Class already has transient slot named ', selector].
+		(slot isMutable and: [(slot name, ':') = selector]) ifTrue:
+			[^Error signal: 'Class already has mutable transient slot named ', selector]].
+)
+public checkNameConflictsForFactory: selector <Symbol> = (
+	assert: [isMeta] message: ''.
+	checkForMethod: selector.
+)
+public checkNameConflictsForMethod: selector <Symbol> = (
+	checkForNestedClass: selector.
+	isMeta
+		ifFalse:
+			[checkForSlot: selector.
+			 checkForTransientSlot: selector]
+		ifTrue:
+			[checkForFactory: selector].
 )
 public checkNameConflictsForNestedClass: klassName <Symbol> = (
-	methods do:
-		[:method |
-		method isSynthetic ifFalse:
-			[method selector = klassName ifTrue:
-				[^Error signal: 'Class already has method named ', klassName]]].
-	slots do:
-		[:slot |
-		slot name = klassName ifTrue:
-			[^Error signal: 'Class already has slot named ', klassName]].
+	checkForMethod: klassName.
+	checkForSlot: klassName.
+	checkForTransientSlot: klassName.
 )
 public checkNameConflictsForSlot: slotName <Symbol> mutable: isMutable <Boolean> = (
-	nestedClasses do:
-		[:nestedClass |
-		nestedClass name = slotName ifTrue:
-			[^Error signal: 'Class already has nested class named ', slotName]].
-	methods do:
-		[:method |
-		method selector = slotName ifTrue:
-			[^Error signal: 'Class already has method named ', slotName]].
-	isMutable ifFalse: [^self].
-	methods do:
-		[:method |
-		method selector = (slotName, ':') ifTrue:
-			[^Error signal: 'Class already has method named ', method selector]].
+	checkForNestedClass: slotName.
+	checkForTransientSlot: slotName.
+	checkForMethod: slotName.
+	isMutable ifTrue: [checkForMethod: slotName, ':'].
+)
+public checkNameConflictsForTransientSlot: slotName <Symbol> mutable: isMutable <Boolean> = (
+	checkForNestedClass: slotName.
+	checkForSlot: slotName.
+	checkForMethod: slotName.
+	isMutable ifTrue: [checkForMethod: slotName, ':'].
 )
 ) : (
 )
@@ -182,6 +200,8 @@ public class IntermediateSlotDeclaration = (|
 public name
 public isMutable
 public accessModifier
+public isTransient ::= false.
+public metadata
 |) (
 public addSyntheticMethodsTo: methods = (
 	| index = 1. |
@@ -215,8 +235,42 @@ public generateSetterForSlot: index <Integer> ^<IntermediateMethod> = (
 )
 ) : (
 )
-public class IntermediateTransientSlot = () (
+public class IntermediateTransientSlotDeclaration = (
+	|
+	public name <Symbol>
+	public source <String>
+	public initializer <IntermediateMethod>
+	public getter <IntermediateMethod>
+	public setter <IntermediateMethod>
+	|
+) (
+public accessModifier = (
+	^getter accessModifier
+)
+public addSyntheticMethodsTo: methods = (
+	methods add: initializer.
+	methods add: getter.
+	isMutable ifTrue: [methods add: setter].
+)
+public addSyntheticSlotsTo: slots = (
+	| slot = IntermediateSlotDeclaration new. |
+	slot name: (class slotNameForTransientSlotNamed: name).
+	slot isMutable: isMutable.
+	slot accessModifier: #private.
+	slot isTransient: true.
+	slot metadata: source.
+	slots add: slot.
+)
+public isMutable = (
+	^setter isNil not
+)
 ) : (
+public initMethodNameForTransientSlotNamed: selector = (
+	^(selector, '`init') asSymbol
+)
+public slotNameForTransientSlotNamed: selector = (
+	^(selector, '`slot') asSymbol
+)
 )
 ) : (
 )

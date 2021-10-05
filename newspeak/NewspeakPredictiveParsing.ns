@@ -60,6 +60,7 @@ public class Parser for: string = Scanner for: string (
 |) (
 defaultClassSide = (
 	^SideAST new
+		transientSlots: {};
 		nestedClasses: {};
 		methods: {}
 )
@@ -382,7 +383,11 @@ public parseInitExpressions = (
 public parseInstanceSide = (
 	(* sideDecl = lparen, classDecl star, category star, rparen. *)
 
-	| nestedClasses = List new. methods = List new. member |
+	|
+	nestedClasses = List new.
+	transientSlots = List new.
+	methods = List new.
+	|
 
 	(tokenKind = #'(') ifFalse: [expected: '('].
 	advanceToken.
@@ -390,13 +395,16 @@ public parseInstanceSide = (
 	[peekHasClassDeclaration] whileTrue:
 		[nestedClasses add: parseClassDeclaration].
 
+	[peekHasTransientSlotDeclaration] whileTrue:
+		[transientSlots add: parseTransientSlotDeclaration].
+
 	[tokenKind = #')'] whileFalse:
 		[methods add: parseMethodDeclaration].
 
 	advanceToken. (* Consume ) *)
 
 	^SideAST new
-		transientSlots: {};
+		transientSlots: transientSlots;
 		nestedClasses: nestedClasses;
 		methods: methods
 )
@@ -591,18 +599,7 @@ public parseMethodDeclarationEnd = (
 	^result
 )
 public parseParameterDeclaration = (
-	| varStart varEnd varName type result |
-	tokenKind = #identifier ifFalse: [expected: 'identifier'].
-	varStart:: tokenStart.
-	varEnd:: tokenEnd.
-	varName:: tokenValue asSymbol.
-	advanceToken.
-
-	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
-		[type:: parseType].
-
-	^(VarDeclAST name: varName type: type)
-		start: varStart; end: varEnd.
+	^parseVar
 )
 public parseParenthesizedExpression = (
 	(* parenthesizedExpression = lparen, expression, rparen. *)
@@ -672,15 +669,7 @@ public parseSlotDeclaration = (
 	| declStart am varStart varEnd varName type var init |
 	declStart:: tokenStart.
 	am:: parseAccessModifierOpt.
-	tokenKind = #identifier ifFalse: [expected: 'identifier'].
-	varStart:: tokenStart.
-	varEnd:: tokenEnd.
-	varName:: tokenValue asSymbol.
-	advanceToken.
-	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
-		[type: parseType].
-	var:: (VarDeclAST name: varName type: type)
-		start: varStart; end: varEnd.
+	var:: parseVar.
 
 	tokenKind = #'::=' ifTrue:
 		[advanceToken.
@@ -814,6 +803,41 @@ public parseTemporariesOpt = (
 
 	^body (* No temporaries. *)
 )
+public parseTransientSlotDeclaration = (
+	(* transientSlotDecl = accessModifier opt, transientModifier, slotDecl, ((tokenFromSymbol: #=) | (tokenFromSymbol: #'::=')), expression, dot. *)
+	| declStart declEnd am var isMutable init |
+	declStart:: extendedStart.
+	am:: parseAccessModifierOpt.
+
+	(tokenKind = #identifier and: [tokenValue = 'transient']) ifFalse: [expected: 'transient'].
+	advanceToken.
+
+	var:: parseVar.
+
+	tokenKind = #'::='
+		ifTrue: [isMutable:: true]
+		ifFalse:
+			[(tokenKind = #binary and: [tokenValue = '='])
+				ifTrue: [isMutable:: false]
+				ifFalse: [expected: '= or ::=']].
+	advanceToken.
+
+	init:: parseExpression.
+	tokenKind = #'.' ifFalse: [expected: '.'].
+	declEnd:: tokenEnd.
+	advanceToken.
+
+	^(isMutable ifTrue: [MutableSlotDefAST] ifFalse: [ImmutableSlotDefAST]) new
+		accessModifier: am;
+		slotDecl: var;
+		initializer: init;
+		start: declStart; end: declEnd
+)
+public parseTransientSlotDeclarationEnd = (
+	| result = parseTransientSlotDeclaration. |
+	tokenKind = #end ifFalse: [expected: 'end of input'].
+	^result
+)
 public parseTuple = (
 	(* tuple = lcurly, (expression starSeparatedOrTerminatedBy: dot), rcurly. *)
 	| tupleStart tupleEnd elements = List new. |
@@ -937,6 +961,18 @@ public parseUnaryMessagePattern = (
 
 	^pattern
 )
+public parseVar = (
+	| start end name type |
+	tokenKind = #identifier ifFalse: [expected: 'identifier'].
+	start:: tokenStart.
+	end:: tokenEnd.
+	name:: tokenValue asSymbol.
+	advanceToken.
+	(tokenKind = #binary and: [tokenValue = '<']) ifTrue:
+		[type: parseType].
+	^(VarDeclAST name: name type: type)
+		start: start; end: end.
+)
 peekHasAccessModifier = (
 	(* LL(1) *)
 	tokenKind = #identifier ifFalse: [^false].
@@ -989,6 +1025,26 @@ peekHasKeywordMessage = (
 	result:: tokenKind = #keyword.
 	restoreContext: context.
 	^result
+)
+peekHasTransientSlotDeclaration = (
+	(* LL(3) *)
+	(* transientSlotDecl = (accessModifier opt, (tokenFromSymbol: #transient), identifier, ... *)
+
+	| context = saveContext. |
+	peekHasAccessModifier ifTrue: [advanceToken].
+
+	(tokenKind = #identifier and: [tokenValue = 'transient']) ifFalse:
+		[restoreContext: context.
+		 ^false].
+
+	advanceToken.
+
+	tokenKind = #identifier ifFalse:
+		[restoreContext: context.
+		 ^false].
+
+	restoreContext: context.
+	^true
 )
 peekHasTypeOperator = (
 	(* LL(1) *)

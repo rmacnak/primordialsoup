@@ -52,7 +52,7 @@ class Newspeak2PrimordialSoupCompilation usingPlatform: platform
 	private IntermediateSlotDeclaration = i IntermediateSlotDeclaration.
 	private IntermediateMethod = i IntermediateMethod.
 	private IntermediateMixin = i IntermediateMixin.
-	private IntermediateTransientSlot = i IntermediateTransientSlot.
+	private IntermediateTransientSlotDeclaration = i IntermediateTransientSlotDeclaration.
 |) (
 (* The compiler has three main entry points: compileClassSource:Within:, compileClassHeader: within: and compileMethodSource:within:. These compile an entire class declaration, a class header, and a method, respectively.
 
@@ -2068,133 +2068,6 @@ astForPrimaryFactory: hdr <ClassHeaderAST> ^<MethodAST> = (
 		pattern: cons body: body accessModifier: #public;
 		copyPositionFrom: hdr
 )
-astForTransientSlotGetter: tree <SlotDefAST> = (
-(* Build an AST for a method that would lazily create a execute the expression in a transient  slot, and cache it. The generated code has the form
-
-name = (
-	self name`slot isNil ifTrue:
-		[self name`slot: initTransientSlotExpression].
-	^self name`slot
-)
-
-*)
-
-	| initMethodName cacheSlotName selector cacheSlot  assignSlot nilCheck block if return initValue |
-
-	selector:: tree name asSymbol.
-
-	initMethodName:: IntermediateTransientSlot initMethodNameForTransientSlotNamed: selector.
-	cacheSlotName:: IntermediateTransientSlot slotNameForTransientSlotNamed: selector.
-
-	cacheSlot:: UnresolvedSendAST new
-		to: selfNode
-		send: cacheSlotName with: {}.
-
-
-	initValue:: UnresolvedSendAST new
-		to: selfNode
-		send: initMethodName
-		with: {}.
-
-
-	assignSlot:: UnresolvedSendAST new
-		to: selfNode
-		send: (cacheSlotName, ':') asSymbol
-		with: {initValue}.
-
-	nilCheck:: UnresolvedSendAST new
-		to: cacheSlot
-		send: #isNil
-		with: {}.
-
-	block:: BlockAST new
-		body: (CodeBodyAST new
-			parameters: {}
-			temporaries: {}
-			statements: {assignSlot}).
-
-	if:: UnresolvedSendAST new
-		to: nilCheck
-		send: #ifTrue:
-		with: {block}.
-	return:: ReturnStatAST new expression: cacheSlot.
-
-
-	^MethodAST new
-		pattern: (MessagePatternAST new
-			accessModifier: tree accessModifier;
-			selector: selector
-			parameters: {});
-		body: (CodeBodyAST new
-			parameters: {}
-			temporaries: {}
-			statements: {if. return});
-		copyPositionFrom: tree
-)
-astForTransientSlotInitializer: tree <SlotDefAST> do: astAndSourceBlock <[:MethodAST :String]> = (
-	| initializer initMethodName selector messagePattern body return newAST newSource |
-
-
-	selector:: tree name.
-	initializer:: tree initializer.
-
-	initMethodName:: IntermediateTransientSlot initMethodNameForTransientSlotNamed: selector.
-
-	messagePattern:: (MessagePatternAST new
-		selector: initMethodName;
-		accessModifier: #protected;
-		parameters: {} asMutableArrayList).
-
-	return:: ReturnStatAST new
-		expression: initializer;
-		yourself.
-
-
-	body:: (CodeBodyAST new
-		parameters: {} asMutableArrayList
-		temporaries: {} asMutableArrayList
-	      statements: { return } asMutableArrayList).
-
-
-	newAST:: MethodAST new
-		pattern: messagePattern;
-		body: body;
-		copyPositionFrom: tree.
-
-(*	newSource:: messagePattern accessModifier , ' ', 'zzzz', ' = ( ^ ', (sourceForNode: initializer), ' )'  .    *)
-	newSource:: messagePattern accessModifier , ' ', messagePattern selector, ' = ( ^ ', (sourceForNode: initializer), ' )'.
-	astAndSourceBlock value: newAST value: newSource.
-)
-astForTransientSlotSetter: tree <SlotDefAST> = (
-	| cacheSlotName selector assignToSlot newValueParameter parameterName parameter |
-
-	selector:: tree name asSymbol.
-	cacheSlotName:: IntermediateTransientSlot slotNameForTransientSlotNamed: selector.
-	parameterName:: #p1.
-
-	parameter:: UnresolvedSendAST new
-		to: hereNode
-		send: parameterName
-		with: {}.
-
-	assignToSlot:: UnresolvedSendAST new
-		to: selfNode
-		send: (cacheSlotName, ':') asSymbol
-		with: {parameter}.
-
-	newValueParameter:: VarDeclAST name: parameterName type: nil.
-
-	^MethodAST new
-		pattern: (MessagePatternAST new
-			accessModifier: tree accessModifier;
-			selector: (selector, ':') asSymbol
-			parameters: { newValueParameter} asMutableArrayList);
-		body: (CodeBodyAST new
-			parameters: {newValueParameter} asMutableArrayList
-			temporaries: {}
-			statements: { assignToSlot } asMutableArrayList);
-		copyPositionFrom: tree
-)
 buildIncrementalScopeFor: mm <MixinMirror> = (
 	| enclosingClass thisClass |
 	enclosingClass:: mm declaration enclosingClass.
@@ -2211,6 +2084,16 @@ buildIncrementalScopeFor: mm <MixinMirror> = (
 	currentScope at: #'@currentClass' put: thisClass.
 
 	mm slots do:
+		[:s <SlotMirror> |
+		| se = SlotEntry
+			forDeclaration: (MessagePatternAST new selector: s name; accessModifier: s accessModifier)
+			atDepth: currentDepth. |
+		currentScope at: (namer selectorForSlotInitializer: s) put: se.
+		currentScope at: (namer selectorForSlotGetter: s) put: se.
+		s isMutable ifTrue:
+			[currentScope at: (namer selectorForSlotSetter: s) put: se]].
+
+	mm transientSlots do:
 		[:s <SlotMirror> |
 		| se = SlotEntry
 			forDeclaration: (MessagePatternAST new selector: s name; accessModifier: s accessModifier)
@@ -2407,7 +2290,7 @@ private compileSyntheticMethod: node <MethodAST> ^<IntermediateMethod> = (
 	result isSynthetic: true.
 	^result
 )
-public compileTransientSlotSource: src <String> within: enclosingIR <IntermediateMixin> ^<IntermediateTransientSlot> = (
+public compileTransientSlotSource: src <String> within: enclosingIR <IntermediateMixin> ^<IntermediateTransientSlotDeclaration> = (
 	| tree <SlotDefAST> |
 
 	currentSource:: src.
@@ -2416,7 +2299,7 @@ public compileTransientSlotSource: src <String> within: enclosingIR <Intermediat
 
 	buildIncrementalScopeFor: enclosingIR.
 
-	tree:: parser parseTransientSlotDeclaration: src.
+	tree:: parseTransientSlotDeclaration: src.
 
 	^within: enclosingIR compileTransientSlotNoAdd: tree
 )
@@ -2460,6 +2343,144 @@ private createNestedClassAccessorFrom: nestedClassNode <ClassDeclarationAST | Mi
 	ast copyPositionFrom: nestedClassNode header.
 
 	^compileSyntheticMethod: ast
+)
+private createTransientSlotGetter: transientSlotNode <SlotDefAST> = (
+(* Build an AST for a method that would lazily create a execute the expression in a transient  slot, and cache it. The generated code has the form
+
+name = (
+	nil = self name`slot ifTrue:
+		[self init`name`slot: self name`init].
+	^self name`slot
+)
+
+*)
+	|
+	initMethodName
+	cacheSlotName
+	selector
+	cacheSlot
+	assignSlot
+	nilNode
+	nilCheck
+	block
+	if
+	return
+	initValue
+	method
+	|
+
+	selector:: transientSlotNode name.
+
+	initMethodName:: IntermediateTransientSlotDeclaration initMethodNameForTransientSlotNamed: selector.
+	cacheSlotName:: IntermediateTransientSlotDeclaration slotNameForTransientSlotNamed: selector.
+
+	cacheSlot:: UnresolvedSendAST new
+		to: selfNode
+		send: cacheSlotName with: {}.
+
+	initValue:: UnresolvedSendAST new
+		to: selfNode
+		send: initMethodName
+		with: {}.
+	initValue message copyPositionFrom: transientSlotNode initializer.
+
+	assignSlot:: UnresolvedSendAST new
+		to: selfNode
+		send: ('init`', cacheSlotName, ':') asSymbol
+		with: {initValue}.
+
+	nilNode:: UnresolvedSendAST new
+		to: hereNode
+		send: #nil
+		with: {}.
+	nilCheck:: UnresolvedSendAST new
+		to: nilNode
+		send: #=
+		with: {cacheSlot}.
+
+	block:: BlockAST new
+		body: (CodeBodyAST new
+			parameters: {}
+			temporaries: {}
+			statements: {assignSlot}).
+
+	if:: UnresolvedSendAST new
+		to: nilCheck
+		send: #ifTrue:
+		with: {block}.
+	return:: ReturnStatAST new expression: cacheSlot.
+
+	method:: MethodAST new
+		pattern: (MessagePatternAST new
+			accessModifier: transientSlotNode accessModifier;
+			selector: selector
+			parameters: {});
+		body: (CodeBodyAST new
+			parameters: {}
+			temporaries: {}
+			statements: {if. return});
+		copyPositionFrom: transientSlotNode.
+
+	^compileSyntheticMethod: method
+)
+private createTransientSlotInitializer: transientSlotNode <SlotDefAST> = (
+	| selector messagePattern body return method |
+	selector:: IntermediateTransientSlotDeclaration initMethodNameForTransientSlotNamed: transientSlotNode name.
+	messagePattern:: MessagePatternAST new
+		selector: selector;
+		accessModifier: #private;
+		parameters: {}.
+
+	return:: ReturnStatAST new
+		expression: transientSlotNode initializer;
+		copyPositionFrom: transientSlotNode initializer.
+
+	body:: CodeBodyAST new
+		parameters: {}
+		temporaries: {}
+		statements: (List new add: return; yourself).
+
+	method:: MethodAST new
+		pattern: messagePattern;
+		body: body;
+		copyPositionFrom: transientSlotNode.
+
+	^compileSyntheticMethod: method
+)
+private createTransientSlotSetter: transientSlotNode <SlotDefAST> = (
+	| cacheSlotName selector assignToSlot return newValueParameter parameterName parameter method |
+
+	selector:: transientSlotNode name.
+	cacheSlotName:: IntermediateTransientSlotDeclaration slotNameForTransientSlotNamed: selector.
+	parameterName:: #p1.
+
+	parameter:: UnresolvedSendAST new
+		to: hereNode
+		send: parameterName
+		with: {}.
+
+	assignToSlot:: UnresolvedSendAST new
+		to: selfNode
+		send: (cacheSlotName, ':') asSymbol
+		with: {parameter}.
+
+	return:: ReturnStatAST new
+		expression: assignToSlot.
+
+	newValueParameter:: VarDeclAST name: parameterName type: nil.
+
+	method:: MethodAST new
+		pattern: (MessagePatternAST new
+			accessModifier: transientSlotNode accessModifier;
+			selector: (selector, ':') asSymbol
+			parameters: {newValueParameter});
+		body: (CodeBodyAST new
+			parameters: {newValueParameter};
+			temporaries: List new;
+			statements: (List new add: return; yourself));
+			copyPositionFrom: transientSlotNode.
+
+	^compileSyntheticMethod: method
 )
 enclosingObjectTreeFor: c <ExpressionAST> ^ <NormalSendAST> = (
 	^UnresolvedSendAST new
@@ -2697,39 +2718,14 @@ private within: mixinIR <IntermediateMixin> compileTransientSlot: transientSlotN
 	mixinIR transientSlots add: (within: mixinIR compileTransientSlotNoAdd: transientSlotNode)
 )
 private within: enclosingIR <IntermediateMixin> compileTransientSlotNoAdd: tree <SlotDefAST> = (
-	| intermediateTS treeMainMethod mixinIR name initMethod mainMethod source |
-
-	mixinIR: enclosingIR.
-	name: tree name.
-	intermediateTS:: IntermediateTransientSlot new.
-	source:: sourceForNode: tree.
-
-	(* cache slot is created by IntermediateTransientSlot *)
-
-	(* init method *)
-	 astForTransientSlotInitializer: tree do:
-		[:treeInitMethod :newSource |
-		initMethod:: compileMethod: treeInitMethod.
-		initMethod isSynthetic: false.
-		initMethod source: newSource.
-		intermediateTS intermediateInitMethod: initMethod].
-
-	(* main method  *)
-	treeMainMethod:: astForTransientSlotGetter: tree.
-	mainMethod:: compileMethod: treeMainMethod.
-	mainMethod isSynthetic: false.
-	mainMethod source: source.
-	intermediateTS intermediateMainMethod: mainMethod.
-
-	(* setter Method*)
+	| transientSlotIR = IntermediateTransientSlotDeclaration new. |
+	transientSlotIR name: tree name.
+	transientSlotIR source: (sourceForNode: tree).
+	transientSlotIR initializer: (createTransientSlotInitializer: tree).
+	transientSlotIR getter: (createTransientSlotGetter: tree).
 	tree isMutable ifTrue:
-		[ | treeSetterMethod setterMethod |
-		treeSetterMethod:: astForTransientSlotSetter: tree.
-		setterMethod:: compileMethod: treeSetterMethod.
-		setterMethod isSynthetic: false.
-		intermediateTS intermediateSetterMethod: setterMethod].
-
-	^intermediateTS
+		[transientSlotIR setter: (createTransientSlotSetter: tree)].
+	^transientSlotIR
 )
 ) : (
 )
@@ -2809,6 +2805,9 @@ parseExpression: input <String> = (
 )
 parseMethodDeclaration: input <String> = (
 	^(Parser for: input) advanceToken parseMethodDeclarationEnd
+)
+parseTransientSlotDeclaration: input <String> = (
+	^(Parser for: input) advanceToken parseTransientSlotDeclarationEnd
 )
 ) : (
 )

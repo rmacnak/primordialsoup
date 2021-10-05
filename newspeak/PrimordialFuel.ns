@@ -442,33 +442,6 @@ public writeNodes = (
 )
 ) : (
 )
-class BehaviorCluster for: k = (|
-klass = k.
-numSlots = slotOf: k at: 6.
-objects = List new.
-|) (
-public analyze: object = (
-	objects add: object.
-
-	1 to: 4 do: [:index | enqueue: (slotOf: object at: index)].
-	(* Erase the cid *)
-	6 to: numSlots do: [:index | enqueue: (slotOf: object at: index)].
-)
-public writeEdges = (
-	writeRef: klass.
-	objects do:
-		[:object |
-		1 to: 4 do: [:index | writeRef: (slotOf: object at: index)].
-		writeRef: nil. (* Erase the cid *)
-		6 to: numSlots do: [:index | writeRef: (slotOf: object at: index)]].
-)
-public writeNodes = (
-	writeFormat: numSlots.
-	stream unsigned: objects size.
-	objects do: [:object | registerRef: object].
-)
-) : (
-)
 class ByteArrayCluster = (|
 objects = List new.
 |) (
@@ -604,22 +577,50 @@ public writeNodes = (
 )
 class RegularObjectCluster for: k = (|
 klass = k.
-numSlots = slotOf: k at: 6.
+slotFilter = computeSlotFilter: k.
 objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
 
-	1 to: numSlots do: [:index | enqueue: (slotOf: object at: index)].
+	1 to: slotFilter size do:
+		[:index | (slotFilter at: index) = 0 ifFalse:
+			[enqueue: (slotOf: object at: index)]].
+)
+computeSlotFilter: k <Behavior> = (
+	(* Answer a byte array describing which slots should be serialized. Transients slots and the class index should not be serialized. *)
+	| filter cursor cls instancesAreBehaviors ::= false. |
+	filter:: ByteArray new: (slotOf: k at: 6).
+	cursor:: filter size.
+	cls:: k.
+	[ | slots = (slotOf: cls at: 4) _slots. |
+	 slots size to: 1 by: -1 do:
+		[:index |
+		 filter at: cursor put: (transientFilter: (slots at: index)).
+		 cursor:: cursor - 1].
+	 cls:: slotOf: cls at: 1.
+	 nil = cls] whileFalse.
+	cursor = 0 ifFalse: [panic].
+
+	Metaclass = klass ifTrue: [instancesAreBehaviors:: true].
+	Metaclass = (classOf: klass) ifTrue: [instancesAreBehaviors:: true].
+	instancesAreBehaviors ifTrue: [filter at: 5 put: 0].
+	^filter
+)
+transientFilter: tuple = (
+	tuple size < 4 ifTrue: [^1].
+	^(tuple at: 4) ifTrue: [0] ifFalse: [1]
 )
 public writeEdges = (
+	| filter = slotFilter. |
 	writeRef: klass.
 	objects do:
-		[:object | 1 to: numSlots do:
-			[:index | writeRef: (slotOf: object at: index)]].
+		[:object | 1 to: filter size do:
+			[:index | writeRef: ((filter at: index) = 0 ifFalse:
+				[slotOf: object at: index])]].
 )
 public writeNodes = (
-	writeFormat: numSlots.
+	writeFormat: slotFilter size.
 	stream unsigned: objects size.
 	objects do: [:object | registerRef: object].
 )
@@ -706,7 +707,6 @@ createSpecialClassClusters = (
 
 	(* Eagerly create the class. Avoids the mixin's application set from reallocating its backing store between analysis and writing edges. *)
 	RegularObjectCluster.
-	BehaviorCluster.
 )
 enqueue: object = (
 	(refs at: object ifAbsentPutVal: 0) ifTrue: [stack add: object].
@@ -715,12 +715,9 @@ hasRef: object = (
 	^refs includesKey: object
 )
 newClusterForClass: klass = (
-	| instancesAreBehaviors ::= false. cluster |
+	| cluster |
 	enqueue: klass.
-
-	Metaclass = klass ifTrue: [instancesAreBehaviors:: true].
-	Metaclass = (classOf: klass) ifTrue: [instancesAreBehaviors:: true].
-	cluster:: (instancesAreBehaviors ifTrue: [BehaviorCluster] ifFalse: [RegularObjectCluster]) for: klass.
+	cluster:: RegularObjectCluster for: klass.
 	orderedClusters add: cluster.
 	^cluster
 )
@@ -809,7 +806,7 @@ replaceMethod: method = (
 		 newMethod bytecode: (canonicalize: method bytecode in: canonicalBytecode).
 		 newMethod mixin: method mixin.
 		 newMethod selector: method selector.
-		 newMethod source: (keepSource ifTrue: [method source] ifFalse: [nil = method source ifFalse: [0]]).
+		 newMethod source: (replaceSource: method source).
 		 newMethod]
 )
 replaceMixin: mixin = (
@@ -818,14 +815,24 @@ replaceMixin: mixin = (
 		 newMixin _name: mixin _name.
 		 newMixin _methods: mixin _methods.
 		 newMixin _enclosingMixin: mixin _enclosingMixin.
-		 newMixin _slots: (canonicalizeEmpty: mixin _slots).
+		 newMixin _slots: (canonicalizeEmpty: (mixin _slots collect: [:s | replaceSlot: s])).
 		 newMixin _nestedMixins: (canonicalizeEmpty: mixin _nestedMixins).
 		 newMixin _applications: mixin _applications.
 		 newMixin _classMixin: mixin _classMixin.
 		 newMixin _accessModifier: mixin _accessModifier.
 		 newMixin _primaryFactorySelector: mixin _primaryFactorySelector.
-		 newMixin _headerSource: (keepSource ifTrue: [mixin _headerSource]).
+		 newMixin _headerSource: (replaceSource: mixin _headerSource).
 		 newMixin]
+)
+replaceSlot: slot = (
+	| copy = Array withAll: slot. |
+	copy at: 5 put: (replaceSource: (copy at: 5)).
+	^copy
+)
+replaceSource: source = (
+	nil = source ifTrue: [^nil].
+	keepSource ifTrue: [^source].
+	^0
 )
 replaceSymbolTable = (
 	| newSymbolTable |

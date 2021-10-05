@@ -29,6 +29,10 @@ public testAccessModifiersFromClass = (
 			protected class ClassB = ()()
 			private class ClassC = ()()
 			class ClassD = ()()
+			public transient transientSlotA = nil.
+			protected transient transientSlotB = nil.
+			private transient transientSlotC = nil.
+			transient transientSlotD = nil.
 			public methodA = ()
 			protected methodB = ()
 			private methodC = ()
@@ -45,6 +49,10 @@ public testAccessModifiersFromClass = (
 	assert: (in: builder instanceSide nestedClasses findMirrorNamed: #ClassB) accessModifier equals: #protected.
 	assert: (in: builder instanceSide nestedClasses findMirrorNamed: #ClassC) accessModifier equals: #private.
 	assert: (in: builder instanceSide nestedClasses findMirrorNamed: #ClassD) accessModifier equals: #protected.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #transientSlotA) accessModifier equals: #public.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #transientSlotB) accessModifier equals: #protected.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #transientSlotC) accessModifier equals: #private.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #transientSlotD) accessModifier equals: #protected.
 	assert: (in: builder instanceSide methods findMirrorNamed: #methodA) accessModifier equals: #public.
 	assert: (in: builder instanceSide methods findMirrorNamed: #methodB) accessModifier equals: #protected.
 	assert: (in: builder instanceSide methods findMirrorNamed: #methodC) accessModifier equals: #private.
@@ -58,6 +66,10 @@ public testAccessModifiersFromSource = (
 			protected class ClassB = ()()
 			private class ClassC = ()()
 			class ClassD = ()()
+			public transient transientSlotA = nil.
+			protected transient transientSlotB = nil.
+			private transient transientSlotC = nil.
+			transient transientSlotD = nil.
 			public methodA = ()
 			protected methodB = ()
 			private methodC = ()
@@ -73,6 +85,10 @@ public testAccessModifiersFromSource = (
 	assert: (in: builder instanceSide nestedClasses findMirrorNamed: #ClassB) accessModifier equals: #protected.
 	assert: (in: builder instanceSide nestedClasses findMirrorNamed: #ClassC) accessModifier equals: #private.
 	assert: (in: builder instanceSide nestedClasses findMirrorNamed: #ClassD) accessModifier equals: #protected.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #transientSlotA) accessModifier equals: #public.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #transientSlotB) accessModifier equals: #protected.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #transientSlotC) accessModifier equals: #private.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #transientSlotD) accessModifier equals: #protected.
 	assert: (in: builder instanceSide methods findMirrorNamed: #methodA) accessModifier equals: #public.
 	assert: (in: builder instanceSide methods findMirrorNamed: #methodB) accessModifier equals: #protected.
 	assert: (in: builder instanceSide methods findMirrorNamed: #methodC) accessModifier equals: #private.
@@ -164,6 +180,34 @@ public testClassDeclAddSlot = (
 	assert: instance newSlot equals: 91.
 	instance newSlot: 101.
 	assert: instance newSlot equals: 101.
+)
+public testClassDeclAddTransientSlot = (
+	(* add a new transient slot *)
+	|
+	klass <Class>
+	instance
+	builder <ClassDeclarationBuilder>
+	|
+	klass:: classFromSource: 'class EmptyClass = ( | public counter ::= 0. | )()'.
+	instance:: klass new.
+	should: [instance foo] signal: MessageNotUnderstood.
+	should: [instance foo: 3] signal: MessageNotUnderstood.
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	builder instanceSide transientSlots addFromSource: 'public transient foo ::= counter:: counter + 1.'.
+	should: [instance foo] signal: MessageNotUnderstood.
+	should: [instance foo: 3] signal: MessageNotUnderstood.
+	builder install.
+	assert: instance counter equals: 0.
+	assert: instance foo equals: 1.
+	assert: instance foo equals: 1.
+	assert: instance counter equals: 1.
+	assert: (instance foo: 42) equals: instance.
+	assert: instance foo equals: 42.
+	assert: instance counter equals: 1.
+	assert: (instance foo: nil) equals: instance.
+	assert: instance counter equals: 1.
+	assert: instance foo equals: 2.
+	assert: instance counter equals: 2.
 )
 public testClassDeclApplications = (
 	(* Although access to applications and subclasses doesn't require builders, this is a builder test so we can create a fresh class and assert exactly the sets of application and subclasses.  Otherwise, there might be additional applications and subclasses from other test executions. *)
@@ -286,6 +330,49 @@ public testClassDeclModifySlot = (
 	assert: instance y equals: 0.
 	assert: instance z equals: nil.
 )
+public testClassDeclModifyTransientSlot = (
+	(* modify the declaration of an existing transient slot *)
+	|
+	klass <Class>
+	instance <Object>
+	builder <ClassDeclarationBuilder>
+	|
+	klass:: classFromSource: 'class TestClassDeclModifyTransientSlot = ( | public counter ::= 0. |)(
+		public transient x = counter:: counter + 1.
+		public transient y = counter:: counter + 10.
+		public transient z = counter:: counter + 100.
+	)'.
+	instance:: klass new.
+	assert: instance counter equals: 0.
+	assert: instance x equals: 1.
+	assert: instance counter equals: 1.
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	builder instanceSide transientSlots
+		addFromSource: 'public transient x = counter:: counter + 2.';
+		addFromSource: 'public transient y = counter:: counter + 20.';
+		addFromSource: 'public transient z = counter:: counter + 200.'.
+	assert: instance counter equals: 1.
+	assert: instance x equals: 1.
+	assert: instance counter equals: 1.
+	assert: instance y equals: 11.
+	assert: instance counter equals: 11.
+	builder install.
+	assert: instance counter equals: 11.
+	assert: instance x equals: 1.
+	assert: instance counter equals: 11.
+	assert: instance y equals: 11.
+	assert: instance counter equals: 11.
+	assert: instance z equals: 211.
+	assert: instance counter equals: 211.
+	instance:: klass new.
+	assert: instance counter equals: 0.
+	assert: instance x equals: 2.
+	assert: instance counter equals: 2.
+	assert: instance y equals: 22.
+	assert: instance counter equals: 22.
+	assert: instance z equals: 222.
+	assert: instance counter equals: 222.
+)
 public testClassDeclRemoveMethod = (
 	(* remove an existing method *)
 	|
@@ -360,7 +447,7 @@ public testClassDeclRemoveNonExistentMethod = (
 	|
 	klass:: classFromSource: 'class TestClassDeclRemoveMethod = ()(
 		foo = (^91)
-	      bar = (^42)
+		bar = (^42)
 	)'.
 	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
 	builder instanceSide methods removeMirrorNamed: #baz.
@@ -374,6 +461,19 @@ public testClassDeclRemoveNonExistentNestedClass = (
 	klass:: classFromSource: 'class TestClassDeclRemoveNonExistantNestedClass = ()()'.
 	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
 	builder instanceSide nestedClasses removeMirrorNamed: #Nested.
+)
+public testClassDeclRemoveNonExistentTransientSlot = (
+	(* remove a non-existing transient slot. The effect should be to do nothing, so our only goal here is to run without error *)
+	|
+	klass <Class>
+	builder <ClassDeclarationBuilder>
+	|
+	klass:: classFromSource: 'class TestClassDeclRemoveTransientSlot = ()(
+		transient foo ::= 91.
+		transient bar = 42.
+	)'.
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	builder instanceSide transientSlots removeMirrorNamed: #baz.
 )
 public testClassDeclRemoveSlot = (
 	(* remove an existing slot *)
@@ -396,6 +496,34 @@ public testClassDeclRemoveSlot = (
 	assert: instance x equals: 117.
 	assert: instance y equals: 0.
 	should: [instance z] signal: MessageNotUnderstood.
+)
+public testClassDeclRemoveTransientSlot = (
+	(* remove an existing transient slot *)
+	|
+	klass <Class>
+	instance
+	builder <ClassDeclarationBuilder>
+	|
+	klass:: classFromSource: 'class TestClassDeclRemoveTransientSlot = ()(
+		public transient foo ::= 91.
+		public transient bar = 42.
+	)'.
+	instance:: klass new.
+	assert: instance foo equals: 91.
+	instance foo: 77.
+	assert: instance foo equals: 77.
+	assert: instance bar equals: 42.
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	builder instanceSide transientSlots removeMirrorNamed: #foo.
+	builder instanceSide transientSlots removeMirrorNamed: #bar.
+	assert: instance foo equals: 77.
+	instance foo: 88.
+	assert: instance foo equals: 88.
+	assert: instance bar equals: 42.
+	builder install.
+	should: [instance foo] signal: MessageNotUnderstood.
+	should: [instance foo: nil] signal: MessageNotUnderstood.
+	should: [instance bar] signal: MessageNotUnderstood.
 )
 public testClassDeclRenameNested = (
 	|
@@ -543,11 +671,32 @@ public testClassDeclReplaceSlot = (
 	assert: instance z equals: nil.
 	assert: instance a equals: 120.
 )
+public testClassDeclReplaceTransientSlot = (
+	(* replace an existing transient slot *)
+	|
+	klass <Class>
+	instance
+	builder <ClassDeclarationBuilder>
+	|
+	klass:: classFromSource: 'class TestClassDeclReplaceTransientSlot = ()(
+		public transient foo = #before.
+	)'.
+	instance:: klass new.
+	assert: instance foo equals: #before.
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	builder instanceSide transientSlots addFromSource: 'public transient foo = #after.'.
+	instance:: klass new.
+	assert: instance foo equals: #before.
+	instance:: klass new.
+	builder install.
+	assert: instance foo equals: #after.
+)
 public testClassDeclSource = (
 	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)
 	|
 	headerSource
 	nestedHeaderSource
+	transientSlotSource
 	methodSource
 	klass <Class>
 	builder <ClassDeclarationBuilder>
@@ -563,23 +712,27 @@ public testClassDeclSource = (
 	nestedHeaderSource:: 'class Nested = (
 		| hest fisk |
 	)'.
+	transientSlotSource:: 'public transient x = init.'.
 	methodSource:: 'public main = ()'.
 
 	builder:: ClassDeclarationBuilder fromSource:
-		headerSource, '(', nestedHeaderSource, '()', methodSource, ')'.
+		headerSource, '(', nestedHeaderSource, '()', transientSlotSource, ' ', methodSource, ')'.
 	assert: (builder source indexOf: headerSource) > 0.
 	assert: (builder source indexOf: nestedHeaderSource) > 0.
+	assert: (builder source indexOf: transientSlotSource) > 0.
 	assert: (builder source indexOf: methodSource) > 0.
 
 	klass:: builder install applyToObject reflectee.
 	mirror:: ClassMirror reflecting: klass.
 	assert: (mirror mixin declaration source indexOf: headerSource) > 0.
 	assert: (mirror mixin declaration source indexOf: nestedHeaderSource) > 0.
+	assert: (mirror mixin declaration source indexOf: transientSlotSource) > 0.
 	assert: (mirror mixin declaration source indexOf: methodSource) > 0.
 
 	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
 	assert: (builder source indexOf: headerSource) > 0.
 	assert: (builder source indexOf: nestedHeaderSource) > 0.
+	assert: (builder source indexOf: transientSlotSource) > 0.
 	assert: (builder source indexOf: methodSource) > 0.
 )
 public testClassHeaderDeclaration = (
@@ -697,7 +850,15 @@ public testConflictingMethodOverSlot = (
 	should: [builder instanceSide methods addFromSource: 'foo = ()'] signal: conflictError.
 	should: [builder instanceSide methods addFromSource: 'foo: x = ()'] signal: conflictError.
 	should: [builder instanceSide methods addFromSource: 'bar = ()'] signal: conflictError.
-	builder instanceSide methods addFromSource: 'bar: x = ()'.
+	builder instanceSide methods addFromSource: 'bar: x = ()'.  (* No conflict *)
+)
+public testConflictingMethodOverTransientSlot = (
+	| builder |
+	builder:: ClassDeclarationBuilder fromSource: 'class Conflicted = ()( transient foo ::= 1. transient bar = 2. )'.
+	should: [builder instanceSide methods addFromSource: 'foo = ()'] signal: conflictError.
+	should: [builder instanceSide methods addFromSource: 'foo: x = ()'] signal: conflictError.
+	should: [builder instanceSide methods addFromSource: 'bar = ()'] signal: conflictError.
+	builder instanceSide methods addFromSource: 'bar: x = ()'.  (* No conflict *)
 )
 public testConflictingNestedClassFromRename = (
 	| builder nested |
@@ -735,6 +896,20 @@ public testConflictingNestedClassOverSlotFromRename = (
 	nested:: in: builder instanceSide nestedClasses findMirrorNamed: #Nested.
 	should: [nested name: #foo] signal: conflictError.
 )
+public testConflictingNestedClassOverTransientSlot = (
+	| builder |
+	builder:: ClassDeclarationBuilder fromSource: 'class Conflicted = ()( transient foo = 1. )'.
+	should: [builder instanceSide nestedClasses addFromSource: 'class foo = ()()'] signal: conflictError.
+)
+public testConflictingNestedClassOverTransientSlotFromRename = (
+	| builder nested |
+	builder:: ClassDeclarationBuilder fromSource: 'class Conflicted = ()(
+		class Nested = ()()
+		transient foo = 1.
+	)'.
+	nested:: in: builder instanceSide nestedClasses findMirrorNamed: #Nested.
+	should: [nested name: #foo] signal: conflictError.
+)
 public testConflictingSlotOverMethod = (
 	| builder |
 	builder:: ClassDeclarationBuilder fromSource: 'class Conflicted = ()(
@@ -748,6 +923,20 @@ public testConflictingSlotOverNestedClass = (
 		class foo = ()()
 	)'.
 	should: [builder header source: 'Conflicted = (| foo |)'] signal: conflictError.
+)
+public testConflictingTransientSlotOverMethod = (
+	| builder |
+	builder:: ClassDeclarationBuilder fromSource: 'class Conflicted = ()(
+		foo = ()
+	)'.
+	should: [builder instanceSide transientSlots addFromSource: 'transient foo = 1.'] signal: conflictError.
+)
+public testConflictingTransientSlotOverNestedClass = (
+	| builder |
+	builder:: ClassDeclarationBuilder fromSource: 'class Conflicted = ()(
+		class foo = ()()
+	)'.
+	should: [builder instanceSide transientSlots addFromSource: 'transient foo = 1.'] signal: conflictError.
 )
 public testEvaluateEmptyString = (
 	| thread |
@@ -765,7 +954,6 @@ public testEvaluateWithScope = (
 	assert: thread result reflectee equals: 40.
 )
 public testIncrementalScopeBuilding = (
-	(* add a new method *)
 	|
 	builder <ClassDeclarationBuilder>
 	klass <Class>
@@ -777,9 +965,11 @@ public testIncrementalScopeBuilding = (
 'class Outer = ( | public outerSlot = 1. | )(
 	public class Inner = ( | public innerSlot = 3. | )(
 		public class InnerInner = ()()
+		public transient innerTransientSlot = 6.
 		public innerMethod = (^4)
 	)
 	public class Sibling = ()()
+	public transient outerTransientSlot = 5.
 	public outerMethod = (^2)
 )'.
 	klass:: builder install applyToObject reflectee.
@@ -788,30 +978,31 @@ public testIncrementalScopeBuilding = (
 
 	(* Incremental eval *)
 	thread:: (ObjectMirror reflecting: inner) evaluate:
-		'{outer Outer. outerSlot. outerMethod. outer Inner. innerSlot. innerMethod. Inner. Sibling. InnerInner}'.
+		'{outer Outer. outerSlot. outerTransientSlot. outerMethod. outer Inner. innerSlot. innerTransientSlot. innerMethod. Inner. Sibling. InnerInner}'.
 	assert: thread isFulfilled.
-	assertList: thread result reflectee equals: {ooter. ooter outerSlot. ooter outerMethod. inner. inner innerSlot. inner innerMethod. ooter Inner. ooter Sibling. inner InnerInner.}.
+	assertList: thread result reflectee equals: {ooter. ooter outerSlot. ooter outerTransientSlot. ooter outerMethod. inner. inner innerSlot. inner innerTransientSlot. inner innerMethod. ooter Inner. ooter Sibling. inner InnerInner.}.
 
 	(* Incremental method *)
-	(in: builder instanceSide nestedClasses findMirrorNamed: #Inner) instanceSide methods addFromSource: 'public testMethod = (^{outer Outer. outerSlot. outerMethod. outer Inner. innerSlot. innerMethod. Inner. Sibling. InnerInner})'.
+	(in: builder instanceSide nestedClasses findMirrorNamed: #Inner) instanceSide methods addFromSource: 'public testMethod = (^{outer Outer. outerSlot. outerTransientSlot. outerMethod. outer Inner. innerSlot. innerTransientSlot. innerMethod. Inner. Sibling. InnerInner})'.
 	builder install.
-	assertList: inner testMethod equals: {ooter. ooter outerSlot. ooter outerMethod. inner. inner innerSlot. inner innerMethod. ooter Inner. ooter Sibling. inner InnerInner.}.
+	assertList: inner testMethod equals: {ooter. ooter outerSlot. ooter outerTransientSlot. ooter outerMethod. inner. inner innerSlot. inner innerTransientSlot. inner innerMethod. ooter Inner. ooter Sibling. inner InnerInner.}.
 
 	(* Incremental header *)
-	(in: builder instanceSide nestedClasses findMirrorNamed: #Inner) header source: 'public class Inner = ( | public innerSlot = 33. public testSlot = {outer Outer. outerSlot. outerMethod. outer Inner. innerSlot. innerMethod. Inner. Sibling. InnerInner}. |)'.
+	(in: builder instanceSide nestedClasses findMirrorNamed: #Inner) header source: 'public class Inner = ( | public innerSlot = 33. public testSlot = {outer Outer. outerSlot. outerTransientSlot. outerMethod. outer Inner. innerSlot. innerTransientSlot. innerMethod. Inner. Sibling. InnerInner}. |)'.
 	builder install.
 	inner:: ooter Inner new.
-	assertList: inner testSlot equals: {ooter. ooter outerSlot. ooter outerMethod. inner. inner innerSlot. inner innerMethod. ooter Inner. ooter Sibling. inner InnerInner.}.
+	assertList: inner testSlot equals: {ooter. ooter outerSlot. ooter outerTransientSlot. ooter outerMethod. inner. inner innerSlot. inner innerTransientSlot. inner innerMethod. ooter Inner. ooter Sibling. inner InnerInner.}.
 
 	(* Incremental nested class *)
 	builder instanceSide nestedClasses addFromSource: 'public class Inner2 = ( | public innerSlot = 333. | )(
 		public class InnerInner = ()()
+		public transient innerTransientSlot = 666.
 		public innerMethod = (^444)
-		public testMethod = (^{outer Outer. outerSlot. outerMethod. outer Inner2. innerSlot. innerMethod. Inner2. Sibling. InnerInner})
+		public testMethod = (^{outer Outer. outerSlot. outerTransientSlot. outerMethod. outer Inner2. innerSlot. innerTransientSlot. innerMethod. Inner2. Sibling. InnerInner})
 	)'.
 	builder install.
 	inner:: ooter Inner2 new.
-	assertList: inner testMethod equals: {ooter. ooter outerSlot. ooter outerMethod. inner. inner innerSlot. inner innerMethod. ooter Inner2. ooter Sibling. inner InnerInner.}.
+	assertList: inner testMethod equals: {ooter. ooter outerSlot. ooter outerTransientSlot. ooter outerMethod. inner. inner innerSlot. inner innerTransientSlot. inner innerMethod. ooter Inner2. ooter Sibling. inner InnerInner.}.
 )
 public testInstallAfterConflictErrorFactory = (
 	| klass builder |
@@ -854,6 +1045,16 @@ public testInstallAfterConflictErrorSlot = (
 	builder install.
 	assert: instance foo equals: 1. (* Unchanged. *)
 )
+public testInstallAfterConflictErrorTransientSlot = (
+	| klass instance builder |
+	klass:: classFromSource: 'class TestInstallAfterConflictErrorTransientSlot = ()( public transient foo = 1. )'.
+	instance:: klass new.
+	assert: instance foo equals: 1.
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	should: [builder header source: 'TestInstallAfterConflictErrorTransientSlot = (| foo |)'] signal: conflictError.
+	builder install.
+	assert: instance foo equals: 1. (* Unchanged. *)
+)
 public testInstallAfterSyntaxErrorHeader = (
 	| klass instance builder |
 	klass:: classFromSource: 'class TestInstallAfterSyntaxErrorHeader = (| public foo = 1. |)()'.
@@ -884,6 +1085,16 @@ public testInstallAfterSyntaxErrorNestedClass = (
 	should: [builder instanceSide nestedClasses addFromSource: 'class Nested = (;;syntax error;;)()'] signal: syntaxError.
 	builder install.
 	assert: klass new Nested foo equals: 1. (* Unchanged. *)
+)
+public testInstallAfterSyntaxErrorTransientSlot = (
+	| klass instance builder |
+	klass:: classFromSource: 'class TestInstallAfterSyntaxErrorTransientSlot = ()( public transient foo = 1. )'.
+	instance:: klass new.
+	assert: instance foo equals: 1.
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	should: [builder instanceSide transientSlots addFromSource: 'public transient foo = 2 ;;syntax error;;.'] signal: syntaxError.
+	builder install.
+	assert: instance foo equals: 1. (* Unchanged. *)
 )
 public testMethodMetadata = (
 	|
@@ -1025,6 +1236,42 @@ public testNewSlotSeenInSubclass = (
 	assert: instance oldSlot equals: 43.
 	assert: instance newSlot equals: 47.
 )
+public testNewTransientSlotSeenInSubclass = (
+	(* Note that the superclass and subclass must be part of separate modules. Otherwise this test will pass by virtue of the common enclosing class being dirty, and here we want to test that subclasses tracking is working. *)
+	|
+	Super <Class>
+	enclosing <Class>
+	klass <Class>
+	instance <Object>
+	builder <ClassDeclarationBuilder>
+	|
+	Super:: classFromSource: 'class Super = ()()'.
+	enclosing:: classFromSource: 'class Enclosing withSuper: s = ( | Super = s. | )(
+		public class Sub = Super ()( public transient oldSlot ::= 43. )
+	)'.
+	klass:: (enclosing withSuper: Super) Sub.
+	instance:: klass new.
+	assert: instance oldSlot equals: 43.
+	should: [instance newSlot] signal: MessageNotUnderstood.
+
+	builder:: (ClassMirror reflecting: klass) superclass mixin declaration asBuilder.
+	builder instanceSide transientSlots addFromSource: 'public transient newSlot ::= 47.'.
+
+	assert: instance oldSlot equals: 43.
+	should: [instance newSlot] signal: MessageNotUnderstood.
+
+	builder install.
+
+	assert: instance oldSlot equals: 43.
+	assert: instance newSlot equals: 47.
+	instance newSlot: 98.
+	assert: instance newSlot equals: 98.
+	assert: instance oldSlot equals: 43. (* Not aliased by newSlot. *)
+
+	instance:: klass new.
+	assert: instance oldSlot equals: 43.
+	assert: instance newSlot equals: 47.
+)
 public testShapeChangePreservesIdentityHash = (
 	|
 	klass <Class>
@@ -1079,6 +1326,8 @@ public testSourceKeepsLeadingComments = (
 
 	builder:: ClassDeclarationBuilder fromSource:
 		'  (* comment1 *) (* comment2 *) class C = () ()  '.
+	builder instanceSide transientSlots addFromSource:
+		'  (* comment1 *) (* comment2 *) transient slot = nil.  '.
 	builder instanceSide methods addFromSource:
 		'  (* comment1 *) (* comment2 *) method = ()  '.
 	klass:: builder install applyToObject reflectee.
@@ -1086,9 +1335,73 @@ public testSourceKeepsLeadingComments = (
 
 	assert: mirror mixin declaration header source equals:
 		'(* comment1 *) (* comment2 *) class C = ()'.
-
+	assert: (in: mirror mixin transientSlots findMirrorNamed: #slot) source equals:
+		'(* comment1 *) (* comment2 *) transient slot = nil.'.
 	assert: (in: mirror mixin methods findMirrorNamed: #method) source equals:
 		'(* comment1 *) (* comment2 *) method = ()'.
+)
+public testTransientSlotMetadata = (
+	|
+	transientSlotSource
+	klass <Class>
+	builder <ClassDeclarationBuilder>
+	mirror <ClassMirror>
+	metadata
+	|
+
+	transientSlotSource:: '(* :abc: xyz *) (* :abc *) (* :42: *) private transient foo = bar baz.'.
+
+	builder:: ClassDeclarationBuilder fromSource: 'class C = ()(', transientSlotSource, ')'.
+	metadata:: (in: builder instanceSide transientSlots findMirrorNamed: #foo) metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
+
+	klass:: builder install applyToObject reflectee.
+	mirror:: ClassMirror reflecting: klass.
+	metadata:: (in: mirror mixin transientSlots findMirrorNamed: #foo) metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
+
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	metadata:: (in: builder instanceSide transientSlots findMirrorNamed: #foo) metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
+)
+public testTransientSlotSource = (
+	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)
+	|
+	transientSlotSource
+	klass <Class>
+	builder <ClassDeclarationBuilder>
+	mirror <ClassMirror>
+	|
+
+	transientSlotSource:: 'private transient foo = bar baz.'.
+
+	builder:: ClassDeclarationBuilder fromSource: 'class C = ()(', transientSlotSource, ')'.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #foo) source equals: transientSlotSource.
+
+	klass:: builder install applyToObject reflectee.
+	mirror:: ClassMirror reflecting: klass.
+	assert: (in: mirror mixin transientSlots findMirrorNamed: #foo) source equals: transientSlotSource.
+
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	assert: (in: builder instanceSide transientSlots findMirrorNamed: #foo) source equals: transientSlotSource.
 )
 ) : (
 TEST_CONTEXT = ()
@@ -1105,14 +1418,14 @@ public testHeapSize = (
 	assert: large > small.
 )
 public testInstances = (
-	(* Although access to instances require builders, this is a builder test so we can create a fresh class and assert exactly the set instances. Otherwise, there might be additional instances from other test executions. *)
+	(* Although access to instances doesn't require builders, this is a builder test so we can create a fresh class and assert exactly the set instances. Otherwise, there might be additional instances from other test executions. *)
 	| Foo instance instances |
 	Foo:: (ClassDeclarationBuilder fromSource: 'class Foo = ()()') install applyToObject reflectee.
 	instance:: Foo new.
 	instances:: (ClassMirror reflecting: Foo) instances reflectee.
 	assertSet: instances equals: {instance}.
 )
-public testReferingObjects = (
+public testReferringObjects = (
 	| Foo referer referent referers foundReferer |
 	Foo:: (ClassDeclarationBuilder fromSource: 'class Foo = (| public x public y public z public w |)()') install applyToObject reflectee.
 	referent:: Object new.

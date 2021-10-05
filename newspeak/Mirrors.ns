@@ -80,7 +80,28 @@ private computeDebugInfo = (
 		 (isSubinitializerSelector: rawMethod selector) ifTrue:
 			[^(compiler
 				compileClassHeader2: rawMethod mixin _headerSource
-				within: (mxn: definingMixin _enclosingMixin)) initializers first debugInfo]].
+				within: (mxn: definingMixin _enclosingMixin)) initializers first debugInfo].
+		 (* Transient slot getter / setter / initializer *)
+		 definingMixin _slots do:
+			[:tuple | (isTransient: tuple) ifTrue:
+				[ |
+				  getterName = demangleTransientSlotName: (tuple at: 1).
+				  setterName = getterName, ':'.
+				  initName = getterName, '`init'.
+				  source = tuple at: 5.
+				  |
+				rawMethod selector = getterName ifTrue:
+					[^(compiler
+						compileTransientSlotSource: source
+						within: (mxn: definingMixin)) getter debugInfo].
+				rawMethod selector = setterName ifTrue:
+					[^(compiler
+						compileTransientSlotSource: source
+						within: (mxn: definingMixin)) setter debugInfo].
+				rawMethod selector = initName ifTrue:
+					[^(compiler
+						compileTransientSlotSource: source
+						within: (mxn: definingMixin)) initializer debugInfo]]]].
 
 	(* Factory *)
 	definingMixin isMeta ifTrue:
@@ -155,7 +176,31 @@ public method ^<MethorMirror> = (
 			[^SyntheticMethodMirror
 				reflecting: rawMethod
 				name: definingMixin _primaryFactorySelector
-				source: definingMixin _headerSource]].
+				source: definingMixin _headerSource].
+		 (* Transient slot getter / setter / initializer *)
+		 definingMixin _slots do:
+			[:tuple | (isTransient: tuple) ifTrue:
+				[ |
+				  getterName = demangleTransientSlotName: (tuple at: 1).
+				  setterName = getterName, ':'.
+				  initName = getterName, '`init'.
+				  source = tuple at: 5.
+				  |
+				rawMethod selector = getterName ifTrue:
+					[^SyntheticMethodMirror
+						reflecting: rawMethod
+						name: getterName
+						source: source].
+				rawMethod selector = setterName ifTrue:
+					[^SyntheticMethodMirror
+						reflecting: rawMethod
+						name: setterName
+						source: source].
+				rawMethod selector = initName ifTrue:
+					[^SyntheticMethodMirror
+						reflecting: rawMethod
+						name: getterName
+						source: source]]]].
 
 	(* Factory *)
 	definingMixin isMeta ifTrue:
@@ -369,7 +414,7 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	mixin _classMixin: classMixin.
 	mixin _methods: (methodDictionaryFor: mixin from: classDecl instanceSide).
 	mixin _slots: (classDecl instanceSide assembleSlots collect:
-		[:s <IntermediateSlotDeclaration> | {s name. s isMutable. s accessModifier}]) asArray.
+		[:s <IntermediateSlotDeclaration> | {s name. s isMutable. s accessModifier. s isTransient. s metadata}]) asArray.
 
 	classMixin _instanceMixin: mixin.
 	classMixin _methods: (methodDictionaryFor: classMixin from: classDecl classSide).
@@ -569,6 +614,8 @@ private to: sb writeClassDeclaration: declIR = (
 	sb writeln: ' ('.
 	declIR instanceSide nestedClasses do:
 		[:nestedIR | to: sb writeClassDeclaration: nestedIR].
+	declIR instanceSide transientSlots do:
+		[:transientSlot | sb writeln: transientSlot source].
 	declIR instanceSide methods do:
 		[:method | sb writeln: method source].
 	sb writeln: ') : ('.
@@ -652,6 +699,9 @@ private to: sb writeClassDeclaration: instanceMixin = (
 	sb writeln: ' ('.
 	instanceMixin _nestedMixins do:
 		[:nestedMixin | to: sb writeClassDeclaration: nestedMixin].
+	instanceMixin _slots do:
+		[:slot | (isTransient: slot) ifTrue:
+			[sb writeln: (slot at: 5)]].
 	instanceMixin _methods do:
 		[:method | method isSynthetic ifFalse:
 			[sb writeln: method source]].
@@ -910,6 +960,25 @@ public superclass ^<ClassMirror> = (
 	nil = s ifTrue: [^nil].
 	^ClassMirror reflecting: s
 )
+public transientSlots ^<Collection[TransientSlotDeclarationMirror]> = (
+	| cls <Behavior> classes result <Collection[TransientSlotDeclarationMirror]> |
+	cls:: reflectee.
+	classes:: List new.
+	result:: List new.
+	[nil = cls] whileFalse:
+		[classes add: cls.
+		cls:: superclassOf: cls].
+	classes size to: 1 by: -1 do:
+		[:index |
+		cls:: classes at: index.
+		(mixinOf: cls) _slots do:
+			[:slotDescriptor |
+			(isTransient: slotDescriptor) ifTrue:
+				[result add: (TransientSlotDeclarationMirror
+					descriptor: slotDescriptor
+					mixin: self mixin)]]].
+	^MirrorGroup wrapping: result
+)
 ) : (
 )
 private class InstructionStream = (
@@ -1161,6 +1230,7 @@ private intermediate <IntermediateMixin> = ir.
 private methodsX
 private nestedClassesX
 private slotsX
+private transientSlotsX
 |) (
 public declaration ^<ClassDeclarationBuilder> = (
 	^intermediate declaration builder
@@ -1182,6 +1252,11 @@ public slots = (
 	nil = slotsX ifTrue:
 		[slotsX:: MutableSlotGroup fromIntermediate: intermediate].
 	^slotsX
+)
+public transientSlots = (
+	nil = transientSlotsX ifTrue:
+		[transientSlotsX:: MutableTransientSlotGroup fromIntermediate: intermediate].
+	^transientSlotsX
 )
 ) : (
 )
@@ -1261,6 +1336,15 @@ public slots ^<Collection[SlotDeclarationMirror]> = (
 				name: slotName
 				isMutable: isMutable
 				accessModifier: accessModifier
+				mixin: self)]].
+	^MirrorGroup wrapping: results
+)
+public transientSlots ^<Collection[TransientSlotDeclarationMirror]> = (
+	| results = List new. |
+	mixin _slots do: [:slotDescriptor |
+		(isTransient: slotDescriptor) ifTrue:
+			[results add: (TransientSlotDeclarationMirror
+				descriptor: slotDescriptor
 				mixin: self)]].
 	^MirrorGroup wrapping: results
 )
@@ -1358,6 +1442,41 @@ public do: action = (
 )
 protected newForCollectUsingAdd: capacity = (
 	^List new: capacity
+)
+) : (
+)
+private class MutableTransientSlotGroup fromIntermediate: ir = Collection (|
+private intermediate <IntermediateMixin> = ir.
+|) (
+public addFromSource: source <String> = (
+	|
+	islot <IntermediateTransientSlotDeclaration>
+	|
+	islot:: compiler
+		compileTransientSlotSource: source
+		within: intermediate builder.
+
+	intermediate checkNameConflictsForTransientSlot: islot name mutable: islot isMutable.
+
+	intermediate transientSlots removeAllSuchThat:
+		[:ea | ea name = islot name].
+	intermediate transientSlots add: islot.
+
+	^TransientSlotDeclarationBuilder reflecting: islot in: intermediate builder
+)
+public do: action = (
+	intermediate transientSlots do:
+		[:intermediateSlot |
+		action value: (TransientSlotDeclarationBuilder
+			reflecting: intermediateSlot
+			in: intermediate builder)].
+)
+protected newForCollectUsingAdd: capacity = (
+	^List new: capacity
+)
+public removeMirrorNamed: name <Symbol> = (
+	intermediate transientSlots removeAllSuchThat:
+		[:islot | islot name = name].
 )
 ) : (
 )
@@ -2301,6 +2420,69 @@ public terminate ^<ThreadMirror> = (
 )
 ) : (
 )
+private class TransientSlotDeclarationBuilder reflecting: ir in: builder = (|
+private intermediate = ir.
+public definingMixin = builder.
+|) (
+public accessModifier = (
+	^intermediate accessModifier
+)
+public isMutable = (
+	^intermediate isMutable
+)
+public metadata ^<Array[Metadata]> = (
+	^metadataFrom: source
+)
+public name = (
+	^intermediate name
+)
+public source ^<String> = (
+	^intermediate source
+)
+) : (
+)
+private class TransientSlotDeclarationMirror descriptor: d mixin: mxn = (|
+private descriptor = d.
+public definingMixin = mxn.
+|) (
+public accessModifier ^<Symbol> = (
+	(* Not `descriptor at: 3`, which is always private to prevent overrides. *)
+	^getter accessModifier
+)
+private getter ^<Method> = (
+	| getterSelector = name. |
+	^mixin _methods detect: [:method | method selector = getterSelector]
+)
+private initializer ^<Method> = (
+	| initializerSelector = name , '`init'. |
+	^mixin _methods detect: [:method | method selector = initializerSelector]
+)
+public isKindOfTransientSlotDeclarationMirror ^<Boolean> = (
+	^true
+)
+public isMutable ^<Boolean> = (
+	^descriptor at: 2
+)
+public literals ^<Set[Object]> = (
+	^(Printer for: initializer) literals
+)
+public metadata ^<Array[Metadata]> = (
+	^metadataFrom: source
+)
+private mixin ^<InstanceMixin> = (
+	^reflectees at: definingMixin
+)
+public name ^<Symbol> = (
+	^demangleTransientSlotName: (descriptor at: 1)
+)
+public selectors ^<Set[String]> = (
+	^(Printer for: initializer) selectors
+)
+public source ^<String> = (
+	^descriptor at: 5
+)
+) : (
+)
 private allInstancesOf: cls = (
 	(* :literalmessage: primitive: 96 *)
 	panic.
@@ -2355,7 +2537,16 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 		slot isMutable: (tuple at: 2).
 		slot accessModifier: (tuple at: 3).
 		(isSyntheticSlotSelector: slot name) ifFalse:
-			[i slots add: slot]].
+			[i slots add: slot].
+		(isTransient: tuple) ifTrue:
+			[ | slot = intermediates IntermediateTransientSlotDeclaration new. |
+			slot name: (demangleTransientSlotName: (tuple at: 1)).
+			slot source: (tuple at: 5).
+			slot getter: (buildIntermediateMethod: slot name within: mixin).
+			slot setter: (buildIntermediateMethod: slot name, ':' within: mixin).
+			slot initializer: (buildIntermediateMethod: slot name, '`init' within: mixin).
+			i transientSlots add: slot].
+		].
 
 	mixin _nestedMixins do:
 		[:nestedMixin <InstanceMixin> |
@@ -2386,6 +2577,17 @@ buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClass
 	buildIntermediate: i instanceSide from: mixin within: i.
 	buildIntermediate: i classSide from: mixin _classMixin within: i.
 	^i
+)
+buildIntermediateMethod: selector within: mixin <InstanceMixin> = (
+	| method methodIR |
+	method:: mixin _methods detect: [:ea | ea selector = selector] ifNone: [^nil].
+	methodIR:: intermediates IntermediateMethod new.
+	methodIR method: method.
+	methodIR methodMixin: mixin.
+	methodIR selector: selector.
+	methodIR accessModifier: method accessModifier.
+	methodIR isSynthetic: true.
+	^methodIR
 )
 private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
@@ -2427,6 +2629,10 @@ private currentActivation ^<Activation> = (
 private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
 	panic.
+)
+private demangleTransientSlotName: name = (
+	(name endsWith: '`slot') ifFalse: [panic].
+	^(name copyFrom: 1 to: name size - 5) asSymbol
 )
 private elementsOf: old forwardIdentityToElementsOf: new = (
 	(* :literalmessage: primitive: 98 *)
@@ -2475,6 +2681,10 @@ private isSubinitializerSelector: selector = (
 )
 private isSyntheticSlotSelector: selector = (
 	^selector endsWith: '`slot'
+)
+private isTransient: tuple = (
+	tuple size < 4 ifTrue: [^false].
+	^tuple at: 4
 )
 private metadataFrom: source <String> ^<Array[Metadata]> = (
 	nil = source ifTrue: [^nil].
