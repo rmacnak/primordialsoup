@@ -582,29 +582,6 @@ public testClassDeclSource = (
 	assert: (builder source indexOf: nestedHeaderSource) > 0.
 	assert: (builder source indexOf: methodSource) > 0.
 )
-public testClassHeaderComment = (
-	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)
-	|
-	comment
-	headerSource
-	klass <Class>
-	builder <ClassDeclarationBuilder>
-	mirror <ClassMirror>
-	|
-
-	comment:: ' This is the (* nested *) comment. '.
-	headerSource:: '(*', comment, '*) class Foo = ()'.
-
-	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
-	assert: builder header comment equals: comment.
-
-	klass:: builder install applyToObject reflectee.
-	mirror:: ClassMirror reflecting: klass.
-	assert: mirror mixin declaration header comment equals: comment.
-
-	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
-	assert: builder header comment equals: comment.
-)
 public testClassHeaderDeclaration = (
 	|
 	builder <ClassDeclarationBuilder>
@@ -620,6 +597,48 @@ public testClassHeaderFactoryName = (
 
 	builder:: ClassDeclarationBuilder fromSource: 'class Foo foo: x = ()()'.
 	assert: builder header primaryFactorySelector equals: 'foo:'.
+)
+public testClassHeaderMetadata = (
+	|
+	headerSource
+	klass <Class>
+	builder <ClassDeclarationBuilder>
+	mirror <ClassMirror>
+	metadata
+	|
+
+	headerSource:: '(* :abc: xyz *) (* :abc *) (* :42: *) class Foo = ()'.
+
+	builder:: ClassDeclarationBuilder fromSource: headerSource, '()'.
+	metadata:: builder header metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
+
+	klass:: builder install applyToObject reflectee.
+	mirror:: ClassMirror reflecting: klass.
+	metadata::  mirror mixin declaration header metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
+
+	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
+	metadata:: builder header metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
 )
 public testClassHeaderName = (
 	|
@@ -866,30 +885,49 @@ public testInstallAfterSyntaxErrorNestedClass = (
 	builder install.
 	assert: klass new Nested foo equals: 1. (* Unchanged. *)
 )
-public testMethodComment = (
-	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)
+public testMethodMetadata = (
 	|
-	comment
 	methodSource
 	klass <Class>
 	builder <ClassDeclarationBuilder>
 	mirror <ClassMirror>
+	metadata
 	|
 
-	comment:: ' This is the (* nested *) comment. '.
-	methodSource:: '(*', comment, '*) private foo = (
+	methodSource:: '(* :abc: xyz *) (* :abc *) (* :42: *) private foo = (
 		^bar baz
 	)'.
 
 	builder:: ClassDeclarationBuilder fromSource: 'class C = ()(', methodSource, ')'.
-	assert: (in: builder instanceSide methods findMirrorNamed: #foo) comment equals: comment.
+	metadata:: (in: builder instanceSide methods findMirrorNamed: #foo) metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
 
 	klass:: builder install applyToObject reflectee.
 	mirror:: ClassMirror reflecting: klass.
-	assert: (in: mirror mixin methods findMirrorNamed: #foo) comment equals: comment.
+	metadata:: (in: mirror mixin methods findMirrorNamed: #foo) metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
 
 	builder:: (ClassMirror reflecting: klass) mixin declaration asBuilder.
-	assert: (in: builder instanceSide methods findMirrorNamed: #foo) comment equals: comment.
+	metadata:: (in: builder instanceSide methods findMirrorNamed: #foo) metadata.
+	assert: metadata size equals: 3.
+	assert: (metadata at: 1) tag equals: 'abc'.
+	assert: (metadata at: 1) payload equals: ' xyz '.
+	assert: (metadata at: 2) tag equals: nil.
+	assert: (metadata at: 2) payload equals: ' :abc '.
+	assert: (metadata at: 3) tag equals: nil.
+	assert: (metadata at: 3) payload equals: ' :42: '.
 )
 public testMethodSource = (
 	(* Note: We preserve exact class headers and methods, but not whole class declarations. *)

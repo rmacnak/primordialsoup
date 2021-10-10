@@ -1159,6 +1159,43 @@ public keepComment = (
 	skipComment ifFalse: [^nil].
 	^input copyFrom: commentStart + 2 to: position - 1 - 2
 )
+private keepComment: comments = (
+	| tag payloadStart payloadEnd |
+	position + 1 <= size ifFalse: [^self].
+	(input at: position) = 40 (* ( *) ifFalse: [^self].
+	(input at: position + 1) = 42 (* * *) ifFalse: [^self].
+	position:: position + 2.
+
+	tag:: scanMetadataTag.
+	payloadStart:: position.
+
+	[position + 1 <= size] whileTrue:
+		[(* End of comment. *)
+		(input at: position) = 42 (* * *) ifTrue:
+			[(input at: position + 1) = 41 (* ) *) ifTrue:
+				[payloadEnd:: position - 1.
+				 position: position + 2.
+				 comments add: {tag. input copyFrom: payloadStart to: payloadEnd}.
+				 ^self]].
+
+		(* Nested comment. *)
+		(input at: position) = 40 (* ( *) ifTrue:
+			[(input at: position + 1) = 42 (* * *) ifTrue:
+				[skipComment.
+				 position:: position - 1]].
+
+		position:: position + 1].
+
+	scanError: 'Unterminated comment'
+)
+public keepComments = (
+	| result = List new. |
+	[ | p = position. |
+	 skipWhitespace.
+	 keepComment: result.
+	 p = position] whileFalse.
+	^result
+)
 private peekHasRadix = (
 	position + 1 <= size ifFalse: [^false].
 	(input at: position) = 114 ifFalse: [^false].
@@ -1265,6 +1302,38 @@ private scanMaybeFraction: radix <Integer> ^<Fraction> = (
 			 position:: position + 1].
 
 	^numerator / denominator
+)
+scanMetadataTag = (
+	|
+	pos ::= position.
+	in = input.
+	sz = size.
+	startTag
+	endTag
+	|
+
+	[pos <= sz
+		ifFalse: [false]
+		ifTrue: [(in at: pos) <= 32]] whileTrue:
+			[pos:: pos + 1].
+
+	pos <= sz ifFalse: [^nil].
+	(in at: pos) = 58 (* : *) ifFalse: [^nil].
+	pos:: pos + 1.
+
+	(isLetterOrUnderscore: (in at: pos)) ifFalse: [^nil].
+	startTag:: pos.
+	pos:: pos + 1.
+	[pos <= sz
+		ifFalse: [false]
+		ifTrue: [isAlphanumOrUnderscore: (in at: pos)]] whileTrue:
+			[pos:: pos + 1].
+	endTag:: pos - 1.
+
+	pos <= sz ifFalse: [^nil].
+	(in at: pos) = 58 (* : *) ifFalse: [^nil].
+	position:: pos + 1.
+	^in copyFrom: startTag to: endTag
 )
 private scanNumber = (
 	(* '-'? decdigits+ [. decdigits?] ['e' '-'?' decdigit+] *)
@@ -1384,20 +1453,16 @@ private skipComment = (
 	scanError: 'Unterminated comment'
 )
 protected skipWhitespace = (
-	[position <= input size] whileTrue:
+	[position <= size] whileTrue:
 		[(input at: position) <= 32 ifFalse: [^self].
 		 position:: position + 1].
 )
 private skipWhitespaceAndComments = (
-	| outerLoopPosition ::= 0. |
 	extendedStart:: nil.
-	[outerLoopPosition = position] whileFalse:
-		[outerLoopPosition:: position.
-		 [position <= input size
-			ifFalse: [false]
-			ifTrue: [(input at: position) <= 32]]
-				whileTrue: [position:: position + 1].
-		 skipComment].
+	[ | p = position. |
+	 skipWhitespace.
+	 skipComment.
+	 p = position] whileFalse.
 	nil = extendedStart ifTrue:
 		[extendedStart:: position].
 )

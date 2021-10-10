@@ -675,12 +675,11 @@ private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> 
 
 	intermediate classSide checkNameConflictsForFactory: newIntermediate factoryName.
 )
-public comment ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^leadingComment: source
-)
 public declaration ^<ClassDeclarationBuilder> = (
 	^intermediate builder
+)
+public metadata ^<Array[Metadata]> = (
+	^metadataFrom: source
 )
 public name ^<String> = (
 	^intermediate name
@@ -757,10 +756,6 @@ public = other ^<Boolean> = (
 	(mixin = (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfClassHeaderMirror
 )
-public comment ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^leadingComment: source
-)
 public hash ^<Integer> = (
 	^mixin hash bitXor: class hash
 )
@@ -773,6 +768,9 @@ public isKindOfClassHeaderMirror ^<Boolean> = (
 )
 public literals ^<Set[Object]> = (
 	^(Printer for: initializer) literals
+)
+public metadata ^<Array[Metadata]> = (
+	^metadataFrom: source
 )
 public name = (
 	^mixin _name
@@ -1071,6 +1069,14 @@ literalAt: offset = (
 )
 ) : (
 )
+class Metadata tag: t payload: p = (
+	|
+	public tag <String> = t.
+	public payload <String> = p.
+	|
+) (
+) : (
+)
 private class MethodBuilder reflecting: ir in: builder = (|
 private intermediate = ir.
 public definingMixin = builder.
@@ -1078,9 +1084,8 @@ public definingMixin = builder.
 public accessModifier = (
 	^intermediate accessModifier
 )
-public comment ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^leadingComment: source
+public metadata ^<Array[Metadata]> = (
+	^metadataFrom: source
 )
 public name = (
 	^intermediate selector
@@ -1100,10 +1105,6 @@ public = other ^<Boolean> = (
 public accessModifier ^<Symbol> = (
 	^method accessModifier
 )
-public comment ^<String> = (
-	(* :todo: This is pretty sugary; does it belong in mirrors? *)
-	^leadingComment: source
-)
 public definingMixin ^<MixinMirror> = (
 	^MixinMirror reflecting: method mixin
 )
@@ -1115,6 +1116,9 @@ public isKindOfMethodMirror ^<Boolean> = (
 )
 public literals ^<Set[Object]> = (
 	^(Printer for: method) literals
+)
+public metadata ^<Array[Metadata]> = (
+	^metadataFrom: source
 )
 public name = (
 	^method selector
@@ -2472,9 +2476,10 @@ private isSubinitializerSelector: selector = (
 private isSyntheticSlotSelector: selector = (
 	^selector endsWith: '`slot'
 )
-private leadingComment: source <String> ^<String> = (
+private metadataFrom: source <String> ^<Array[Metadata]> = (
 	nil = source ifTrue: [^nil].
-	^(parsing Parser for: source) keepComment
+	^(parsing Parser for: source) keepComments asArray
+		collect: [:tuple | Metadata tag: (tuple at: 1) payload: (tuple at: 2)]
 )
 private methodsOf: behavior = (
 	^self slotOf: behavior at: 2
