@@ -2355,22 +2355,22 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 
 	mixin _nestedMixins do:
 		[:nestedMixin <InstanceMixin> |
-		|
-		nestedIR <IntermediateClassDeclaration>
+		i nestedClasses add: (buildIntermediateFor: nestedMixin within: ec)].
+
+	nil = mixin _enclosingMixin ifFalse:
+		[ |
+		name = i declaration name.
 		accessorM <Method>
 		accessorIR <IntermediateMethod>
 		|
-		nestedIR:: buildIntermediateFor: nestedMixin within: ec.
-		i nestedClasses add: nestedIR.
-
-		accessorM:: mixin _methods detect: [:ea | ea selector = nestedIR name].
+		accessorM:: mixin _enclosingMixin _methods detect: [:ea | ea selector = name].
 		accessorIR:: intermediates IntermediateMethod new.
 		accessorIR method: accessorM.
 		accessorIR methodMixin: mixin.
-		accessorIR selector: nestedIR name.
+		accessorIR selector: name.
 		accessorIR accessModifier: accessorM accessModifier.
 		accessorIR isSynthetic: true.
-		nestedIR accessor: accessorIR].
+		i declaration accessor: accessorIR].
 )
 buildIntermediateFor: mixin <InstanceMixin> within: ec <ICD> ^<IntermediateClassDeclaration> = (
 	| i = intermediates IntermediateClassDeclaration new. |

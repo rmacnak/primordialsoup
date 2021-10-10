@@ -308,6 +308,32 @@ public testClassDeclRemoveMethod = (
 	should: [instance foo] signal: MessageNotUnderstood.
 	assert: instance bar equals: 42.
 )
+public testClassDeclRemoveMethodFromNested = (
+	(* remove an existing method *)
+	|
+	Outer <Class>
+	Inner
+	instance
+	builder <ClassDeclarationBuilder>
+	|
+	Outer:: classFromSource: 'class Outer = ()(
+		public class Inner = ()(
+			public foo = (^91)
+			public bar = (^42)
+		)
+	)'.
+	Inner:: Outer new Inner.
+	instance:: Inner new.
+	assert: instance foo equals: 91.
+	assert: instance bar equals: 42.
+	builder:: (ClassMirror reflecting: Inner) mixin declaration asBuilder.
+	builder instanceSide methods removeMirrorNamed: #foo.
+	assert: instance foo equals: 91.
+	assert: instance bar equals: 42.
+	builder install.
+	should: [instance foo] signal: MessageNotUnderstood.
+	assert: instance bar equals: 42.
+)
 public testClassDeclRemoveNestedClass = (
 	(* remove an existing nested class *)
 	|
