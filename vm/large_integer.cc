@@ -1569,4 +1569,63 @@ bool LargeInteger::FromDouble(double raw_value, Object* result, Heap* H) {
   return true;
 }
 
+bool LargeInteger::AsUint64(Object integer, uint64_t* result) {
+  if (integer->IsSmallInteger()) {
+    intptr_t value = static_cast<SmallInteger>(integer)->value();
+    if (value < 0) {
+      return false;
+    }
+    *result = value;
+    return true;
+  } else if (integer->IsMediumInteger()) {
+    int64_t value = static_cast<MediumInteger>(integer)->value();
+    if (value < 0) {
+      return false;
+    }
+    *result = value;
+    return true;
+  } else if (integer->IsLargeInteger()) {
+    LargeInteger large = static_cast<LargeInteger>(integer);
+    if (large->negative()) {
+      return false;
+    }
+    intptr_t kDigits = sizeof(uint64_t) * kBitsPerByte / kDigitBits;
+    if (large->size() > kDigits) {
+      return false;
+    }
+    uint64_t value = 0;
+    for (intptr_t i = large->size() - 1; i >= 0; i--) {
+      value <<= kDigitShift;
+      value |= large->digit(i);
+    }
+    *result = value;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+Object LargeInteger::FromUint64(uint64_t raw_value, Heap* H) {
+  if (raw_value < SmallInteger::kMaxValue) {
+    return SmallInteger::New(raw_value);
+  } else if (raw_value < MediumInteger::kMaxValue) {
+    MediumInteger medium = H->AllocateMediumInteger();  // SAFEPOINT
+    medium->set_value(raw_value);
+    return medium;
+  } else {
+    intptr_t kDigits = sizeof(uint64_t) * kBitsPerByte / kDigitBits;
+    LargeInteger large = H->AllocateLargeInteger(kDigits);
+    for (intptr_t i = 0; i < kDigits; i++) {
+      large->set_digit(i, raw_value & kDigitMask);
+      raw_value = raw_value >> kDigitShift;
+    }
+    large->set_negative(false);
+    large->set_size(kDigits);
+    Clamp(large);
+    Verify(large);
+    return large;
+  }
+}
+
+
 }  // namespace psoup

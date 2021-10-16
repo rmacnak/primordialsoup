@@ -413,6 +413,9 @@ class LargeInteger : public HeapObject {
   static double AsDouble(LargeInteger integer);
   static bool FromDouble(double raw_value, Object* result, Heap* H);
 
+  static bool AsUint64(Object integer, uint64_t* result);
+  static Object FromUint64(uint64_t raw_value, Heap* H);
+
   inline bool negative() const;
   inline void set_negative(bool v);
   inline intptr_t size() const;

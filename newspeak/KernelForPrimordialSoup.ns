@@ -421,12 +421,60 @@ public endsWith: suffix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 118 *)
 	^(ArgumentError value: suffix) signal
 )
+public float32At: offset <Integer> ^<Float> = (
+	(* :literalmessage: primitive: 252 *)
+	^(ArgumentError value: offset) signal
+)
+public float32At: offset <Integer> put: value <Float> ^<Float> = (
+	(* :literalmessage: primitive: 253 *)
+	^(ArgumentError value: offset) signal
+)
+public float64At: offset <Integer> ^<Float> = (
+	(* :literalmessage: primitive: 254 *)
+	^(ArgumentError value: offset) signal
+)
+public float64At: offset <Integer> put: value <Float> ^<Float> = (
+	(* :literalmessage: primitive: 255 *)
+	^(ArgumentError value: offset) signal
+)
 public indexOf: substring <ByteArray | String> ^<Integer> = (
 	^self indexOf: substring startingAt: 1
 )
 public indexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
 	(* :literalmessage: primitive: 119 *)
 	^ArgumentError new signal
+)
+public int16At: offset <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 246 *)
+	^(ArgumentError value: offset) signal
+)
+public int16At: offset <Integer> put: value <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 247 *)
+	^(ArgumentError value: offset) signal
+)
+public int32At: offset <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 248 *)
+	^(ArgumentError value: offset) signal
+)
+public int32At: offset <Integer> put: value <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 249 *)
+	^(ArgumentError value: offset) signal
+)
+public int64At: offset <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 250 *)
+	^(ArgumentError value: offset) signal
+)
+public int64At: offset <Integer> put: value <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 251 *)
+	^(ArgumentError value: offset) signal
+)
+public int8At: offset <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 244 *)
+	^(ArgumentError value: offset) signal
+)
+public int8At: offset <Integer> put: value <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 245 *)
+	^(ArgumentError value: offset) signal
 )
 public isEmpty ^<Boolean> = (
 	^0 = self size
@@ -452,6 +500,38 @@ public size ^<Integer> = (
 public startsWith: prefix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 117 *)
 	^(ArgumentError value: prefix) signal
+)
+public uint16At: offset <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 238 *)
+	^(ArgumentError value: offset) signal
+)
+public uint16At: offset <Integer> put: value <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 239 *)
+	^(ArgumentError value: offset) signal
+)
+public uint32At: offset <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 240 *)
+	^(ArgumentError value: offset) signal
+)
+public uint32At: offset <Integer> put: value <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 241 *)
+	^(ArgumentError value: offset) signal
+)
+public uint64At: offset <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 242 *)
+	^(ArgumentError value: offset) signal
+)
+public uint64At: offset <Integer> put: value <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 243 *)
+	^(ArgumentError value: offset) signal
+)
+public uint8At: offset <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 236 *)
+	^(ArgumentError value: offset) signal
+)
+public uint8At: offset <Integer> put: value <Integer> ^<Integer> = (
+	(* :literalmessage: primitive: 237 *)
+	^(ArgumentError value: offset) signal
 )
 ) : (
 public new: size <Integer> ^<ByteArray> = (

@@ -5993,6 +5993,270 @@ TEST_CONTEXT = ()
 class TestException = Exception () (
 ) : (
 )
+(* Note these tests assert typed data access is little-endian and 0-origin. *)
+public class TypedDataTests = TestContext () (
+nan = ( ^Float parse: 'NaN' )
+public testFloat32 = (
+	| array = ByteArray new: 4. empty = ByteArray new: 0. |
+	assert: (array float32At: 0) equals: 0 asFloat.
+	should: [array float32At: 0 asFloat] signal: Error.
+	should: [array float32At: nil] signal: Error.
+	should: [array float32At: -1] signal: Error.
+	should: [array float32At: 1] signal: Error.
+
+	assert: (array float32At: 0 put: nan) isNaN.
+	assert: (array at: 1) equals: 0.
+	assert: (array at: 2) equals: 0.
+	assert: (array at: 3) equals: 192.
+	assert: (array at: 4) equals: 127.
+	should: [array float32At: 0 asFloat put: 0 asFloat] signal: Error.
+	should: [array float32At: nil put: 0 asFloat] signal: Error.
+	should: [array float32At: -1 put: 0 asFloat] signal: Error.
+	should: [array float32At: 1 put: 0 asFloat] signal: Error.
+	should: [array float32At: 0 put: nil] signal: Error.
+
+	should: [empty float32At: 0] signal: Error.
+	should: [empty float32At: 0 put: 0 asFloat] signal: Error.
+)
+public testFloat64 = (
+	| array = ByteArray new: 8. empty = ByteArray new: 0. |
+	assert: (array float64At: 0) equals: 0 asFloat.
+	should: [array float64At: 0 asFloat] signal: Error.
+	should: [array float64At: nil] signal: Error.
+	should: [array float64At: -1] signal: Error.
+	should: [array float64At: 1] signal: Error.
+
+	assert: (array float64At: 0 put: nan) isNaN.
+	assert: (array at: 1) equals: 0.
+	assert: (array at: 2) equals: 0.
+	assert: (array at: 3) equals: 0.
+	assert: (array at: 4) equals: 0.
+	assert: (array at: 5) equals: 0.
+	assert: (array at: 6) equals: 0.
+	assert: (array at: 7) equals: 248.
+	assert: (array at: 8) equals: 127.
+	should: [array float64At: 0 asFloat put: 0 asFloat] signal: Error.
+	should: [array float64At: nil put: 0 asFloat] signal: Error.
+	should: [array float64At: -1 put: 0 asFloat] signal: Error.
+	should: [array float64At: 1 put: 0 asFloat] signal: Error.
+	should: [array float64At: 0 put: nil] signal: Error.
+
+	should: [empty float64At: 0] signal: Error.
+	should: [empty float64At: 0 put: 0 asFloat] signal: Error.
+)
+public testInt16 = (
+	| array = ByteArray new: 2. empty = ByteArray new: 0. |
+	array at: 1 put: 200.
+	array at: 2 put: 200.
+	assert: (array int16At: 0) equals: -14136.
+	should: [array int16At: 0 asFloat] signal: Error.
+	should: [array int16At: nil] signal: Error.
+	should: [array int16At: -1] signal: Error.
+	should: [array int16At: 1] signal: Error.
+
+	assert: (array int16At: 0 put: -22222) equals: -22222.
+	assert: (array at: 1) equals: 50.
+	assert: (array at: 2) equals: 169.
+	should: [array int16At: 0 asFloat put: 0] signal: Error.
+	should: [array int16At: nil put: 0] signal: Error.
+	should: [array int16At: -1 put: 0] signal: Error.
+	should: [array int16At: 1 put: 0] signal: Error.
+	should: [array int16At: 0 put: -32769] signal: Error.
+	should: [array int16At: 0 put: 32768] signal: Error.
+
+	should: [empty int16At: 0] signal: Error.
+	should: [empty int16At: 0 put: 0] signal: Error.
+)
+public testInt32 = (
+	| array = ByteArray new: 4. empty = ByteArray new: 0. |
+	array at: 1 put: 200.
+	array at: 2 put: 200.
+	array at: 3 put: 200.
+	array at: 4 put: 200.
+	assert: (array int32At: 0) equals: -926365496.
+	should: [array int32At: 0 asFloat] signal: Error.
+	should: [array int32At: nil] signal: Error.
+	should: [array int32At: -1] signal: Error.
+	should: [array int32At: 1] signal: Error.
+
+	assert: (array int32At: 0 put: -1111111111) equals: -1111111111.
+	assert: (array at: 1) equals: 57.
+	assert: (array at: 2) equals: 202.
+	assert: (array at: 3) equals: 197.
+	assert: (array at: 4) equals: 189.
+	should: [array int32At: 0 asFloat put: 0] signal: Error.
+	should: [array int32At: nil put: 0] signal: Error.
+	should: [array int32At: -1 put: 0] signal: Error.
+	should: [array int32At: 1 put: 0] signal: Error.
+	should: [array int32At: 0 put: -2147483649] signal: Error.
+	should: [array int32At: 0 put: 2147483648] signal: Error.
+
+	should: [empty int32At: 0] signal: Error.
+	should: [empty int32At: 0 put: 0] signal: Error.
+)
+public testInt64 = (
+	| array = ByteArray new: 8. empty = ByteArray new: 0. |
+	array at: 1 put: 200.
+	array at: 2 put: 200.
+	array at: 3 put: 200.
+	array at: 4 put: 200.
+	array at: 5 put: 200.
+	array at: 6 put: 200.
+	array at: 7 put: 200.
+	array at: 8 put: 200.
+	assert: (array int64At: 0) equals: -3978709506094217016.
+	should: [array int64At: nil] signal: Error.
+	should: [array int64At: -1] signal: Error.
+	should: [array int64At: 1] signal: Error.
+
+	assert: (array int64At: 0 put: -8888888888888888888) equals: -8888888888888888888.
+	assert: (array at: 1) equals: 200.
+	assert: (array at: 2) equals: 113.
+	assert: (array at: 3) equals: 220.
+	assert: (array at: 4) equals: 161.
+	assert: (array at: 5) equals: 166.
+	assert: (array at: 6) equals: 82.
+	assert: (array at: 7) equals: 164.
+	assert: (array at: 8) equals: 132.
+	should: [array int64At: nil put: 0] signal: Error.
+	should: [array int64At: -1 put: 0] signal: Error.
+	should: [array int64At: 1 put: 0] signal: Error.
+	should: [array int64At: 0 put: -9223372036854775809] signal: Error.
+	should: [array int64At: 0 put: 9223372036854775808] signal: Error.
+
+	should: [empty int64At: 0] signal: Error.
+	should: [empty int64At: 0 put: 0] signal: Error.
+)
+public testInt8 = (
+	| array = ByteArray new: 1. empty = ByteArray new: 0. |
+	array at: 1 put: 200.
+	assert: (array int8At: 0) equals: -56.
+	should: [array int8At: 0 asFloat] signal: Error.
+	should: [array int8At: nil] signal: Error.
+	should: [array int8At: -1] signal: Error.
+	should: [array int8At: 1] signal: Error.
+
+	assert: (array int8At: 0 put: -34) equals: -34.
+	assert: (array at: 1) equals: 222.
+	should: [array int8At: 0 asFloat put: 0] signal: Error.
+	should: [array int8At: nil put: 0] signal: Error.
+	should: [array int8At: -1 put: 0] signal: Error.
+	should: [array int8At: 1 put: 0] signal: Error.
+	should: [array int8At: 0 put: 128] signal: Error.
+	should: [array int8At: 0 put: -129] signal: Error.
+
+	should: [empty int8At: 0] signal: Error.
+	should: [empty int8At: 0 put: 0] signal: Error.
+)
+public testUint16 = (
+	| array = ByteArray new: 2. empty = ByteArray new: 0. |
+	array at: 1 put: 200.
+	array at: 2 put: 200.
+	assert: (array uint16At: 0) equals: 51400.
+	should: [array uint16At: 0 asFloat] signal: Error.
+	should: [array uint16At: nil] signal: Error.
+	should: [array uint16At: -1] signal: Error.
+	should: [array uint16At: 1] signal: Error.
+
+	assert: (array uint16At: 0 put: 44444) equals: 44444.
+	assert: (array at: 1) equals: 156.
+	assert: (array at: 2) equals: 173.
+	should: [array uint16At: 0 asFloat put: 0] signal: Error.
+	should: [array uint16At: nil put: 0] signal: Error.
+	should: [array uint16At: -1 put: 0] signal: Error.
+	should: [array uint16At: 1 put: 0] signal: Error.
+	should: [array uint16At: 0 put: -1] signal: Error.
+	should: [array uint16At: 0 put: 65536] signal: Error.
+
+	should: [empty uint16At: 0] signal: Error.
+	should: [empty uint16At: 0 put: 0] signal: Error.
+)
+public testUint32 = (
+	| array = ByteArray new: 4. empty = ByteArray new: 0. |
+	array at: 1 put: 200.
+	array at: 2 put: 200.
+	array at: 3 put: 200.
+	array at: 4 put: 200.
+	assert: (array uint32At: 0) equals: 3368601800.
+	should: [array uint32At: 0 asFloat] signal: Error.
+	should: [array uint32At: nil] signal: Error.
+	should: [array uint32At: -1] signal: Error.
+	should: [array uint32At: 1] signal: Error.
+
+	assert: (array uint32At: 0 put: 2222222222) equals: 2222222222.
+	assert: (array at: 1) equals: 142.
+	assert: (array at: 2) equals: 107.
+	assert: (array at: 3) equals: 116.
+	assert: (array at: 4) equals: 132.
+	should: [array uint32At: 0 asFloat put: 0] signal: Error.
+	should: [array uint32At: nil put: 0] signal: Error.
+	should: [array uint32At: -1 put: 0] signal: Error.
+	should: [array uint32At: 1 put: 0] signal: Error.
+	should: [array uint32At: 0 put: -1] signal: Error.
+	should: [array uint32At: 0 put: 4294967296] signal: Error.
+
+	should: [empty uint32At: 0] signal: Error.
+	should: [empty uint32At: 0 put: 0] signal: Error.
+)
+public testUint64 = (
+	| array = ByteArray new: 8. empty = ByteArray new: 0. |
+	array at: 1 put: 200.
+	array at: 2 put: 200.
+	array at: 3 put: 200.
+	array at: 4 put: 200.
+	array at: 5 put: 200.
+	array at: 6 put: 200.
+	array at: 7 put: 200.
+	array at: 8 put: 200.
+	assert: (array uint64At: 0) equals: 14468034567615334600.
+	should: [array uint64At: 0 asFloat] signal: Error.
+	should: [array uint64At: nil] signal: Error.
+	should: [array uint64At: -1] signal: Error.
+	should: [array uint64At: 1] signal: Error.
+
+	assert: (array uint64At: 0 put: 11111111111111111111) equals: 11111111111111111111.
+	assert: (array at: 1) equals: 199.
+	assert: (array at: 2) equals: 113.
+	assert: (array at: 3) equals: 172.
+	assert: (array at: 4) equals: 181.
+	assert: (array at: 5) equals: 175.
+	assert: (array at: 6) equals: 152.
+	assert: (array at: 7) equals: 50.
+	assert: (array at: 8) equals: 154.
+	should: [array uint64At: 0 asFloat put: 0] signal: Error.
+	should: [array uint64At: nil put: 0] signal: Error.
+	should: [array uint64At: -1 put: 0] signal: Error.
+	should: [array uint64At: 1 put: 0] signal: Error.
+	should: [array uint64At: 0 put: -1] signal: Error.
+	should: [array uint64At: 0 put: 18446744073709551616] signal: Error.
+
+	should: [empty uint64At: 0] signal: Error.
+	should: [empty uint64At: 0 put: 0] signal: Error.
+)
+public testUint8 = (
+	| array = ByteArray new: 1. empty = ByteArray new: 0. |
+	array at: 1 put: 200.
+	assert: (array uint8At: 0) equals: 200.
+	should: [array uint8At: 0 asFloat] signal: Error.
+	should: [array uint8At: nil] signal: Error.
+	should: [array uint8At: -1] signal: Error.
+	should: [array uint8At: 1] signal: Error.
+
+	assert: (array uint8At: 0 put: 222) equals: 222.
+	assert: (array at: 1) equals: 222.
+	should: [array uint8At: 0 asFloat put: 0] signal: Error.
+	should: [array uint8At: nil put: 0] signal: Error.
+	should: [array uint8At: -1 put: 0] signal: Error.
+	should: [array uint8At: 1 put: 0] signal: Error.
+	should: [array uint8At: 0 put: -1] signal: Error.
+	should: [array uint8At: 0 put: 256] signal: Error.
+
+	should: [empty uint8At: 0] signal: Error.
+	should: [empty uint8At: 0 put: 0] signal: Error.
+)
+) : (
+TEST_CONTEXT = ()
+)
 largestNegativeLargeInteger = (
 	(* -1 << 63 - 1 *)
 	^-9223372036854775809

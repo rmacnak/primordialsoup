@@ -198,6 +198,26 @@ const bool kFailure = false;
   V(166, JS_performInstanceOf)                                                 \
   V(167, JS_performHas)                                                        \
   V(200, quickReturnSelf)                                                      \
+  V(236, Bytes_uint8At)                                                        \
+  V(237, Bytes_uint8AtPut)                                                     \
+  V(238, Bytes_uint16At)                                                       \
+  V(239, Bytes_uint16AtPut)                                                    \
+  V(240, Bytes_uint32At)                                                       \
+  V(241, Bytes_uint32AtPut)                                                    \
+  V(242, Bytes_uint64At)                                                       \
+  V(243, Bytes_uint64AtPut)                                                    \
+  V(244, Bytes_int8At)                                                         \
+  V(245, Bytes_int8AtPut)                                                      \
+  V(246, Bytes_int16At)                                                        \
+  V(247, Bytes_int16AtPut)                                                     \
+  V(248, Bytes_int32At)                                                        \
+  V(249, Bytes_int32AtPut)                                                     \
+  V(250, Bytes_int64At)                                                        \
+  V(251, Bytes_int64AtPut)                                                     \
+  V(252, Bytes_float32At)                                                      \
+  V(253, Bytes_float32AtPut)                                                   \
+  V(254, Bytes_float64At)                                                      \
+  V(255, Bytes_float64AtPut)                                                   \
 
 
 #define DEFINE_PRIMITIVE(name)                                                 \
@@ -1369,6 +1389,103 @@ DEFINE_PRIMITIVE(ByteArray_size) {
   RETURN(array->size());
 }
 
+#define ACCESS_INTEGER(name, ctype, min, max)                                  \
+DEFINE_PRIMITIVE(Bytes_##name##At) {                                           \
+  ASSERT(num_args == 1);                                                       \
+  ByteArray array = static_cast<ByteArray>(I->Stack(1));                       \
+  ASSERT(array->IsByteArray());                                                \
+  SMI_ARGUMENT(index, 0);                                                      \
+  intptr_t width = sizeof(ctype);                                              \
+  if ((index < 0) || ((index + width) > array->Size())) {                      \
+    return kFailure;                                                           \
+  }                                                                            \
+  int64_t value = *reinterpret_cast<const ctype*>(array->element_addr(index)); \
+  RETURN_MINT(value);                                                          \
+}                                                                              \
+DEFINE_PRIMITIVE(Bytes_##name##AtPut) {                                        \
+  ASSERT(num_args == 2);                                                       \
+  ByteArray array = static_cast<ByteArray>(I->Stack(2));                       \
+  ASSERT(array->IsByteArray());                                                \
+  SMI_ARGUMENT(index, 1);                                                      \
+  intptr_t width = sizeof(ctype);                                              \
+  if ((index < 0) || ((index + width) > array->Size())) {                      \
+    return kFailure;                                                           \
+  }                                                                            \
+  MINT_ARGUMENT(value, 0);                                                     \
+  if ((value < min) || (value > max)) {                                        \
+    return kFailure;                                                           \
+  }                                                                            \
+  *reinterpret_cast<ctype*>(array->element_addr(index)) = value;               \
+  RETURN(I->Stack(0));                                                         \
+}
+ACCESS_INTEGER(uint8, uint8_t, 0, UINT8_MAX)
+ACCESS_INTEGER(uint16, uint16_t, 0, UINT16_MAX)
+ACCESS_INTEGER(uint32, uint32_t, 0, UINT32_MAX)
+ACCESS_INTEGER(int8, int8_t, INT8_MIN, INT8_MAX)
+ACCESS_INTEGER(int16, int16_t, INT16_MIN, INT16_MAX)
+ACCESS_INTEGER(int32, int32_t, INT32_MIN, INT32_MAX)
+ACCESS_INTEGER(int64, int64_t, INT64_MIN, INT64_MAX)
+#undef ACCESS_INTEGER
+
+DEFINE_PRIMITIVE(Bytes_uint64At) {
+  ASSERT(num_args == 1);
+  ByteArray array = static_cast<ByteArray>(I->Stack(1));
+  ASSERT(array->IsByteArray());
+  SMI_ARGUMENT(index, 0);
+  intptr_t width = sizeof(uint64_t);
+  if ((index < 0) || ((index + width) > array->Size())) {
+    return kFailure;
+  }
+  uint64_t value = *reinterpret_cast<uint64_t*>(array->element_addr(index));
+  Object result = LargeInteger::FromUint64(value, H);
+  RETURN(result);
+}
+DEFINE_PRIMITIVE(Bytes_uint64AtPut) {
+  ASSERT(num_args == 2);
+  ByteArray array = static_cast<ByteArray>(I->Stack(2));
+  ASSERT(array->IsByteArray());
+  SMI_ARGUMENT(index, 1);
+  intptr_t width = sizeof(uint64_t);
+  if ((index < 0) || ((index + width) > array->Size())) {
+    return kFailure;
+  }
+  uint64_t value;
+  if (!LargeInteger::AsUint64(I->Stack(0), &value)) {
+    return kFailure;
+  }
+  *reinterpret_cast<uint64_t*>(array->element_addr(index)) = value;
+  RETURN(I->Stack(0));
+}
+
+#define ACCESS_FLOAT(name, ctype)                                              \
+DEFINE_PRIMITIVE(Bytes_##name##At) {                                           \
+  ASSERT(num_args == 1);                                                       \
+  ByteArray array = static_cast<ByteArray>(I->Stack(1));                       \
+  ASSERT(array->IsByteArray());                                                \
+  SMI_ARGUMENT(index, 0);                                                      \
+  intptr_t width = sizeof(ctype);                                              \
+  if ((index < 0) || ((index + width) > array->Size())) {                      \
+    return kFailure;                                                           \
+  }                                                                            \
+  double value = *reinterpret_cast<ctype*>(array->element_addr(index));        \
+  RETURN_FLOAT(value);                                                         \
+}                                                                              \
+DEFINE_PRIMITIVE(Bytes_##name##AtPut) {                                        \
+  ASSERT(num_args == 2);                                                       \
+  ByteArray array = static_cast<ByteArray>(I->Stack(2));                       \
+  ASSERT(array->IsByteArray());                                                \
+  SMI_ARGUMENT(index, 1);                                                      \
+  intptr_t width = sizeof(ctype);                                              \
+  if ((index < 0) || ((index + width) > array->Size())) {                      \
+    return kFailure;                                                           \
+  }                                                                            \
+  FLOAT_ARGUMENT(value, 0);                                                    \
+  *reinterpret_cast<ctype*>(array->element_addr(index)) = value;               \
+  RETURN(I->Stack(0));                                                         \
+}
+ACCESS_FLOAT(float32, float)
+ACCESS_FLOAT(float64, double)
+#undef ACCESS_FLOAT
 
 DEFINE_PRIMITIVE(Bytes_copyByteArrayFromTo) {
   ASSERT(num_args == 2);
