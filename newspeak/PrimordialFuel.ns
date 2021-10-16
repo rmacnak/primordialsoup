@@ -42,7 +42,14 @@ public readEdges = (
 	firstRefIndex to: lastRefIndex do:
 		[:refIndex |
 		| object = refs at: refIndex. |
-		fillActivation].
+		object sender: readRef.
+		object bci: readRef.
+		object method: readRef.
+		object closure: readRef.
+		object receiver: readRef.
+		object size: stream uint16.
+		1 to: object size do:
+			[:index | object tempAt: index put: readRef]].
 )
 public readNodes = (
 	firstRefIndex:: nextRefIndex.
@@ -97,12 +104,16 @@ public readEdges = (
 	firstRefIndex to: lastRefIndex do:
 		[:refIndex |
 		| object = refs at: refIndex. |
-		fillClosure].
+		definingActivationOf: object put: readRef.
+		initialBCIOf: object put: readRef.
+		numArgsOf: object put: readRef.
+		1 to: (numCopiedOf: object) do:
+			[:index | copiedOf: object at: index put: readRef]].
 )
 public readNodes = (
 	firstRefIndex:: nextRefIndex.
 	stream unsigned timesRepeat:
-		[registerRef: (Closure withNumCopied: stream uint16)].
+		[registerRef: (closureWithNumCopied: stream uint16)].
 	lastRefIndex:: nextRefIndex - 1.
 )
 ) : (
@@ -114,7 +125,7 @@ lastRefIndex <Integer>
 public adoptInstances = (
 )
 public readEdges = (
-	readRef. (* :todo: *)
+	readRef.
 	firstRefIndex to: lastRefIndex do:
 		[:refIndex |
 		| object = refs at: refIndex. |
@@ -127,6 +138,17 @@ public readNodes = (
 	stream unsigned timesRepeat:
 		[registerRef: Ephemeron new].
 	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class FloatCluster = () (
+public adoptInstances = (
+)
+public readEdges = (
+)
+public readNodes = (
+	stream unsigned timesRepeat:
+		[registerRef: stream float64].
 )
 ) : (
 )
@@ -269,6 +291,12 @@ class ReadStream over: bytes = (|
 data = bytes.
 public position ::= 0.
 |) (
+public float64 = (
+	| result |
+	result:: data float64At: position.
+	position:: position + 8.
+	^result
+)
 public int32 = (
 	| result high |
 	result:: high:: data at: 1 + position.
@@ -342,6 +370,7 @@ public class Serializer = (
 stream = WriteStream new.
 clusters = IdentityMap new: 32.
 orderedClusters = List new.
+ephemerons
 stack = List new.
 refs = IdentityMap new: 256.
 nextRefIndex
@@ -492,22 +521,22 @@ objects = List new.
 |) (
 public analyze: object = (
 	objects add: object.
-
-	(* Ephemeron accessors are known to be side-effect free. *)
-	(* :todo: Maintain the ephemeron property. *)
-	enqueue: object key.
-	enqueue: object value.
 	enqueue: object finalizer.
 )
+public retrace = (
+	objects do:
+		[:object | (hasRef: object key) ifTrue:
+			[enqueue: object value]].
+)
 public writeEdges = (
-	writeRef: Ephemeron. (* :todo: *)
+	writeRef: Ephemeron.
 	objects do: [:object |
-		writeRef: object key.
-		writeRef: object value.
+		writeWeakRef: object key.
+		writeWeakRef: object value.
 		writeRef: object finalizer].
 )
 public writeNodes = (
-	writeFormat: 3 (* :todo: maybe kEphemeronCid? *).
+	writeFormat: kEphemeronCid negated.
 	stream unsigned: objects size.
 	objects do: [:object | registerRef: object].
 )
@@ -522,11 +551,11 @@ public analyze: object = (
 public writeEdges = (
 )
 public writeNodes = (
-	writeFormat: kWeakArrayCid negated.
+	writeFormat: kFloat64Cid negated.
 	stream unsigned: objects size.
 	objects do: [:object |
 		registerRef: object.
-		stream uint64: UNIMPLEMENTED].
+		stream float64: object].
 )
 ) : (
 )
@@ -665,12 +694,13 @@ createSpecialClassClusters = (
 	clusters at: LargeInteger put: intCluster.
 	orderedClusters add: intCluster.
 
-	(* clusters at: Float put: FloatCluster new. *)
+	orderedClusters add: (clusters at: Float put: FloatCluster new).
 	orderedClusters add: (clusters at: ByteArray put: ByteArrayCluster new).
 	orderedClusters add: (clusters at: String put: StringCluster new).
 	orderedClusters add: (clusters at: Array put: ArrayCluster new).
 	orderedClusters add: (clusters at: WeakArray put: WeakArrayCluster new).
-	orderedClusters add: (clusters at: Ephemeron put: EphemeronCluster new).
+	ephemerons:: EphemeronCluster new.
+	orderedClusters add: (clusters at: Ephemeron put: ephemerons).
 	orderedClusters add: (clusters at: Activation put: ActivationCluster new).
 	orderedClusters add: (clusters at: Closure put: ClosureCluster new).
 
@@ -680,6 +710,9 @@ createSpecialClassClusters = (
 )
 enqueue: object = (
 	(refs at: object ifAbsentPutVal: 0) ifTrue: [stack add: object].
+)
+hasRef: object = (
+	^refs includesKey: object
 )
 newClusterForClass: klass = (
 	| instancesAreBehaviors ::= false. cluster |
@@ -706,7 +739,9 @@ public serialize: root = (
 	createSpecialClassClusters.
 
 	enqueue: root.
-	[stack isEmpty] whileFalse: [analyze: stack removeLast].
+	[stack isEmpty] whileFalse:
+		[[stack isEmpty] whileFalse: [analyze: stack removeLast].
+		 ephemerons retrace].
 
 	stream uint16: 16r1984.
 	stream uint16: version.
@@ -902,6 +937,11 @@ class WriteStream = (|
 data ::= ByteArray new: 32 * 1024.
 public position ::= 0.
 |) (
+public float64: value = (
+	position + 8 > data size ifTrue: [data:: data copyWithSize: data size * 2].
+	data float64At: position put: value.
+	position:: position + 8.
+)
 public int32: value = (
 	position + 4 > data size ifTrue: [data:: data copyWithSize: data size * 2].
 	data at: position + 1 put: (value >> 24 bitAnd: 255).
@@ -961,6 +1001,10 @@ private classOf: object = (
 	(* :literalmessage: primitive: 85 *)
 	panic.
 )
+private closureWithNumCopied: numCopied <Integer> ^<Closure> = (
+	(* :literalmessage: primitive: 82 *)
+	panic.
+)
 private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
 	(* :literalmessage: primitive: 77 *)
 	panic.
@@ -973,8 +1017,16 @@ private definingActivationOf: closure <Closure> ^<Activation> = (
 	(* :literalmessage: primitive: 71 *)
 	panic.
 )
+private definingActivationOf: closure <Closure> put: value <Activation> = (
+	(* :literalmessage: primitive: 72 *)
+	panic.
+)
 private initialBCIOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 73 *)
+	panic.
+)
+private initialBCIOf: closure <Closure> put: value <Integer> = (
+	(* :literalmessage: primitive: 74 *)
 	panic.
 )
 private isCanonical: object = (
@@ -983,15 +1035,17 @@ private isCanonical: object = (
 )
 private kActivationCid = ( ^12 )
 private kArrayCid = ( ^9 )
-private kBigintCid = ( ^5 )
 private kByteArrayCid = ( ^7 )
 private kClosureCid = ( ^13 )
 private kEphemeronCid = ( ^11 )
 private kFloat64Cid = ( ^6 )
-private kMintCid = ( ^4 )
 private kSmiCid = ( ^3 )
 private kStringCid = ( ^8 )
 private kWeakArrayCid = ( ^10 )
+private numArgsOf: closure <Closure> put: value <Integer> = (
+	(* :literalmessage: primitive: 76 *)
+	panic.
+)
 private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :literalmessage: primitive: 70 *)
 	panic.

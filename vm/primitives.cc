@@ -115,6 +115,7 @@ const bool kFailure = false;
   V(79, ByteArray_replaceFromToWithStartingAt)                                 \
   V(80, Array_replaceFromToWithStartingAt)                                     \
   V(81, Array_copyFromTo)                                                      \
+  V(82, Closure_class_withNumCopied)                                           \
   V(84, Object_referencesTo)                                                   \
   V(85, Object_class)                                                          \
   V(86, Object_identical)                                                      \
@@ -1869,64 +1870,115 @@ DEFINE_PRIMITIVE(Closure_class_new) {
 }
 
 
+DEFINE_PRIMITIVE(Closure_class_withNumCopied) {
+  ASSERT(num_args == 1);
+  SmallInteger num_copied = static_cast<SmallInteger>(I->Stack(0));
+  if (!num_copied->IsSmallInteger()) {
+    return kFailure;
+  }
+
+  Closure result = H->AllocateClosure(num_copied->value());  // SAFEPOINT
+  num_copied = static_cast<SmallInteger>(I->Stack(0));
+  result->set_defining_activation(static_cast<Activation>(nil));
+  result->set_initial_bci(SmallInteger::New(0));
+  result->set_num_args(SmallInteger::New(-1));
+  for (intptr_t i = 0; i < num_copied->value(); i++) {
+    result->set_copied(i, nil, kNoBarrier);
+  }
+  RETURN(result);
+}
+
+
 DEFINE_PRIMITIVE(Closure_numCopied) {
   ASSERT(num_args == 1);
-  Closure subject = static_cast<Closure>(I->Stack(0));
-  if (!subject->IsClosure()) {
-    UNIMPLEMENTED();
+  Closure closure = static_cast<Closure>(I->Stack(0));
+  if (!closure->IsClosure()) {
+    return kFailure;
   }
-  RETURN_SMI(subject->NumCopied());
+  RETURN(closure->num_copied());
 }
 
 
 DEFINE_PRIMITIVE(Closure_definingActivation) {
   ASSERT(num_args == 0 || num_args == 1);
-  Closure subject = static_cast<Closure>(I->Stack(0));
-  if (!subject->IsClosure()) {
-    UNIMPLEMENTED();
+  Closure closure = static_cast<Closure>(I->Stack(0));
+  if (!closure->IsClosure()) {
+    return kFailure;
   }
-  RETURN(subject->defining_activation());
+  RETURN(closure->defining_activation());
 }
 
 
 DEFINE_PRIMITIVE(Closure_definingActivationPut) {
-  UNIMPLEMENTED();
-  return kSuccess;
+  ASSERT(num_args == 2);
+  Closure closure = static_cast<Closure>(I->Stack(1));
+  Activation activation = static_cast<Activation>(I->Stack(0));
+  if (!closure->IsClosure()) {
+    return kFailure;
+  }
+  if (!activation->IsActivation()) {
+    return kFailure;
+  }
+  closure->set_defining_activation(activation);
+  RETURN(activation);
 }
 
 
 DEFINE_PRIMITIVE(Closure_initialBci) {
   ASSERT(num_args == 1);
-  Closure subject = static_cast<Closure>(I->Stack(0));
-  if (!subject->IsClosure()) {
-    UNIMPLEMENTED();
+  Closure closure = static_cast<Closure>(I->Stack(0));
+  if (!closure->IsClosure()) {
+    return kFailure;
   }
-  RETURN(subject->initial_bci());
+  RETURN(closure->initial_bci());
 }
 
 
-DEFINE_PRIMITIVE(Closure_initialBciPut) { UNIMPLEMENTED(); return kSuccess; }
+DEFINE_PRIMITIVE(Closure_initialBciPut) {
+  ASSERT(num_args == 2);
+  Closure closure = static_cast<Closure>(I->Stack(1));
+  SmallInteger initial_bci = static_cast<SmallInteger>(I->Stack(0));
+  if (!closure->IsClosure()) {
+    return kFailure;
+  }
+  if (!initial_bci->IsSmallInteger()) {
+    return kFailure;
+  }
+  closure->set_initial_bci(initial_bci);
+  RETURN(initial_bci);
+}
 
 
 DEFINE_PRIMITIVE(Closure_numArgs) {
   ASSERT(num_args == 0);
-  Closure rcvr = static_cast<Closure>(I->Stack(0));
-  if (!rcvr->IsClosure()) {
-    UNREACHABLE();
+  Closure closure = static_cast<Closure>(I->Stack(0));
+  if (!closure->IsClosure()) {
     return kFailure;
   }
-  RETURN(rcvr->num_args());
+  RETURN(closure->num_args());
 }
 
 
-DEFINE_PRIMITIVE(Closure_numArgsPut) { UNIMPLEMENTED(); return kSuccess; }
+DEFINE_PRIMITIVE(Closure_numArgsPut) {
+  ASSERT(num_args == 2);
+  Closure closure = static_cast<Closure>(I->Stack(1));
+  SmallInteger closure_num_args = static_cast<SmallInteger>(I->Stack(0));
+  if (!closure->IsClosure()) {
+    return kFailure;
+  }
+  if (!closure_num_args->IsSmallInteger()) {
+    return kFailure;
+  }
+  closure->set_num_args(closure_num_args);
+  RETURN(closure_num_args);
+}
 
 
 DEFINE_PRIMITIVE(Closure_copiedAt) {
   ASSERT(num_args == 2);
-  Closure receiver = static_cast<Closure>(I->Stack(1));
+  Closure closure = static_cast<Closure>(I->Stack(1));
   SmallInteger index = static_cast<SmallInteger>(I->Stack(0));
-  if (!receiver->IsClosure()) {
+  if (!closure->IsClosure()) {
     return kFailure;
   }
   if (!index->IsSmallInteger()) {
@@ -1935,20 +1987,20 @@ DEFINE_PRIMITIVE(Closure_copiedAt) {
   if (index->value() <= 0) {
     return kFailure;
   }
-  if (index->value() > receiver->NumCopied()) {
+  if (index->value() > closure->NumCopied()) {
     return kFailure;
   }
-  Object value = receiver->copied(index->value() - 1);
+  Object value = closure->copied(index->value() - 1);
   RETURN(value);
 }
 
 
 DEFINE_PRIMITIVE(Closure_copiedAtPut) {
   ASSERT(num_args == 3);
-  Closure receiver = static_cast<Closure>(I->Stack(2));
+  Closure closure = static_cast<Closure>(I->Stack(2));
   SmallInteger index = static_cast<SmallInteger>(I->Stack(1));
   Object value = I->Stack(0);
-  if (!receiver->IsClosure()) {
+  if (!closure->IsClosure()) {
     return kFailure;
   }
   if (!index->IsSmallInteger()) {
@@ -1957,10 +2009,10 @@ DEFINE_PRIMITIVE(Closure_copiedAtPut) {
   if (index->value() <= 0) {
     return kFailure;
   }
-  if (index->value() > receiver->NumCopied()) {
+  if (index->value() > closure->NumCopied()) {
     return kFailure;
   }
-  receiver->set_copied(index->value() - 1, value);
+  closure->set_copied(index->value() - 1, value);
   RETURN(value);
 }
 

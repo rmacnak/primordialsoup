@@ -27,12 +27,15 @@ class Cluster {
 
 class RegularObjectCluster : public Cluster {
  public:
-  explicit RegularObjectCluster(intptr_t format) : format_(format), cid_(0) {}
+  explicit RegularObjectCluster(intptr_t format, intptr_t cid = kIllegalCid)
+    : format_(format), cid_(cid) {}
   ~RegularObjectCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
     intptr_t num_objects = d->ReadUnsigned();
-    cid_ = h->AllocateClassId();
+    if (cid_ == kIllegalCid) {
+      cid_ = h->AllocateClassId();
+    }
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -307,6 +310,27 @@ class SmallIntegerCluster : public Cluster {
   void ReadEdges(Deserializer* d, Heap* h) {}
 };
 
+class FloatCluster : public Cluster {
+ public:
+  FloatCluster() {}
+  ~FloatCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadUnsigned();
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      double value = d->ReadFloat64();
+      Float64 object = h->AllocateFloat64(Heap::kSnapshot);
+      object->set_value(value);
+      d->RegisterRef(object);
+    }
+    ASSERT(d->next_ref() == ref_stop_);
+  }
+
+  void ReadEdges(Deserializer* d, Heap* h) {}
+};
+
 Deserializer::Deserializer(Heap* heap, void* snapshot, size_t snapshot_length) :
   snapshot_(reinterpret_cast<const uint8_t*>(snapshot)),
   snapshot_length_(snapshot_length),
@@ -445,6 +469,12 @@ int64_t Deserializer::ReadInt64() {
   return static_cast<int64_t>(result);
 }
 
+double Deserializer::ReadFloat64() {
+  double result = *reinterpret_cast<const double*>(cursor_);
+  cursor_ += sizeof(double);
+  return result;
+}
+
 static const int8_t kDataBitsPerByte = 7;
 static const int8_t kByteMask = (1 << kDataBitsPerByte) - 1;
 static const int8_t kMaxUnsignedDataPerByte = kByteMask;
@@ -504,9 +534,11 @@ Cluster* Deserializer::ReadCluster() {
       case kStringCid: return new StringCluster();
       case kArrayCid: return new ArrayCluster();
       case kWeakArrayCid: return new WeakArrayCluster();
+      case kEphemeronCid: return new RegularObjectCluster(3, kEphemeronCid);
       case kClosureCid: return new ClosureCluster();
       case kActivationCid: return new ActivationCluster();
       case kSmiCid: return new SmallIntegerCluster();
+      case kFloat64Cid: return new FloatCluster();
     }
     FATAL("Unknown cluster format %" Pd "\n", format);
     return NULL;

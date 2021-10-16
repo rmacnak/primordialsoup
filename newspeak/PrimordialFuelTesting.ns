@@ -1,4 +1,6 @@
 class PrimordialFuelTesting usingPlatform: p minitest: m testApp: a = (|
+private WeakArray = p kernel WeakArray.
+private Ephemeron = p kernel Ephemeron.
 private Serializer = p victoryFuel Serializer.
 private Deserializer = p victoryFuel Deserializer.
 private TestContext = m TestContext.
@@ -49,6 +51,80 @@ public testByteArrays = (
 	assert: (after at: 2) equals: 16rA.
 	assert: (after at: 3) equals: 0.
 	assert: (after at: 4) equals: 16rB.
+)
+public testClosures = (
+	| before after |
+	before:: self class additionClosure.
+	assert: before isKindOfClosure.
+	assert: (before value: 3 value: 4) equals: 7.
+	after:: roundTrip: before.
+	assert: after isKindOfClosure.
+	assert: (after value: 3 value: 4) equals: 7.
+)
+public testEphemerons = (
+	| before after |
+	(* nil'd *)
+	before:: Ephemeron new.
+	before key: Object new.
+	before value: 'goodbye!'.
+	after:: roundTrip: before.
+	assert: after key equals: nil.
+	assert: after value equals: nil.
+
+	(* not nil'd *)
+	before:: Array new: 2.
+	before at: 1 put: (Ephemeron new).
+	before at: 2 put: Object new.
+	(before at: 1) key: (before at: 2).
+	(before at: 1) value: 'survives!'.
+	after:: roundTrip: before.
+	assert: ((after at: 1) key) equals: (after at: 2).
+	assert: ((after at: 1) value) equals: 'survives!'.
+)
+public testFloats = (
+	| before after |
+	before:: Float parse: '0.0'.
+	assert: before isKindOfFloat.
+	assert: before asString equals: '0.0'.
+	after:: roundTrip: before.
+	assert: after isKindOfFloat.
+	assert: after equals: before.
+	assert: after asString equals: '0.0'.
+
+	before:: Float parse: '-0.0'.
+	assert: before isKindOfFloat.
+	assert: before asString equals: '-0.0'.
+	after:: roundTrip: before.
+	assert: after isKindOfFloat.
+	assert: after equals: before.
+	assert: after asString equals: '-0.0'.
+
+	before:: Float parse: 'Infinity'.
+	after:: roundTrip: before.
+	assert: after isKindOfFloat.
+	assert: after equals: before.
+	assert: after asString equals: 'Infinity'.
+
+	before:: Float parse: '-Infinity'.
+	after:: roundTrip: before.
+	assert: after isKindOfFloat.
+	assert: after equals: before.
+	assert: after asString equals: '-Infinity'.
+
+	before:: Float parse: 'NaN'.
+	after:: roundTrip: before.
+	assert: after isKindOfFloat.
+	assert: after asString equals: 'NaN'.
+)
+public testFractions = (
+	| before after |
+	before:: 0.75.
+	assert: before isKindOfFraction.
+	assert: before asString equals: '(3/4)'.
+	after:: roundTrip: before.
+	assert: after isKindOfFraction.
+	assert: after equals: before.
+	assert: after asString equals: '(3/4)'.
 )
 public testHelloApp = (
 	| before after |
@@ -114,8 +190,30 @@ public testStrings = (
 	assert: after equals: before.
 	assert: after hash equals: before hash.
 )
+public testWeakArrays = (
+	| before after |
+	(* nil'd *)
+	before:: WeakArray new: 1.
+	before at: 1 put: 'goodbye!'.
+	after:: roundTrip: before.
+	assert: after isKindOfWeakArray.
+	assert: after size equals: 1.
+	assert: (after at: 1) equals: nil.
+
+	(* not nil'd *)
+	before:: Array new: 2.
+	before at: 1 put: (WeakArray new: 1).
+	before at: 2 put: Object new.
+	(before at: 1) at: 1 put: (before at: 2).
+	after:: roundTrip: before.
+	assert: ((after at: 1) at: 1) equals: (after at: 2).
+)
 ) : (
 TEST_CONTEXT = ()
+public additionClosure = (
+	(* Putting this on the class side so serializing the receiver doesn't drag in the universe. *)
+	^[:x :y | x + y]
+)
 )
 ) : (
 )

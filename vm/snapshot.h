@@ -27,6 +27,7 @@ class Deserializer : public ValueObject {
   uint32_t ReadUint32();
   int32_t ReadInt32();
   int64_t ReadInt64();
+  double ReadFloat64();
   intptr_t ReadUnsigned();
 
   void Deserialize();
