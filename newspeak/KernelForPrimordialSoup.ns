@@ -1296,7 +1296,7 @@ public apply: superclass <Class> withName: name <Symbol> enclosingObject: eo <Ob
 	^self apply: superclass format: (formatOf: superclass) withName: name enclosingObject: eo
 )
 public applyTo: superclass <Class> withEnclosingObject: eo <Object> = (
-	^apply: superclass withName: (_name , '`', eo hash printString) enclosingObject: eo
+	^apply: superclass withName: _name enclosingObject: eo
 )
 public isMeta ^<Boolean> = (
 	^false
