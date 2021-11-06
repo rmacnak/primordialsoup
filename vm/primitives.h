@@ -38,7 +38,7 @@ class Primitives {
  private:
   static const intptr_t kNumPrimitives = 256;
 
-  static PrimitiveFunction** primitive_table_;
+  static PrimitiveFunction* primitive_table_[kNumPrimitives];
 };
 
 }  // namespace psoup
