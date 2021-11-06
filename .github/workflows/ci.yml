@@ -1,0 +1,43 @@
+# GitHub actions for Continuous Integration
+
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: sudo apt-get install g++-multilib scons
+      - name: Build
+        run: ./build
+      - name: Test
+        run: ./test
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install scons
+      - name: Build
+        run: ./build arch=x64
+      - name: Test
+        run: ./test
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: pip install scons
+      - name: Build
+        run: build.bat
+        shell: cmd
+      - name: Test
+        run: test.bat
+        shell: cmd

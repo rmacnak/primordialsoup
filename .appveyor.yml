@@ -1,8 +1,0 @@
-platform:
-  - x64
-install:
-  - pip install scons
-build_script:
-  - build.bat
-test_script:
-  - test.bat
