@@ -291,7 +291,8 @@ class Heap {
 
   intptr_t AllocateClassId();
   void RegisterClass(intptr_t cid, Behavior cls) {
-    ASSERT(class_table_[cid] == static_cast<Object>(kUninitializedWord));
+    ASSERT((class_table_[cid] == static_cast<Object>(kUninitializedWord)) ||
+           (cid == kEphemeronCid));
     class_table_[cid] = cls;
     cls->set_id(SmallInteger::New(cid));
     cls->AssertCouldBeBehavior();

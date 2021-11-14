@@ -7,6 +7,7 @@ class CommandLineCompiler usingPlatform: platform = (
 	private ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
 	private Port = platform actors Port.
 	private Snapshotter = platform victoryFuel Snapshotter.
+	private numberOfProcessors = platform numberOfProcessors.
 |
 ) (
 childMain: args = (
@@ -25,6 +26,52 @@ compileFile: filename = (
 	  builder install applyToObject reflectee]
 		on: Exception
 		do: [:ex | describeError: ex path: filename source: source. ex pass].
+)
+compileSources: sourcePaths binaries: binaryPaths outputs: outputTuples = (
+	|
+	namespace = Map new.
+	port = Port new.
+	outstanding ::= 0.
+	|
+
+	1 to: numberOfProcessors do:
+		[:jobIndex |
+		 | worklist = List new. |
+		 worklist add: 'child'.
+		 worklist add: port id.
+		 jobIndex to: sourcePaths size by: numberOfProcessors do:
+			[:sourceIndex | worklist add: (sourcePaths at: sourceIndex)].
+		 port spawn: worklist asArray.
+		 outstanding:: outstanding + 1].
+
+	binaryPaths do:
+		[:binaryPath |
+		 namespace
+			at: (binaryPath copyFrom: 1 to: (binaryPath indexOf: '.') - 1).
+			put: (readFileAsBytes: binaryPath)].
+
+	port handler:
+		[:klasses |
+		 klasses do: [:klass | namespace at: klass name put: klass].
+		 outstanding:: outstanding - 1.
+		 outstanding = 0 ifTrue:
+			[port close.
+			 createSnapshotsFromNamespace: namespace outputs: outputTuples]].
+)
+createSnapshotsFromNamespace: namespace outputs: outputTuples = (
+	| manifest = Manifest forNamespace: namespace. |
+	1 to: outputTuples size by: 3 do:
+		[:index | | runtimeName appName snapshotName runtime app bytes |
+		runtimeName:: outputTuples at: index.
+		appName:: outputTuples at: index + 1.
+		snapshotName:: outputTuples at: index + 2.
+		runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.
+		app:: (namespace at: appName) packageUsing: manifest.
+		bytes:: Snapshotter new
+			snapshotApp: app
+			withRuntime: runtime
+			keepSource: (appName = 'TestRunner').
+		writeBytes: bytes toFileNamed: snapshotName].
 )
 describeError: ex path: path source: source = (
 	ex isKindOfParseError
@@ -46,49 +93,23 @@ public main: args = (
 )
 parentMain: args = (
 	|
-	namespace = Map new.
-	manifest = Manifest forNamespace: namespace.
-	port = Port new.
-	numJobs = 4.
-	workLists
+	sourcePaths = List new.
+	binaryPaths = List new.
+	outputTuples = List new.
 	index ::= 1.
-	outstanding ::= 0.
+	arg
 	|
-
-	workLists:: Array new: numJobs.
-	1 to: numJobs do: [:i | workLists at: i put: List new].
-	[(args at: index) endsWith: '.ns'] whileTrue:
-		[(workLists at: index \\ numJobs + 1) add: (args at: index).
+	[arg:: args at: index.
+	 (arg indexOf: '.') > 0] whileTrue:
+		[(arg endsWith: '.ns')
+			ifTrue: [sourcePaths add: arg]
+			ifFalse: [binaryPath add: arg].
+		 index:: index + 1].
+	[index <= args size] whileTrue:
+		[outputTuples add: (args at: index).
 		 index:: index + 1].
 
-	workLists do:
-		[:workList |
-		 workList addFirst: port id.
-		 workList addFirst: 'child'.
-		 port spawn: workList asArray.
-		 outstanding:: outstanding + 1].
-
-	port handler:
-		[:klasses |
-		klasses do: [:klass | namespace at: klass name put: klass].
-		outstanding:: outstanding - 1.
-		outstanding = 0 ifTrue:
-			[port close.
-			 [(index + 2) <= args size] whileTrue:
-				[ | runtimeName appName snapshotName runtime app fuel bytes |
-				runtimeName:: args at: index.
-				appName:: args at: index + 1.
-				snapshotName:: args at: index + 2.
-				index:: index + 3.
-
-				runtime:: (namespace at: runtimeName) packageRuntimeUsing: manifest.
-				app:: (namespace at: appName) packageUsing: manifest.
-
-				bytes:: Snapshotter new
-					snapshotApp: app
-					withRuntime: runtime
-					keepSource: (appName = 'TestRunner').
-				writeBytes: bytes toFileNamed: snapshotName]]].
+	compileSources: sourcePaths binaries: binaryPaths outputs: outputTuples.
 )
 readFileAsBytes: filename = (
 	(* :literalmessage: primitive: 130 *)

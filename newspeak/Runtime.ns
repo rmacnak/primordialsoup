@@ -15,6 +15,10 @@ public actors = Actors usingPlatform: self internalKernel: ik.
 public zircon = Zircon usingPlatform: self internalKernel: ik.
 public js = JS usingPlatform: self internalKernel: ik.
 |) (
+public numberOfProcessors ^<Integer> = (
+	(* :literalmessage: primitive: 97 *)
+	panic.
+)
 public operatingSystem ^<String> = (
 	(* :literalmessage: primitive: 99 *)
 	panic.

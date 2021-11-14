@@ -129,6 +129,7 @@ const bool kFailure = false;
   V(94, Closure_valueArray)                                                    \
   V(95, Activation_jump)                                                       \
   V(96, Behavior_allInstances)                                                 \
+  V(97, Platform_numberOfProcessors)                                           \
   V(98, Array_elementsForwardIdentity)                                         \
   V(99, Platform_operatingSystem)                                              \
   V(100, Time_monotonicNanos)                                                  \
@@ -2204,6 +2205,9 @@ DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
   return kFailure;
 }
 
+DEFINE_PRIMITIVE(Platform_numberOfProcessors) {
+  RETURN_SMI(OS::NumberOfAvailableProcessors());
+}
 
 DEFINE_PRIMITIVE(Platform_operatingSystem) {
   const char* name = OS::Name();
