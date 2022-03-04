@@ -106,8 +106,8 @@ class LookupCache {
     Method ns_target;
   };
 
-  static const intptr_t kSize = 512;
-  static const intptr_t kMask = kSize - 1;
+  static constexpr intptr_t kSize = 512;
+  static constexpr intptr_t kMask = kSize - 1;
 
   Entry entries_[kSize];
 };

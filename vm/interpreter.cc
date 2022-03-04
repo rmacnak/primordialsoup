@@ -178,7 +178,7 @@ void Interpreter::StoreIntoIndirectLocal(intptr_t vector_offset,
 }
 
 void Interpreter::PushLiteral(intptr_t offset) {
-  Array literals = FrameMethod(fp_)->literals();;
+  Array literals = FrameMethod(fp_)->literals();
   ASSERT((offset >= 0) && (offset < literals->Size()));
   Push(literals->element(offset));
 }

@@ -71,13 +71,12 @@ void PortMap::Rehash(intptr_t new_capacity) {
 
 
 Port PortMap::AllocatePort() {
-  Port result = prng_->NextUInt64() & kMaxInt64;
-
   // Keep getting new values while we have an illegal port number or the port
   // number is already in use.
-  while ((result == ILLEGAL_PORT) || (FindPort(result) >= 0)) {
-    result = prng_->NextUInt64() & kMaxInt64;
-  }
+  Port result;
+  do {
+    result = prng_->NextUInt64();
+  } while ((result == ILLEGAL_PORT) || (FindPort(result) >= 0));
 
   ASSERT(result != 0);
   ASSERT(FindPort(result) < 0);

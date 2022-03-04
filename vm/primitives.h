@@ -36,7 +36,7 @@ class Primitives {
   }
 
  private:
-  static const intptr_t kNumPrimitives = 256;
+  static constexpr intptr_t kNumPrimitives = 256;
 
   static PrimitiveFunction* primitive_table_[kNumPrimitives];
 };

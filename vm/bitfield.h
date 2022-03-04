@@ -7,14 +7,14 @@
 
 namespace psoup {
 
-static const uword kUwordOne = 1U;
+static constexpr uword kUwordOne = 1U;
 
 // BitField is a template for encoding and decoding a bit field inside
 // an unsigned machine word.
 template<typename T, int position, int size>
 class BitField {
  public:
-  static const intptr_t kNextBit = position + size;
+  static constexpr intptr_t kNextBit = position + size;
 
   // Tells whether the provided value fits into the bit field.
   static bool is_valid(T value) {

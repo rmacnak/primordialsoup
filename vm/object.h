@@ -201,7 +201,7 @@ class Object {
 };
 
 class HeapObject : public Object {
-  HEAP_OBJECT_IMPLEMENTATION(HeapObject, Object);
+  HEAP_OBJECT_IMPLEMENTATION(HeapObject, Object)
 
  public:
   void AssertCouldBeBehavior() const {
@@ -287,7 +287,7 @@ intptr_t Object::ClassId() const {
 }
 
 class ForwardingCorpse : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(ForwardingCorpse, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(ForwardingCorpse, HeapObject)
 
  public:
   inline Object target() const;
@@ -297,7 +297,7 @@ class ForwardingCorpse : public HeapObject {
 };
 
 class FreeListElement : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(FreeListElement, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(FreeListElement, HeapObject)
 
  public:
   inline FreeListElement next() const;
@@ -308,9 +308,9 @@ class FreeListElement : public HeapObject {
 
 class SmallInteger : public Object {
  public:
-  static const intptr_t kBits = kBitsPerWord - 2;
-  static const intptr_t kMaxValue = (static_cast<intptr_t>(1) << kBits) - 1;
-  static const intptr_t kMinValue = -(static_cast<intptr_t>(1) << kBits);
+  static constexpr intptr_t kBits = kBitsPerWord - 2;
+  static constexpr intptr_t kMaxValue = (static_cast<intptr_t>(1) << kBits) - 1;
+  static constexpr intptr_t kMinValue = -(static_cast<intptr_t>(1) << kBits);
 
   explicit constexpr SmallInteger(const Object& obj) : Object(obj) {}
   explicit constexpr SmallInteger(uword tagged) : Object(tagged) {}
@@ -341,11 +341,11 @@ class SmallInteger : public Object {
 };
 
 class MediumInteger : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(MediumInteger, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(MediumInteger, HeapObject)
 
  public:
-  static const int64_t kMinValue = kMinInt64;
-  static const int64_t kMaxValue = kMaxInt64;
+  static constexpr int64_t kMinValue = kMinInt64;
+  static constexpr int64_t kMaxValue = kMaxInt64;
 
   inline int64_t value() const;
   inline void set_value(int64_t value);
@@ -366,7 +366,7 @@ const ddigit_t kDigitBase = static_cast<ddigit_t>(1) << kDigitBits;
 const ddigit_t kDigitMask = kDigitBase - static_cast<ddigit_t>(1);
 
 class LargeInteger : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(LargeInteger, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(LargeInteger, HeapObject)
 
  public:
   enum DivOperationType {
@@ -427,7 +427,7 @@ class LargeInteger : public HeapObject {
 };
 
 class RegularObject : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(RegularObject, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(RegularObject, HeapObject)
 
  public:
   inline Object slot(intptr_t index) const;
@@ -439,7 +439,7 @@ class RegularObject : public HeapObject {
 };
 
 class Array : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Array, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Array, HeapObject)
 
  public:
   inline SmallInteger size() const;
@@ -455,7 +455,7 @@ class Array : public HeapObject {
 };
 
 class WeakArray : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(WeakArray, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(WeakArray, HeapObject)
 
  public:
   inline SmallInteger size() const;
@@ -475,7 +475,7 @@ class WeakArray : public HeapObject {
 };
 
 class Ephemeron : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Ephemeron, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Ephemeron, HeapObject)
 
  public:
   inline Object key() const;
@@ -499,7 +499,7 @@ class Ephemeron : public HeapObject {
 };
 
 class Bytes : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Bytes, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Bytes, HeapObject)
 
  public:
   inline SmallInteger size() const;
@@ -513,20 +513,20 @@ class Bytes : public HeapObject {
 };
 
 class String : public Bytes {
-  HEAP_OBJECT_IMPLEMENTATION(String, Bytes);
+  HEAP_OBJECT_IMPLEMENTATION(String, Bytes)
 
  public:
   SmallInteger EnsureHash(Isolate* isolate);
 };
 
 class ByteArray : public Bytes {
-  HEAP_OBJECT_IMPLEMENTATION(ByteArray, Bytes);
+  HEAP_OBJECT_IMPLEMENTATION(ByteArray, Bytes)
 };
 
-static const intptr_t kMaxTemps = 35;
+static constexpr intptr_t kMaxTemps = 35;
 
 class Activation : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Activation, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Activation, HeapObject)
 
  public:
   inline Activation sender() const;
@@ -576,7 +576,7 @@ class Activation : public HeapObject {
 };
 
 class Method : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Method, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Method, HeapObject)
 
  public:
   inline SmallInteger header() const;
@@ -620,7 +620,7 @@ class Method : public HeapObject {
 };
 
 class Float64 : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Float64, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Float64, HeapObject)
 
  public:
   inline double value() const;
@@ -628,7 +628,7 @@ class Float64 : public HeapObject {
 };
 
 class Closure : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Closure, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Closure, HeapObject)
 
  public:
   inline SmallInteger num_copied() const;
@@ -652,7 +652,7 @@ class Closure : public HeapObject {
 };
 
 class Behavior : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Behavior, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Behavior, HeapObject)
 
  public:
   inline Behavior superclass() const;
@@ -665,7 +665,7 @@ class Behavior : public HeapObject {
 };
 
 class Class : public Behavior {
-  HEAP_OBJECT_IMPLEMENTATION(Class, Behavior);
+  HEAP_OBJECT_IMPLEMENTATION(Class, Behavior)
 
  public:
   inline String name() const;
@@ -673,14 +673,14 @@ class Class : public Behavior {
 };
 
 class Metaclass : public Behavior {
-  HEAP_OBJECT_IMPLEMENTATION(Metaclass, Behavior);
+  HEAP_OBJECT_IMPLEMENTATION(Metaclass, Behavior)
 
  public:
   inline Class this_class() const;
 };
 
 class AbstractMixin : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(AbstractMixin, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(AbstractMixin, HeapObject)
 
  public:
   inline String name() const;
@@ -689,7 +689,7 @@ class AbstractMixin : public HeapObject {
 };
 
 class Message : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Message, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(Message, HeapObject)
 
  public:
   inline void set_selector(String selector, Barrier barrier = kBarrier);
@@ -697,7 +697,7 @@ class Message : public HeapObject {
 };
 
 class ObjectStore : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(ObjectStore, HeapObject);
+  HEAP_OBJECT_IMPLEMENTATION(ObjectStore, HeapObject)
 
  public:
   inline class SmallInteger size() const;

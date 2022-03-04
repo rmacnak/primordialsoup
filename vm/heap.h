@@ -19,14 +19,14 @@ class Region;
 
 // Note these values are never valid Object.
 #if defined(ARCH_IS_32_BIT)
-static const uword kUnallocatedWord = 0xabababab;
-static const uword kUninitializedWord = 0xcbcbcbcb;
+static constexpr uword kUnallocatedWord = 0xabababab;
+static constexpr uword kUninitializedWord = 0xcbcbcbcb;
 #elif defined(ARCH_IS_64_BIT)
-static const uword kUnallocatedWord = 0xabababababababab;
-static const uword kUninitializedWord = 0xcbcbcbcbcbcbcbcb;
+static constexpr uword kUnallocatedWord = 0xabababababababab;
+static constexpr uword kUninitializedWord = 0xcbcbcbcbcbcbcbcb;
 #endif
-static const uint8_t kUnallocatedByte = 0xab;
-static const uint8_t kUninitializedByte = 0xcb;
+static constexpr uint8_t kUnallocatedByte = 0xab;
+static constexpr uint8_t kUninitializedByte = 0xcb;
 
 static intptr_t AllocationSize(intptr_t size) {
   return Utils::RoundUp(size, kObjectAlignment);
@@ -94,7 +94,7 @@ class FreeList {
     }
   }
 
-  static const intptr_t kSizeClasses = 7;
+  static constexpr intptr_t kSizeClasses = 7;
   FreeListElement free_lists_[kSizeClasses + 1];
 };
 
@@ -105,10 +105,10 @@ class FreeList {
 // Languages, Programming, Systems, and Applications. 1997.
 class Heap {
  private:
-  static const intptr_t kLargeAllocation = 32 * KB;
-  static const size_t kInitialSemispaceCapacity = sizeof(uword) * MB / 8;
-  static const size_t kMaxSemispaceCapacity = 2 * sizeof(uword) * MB;
-  static const size_t kRegionSize = 256 * KB;
+  static constexpr intptr_t kLargeAllocation = 32 * KB;
+  static constexpr size_t kInitialSemispaceCapacity = sizeof(uword) * MB / 8;
+  static constexpr size_t kMaxSemispaceCapacity = 2 * sizeof(uword) * MB;
+  static constexpr size_t kRegionSize = 256 * KB;
 
  public:
   enum Allocator { kNormal, kSnapshot };
@@ -435,7 +435,7 @@ class Heap {
 
   // Roots.
   Interpreter* interpreter_;
-  static const intptr_t kHandlesCapacity = 8;
+  static constexpr intptr_t kHandlesCapacity = 8;
   Object* handles_[kHandlesCapacity];
   intptr_t handles_size_;
   friend class HandleScope;

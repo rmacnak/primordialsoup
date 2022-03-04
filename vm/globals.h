@@ -94,13 +94,13 @@
 
 
 // Integer constants.
-const int32_t kMinInt32 = 0x80000000;
-const int32_t kMaxInt32 = 0x7FFFFFFF;
-const uint32_t kMaxUint32 = 0xFFFFFFFF;
-const int64_t kMinInt64 = PSOUP_INT64_C(0x8000000000000000);
-const int64_t kMaxInt64 = PSOUP_INT64_C(0x7FFFFFFFFFFFFFFF);
-const uint64_t kMaxUint64 = PSOUP_2PART_UINT64_C(0xFFFFFFFF, FFFFFFFF);
-const int64_t kSignBitDouble = PSOUP_INT64_C(0x8000000000000000);
+constexpr int32_t kMinInt32 = 0x80000000;
+constexpr int32_t kMaxInt32 = 0x7FFFFFFF;
+constexpr uint32_t kMaxUint32 = 0xFFFFFFFF;
+constexpr int64_t kMinInt64 = PSOUP_INT64_C(0x8000000000000000);
+constexpr int64_t kMaxInt64 = PSOUP_INT64_C(0x7FFFFFFFFFFFFFFF);
+constexpr uint64_t kMaxUint64 = PSOUP_2PART_UINT64_C(0xFFFFFFFF, FFFFFFFF);
+constexpr int64_t kSignBitDouble = PSOUP_INT64_C(0x8000000000000000);
 
 
 // Types for native machine words. Guaranteed to be able to hold pointers and
@@ -110,41 +110,41 @@ typedef uintptr_t uword;
 
 
 // Byte sizes.
-const int kWordSize = sizeof(word);
-const int kDoubleSize = sizeof(double);  // NOLINT
-const int kFloatSize = sizeof(float);  // NOLINT
-const int kInt32Size = sizeof(int32_t);  // NOLINT
-const int kInt16Size = sizeof(int16_t);  // NOLINT
+constexpr int kWordSize = sizeof(word);
+constexpr int kDoubleSize = sizeof(double);  // NOLINT
+constexpr int kFloatSize = sizeof(float);  // NOLINT
+constexpr int kInt32Size = sizeof(int32_t);  // NOLINT
+constexpr int kInt16Size = sizeof(int16_t);  // NOLINT
 #if defined(ARCH_IS_32_BIT)
-const int kWordSizeLog2 = 2;
-const uword kUwordMax = kMaxUint32;
+constexpr int kWordSizeLog2 = 2;
+constexpr uword kUwordMax = kMaxUint32;
 #elif defined(ARCH_IS_64_BIT)
-const int kWordSizeLog2 = 3;
-const uword kUwordMax = kMaxUint64;
+constexpr int kWordSizeLog2 = 3;
+constexpr uword kUwordMax = kMaxUint64;
 #endif
 
 // Bit sizes.
-const int kBitsPerByte = 8;
-const int kBitsPerWord = kWordSize * kBitsPerByte;
+constexpr int kBitsPerByte = 8;
+constexpr int kBitsPerWord = kWordSize * kBitsPerByte;
 
 // System-wide named constants.
-const intptr_t KB = 1024;
-const intptr_t KBLog2 = 10;
-const intptr_t MB = KB * KB;
-const intptr_t MBLog2 = KBLog2 + KBLog2;
-const intptr_t GB = MB * KB;
-const intptr_t GBLog2 = MBLog2 + KBLog2;
+constexpr intptr_t KB = 1024;
+constexpr intptr_t KBLog2 = 10;
+constexpr intptr_t MB = KB * KB;
+constexpr intptr_t MBLog2 = KBLog2 + KBLog2;
+constexpr intptr_t GB = MB * KB;
+constexpr intptr_t GBLog2 = MBLog2 + KBLog2;
 
 // Time constants.
-const int kMillisecondsPerSecond = 1000;
-const int kMicrosecondsPerMillisecond = 1000;
-const int kMicrosecondsPerSecond = (kMicrosecondsPerMillisecond *
-                                    kMillisecondsPerSecond);
-const int kNanosecondsPerMicrosecond = 1000;
-const int kNanosecondsPerMillisecond = (kNanosecondsPerMicrosecond *
-                                        kMicrosecondsPerMillisecond);
-const int kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
-                                   kMicrosecondsPerSecond);
+constexpr int kMillisecondsPerSecond = 1000;
+constexpr int kMicrosecondsPerMillisecond = 1000;
+constexpr int kMicrosecondsPerSecond = (kMicrosecondsPerMillisecond *
+                                        kMillisecondsPerSecond);
+constexpr int kNanosecondsPerMicrosecond = 1000;
+constexpr int kNanosecondsPerMillisecond = (kNanosecondsPerMicrosecond *
+                                            kMicrosecondsPerMillisecond);
+constexpr int kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
+                                       kMicrosecondsPerSecond);
 
 // A macro to disallow the copy constructor and operator= functions.
 // This should be used in the private: declarations for a class.
@@ -210,10 +210,8 @@ private:                                                                       \
 // type to another thus avoiding the warning.
 template <class D, class S>
 inline D bit_cast(const S& source) {
-  // Compile time assertion: sizeof(D) == sizeof(S). A compile error
-  // here means your D and S have different sizes.
-  ATTRIBUTE_UNUSED
-  typedef char VerifySizesAreEqual[sizeof(D) == sizeof(S) ? 1 : -1];
+  static_assert(sizeof(D) == sizeof(S),
+                "Destination and source of bit_cast must have the same size");
 
   D destination;
   // This use of memcpy is safe: source and destination cannot overlap.

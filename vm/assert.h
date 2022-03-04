@@ -72,16 +72,6 @@ class Assert {
 
 #endif  // if defined(DEBUG)
 
-#if !defined(COMPILE_ASSERT)
-template <bool>
-struct CompileAssert {
-};
-#define COMPILE_ASSERT_JOIN(a, b) COMPILE_ASSERT_JOIN_HELPER(a, b)
-#define COMPILE_ASSERT_JOIN_HELPER(a, b) a##b
-#define COMPILE_ASSERT(expr)                                                   \
-  ATTRIBUTE_UNUSED typedef CompileAssert<(static_cast<bool>(expr))>            \
-  COMPILE_ASSERT_JOIN(CompileAssertTypeDef, __LINE__)[static_cast<bool>(expr)  \
-  ? 1 : -1]
-#endif  // !defined(COMPILE_ASSERT)
+#define COMPILE_ASSERT(cond) static_assert(cond)
 
 #endif  // VM_ASSERT_H_
