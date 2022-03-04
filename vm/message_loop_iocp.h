@@ -10,6 +10,7 @@
 #endif
 
 #include "vm/message_loop.h"
+
 #include "vm/thread.h"
 
 namespace psoup {

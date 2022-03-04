@@ -82,12 +82,14 @@ EPollMessageLoop::~EPollMessageLoop() {
 }
 
 intptr_t EPollMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
+  open_waits_++;
+
   struct epoll_event event;
   event.events = EPOLLRDHUP | EPOLLET;
-  if (signals & (1 << kReadEvent)) {
+  if (signals & kReadEvent) {
     event.events |= EPOLLIN;
   }
-  if (signals & (1 << kWriteEvent)) {
+  if (signals & kWriteEvent) {
     event.events |= EPOLLOUT;
   }
   event.data.fd = fd;
@@ -100,6 +102,7 @@ intptr_t EPollMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
 }
 
 void EPollMessageLoop::CancelSignalWait(intptr_t wait_id) {
+  open_waits_--;
   UNIMPLEMENTED();
 }
 
@@ -114,7 +117,7 @@ void EPollMessageLoop::MessageEpilogue(int64_t new_wakeup) {
   }
   timerfd_settime(timer_fd_, TFD_TIMER_ABSTIME, &it, NULL);
 
-  if ((open_ports_ == 0) && (wakeup_ == 0)) {
+  if ((open_ports_ == 0) && (open_waits_ == 0) && (wakeup_ == 0)) {
     Exit(0);
   }
 }
@@ -167,7 +170,7 @@ intptr_t EPollMessageLoop::Run() {
           uword message = 0;
           ssize_t red = read(interrupt_fds_[0], &message, sizeof(message));
           if (red != sizeof(message)) {
-            FATAL("Failed to atomically write notify message");
+            FATAL("Failed to atomically read notify message");
           }
         } else if (events[i].data.fd == timer_fd_) {
           int64_t value;
@@ -178,19 +181,19 @@ intptr_t EPollMessageLoop::Run() {
           intptr_t fd = events[i].data.fd;
           intptr_t pending = 0;
           if (events[i].events & EPOLLERR) {
-            pending |= 1 << kErrorEvent;
+            pending |= kErrorEvent;
           }
           if (events[i].events & EPOLLIN) {
-            pending |= 1 << kReadEvent;
+            pending |= kReadEvent;
           }
           if (events[i].events & EPOLLOUT) {
-            pending |= 1 << kWriteEvent;
+            pending |= kWriteEvent;
           }
           if (events[i].events & EPOLLHUP) {
-            pending |= 1 << kCloseEvent;
+            pending |= kCloseEvent;
           }
           if (events[i].events & EPOLLRDHUP) {
-            pending |= 1 << kCloseEvent;
+            pending |= kCloseEvent;
           }
           DispatchSignal(fd, 0, pending, 0);
         }

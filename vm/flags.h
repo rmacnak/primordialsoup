@@ -14,6 +14,7 @@
 #define TRACE_DNU false
 #define TRACE_GROWTH false
 #define TRACE_PRIMITIVES false
+#define TRACE_SIGNALS false
 #define TRACE_SPECIAL_CONTROL false
 
 #endif  // VM_FLAGS_H_

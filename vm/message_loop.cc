@@ -4,6 +4,7 @@
 
 #include "vm/message_loop.h"
 
+#include "vm/flags.h"
 #include "vm/isolate.h"
 #include "vm/os.h"
 
@@ -38,6 +39,11 @@ void MessageLoop::DispatchSignal(intptr_t handle,
                                  intptr_t status,
                                  intptr_t signals,
                                  intptr_t count) {
+  if (TRACE_SIGNALS) {
+    OS::PrintErr("handle=%" Pd ", status=%" Pd "(%s), signals=%" Pd "\n",
+                 handle, status, strerror(status), signals);
+  }
+
   if (isolate_ == NULL) {
     return;
   }

@@ -49,10 +49,10 @@ class IsolateMessage {
 };
 
 enum {
-  kReadEvent = 0,
-  kWriteEvent,
-  kCloseEvent,
-  kErrorEvent,
+  kReadEvent = 0x1,
+  kWriteEvent = 0x2,
+  kCloseEvent = 0x4,
+  kErrorEvent = 0x8,
 };
 
 class MessageLoop {

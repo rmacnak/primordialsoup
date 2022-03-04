@@ -69,16 +69,19 @@ KQueueMessageLoop::~KQueueMessageLoop() {
 }
 
 intptr_t KQueueMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
+  open_waits_++;
+
   static const intptr_t kMaxChanges = 2;
   struct kevent changes[kMaxChanges];
   intptr_t nchanges = 0;
   void* udata = reinterpret_cast<void*>(fd);
-  if (signals & (1 << kReadEvent)) {
-    EV_SET(changes + nchanges, fd, EVFILT_READ, EV_ADD, 0, 0, udata);
+  if (signals & kReadEvent) {
+    EV_SET(changes + nchanges, fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, udata);
     nchanges++;
   }
-  if (signals & (1 << kWriteEvent)) {
-    EV_SET(changes + nchanges, fd, EVFILT_WRITE, EV_ADD, 0, 0, udata);
+  if (signals & kWriteEvent) {
+    EV_SET(changes + nchanges, fd, EVFILT_WRITE, EV_ADD | EV_CLEAR, 0, 0,
+           udata);
     nchanges++;
   }
   ASSERT(nchanges > 0);
@@ -92,13 +95,14 @@ intptr_t KQueueMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
 }
 
 void KQueueMessageLoop::CancelSignalWait(intptr_t wait_id) {
+  open_waits_--;
   UNIMPLEMENTED();
 }
 
 void KQueueMessageLoop::MessageEpilogue(int64_t new_wakeup) {
   wakeup_ = new_wakeup;
 
-  if ((open_ports_ == 0) && (wakeup_ == 0)) {
+  if ((open_ports_ == 0) && (open_waits_ == 0) && (wakeup_ == 0)) {
     Exit(0);
   }
 }
@@ -170,31 +174,34 @@ intptr_t KQueueMessageLoop::Run() {
         uword message = 0;
         ssize_t red = read(interrupt_fds_[0], &message, sizeof(message));
         if (red != sizeof(message)) {
-          FATAL("Failed to atomically write notify message");
+          FATAL("Failed to atomically read notify message");
         }
       } else {
         intptr_t fd = events[i].ident;
         intptr_t pending = 0;
+        intptr_t status = 0;
         if (events[i].filter == EVFILT_READ) {
-          pending |= 1 << kReadEvent;
+          pending |= kReadEvent;
           if ((events[i].flags & EV_EOF) != 0) {
             if (events[i].fflags != 0) {
-              pending = (1 << kErrorEvent);
+              pending = kErrorEvent;
+              status = events[i].fflags;
             } else {
-              pending |= (1 << kCloseEvent);
+              pending |= kCloseEvent;
             }
           }
         } else if (events[i].filter == EVFILT_WRITE) {
-          pending |= (1 << kWriteEvent);
+          pending |= kWriteEvent;
           if ((events[i].flags & EV_EOF) != 0) {
             if (events[i].fflags != 0) {
-              pending = (1 << kErrorEvent);
+              pending = kErrorEvent;
+              status = events[i].fflags;
             }
           }
         } else {
           UNREACHABLE();
         }
-        DispatchSignal(fd, 0, pending, 0);
+        DispatchSignal(fd, status, pending, 0);
       }
     }
 

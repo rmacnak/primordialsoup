@@ -31,19 +31,21 @@ IOCPMessageLoop::~IOCPMessageLoop() {
   CloseHandle(completion_port_);
 }
 
-intptr_t IOCPMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
+intptr_t IOCPMessageLoop::AwaitSignal(intptr_t handle, intptr_t signals) {
+  open_waits_++;
   UNIMPLEMENTED();
   return 0;
 }
 
 void IOCPMessageLoop::CancelSignalWait(intptr_t wait_id) {
+  open_waits_--;
   UNIMPLEMENTED();
 }
 
 void IOCPMessageLoop::MessageEpilogue(int64_t new_wakeup) {
   wakeup_ = new_wakeup;
 
-  if ((open_ports_ == 0) && (wakeup_ == 0)) {
+  if ((open_ports_ == 0) && (open_waits_ == 0) && (wakeup_ == 0)) {
     Exit(0);
   }
 }
@@ -65,8 +67,8 @@ void IOCPMessageLoop::PostMessage(IsolateMessage* message) {
 }
 
 void IOCPMessageLoop::Notify() {
-  BOOL ok = PostQueuedCompletionStatus(completion_port_, 0, NULL,
-                                       reinterpret_cast<OVERLAPPED*>(this));
+  ULONG_PTR key = reinterpret_cast<ULONG_PTR>(this);
+  BOOL ok = PostQueuedCompletionStatus(completion_port_, 0, key, NULL);
   if (!ok) {
     FATAL("PostQueuedCompletionStatus failed");
   }
@@ -86,7 +88,7 @@ intptr_t IOCPMessageLoop::Run() {
       timeout = INFINITE;
     } else {
       int64_t timeout64 = (wakeup_ - OS::CurrentMonotonicNanos()) /
-          kNanosecondsPerMillisecond;;
+          kNanosecondsPerMillisecond;
       if (timeout64 < 0) {
         timeout64 = 0;
       }
@@ -107,7 +109,7 @@ intptr_t IOCPMessageLoop::Run() {
       if ((wakeup_ != 0) && (OS::CurrentMonotonicNanos() >= wakeup_)) {
         DispatchWakeup();
       }
-    } else if (key == NULL) {
+    } else if (key == reinterpret_cast<ULONG_PTR>(this)) {
       // Interrupt: will check messages below.
     } else {
       UNIMPLEMENTED();

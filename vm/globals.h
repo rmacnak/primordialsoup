@@ -6,6 +6,11 @@
 #define VM_GLOBALS_H_
 
 #if defined(_WIN32)
+// Cut down on the amount of stuff that gets included via windows.h.
+#if !defined(WIN32_LEAN_AND_MEAN)
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <windows.h>
 #endif  // defined(_WIN32)
 
