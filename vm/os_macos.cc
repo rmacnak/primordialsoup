@@ -19,25 +19,14 @@
 
 namespace psoup {
 
-static mach_timebase_info_data_t timebase_info;
-
-
-void OS::Startup() {
-  kern_return_t kr = mach_timebase_info(&timebase_info);
-  ASSERT(KERN_SUCCESS == kr);
-}
+void OS::Startup() {}
 
 
 void OS::Shutdown() {}
 
 
 int64_t OS::CurrentMonotonicNanos() {
-  ASSERT(timebase_info.denom != 0);
-  // timebase_info converts absolute time tick units into nanoseconds.
-  int64_t result = mach_absolute_time();
-  result *= timebase_info.numer;
-  result /= timebase_info.denom;
-  return result;
+  return clock_gettime_nsec_np(CLOCK_MONOTONIC);
 }
 
 
