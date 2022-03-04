@@ -83,11 +83,7 @@ test_riscv32() {
 }
 
 case $(uname -m) in
-  x86_64)
-    case $(uname -s) in
-      Darwin) test_x64 ;;
-      *) test_x64_and_ia32
-    esac ;;
+  x86_64) test_x64 ;;
   aarch64) test_arm64 ;;
   arm64) test_arm64 ;;
   armv7l) test_arm ;;

@@ -14,9 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Dependencies
-        run: sudo apt-get install g++-multilib scons
+        run: sudo apt-get install g++ scons
       - name: Build
-        run: ./build
+        run: ./build arch=x64
       - name: Test
         run: ./test
   macos:
