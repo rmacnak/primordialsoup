@@ -29,7 +29,7 @@ int64_t OS::CurrentMonotonicNanos() {
 const char* OS::Name() { return "emscripten"; }
 
 
-int OS::NumberOfAvailableProcessors() {
+intptr_t OS::NumberOfAvailableProcessors() {
   return 1;
 }
 

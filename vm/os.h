@@ -17,7 +17,7 @@ class OS {
   static int64_t CurrentMonotonicNanos();
 
   static const char* Name();
-  static int NumberOfAvailableProcessors();
+  static intptr_t NumberOfAvailableProcessors();
 
   static void DebugBreak();
 
