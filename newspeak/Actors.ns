@@ -626,6 +626,9 @@ public broken: problem <E> ^<Promise[nil, E]> = (
 public fulfilled: resolution <V> ^<Promise[V, nil]> = (
 	^Resolver new fulfill: resolution; promise
 )
+public when: ref <Promise[V, E]> broken: onError <[:E | E2 def]> ^<Promise[V, E2]> = (
+	^(asInternalRef: ref) whenFulfilled: [:v | v] whenBroken: onError
+)
 (* Subscribe to notification of a reference being fulfilled. If ref is fulfilled, onValue will run in some turn after the turn that resolves ref, and the returned promise with be resolved with the result of onValue. If ref is broken, the returned promise with be broken with the same error. *)
 public when: ref <Promise[V, E]> fulfilled: onValue <[:V | V2 def]> ^<Promise[V2, E]> = (
 	^(asInternalRef: ref) whenFulfilled: onValue whenBroken: [:e | e signal] (* Should we make this the behavior of a nil catch-clause instead? *)

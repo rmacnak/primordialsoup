@@ -2,6 +2,7 @@
 class MinitestTests usingPlatform: platform testFramework: minitest = (
 |
 	private Exception = platform kernel Exception.
+	private Promise = platform actors Promise.
 	private testFramework = minitest.
 	private TestContext = minitest TestContext.
 	private TestCatalog = minitest TestCatalog.
@@ -53,6 +54,22 @@ public testAssertPassBlock = (
 )
 public testAssertPassExpression = (
 	assert: true
+)
+) : (
+TEST_CONTEXT = (
+)
+)
+public class AsyncTestContext = TestContext (
+|
+|) (
+public testAsyncError = (
+	^TestException1 new <-: signal
+)
+public testAsyncFailure = (
+	^[self failWithMessage: 'fail'] <-: value
+)
+public testAsyncSuccess = (
+	^self <-: yourself
 )
 ) : (
 TEST_CONTEXT = (
@@ -216,6 +233,16 @@ public testAsserts = (
 	assert: tester successes size equals: 2.
 	assert: tester successes containsSelector: #testAssertPassBlock.
 	assert: tester successes containsSelector: #testAssertPassExpression.
+)
+public testAsyncResults = (
+	tester:: Tester testSuite: (catalog testSuiteNamed: 'AsyncTestContext').
+	^Promise when: tester runAllAsync fulfilled:
+		[assert: tester errors size equals: 1.
+		 assert: tester errors containsSelector: #testAsyncError.
+		 assert: tester failures size equals: 1.
+		 assert: tester failures containsSelector: #testAsyncFailure.
+		 assert: tester successes size equals: 1.
+		 assert: tester successes containsSelector: #testAsyncSuccess]
 )
 public testDenials = (
 	tester:: Tester testSuite: (catalog testSuiteNamed: 'DenyTestContext').
