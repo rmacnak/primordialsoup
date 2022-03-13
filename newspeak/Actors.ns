@@ -488,6 +488,12 @@ class MessageLoop = (|
 	public platform
 	public handleMap = Map new.
 |) (
+public Promise = (
+	^outer Actors Promise
+)
+public Resolver = (
+	^outer Actors Resolver
+)
 private dispatchHandle: handle status: status signals: signals count: count = (
 	| handler |
 	handler:: handleMap at: handle ifAbsent: [nil].

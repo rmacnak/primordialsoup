@@ -1965,12 +1965,48 @@ protected assert: blockOrBoolean message: message = (
 		ifTrue: [blockOrBoolean value ifFalse: [Exception new signal: message]]
 		ifFalse: [blockOrBoolean ifFalse: [Exception new signal: message]].
 )
+(* Return a promise to the sender's home, and resume the sender when the argument resolves. *)
+protected await: promise <Promise[V]> ^<V> = (
+	|
+	current = currentActivation.
+	continuation = current sender.
+	home = continuation home.
+	resolver = messageLoop Resolver new.
+	|
+	messageLoop Promise
+		when: promise
+		fulfilled:
+			[:v |
+			[resolver fulfill: (continue: continuation withValue: v)]
+				on: Exception
+				do: [:e | resolver break: e]]
+		broken:
+			[:e |
+			[resolver fulfill: (continue: continuation withException: e)]
+				on: Exception
+				do: [:e | resolver break: e]].
+	current sender: home sender.
+	home sender: nil.
+	^resolver promise
+)
 (* Answers the class of the receiver.
 
 	This method is not public to make it easier to separate the authority of an instance from the authority of its class. This is similar to how the flatness of the metaclass heirarchy separates the interface of an object from the interface of its class. *)
 protected class ^<Behavior> = (
 	(* :literalmessage: primitive: 85 *)
 	panic.
+)
+private continue: continuation withException: exception = (
+	| current = currentActivation. |
+	continuation home sender: current sender.
+	current sender: continuation.
+	^exception signal
+)
+private continue: continuation withValue: value = (
+	| current = currentActivation. |
+	continuation home sender: current sender.
+	current sender: continuation.
+	^value
 )
 protected doesNotUnderstand: message <Message> = (
 	(0 = message arguments size and: [message selector startsWith: 'isKindOf']) ifTrue: [^false].

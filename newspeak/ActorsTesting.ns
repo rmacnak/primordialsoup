@@ -9,6 +9,109 @@ class ActorsTesting usingPlatform: p actors: a testActor: ta minitest: m = (|
 	private Actor = a Actor.
 	private Promise = a Promise.
 |) (
+public class AwaitTests = TestBase () (
+awaitExceptionInContinuation = (
+	(await: 0) / 0.
+)
+awaitExceptionLocalReturn = (
+	| result |
+	[await: 0 <-: / 0.
+	 r:: 'success']
+		on: Exception
+		do: [:e | result:: 'exception'].
+	^result
+)
+awaitExceptionNonLocalReturn = (
+	[await: 0 <-: / 0.
+	 ^'success']
+		on: Exception
+		do: [:e | ^'exception'].
+	^'fall-through'
+)
+awaitInlinedLoop: events = (
+	1 to: 3 do:
+		[:i |
+		 events add: i.
+		 events add: (await: (i <-: * 10))].
+	^events
+)
+awaitNonInlinedLoop: events = (
+	| action |
+	action::
+		[:i |
+		 events add: i.
+		 events add: (await: (i <-: * 10))].
+	1 to: 3 do: action.
+	^events
+)
+public testAwaitExceptionInContinuation = (
+	^assert: awaitExceptionInContinuation smashedWith: Error.
+)
+public testAwaitExceptionLocalReturn = (
+	^assert: awaitExceptionLocalReturn resolvesTo: 'exception'.
+)
+public testAwaitExceptionNonLocalReturn = (
+	^assert: awaitExceptionNonLocalReturn resolvesTo: 'exception'.
+)
+public testAwaitInOrder = (
+	| three four seven |
+	three:: 1 <-: + 2.
+	assert: three isKindOfPromise.
+	three:: await: three.
+	deny: three isKindOfPromise.
+	assert: three equals: 3.
+
+	four:: 2 <-: + 2.
+	assert: four isKindOfPromise.
+	four:: await: four.
+	deny: four isKindOfPromise.
+	assert: four equals: 4.
+
+	seven:: three + four.
+	deny: seven isKindOfPromise.
+	assert: seven equals: 7.
+)
+public testAwaitInlinedLoop = (
+	| events = List new. |
+	^Promise when: (awaitInlinedLoop: events) fulfilled:
+		[:result |
+		 assert: result equals: events.
+		 (* Not 1. 2. 3. 10. 20. 30. *)
+		 assertList: events equals: {1. 10. 2. 20. 3. 30.}]
+)
+public testAwaitNonInlinedLoop = (
+	| events = List new. |
+	^Promise when: (awaitNonInlinedLoop: events) fulfilled:
+		[:result |
+		 assert: result equals: events.
+		 (* Not 1. 2. 3. 10. 20. 30. *)
+		 assertList: events equals: {1. 10. 2. 20. 3. 30.}]
+)
+public testAwaitOutOfOrder = (
+	| three four seven |
+	three:: 1 <-: + 2.
+	four:: 2 <-: + 2.
+	seven:: three <-: + 4.  (* Library issue: missing double dispatch for integer case *)
+
+	assert: three isKindOfPromise.
+	assert: four isKindOfPromise.
+	assert: seven isKindOfPromise.
+
+	seven:: await: seven.
+	deny: seven isKindOfPromise.
+	assert: seven equals: 7.
+
+	four:: await: four.
+	deny: four isKindOfPromise.
+	assert: four equals: 4.
+
+	three:: await: three.
+	deny: three isKindOfPromise.
+	assert: three equals: 3.
+)
+) : (
+TEST_CONTEXT = ()
+)
 class FooError = Error () (
 ) : (
 )
