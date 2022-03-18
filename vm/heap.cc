@@ -161,6 +161,9 @@ uword Heap::AllocateNew(intptr_t size) {
   uword addr = TryAllocateNew(size);
   if (addr == 0) {
     Scavenge(kNewSpace);
+    if (old_size_ > old_limit_) {
+      MarkSweep(kTenure);
+    }
     addr = TryAllocateNew(size);
     if (addr == 0) {
       return AllocateOldSmall(size, kControlGrowth);
@@ -313,6 +316,7 @@ void Heap::ShrinkRememberedSet() {
   delete[] old_remembered_set;
 }
 
+NOINLINE
 void Heap::Scavenge(Reason reason) {
 #if REPORT_GC
   int64_t start = OS::CurrentMonotonicNanos();
@@ -372,11 +376,6 @@ void Heap::Scavenge(Reason reason) {
                ReasonToCString(reason), new_after / KB, tenured / KB,
                freed / KB, time / kNanosecondsPerMicrosecond);
 #endif
-
-  ASSERT(reason == kNewSpace);
-  if (old_size_ > old_limit_) {
-    MarkSweep(kTenure);
-  }
 }
 
 void Heap::FlipSpaces() {
@@ -624,6 +623,7 @@ bool Heap::ScavengeClass(intptr_t cid) {
   return true;
 }
 
+NOINLINE
 void Heap::MarkSweep(Reason reason) {
 #if REPORT_GC
   int64_t start = OS::CurrentMonotonicNanos();
