@@ -4,10 +4,14 @@ import os
 import platform
 
 def BuildVM(cxx, arch, target_os, debug, sanitize):
-  if target_os == 'windows' and arch == 'ia32':
-    env = Environment(TARGET_ARCH='x86', tools=['msvc', 'mslink'])
-  elif target_os == 'windows' and arch == 'x64':
-    env = Environment(TARGET_ARCH='x86_64', tools=['msvc', 'mslink'])
+  if target_os == 'windows':
+    if arch == 'ia32':
+      win_arch_name = 'x86'
+    elif arch == 'x64':
+      win_arch_name = 'x86_64'
+    else:
+      win_arch_name = arch
+    env = Environment(TARGET_ARCH=win_arch_name, tools=['msvc', 'mslink'])
   elif target_os == 'emscripten':
     env = Environment(ENV = os.environ, tools=['g++', 'gnulink'])
     env['CXX'] = cxx
@@ -345,22 +349,32 @@ def Main():
     # If cross compiling, also build for the target.
     BuildVM(target_cxx, target_arch, target_os, True, sanitize)
     BuildVM(target_cxx, target_arch, target_os, False, sanitize)
-  elif host_arch == 'x64' and sanitize != 'thread' and target_arch == None \
-       and target_os != 'macos' :
-    # If on X64, also build for IA32. Skip when using TSan or targeting Mac, as
-    # they don't support IA32. Also skip when a specific architecture was asked
-    # for.
-    BuildVM(host_cxx, 'ia32', host_os, True, sanitize)
-    BuildVM(host_cxx, 'ia32', host_os,  False, sanitize)
-  elif target_arch == None and target_os == 'macos':
-    # On Mac, also build for the other Mac architecture, unless a specific
-    # architecture was asked for.
-    if host_arch != 'arm64':
-      BuildVM(host_cxx, 'arm64', host_os, True, sanitize)
-      BuildVM(host_cxx, 'arm64', host_os,  False, sanitize)
-    if host_arch != 'x64':
-      BuildVM(host_cxx, 'x64', host_os, True, sanitize)
-      BuildVM(host_cxx, 'x64', host_os,  False, sanitize)
+  elif target_arch == None:
+    # No particular arch was asked for: try to build everything supported.
+    if target_os == 'macos':
+      if host_arch != 'x64':
+        BuildVM(host_cxx, 'x64', host_os, True, sanitize)
+        BuildVM(host_cxx, 'x64', host_os,  False, sanitize)
+      if host_arch != 'arm64':
+        BuildVM(host_cxx, 'arm64', host_os, True, sanitize)
+        BuildVM(host_cxx, 'arm64', host_os,  False, sanitize)
+    elif target_os == 'windows':
+      if host_arch != 'ia32':
+        BuildVM(host_cxx, 'ia32', host_os, True, sanitize)
+        BuildVM(host_cxx, 'ia32', host_os,  False, sanitize)
+      if host_arch != 'x64':
+        BuildVM(host_cxx, 'x64', host_os, True, sanitize)
+        BuildVM(host_cxx, 'x64', host_os,  False, sanitize)
+      if host_arch != 'arm':
+        BuildVM(host_cxx, 'arm', host_os, True, sanitize)
+        BuildVM(host_cxx, 'arm', host_os,  False, sanitize)
+      if host_arch != 'arm64':
+        BuildVM(host_cxx, 'arm64', host_os, True, sanitize)
+        BuildVM(host_cxx, 'arm64', host_os,  False, sanitize)
+    elif target_os == 'linux':
+      if host_arch == 'x64' and sanitize != 'thread':
+        BuildVM(host_cxx, 'ia32', host_os, True, sanitize)
+        BuildVM(host_cxx, 'ia32', host_os,  False, sanitize)
 
   ndk = ARGUMENTS.get('ndk', None)
   if ndk != None:

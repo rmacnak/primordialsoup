@@ -48,9 +48,9 @@
 #endif
 
 
-#if defined(_M_X64) || (__SIZEOF_POINTER__ == 8)
+#if defined(_M_X64) || defined(_M_ARM64) || (__SIZEOF_POINTER__ == 8)
 #define ARCH_IS_64_BIT 1
-#elif defined(_M_IX86) || (__SIZEOF_POINTER__ == 4)
+#elif defined(_M_IX86) || defined(_M_ARM) || (__SIZEOF_POINTER__ == 4)
 #define ARCH_IS_32_BIT 1
 #else
 #error Unknown architecture.
