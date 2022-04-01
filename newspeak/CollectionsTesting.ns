@@ -87,15 +87,15 @@ public testHashMap2 = (
 	map at: 'C' put: 'CCC'.
 	map at: 'D' ifAbsentPut: ['DD'].
 
-	assert: [map values isKindOfList].
-	assert: [map values size = 3].
-	assert: [map keys size = 3].
-	assert: [map keys isKindOfSet].
+	assert: map values isKindOfArray.
+	assert: map values size equals: 3.
+	assert: map keys size equals: 3.
+	assert: map keys isKindOfArray.
 
-	assert: [map includes: 'newAA'].
-	assert: [map includes: 'CCC'].
-	assert: [map includes: 'DD'].
-	assert: [(map includes: 'B') not].
+	assert: (map includes: 'newAA').
+	assert: (map includes: 'CCC').
+	assert: (map includes: 'DD').
+	deny: (map includes: 'B').
 
 	map do: [:e | assert: [e size > 1]].
 
@@ -695,14 +695,26 @@ public testMapCollect = (
 	| map result |
 	map:: Map new.
 	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
 	map at: 'green' put: 'vert'.
 	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
 
 	result:: map collect: [:each | each size].
-	assert: result size equals: 3.
+	assert: result size equals: 9.
 	assert: (result at: 'red') equals: 5.
+	assert: (result at: 'orange') equals: 6.
+	assert: (result at: 'yellow') equals: 5.
 	assert: (result at: 'green') equals: 4.
 	assert: (result at: 'blue') equals: 4.
+	assert: (result at: 'purple') equals: 6.
+	assert: (result at: 'white') equals: 5.
+	assert: (result at: 'gray') equals: 4.
+	assert: (result at: 'black') equals: 4.
 )
 public testMapIsEmpty = (
 	| map |
@@ -715,6 +727,56 @@ public testMapIsEmpty = (
 	deny: map isEmpty.
 	map removeKey: #key.
 	assert: map isEmpty.
+)
+public testMapKeysAndValues = (
+	| map keys values |
+	map:: Map new.
+	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
+	map at: 'green' put: 'vert'.
+	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
+
+	keys:: map keys.
+	assert: keys isKindOfArray.
+	assert: keys size equals: 9.
+	assert: (keys includes: 'red').
+	assert: (keys includes: 'orange').
+	assert: (keys includes: 'yellow').
+	assert: (keys includes: 'green').
+	assert: (keys includes: 'blue').
+	assert: (keys includes: 'purple').
+	assert: (keys includes: 'white').
+	assert: (keys includes: 'gray').
+	assert: (keys includes: 'black').
+
+	values:: map values.
+	assert: values isKindOfArray.
+	assert: values size equals: 9.
+	assert: (values includes: 'rouge').
+	assert: (values includes: 'orange').
+	assert: (values includes: 'jaune').
+	assert: (values includes: 'vert').
+	assert: (values includes: 'bleu').
+	assert: (values includes: 'violet').
+	assert: (values includes: 'blanc').
+	assert: (values includes: 'gris').
+	assert: (values includes: 'noir').
+
+	(* Keys and values must have a consistent order. *)
+	assert: (keys indexOf: 'red') equals: (values indexOf: 'rouge').
+	assert: (keys indexOf: 'orange') equals: (values indexOf: 'orange').
+	assert: (keys indexOf: 'yellow') equals: (values indexOf: 'jaune').
+	assert: (keys indexOf: 'green') equals: (values indexOf: 'vert').
+	assert: (keys indexOf: 'blue') equals: (values indexOf: 'bleu').
+	assert: (keys indexOf: 'purple') equals: (values indexOf: 'violet').
+	assert: (keys indexOf: 'white') equals: (values indexOf: 'blanc').
+	assert: (keys indexOf: 'gray') equals: (values indexOf: 'gris').
+	assert: (keys indexOf: 'black') equals: (values indexOf: 'noir').
 )
 public testMapLowCapacity = (
 	(* Regression test against naively taking the capacity hint, which can break the invariant of having at least one free slot. *)
@@ -778,24 +840,42 @@ public testMapReject = (
 	| map result |
 	map:: Map new.
 	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
 	map at: 'green' put: 'vert'.
 	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
 
 	result:: map reject: [:each | each size > 4].
-	assert: result size equals: 2.
+	assert: result size equals: 4.
 	assert: (result at: 'green') equals: 'vert'.
 	assert: (result at: 'blue') equals: 'bleu'.
+	assert: (result at: 'gray') equals: 'gris'.
+	assert: (result at: 'black') equals: 'noir'.
 )
 public testMapSelect = (
 	| map result |
 	map:: Map new.
 	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
 	map at: 'green' put: 'vert'.
 	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
 
 	result:: map select: [:each | each size > 4].
-	assert: result size equals: 1.
+	assert: result size equals: 5.
 	assert: (result at: 'red') equals: 'rouge'.
+	assert: (result at: 'orange') equals: 'orange'.
+	assert: (result at: 'yellow') equals: 'jaune'.
+	assert: (result at: 'purple') equals: 'violet'.
+	assert: (result at: 'white') equals: 'blanc'.
 )
 public testMapSelfKey = (
 	| map = Map new. |
@@ -856,14 +936,27 @@ public testOrderedMapCollect = (
 	| map result |
 	map:: OrderedMap new.
 	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
 	map at: 'green' put: 'vert'.
 	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
 
 	result:: map collect: [:each | each size].
-	assert: result size equals: 3.
+	assert: result isKindOfOrderedMap.
+	assert: result size equals: 9.
 	assert: (result at: 'red') equals: 5.
+	assert: (result at: 'orange') equals: 6.
+	assert: (result at: 'yellow') equals: 5.
 	assert: (result at: 'green') equals: 4.
 	assert: (result at: 'blue') equals: 4.
+	assert: (result at: 'purple') equals: 6.
+	assert: (result at: 'white') equals: 5.
+	assert: (result at: 'gray') equals: 4.
+	assert: (result at: 'black') equals: 4.
 )
 public testOrderedMapIsEmpty = (
 	| map |
@@ -876,6 +969,45 @@ public testOrderedMapIsEmpty = (
 	deny: map isEmpty.
 	map removeKey: #key.
 	assert: map isEmpty.
+)
+public testOrderedMapKeysAndValues = (
+	| map keys values |
+	map:: OrderedMap new.
+	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
+	map at: 'green' put: 'vert'.
+	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
+
+	keys:: map keys.
+	assert: keys isKindOfArray.
+	assert: keys size equals: 9.
+	assert: (keys at: 1) equals: 'red'.
+	assert: (keys at: 2) equals: 'orange'.
+	assert: (keys at: 3) equals: 'yellow'.
+	assert: (keys at: 4) equals: 'green'.
+	assert: (keys at: 5) equals: 'blue'.
+	assert: (keys at: 6) equals: 'purple'.
+	assert: (keys at: 7) equals: 'white'.
+	assert: (keys at: 8) equals: 'gray'.
+	assert: (keys at: 9) equals: 'black'.
+
+	values:: map values.
+	assert: values isKindOfArray.
+	assert: values size equals: 9.
+	assert: (values at: 1) equals: 'rouge'.
+	assert: (values at: 2) equals: 'orange'.
+	assert: (values at: 3) equals: 'jaune'.
+	assert: (values at: 4) equals: 'vert'.
+	assert: (values at: 5) equals: 'bleu'.
+	assert: (values at: 6) equals: 'violet'.
+	assert: (values at: 7) equals: 'blanc'.
+	assert: (values at: 8) equals: 'gris'.
+	assert: (values at: 9) equals: 'noir'.
 )
 public testOrderedMapLowCapacity = (
 	(* Regression test against naively taking the capacity hint, which can break the invariant of having at least one free slot. *)
@@ -936,27 +1068,72 @@ public testOrderedMapNilKey = (
 	assert: (map at: nil) equals: 'pineapple'.
 )
 public testOrderedMapReject = (
-	| map result |
+	| map result keys values |
 	map:: OrderedMap new.
 	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
 	map at: 'green' put: 'vert'.
 	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
 
 	result:: map reject: [:each | each size > 4].
-	assert: result size equals: 2.
-	assert: (result at: 'green') equals: 'vert'.
-	assert: (result at: 'blue') equals: 'bleu'.
+	assert: result isKindOfOrderedMap.
+	assert: result size equals: 4.
+
+	keys:: result keys.
+	assert: keys isKindOfArray.
+	assert: keys size equals: 4.
+	assert: (keys at: 1) equals: 'green'.
+	assert: (keys at: 2) equals: 'blue'.
+	assert: (keys at: 3) equals: 'gray'.
+	assert: (keys at: 4) equals: 'black'.
+
+	values:: result values.
+	assert: values isKindOfArray.
+	assert: values size equals: 4.
+	assert: (values at: 1) equals: 'vert'.
+	assert: (values at: 2) equals: 'bleu'.
+	assert: (values at: 3) equals: 'gris'.
+	assert: (values at: 4) equals: 'noir'.
 )
 public testOrderedMapSelect = (
-	| map result |
+	| map result keys values |
 	map:: OrderedMap new.
 	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
 	map at: 'green' put: 'vert'.
 	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
 
 	result:: map select: [:each | each size > 4].
-	assert: result size equals: 1.
-	assert: (result at: 'red') equals: 'rouge'.
+	assert: result isKindOfOrderedMap.
+	assert: result size equals: 5.
+
+	keys:: result keys.
+	assert: keys isKindOfArray.
+	assert: keys size equals: 5.
+	assert: (keys at: 1) equals: 'red'.
+	assert: (keys at: 2) equals: 'orange'.
+	assert: (keys at: 3) equals: 'yellow'.
+	assert: (keys at: 4) equals: 'purple'.
+	assert: (keys at: 5) equals: 'white'.
+
+	values:: result values.
+	assert: values isKindOfArray.
+	assert: values size equals: 5.
+	assert: (values at: 1) equals: 'rouge'.
+	assert: (values at: 2) equals: 'orange'.
+	assert: (values at: 3) equals: 'jaune'.
+	assert: (values at: 4) equals: 'violet'.
+	assert: (values at: 5) equals: 'blanc'.
 )
 public testOrderedMapSelfKey = (
 	| map = OrderedMap new. |
@@ -1034,7 +1211,6 @@ public testOrderedSetAsArray = (
 	array:: set asArray.
 	assert: array isKindOfArray.
 	assert: array size equals: 3.
-	array sort: [:a :b | a <= b].
 	assert: (array at: 1) equals: 30.
 	assert: (array at: 2) equals: 40.
 	assert: (array at: 3) equals: 50.
@@ -1133,6 +1309,57 @@ public testOrderedSetNilElement = (
 	assert: (set add: nil) equals: nil.
 	assert: set size equals: 9.
 	assert: (set includes: nil).
+)
+public testOrderedSetReject = (
+	| set result array |
+	set:: OrderedSet new.
+	set add: 'red'.
+	set add: 'orange'.
+	set add: 'yellow'.
+	set add: 'green'.
+	set add: 'blue'.
+	set add: 'purple'.
+	set add: 'white'.
+	set add: 'gray'.
+	set add: 'black'.
+
+	result:: set reject: [:each | each size > 4].
+	assert: result isKindOfOrderedSet.
+	assert: result size equals: 3.
+
+	array:: result asArray.
+	assert: array isKindOfArray.
+	assert: array size equals: 3.
+	assert: (array at: 1) equals: 'red'.
+	assert: (array at: 2) equals: 'blue'.
+	assert: (array at: 3) equals: 'gray'.
+)
+public testOrderedSetSelect = (
+	| set result array |
+	set:: OrderedSet new.
+	set add: 'red'.
+	set add: 'orange'.
+	set add: 'yellow'.
+	set add: 'green'.
+	set add: 'blue'.
+	set add: 'purple'.
+	set add: 'white'.
+	set add: 'gray'.
+	set add: 'black'.
+
+	result:: set select: [:each | each size > 4].
+	assert: result isKindOfOrderedSet.
+	assert: result size equals: 6.
+
+	array:: result asArray.
+	assert: array isKindOfArray.
+	assert: array size equals: 6.
+	assert: (array at: 1) equals: 'orange'.
+	assert: (array at: 2) equals: 'yellow'.
+	assert: (array at: 3) equals: 'green'.
+	assert: (array at: 4) equals: 'purple'.
+	assert: (array at: 5) equals: 'white'.
+	assert: (array at: 6) equals: 'black'.
 )
 public testOrderedSetSelfElement = (
 	| set = OrderedSet new. |

@@ -778,12 +778,6 @@ public testByteArrayIsEmpty = (
 	assert: (ByteArray new: 0) isEmpty.
 	deny: (ByteArray new: 1) isEmpty.
 )
-public testByteArrayLargeAllocation = (
-	| size = 8 * 1024 * 1024. |
-	assert: (ByteArray new: size) size equals: size.
-	assert: (ByteArray new: size) size equals: size.
-	assert: (ByteArray new: size) size equals: size.
-)
 public testByteArrayLastIndexOf = (
 	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fofo')) equals: 3.
 	assert: ((b: 'fofofobar') lastIndexOf: (b: 'bar')) equals: 7.
@@ -2555,11 +2549,15 @@ public testFragmentation = (
 		[:index |
 		 cells at: index + 1 put: (Array new: 64 + 1)].
 )
-public testLargeAllocation = (
+public testLargeAllocationBytes = (
 	| size = 1024 * 1024. |
-	assert: (ByteArray new: size) size equals: size.
-	assert: (ByteArray new: size) size equals: size.
-	assert: (ByteArray new: size) size equals: size.
+	3 timesRepeat:
+		[assert: (ByteArray new: size) size equals: size].
+)
+public testLargeAllocationPointers = (
+	| size = 1024 * 1024. |
+	3 timesRepeat:
+		[assert: (Array new: size) size equals: size].
 )
 public testMarkStackOverflow = (
 	| tree prev |

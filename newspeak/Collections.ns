@@ -255,11 +255,16 @@ public isEmpty ^<Boolean> = (
 public isKindOfMap ^<Boolean> = (
 	^true
 )
-public keys ^<Set[K]> = (
-	| result = Set new. |
+public keys ^<Array[K]> = (
+	|
+	result = Array new: size.
+	table = self table.
+	cursor ::= 0.
+	|
 	1 to: table size by: 2 do: [:index |
 		| key = table at: index. |
-		table = key ifFalse: [result add: key]].
+		table = key ifFalse:
+			[result at: (cursor:: 1 + cursor) put: key]].
 	^result
 )
 public keysAndValuesDo: action <[:K :V]> = (
@@ -321,11 +326,15 @@ public select: predicate <[:V | Boolean]> ^<Map[K, V]> = (
 public size ^<Integer> = (
 	^size_
 )
-public values ^<List[V]> = (
-	| result = List new: size_. |
+public values ^<Array[V]> = (
+	|
+	result = Array new: size.
+	table = self table.
+	cursor ::= 0.
+	|
 	1 to: table size by: 2 do: [:index |
 		table = (table at: index) ifFalse:
-			[result add: (table at: 1 + index)]].
+			[result at: (cursor:: 1 + cursor) put: (table at: 1 + index)]].
 	^result
 )
 ) : (
@@ -457,15 +466,16 @@ public isKindOfMap ^<Boolean> = (
 public isKindOfOrderedMap ^<Boolean> = (
 	^true
 )
-public keys ^<OrderedSet[V]> = (
+public keys ^<Array[V]> = (
 	|
-	result = OrderedSet new: size.
+	result = Array new: size.
 	table = table_.
+	cursor ::= 0.
 	|
 	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
 		[:keyIndex | | key |
 		 key:: table at: keyIndex.
-		 table = key ifFalse: [result add: key]].
+		 table = key ifFalse: [result at: (cursor:: 1 + cursor) put: key]].
 	^result
 )
 public keysAndValuesDo: action <[:K :V]>  = (
@@ -546,15 +556,16 @@ public select: predicate <[:V | Boolean]> ^<Map[K, V]> = (
 public size ^<Integer> = (
 	^(nextKeyIndex_ - buckets_) >> 1 - deleted_
 )
-public values ^<List[V]> = (
+public values ^<Array[V]> = (
 	|
-	result = List new: size.
+	result = Array new: size.
 	table = table_.
+	cursor ::= 0.
 	|
 	1 + buckets_ to: nextKeyIndex_ - 2 by: 2 do:
 		[:keyIndex |
 		 table = (table at: keyIndex) ifFalse:
-			[result add: (table at: 1 + keyIndex)]].
+			[result at: (cursor:: 1 + cursor) put: (table at: 1 + keyIndex)]].
 	^result
 )
 ) : (
