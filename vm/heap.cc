@@ -560,7 +560,7 @@ bool Heap::ScavengePointer(Object* ptr) {
   DEBUG_ASSERT(new_target->IsOldObject() || InToSpace(new_target));
 
   *ptr = new_target;
-  return true;
+  return new_target->IsNewObject();
 }
 
 void Heap::ScavengeOldObject(HeapObject obj) {
@@ -601,7 +601,7 @@ bool Heap::ScavengeClass(intptr_t cid) {
 
   if (IsForwarded(old_target)) {
     // Already scavenged.
-    return true;
+    return ForwardingTarget(old_target)->IsNewObject();
   }
 
   // Target is now known to be reachable. Move it to to-space.
