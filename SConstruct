@@ -335,13 +335,18 @@ def Main():
   # Build a release host VM for building the snapshots. Don't use the santizers
   # here so the snapshots have a fixed dependency and won't be rebuilt for each
   # sanitizer.
-  host_vm = BuildVM(host_cxx, host_arch, host_os, False, None)
-  BuildSnapshots('out/snapshots/', host_vm)
+  host_debug_vm = BuildVM(host_cxx, host_arch, host_os, True, None)
+  host_release_vm = BuildVM(host_cxx, host_arch, host_os, False, None)
+  BuildSnapshots('out/snapshots/', host_release_vm)
 
-  # Build for the host.
-  BuildVM(host_cxx, host_arch, host_os, True, sanitize)
+  # Copy the VM to an architecture-independent path for the convenience of
+  # other scripts.
+  Install('out/DebugHost', host_debug_vm)
+  Install('out/ReleaseHost', host_release_vm)
+
+  # Build for the host, avoiding specifying the host build twice.
   if sanitize != None:
-    # Avoid specifying the host release build twice.
+    BuildVM(host_cxx, host_arch, host_os, True, sanitize)
     BuildVM(host_cxx, host_arch, host_os, False, sanitize)
 
   if ((target_os != None and host_os != target_os) or
