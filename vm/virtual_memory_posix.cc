@@ -10,6 +10,10 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+#if defined(OS_ANDROID) || defined(OS_LINUX)
+#include <sys/prctl.h>
+#endif
+
 #include "vm/assert.h"
 #include "vm/os.h"
 
@@ -58,6 +62,18 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
     FATAL("Failed to mmap %" Pd " bytes\n", size);
   }
 
+#if defined(OS_ANDROID) || defined(OS_LINUX)
+  // PR_SET_VMA was only added to mainline Linux in 5.17, and some versions of
+  // the Android NDK have incorrect headers, so we manually define it if absent.
+#if !defined(PR_SET_VMA)
+#define PR_SET_VMA 0x53564d41
+#endif
+#if !defined(PR_SET_VMA_ANON_NAME)
+#define PR_SET_VMA_ANON_NAME 0
+#endif
+  prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, address, size, name);
+#endif
+
   return VirtualMemory(address, size);
 }
 
@@ -71,10 +87,6 @@ void VirtualMemory::Free() {
 
 
 bool VirtualMemory::Protect(Protection protection) {
-#if defined(__aarch64__)
-  // mprotect crashes my DragonBoard, so skip on ARM64.
-  return true;
-#else
   int prot;
   switch (protection) {
     case kNoAccess: prot = PROT_NONE; break;
@@ -87,7 +99,6 @@ bool VirtualMemory::Protect(Protection protection) {
 
   int result = mprotect(address_, size_, prot);
   return result == 0;
-#endif
 }
 
 }  // namespace psoup
