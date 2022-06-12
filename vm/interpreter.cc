@@ -1587,7 +1587,7 @@ void Interpreter::Interpret() {
     }
     case 249: {
       uint8_t byte2 = *ip_++;
-      int8_t byte3 = *ip_++;
+      uintptr_t byte3 = static_cast<intptr_t>(static_cast<int8_t>(*ip_++));
       Push(SmallInteger::New((byte3 << 8) | byte2));
       break;
     }

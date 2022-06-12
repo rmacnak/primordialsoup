@@ -41,3 +41,33 @@ jobs:
       - name: Test
         run: test.bat
         shell: cmd
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: sudo apt-get install g++ clang scons
+      - name: Build (Address Sanitizer)
+        run: ./build arch=x64 sanitize=address
+      - name: Test (Address Sanitizer)
+        run: ./out/ReleaseASanX64/primordialsoup out/snapshots/TestRunner.vfuel
+        env:
+          ASAN_OPTIONS: halt_on_error=1
+      - name: Build (Memory Sanitizer)
+        run: ./build arch=x64 sanitize=memory cxx_host=clang++
+      - name: Test (Memory Sanitizer)
+        run: ./out/ReleaseMSanX64/primordialsoup out/snapshots/TestRunner.vfuel
+        env:
+          MSAN_OPTIONS: halt_on_error=1
+      - name: Build (Thread Sanitizer)
+        run: ./build arch=x64 sanitize=thread
+      - name: Test (Thread Sanitizer)
+        run: ./out/ReleaseTSanX64/primordialsoup out/snapshots/TestRunner.vfuel
+        env:
+          TSAN_OPTIONS: halt_on_error=1
+      - name: Build (Undefined Behavior Sanitizer)
+        run: ./build arch=x64 sanitize=undefined
+      - name: Test (Undefined Behavior Sanitizer)
+        run: ./out/ReleaseUBSanX64/primordialsoup out/snapshots/TestRunner.vfuel
+        env:
+          UBSAN_OPTIONS: halt_on_error=1

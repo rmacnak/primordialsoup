@@ -1469,8 +1469,9 @@ DEFINE_PRIMITIVE(Bytes_##name##At) {                                           \
   if ((index < 0) || ((index + width) > array->Size())) {                      \
     return kFailure;                                                           \
   }                                                                            \
-  double value = *reinterpret_cast<ctype*>(array->element_addr(index));        \
-  RETURN_FLOAT(value);                                                         \
+  ctype value;                                                                 \
+  memcpy(&value, array->element_addr(index), sizeof(ctype));                   \
+  RETURN_FLOAT(static_cast<double>(value));                                    \
 }                                                                              \
 DEFINE_PRIMITIVE(Bytes_##name##AtPut) {                                        \
   ASSERT(num_args == 2);                                                       \
@@ -1481,8 +1482,9 @@ DEFINE_PRIMITIVE(Bytes_##name##AtPut) {                                        \
   if ((index < 0) || ((index + width) > array->Size())) {                      \
     return kFailure;                                                           \
   }                                                                            \
-  FLOAT_ARGUMENT(value, 0);                                                    \
-  *reinterpret_cast<ctype*>(array->element_addr(index)) = value;               \
+  FLOAT_ARGUMENT(double_value, 0);                                             \
+  ctype value = static_cast<ctype>(double_value);                              \
+  memcpy(array->element_addr(index), &value, sizeof(ctype));                   \
   RETURN(I->Stack(0));                                                         \
 }
 ACCESS_FLOAT(float32, float)

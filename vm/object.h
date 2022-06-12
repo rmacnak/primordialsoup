@@ -106,7 +106,7 @@ class WeakArray;
   explicit constexpr klass() : base() {}                                       \
   explicit constexpr klass(uword tagged) : base(tagged) {}                     \
   explicit constexpr klass(const Object& obj) : base(obj) {}                   \
-  constexpr klass(nullptr_t) : base(nullptr) {}                                \
+  constexpr klass(std::nullptr_t) : base(nullptr) {}                           \
   klass* operator ->() { return this; }                                        \
   const klass* operator ->() const { return this; }                            \
   static klass Cast(const Object& object) {                                    \
@@ -171,7 +171,7 @@ class Object {
  public:
   constexpr Object() : tagged_pointer_(0) {}
   explicit constexpr Object(uword tagged) : tagged_pointer_(tagged) {}
-  constexpr Object(nullptr_t) : tagged_pointer_(0) {}  // NOLINT
+  constexpr Object(std::nullptr_t) : tagged_pointer_(0) {}  // NOLINT
 
   Object* operator->() { return this; }
 
@@ -181,10 +181,10 @@ class Object {
   constexpr bool operator !=(const Object& other) const {
     return tagged_pointer_ != other.tagged_pointer_;
   }
-  constexpr bool operator ==(nullptr_t other) const {
+  constexpr bool operator ==(std::nullptr_t other) const {
     return tagged_pointer_ == 0;
   }
-  constexpr bool operator !=(nullptr_t other) const {
+  constexpr bool operator !=(std::nullptr_t other) const {
     return tagged_pointer_ != 0;
   }
 
