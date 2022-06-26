@@ -6,8 +6,11 @@
 
 #include <errno.h>
 #include <math.h>
+#include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <termios.h>
 #include <time.h>
+#include <unistd.h>
 
 #if defined(OS_FUCHSIA)
 #include <zircon/status.h>
@@ -263,6 +266,11 @@ const bool kFailure = false;
   V(330, JS_performNew)                                                        \
   V(331, JS_performInstanceOf)                                                 \
   V(332, JS_performHas)                                                        \
+  V(500, Term_start)                                                           \
+  V(501, Term_stop)                                                            \
+  V(502, Term_read)                                                            \
+  V(503, Term_write)                                                           \
+  V(504, Term_size)                                                            \
   V(509, print)                                                                \
   V(510, readFileAsBytes)                                                      \
   V(511, writeBytesToFile)
@@ -3742,6 +3750,83 @@ DEFINE_PRIMITIVE(JS_performHas) {
 DEFINE_PRIMITIVE(Object_yourself) {
   ASSERT(num_args == 0);
   return kSuccess;
+}
+
+static struct termios original_term;
+
+DEFINE_PRIMITIVE(Term_start) {
+  ASSERT(num_args == 0);
+
+  intptr_t status = tcgetattr(STDIN_FILENO, &original_term);
+  if (status == 0) {
+    struct termios term;
+    status = tcgetattr(STDIN_FILENO, &term);
+    if (status == 0) {
+      term.c_iflag &= ~(IXON|IXOFF|ICRNL);
+      term.c_oflag &= ~(OPOST);
+      term.c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
+      status = tcsetattr(STDIN_FILENO, TCSANOW, &term);
+    }
+  }
+
+  RETURN_SMI(status);
+}
+
+DEFINE_PRIMITIVE(Term_stop) {
+  ASSERT(num_args == 0);
+
+  intptr_t status = tcsetattr(STDIN_FILENO, TCSANOW, &original_term);
+
+  RETURN_SMI(status);
+}
+
+DEFINE_PRIMITIVE(Term_size) {
+  ASSERT(num_args == 0);
+
+  struct winsize w;
+  w.ws_col = 0;
+  w.ws_row = 0;
+  intptr_t status = ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+  if (status != 0) {
+    RETURN_SMI(status);
+  }
+
+  Array result = H->AllocateArray(2);
+  result.set_element(0, SmallInteger::New(w.ws_row));
+  result.set_element(1, SmallInteger::New(w.ws_col));
+  RETURN(result);
+}
+
+DEFINE_PRIMITIVE(Term_write) {
+  ASSERT(num_args == 1);
+
+  Bytes buffer = static_cast<Bytes>(I->Stack(0));
+  if (!buffer->IsBytes()) return kFailure;
+
+  size_t length = buffer->Size();
+  size_t start = 0;
+  while (start != length) {
+    size_t written = write(STDOUT_FILENO,
+                           buffer->element_addr(start),
+                           length - start);
+    if (written == 0) {
+      FATAL("Failed to write");
+    }
+    start += written;
+  }
+
+  RETURN_SELF();
+}
+
+DEFINE_PRIMITIVE(Term_read) {
+  ASSERT(num_args == 0);
+
+  uint8_t one;
+  if (read(STDIN_FILENO, &one, 1) <= 0) {
+    FATAL("Failed to read");
+  }
+
+  RETURN_SMI((intptr_t)one);
 }
 
 PrimitiveFunction* Primitives::primitive_table_[kNumPrimitives] = {};
