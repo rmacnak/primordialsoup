@@ -112,6 +112,28 @@ public testCascadeSelfSend = (
 	)'
 	with: 'assert: sample cascadeSelfSend equals: sample'
 )
+public testCharacterEscapes = (
+	testSampleMethod: 'public testCharacterEscapes = (
+		assert: $\b equals: 8.
+		assert: $\t equals: 9.
+		assert: $\n equals: 10.
+		assert: $\f equals: 12.
+		assert: $\r equals: 13.
+		assert: $\" equals: 34.
+		assert: $\'' equals: 39.
+		assert: $\\ equals: 92.
+		assert: $\x01 equals: 1.
+		assert: $\x10 equals: 16.
+		assert: $\xFF equals: 255.
+		assert: $A equals: 65.
+		assert: $Z equals: 90.
+		assert: $a equals: 97.
+		assert: $z equals: 122.
+		assert: $0 equals: 48.
+		assert: $9 equals: 57.
+	)'
+	with: 'sample testCharacterEscapes'
+)
 public testCharacterLiteral = (
 	testSampleMethod: 'public run = ("c")'
 	with: 'assert: [sample = sample run]'
@@ -2066,6 +2088,22 @@ public testStatementBoundaries = (
 	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo . bar ) )'.
 	assertNoCompilationErrorIn: 'class Sample = () ( method = ( foo . ^ bar ) )'.
 )
+public testStringEscapes = (
+	testSampleMethod: 'public testStringEscapes = (
+		assert: "\b" equals: (String with: 8).
+		assert: "\t" equals: (String with: 9).
+		assert: "\n" equals: (String with: 10).
+		assert: "\f" equals: (String with: 12).
+		assert: "\r" equals: (String with: 13).
+		assert: "\"" equals: (String with: 34).
+		assert: "\''" equals: (String with: 39).
+		assert: "\\" equals: (String with: 92).
+		assert: "\x01" equals: (String with: 1).
+		assert: "\x10" equals: (String with: 16).
+		assert: "\xFF" equals: (String with: 255).
+	)'
+	with: 'sample testStringEscapes'
+)
 public testStringLiteral = (
 	testSampleMethod: 'public stringLiteral = (''abc'')'
 	with: 'assert: [sample = sample stringLiteral].'
@@ -2197,6 +2235,22 @@ public testSuperClassClause4 = (
 		assert: [(innerklass1 new: 2) foo = 88].
 	)
 )'
+)
+public testSymbolEscapes = (
+	testSampleMethod: 'public testSymbolEscapes = (
+		assert: #"\b" equals: (String with: 8).
+		assert: #"\t" equals: (String with: 9).
+		assert: #"\n" equals: (String with: 10).
+		assert: #"\f" equals: (String with: 12).
+		assert: #"\r" equals: (String with: 13).
+		assert: #"\"" equals: (String with: 34).
+		assert: #"\''" equals: (String with: 39).
+		assert: #"\\" equals: (String with: 92).
+		assert: #"\x01" equals: (String with: 1).
+		assert: #"\x10" equals: (String with: 16).
+		assert: #"\xFF" equals: (String with: 255).
+	)'
+	with: 'sample testSymbolEscapes'
 )
 public testSymbolLiteral = (
 	testSampleMethod: 'public symbolLiteral = (#abc)'

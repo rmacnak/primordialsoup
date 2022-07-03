@@ -5763,6 +5763,22 @@ public testStringLastIndexOfStartingAt = (
 	should: ['' lastIndexOf: '' startingAt: 0] signal: Error.
 	should: ['' lastIndexOf: '' startingAt: 2] signal: Error.
 )
+public testStringPrintString = (
+	97 to: 127 do:
+		[:code | assert: (String with: code) printString equals: (String withAll: {34. code. 34})].
+
+	assert: (String with: 8) printString equals: (String withAll: {34. 92. 98. 34}). (* "\b" *)
+	assert: (String with: 9) printString equals: (String withAll: {34. 92. 116. 34}). (* "\t" *)
+	assert: (String with: 10) printString equals: (String withAll: {34. 92. 110. 34}). (* "\n" *)
+	assert: (String with: 12) printString equals: (String withAll: {34. 92. 102. 34}). (* "\f" *)
+	assert: (String with: 13) printString equals: (String withAll: {34. 92. 114. 34}). (* "\r" *)
+	assert: (String with: 34) printString equals: (String withAll: {34. 92. 34. 34}).  (* "\"" *)
+	assert: (String with: 39) printString equals: (String withAll: {34. 39. 34}).      (* "'" *)
+	assert: (String with: 92) printString equals: (String withAll: {34. 92. 92. 34}).  (* "\\" *)
+
+	assert: (String with: 0) printString equals: (String withAll: {34. 92. 120. 48. 48. 34}). (* "\x00" *)
+	assert: (String with: 31) printString equals: (String withAll: {34. 92. 120. 49. 70. 34}). (* "\x1F" *)
+)
 public testStringSize = (
 	assert: 'foo' size equals: 3.
 	assert: #foo size equals: 3.

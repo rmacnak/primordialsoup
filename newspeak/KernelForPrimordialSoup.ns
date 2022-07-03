@@ -2131,6 +2131,20 @@ public endsWith: suffix <ByteArray | String> ^<Boolean> = (
 	(* :literalmessage: primitive: 118 *)
 	^(ArgumentError value: suffix) signal
 )
+private escape: code to: sb = (
+	8 = code ifTrue: [^sb addByte: 92; addByte: 98]. (* \b *)
+	9 = code ifTrue: [^sb addByte: 92; addByte: 116]. (* \t *)
+	10 = code ifTrue: [^sb addByte: 92; addByte: 110]. (* \n" *)
+	12 = code ifTrue: [^sb addByte: 92; addByte: 102]. (* \f *)
+	13 = code ifTrue: [^sb addByte: 92; addByte: 114]. (* \r *)
+	34 = code ifTrue: [^sb addByte: 92; addByte: 34]. (* \" *)
+	92 = code ifTrue: [^sb addByte: 92; addByte: 92].  (* \\ *)
+	code < 32 ifTrue:
+		[^sb addByte: 92; addByte: 120;
+			addByte: ('0123456789ABCDEF' at: code >> 4 + 1);
+			addByte: ('0123456789ABCDEF' at: code & 15 + 1)].
+	sb addByte: code.
+)
 public first ^<Integer> = (
 	^self at: 1
 )
@@ -2165,7 +2179,11 @@ public out = (
 	print: self.
 )
 public printString ^<String> = (
-	^'''', self, ''''
+	| sb = StringBuilder new. |
+	sb addByte: 34.
+	self do: [:code | escape: code to: sb].
+	sb addByte: 34.
+	^sb asString
 )
 public size ^<Integer> = (
 	(* :literalmessage: primitive: 53 *)
