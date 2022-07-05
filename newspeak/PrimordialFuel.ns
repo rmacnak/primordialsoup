@@ -22,6 +22,7 @@ private False = k False.
 private UndefinedObject = k UndefinedObject.
 private Fraction = k Fraction.
 private Method = k Method.
+private SlotDeclaration = k SlotDeclaration.
 private Class = k Class.
 private InstanceMixin = k InstanceMixin.
 private ClassMixin = k ClassMixin.
@@ -909,6 +910,7 @@ public snapshotApp: app withRuntime: runtime keepSource: s = (
 	replaceClass: Fraction with: newKernel Fraction.
 	replaceClass: Object with: newKernel Object.
 	replaceClass: Method with: newKernel Method.
+	replaceClass: SlotDeclaration with: newKernel SlotDeclaration.
 	replaceClass: Class with: newKernel Class.
 	replaceClass: Metaclass with: newKernel Metaclass.
 	replaceClass: InstanceMixin with: newKernel InstanceMixin.
@@ -1081,6 +1083,7 @@ sharedObjects = (
 
 		Fraction.
 		Method.
+		SlotDeclaration.
 		Class.
 		InstanceMixin.
 		ClassMixin.

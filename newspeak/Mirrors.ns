@@ -65,7 +65,7 @@ private computeDebugInfo = (
 		[^metadata].
 
 	(* Regular method *)
-	reflectee method isSynthetic ifFalse:
+	rawMethod isSynthetic ifFalse:
 		[^(compiler compileMethodSource: reflectee method source within: method definingMixin) debugInfo].
 
 	definingMixin:: rawMethod mixin.
@@ -377,12 +377,10 @@ private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<
 	^false
 )
 private methodDictionaryFor: mixin <AbstractMixin> from: imixin <IntermediateMixin> ^<MethodDictionary> = (
-	| cmethods |
-	cmethods:: imixin assembleMethods collect:
+	^(imixin assembleMethods collect:
 		[:imethod <IntermediateMethod> |
-		imethod methodMixin: mixin.
-		imethod compiledMethod].
-	^cmethods asArray
+		 imethod methodMixin: mixin.
+		 imethod compiledMethod]) asArray
 )
 private noteUpdateOf: existingMixin <InstanceMixin | nil> to: newMixin <InstanceMixin> = (
 	| applications <WeakArray> |
@@ -412,9 +410,8 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	assert: [classDecl factoryName isNil not] message: 'Missing factory name'.
 	mixin _name: classDecl name.
 	mixin _classMixin: classMixin.
+	mixin _slots: (slotsFor: mixin from: classDecl instanceSide).
 	mixin _methods: (methodDictionaryFor: mixin from: classDecl instanceSide).
-	mixin _slots: (classDecl instanceSide assembleSlots collect:
-		[:s <IntermediateSlotDeclaration> | {s name. s isMutable. s accessModifier. s isTransient. s metadata}]) asArray.
 
 	classMixin _instanceMixin: mixin.
 	classMixin _methods: (methodDictionaryFor: classMixin from: classDecl classSide).
@@ -519,6 +516,11 @@ private setup = (
 	updateInstances:: IdentityMap new.
 	existingClasses:: IdentityMap new.
 	newExistingMixins:: IdentityMap new. (* Regular Map okay here. *)
+)
+private slotsFor: mixin <InstanceMixin> from: imixin <IntermediateMixin> = (
+	^(imixin assembleSlots collect:
+		[:islot <IntermediateSlotDeclaration> |
+		 islot compiledSlot]) asArray
 )
 private sortClass: app <Class> = (
 	| classes depth subclasses |

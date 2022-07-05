@@ -2057,6 +2057,56 @@ protected yourself = (
 )
 ) : (
 )
+public class SlotDeclaration = (
+|
+public header ::= 0.
+public name
+public mixin
+public metadata
+|
+) (
+public accessModifier = (
+	| am = header & 3. |
+	am = 0 ifTrue: [^#public].
+	am = 1 ifTrue: [^#protected].
+	am = 2 ifTrue: [^#private].
+	panic.
+)
+public accessModifier: am = (
+	| ami |
+	#public = am ifTrue: [ami:: 0].
+	#protected = am ifTrue: [ami:: 1].
+	#private = am ifTrue: [ami:: 2].
+	header:: header | ami.
+)
+public at: index = (
+	1 = index ifTrue: [^name].
+	2 = index ifTrue: [^isMutable].
+	3 = index ifTrue: [^accessModifier].
+	4 = index ifTrue: [^isTransient].
+	5 = index ifTrue: [^metadata].
+	halt.
+)
+public isMutable = (
+	^header >> 2 & 1 = 1
+)
+public isMutable: v = (
+	header:: (v ifTrue: [1] ifFalse: [0]) << 2 | header.
+)
+public isTransient = (
+	^header >> 3 & 1 = 1
+)
+public isTransient: v = (
+	header:: (v ifTrue: [1] ifFalse: [0]) << 3 | header.
+)
+public size = (
+	^5
+)
+public do: action <[:Integer]> = (
+	1 to: self size do: [:index <Integer> | action value: (self at: index)].
+)
+) : (
+)
 (* An integer representable as a 31-/63-bit two's complement number. *)
 public class SmallInteger _cannotInstantiate = Integer (
 ) (

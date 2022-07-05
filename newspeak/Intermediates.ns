@@ -2,6 +2,7 @@ class Intermediates usingPlatform: p internalKernel: k = (|
 private List = p collections List.
 private Map = p collections Map.
 private Method = k Method.
+private SlotDeclaration = k SlotDeclaration.
 |) (
 public class IntermediateClassDeclaration = (|
 public name
@@ -208,6 +209,14 @@ public addSyntheticMethodsTo: methods = (
 	methods add: (generateInitializerForSlot: index).
 	methods add: (generateGetterForSlot: index).
 	isMutable ifTrue: [methods add: (generateSetterForSlot: index)].
+)
+public compiledSlot = (
+	^SlotDeclaration new
+		name: name;
+		isMutable: isMutable;
+		isTransient: isTransient;
+		accessModifier: accessModifier;
+		metadata: metadata
 )
 public generateGetterForSlot: index <Integer> ^<IntermediateMethod> = (
 	| method = IntermediateMethod new. |
