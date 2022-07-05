@@ -21,6 +21,7 @@ class Newspeak2PrimordialSoupCompilation usingPlatform: platform
  usingPlatform: platform
  asts: asts (
 |
+	private StringBuilder = platform kernel StringBuilder.
 	private Map = platform collections Map.
 	private List = platform collections List.
 	private Set = platform collections Set.
@@ -2138,17 +2139,16 @@ checkForDuplicateNames: node <ClassDeclarationAST> = (
 		names include: each ifNew: [present:: false].
 		present ifTrue: [duplicateNames add: each]].
 
-	duplicateNames isEmpty ifFalse: [ | message |
-		message:: String streamContents: [:s |
-			s
-				nextPutAll: 'Class ';
-				nextPutAll: node name;
-				nextPutAll: '" has multiple definitions for '.
-			duplicateNames
-				do: [:each | s nextPutAll: each asString]
-				separatedBy: [ s nextPutAll: ','].
-			s nextPutAll: '.'.].
-		assert: [false] message: message].
+	duplicateNames isEmpty ifFalse: [ | s |
+		s:: StringBuilder new.
+		s add: 'Class '.
+		s add: node name.
+		s add: ' has multiple definitions for '.
+		duplicateNames
+			do: [:each | s add: each asString]
+			separatedBy: [ s add: ','].
+		s add: '.'.
+		assert: [false] message: s asString].
 )
 private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration> = (
 	| headerNode <ClassHeaderAST> classDecl <IntermediateClassDeclaration> |
