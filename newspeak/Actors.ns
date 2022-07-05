@@ -589,6 +589,7 @@ public deliver: bytes = (
 	| deserializer message |
 	deserializer:: Deserializer new.
 	message:: deserializer deserialize: bytes.
+	deserializer:: nil.
 	handler value: message
 )
 private rawSpawn: bytes = (
