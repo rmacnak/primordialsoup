@@ -103,53 +103,53 @@ private pushExpat: closure = (
 	rawPushExpat: expatIndex.
 )
 private rawPerformCall: numArgs = (
-	(* :literalmessage: primitive: 163 *)
+	(* :pragma: primitive: 329 *)
 	^Error signal: rawPop printString
 )
 private rawPerformDelete = (
-	(* :literalmessage: primitive: 162 *)
+	(* :pragma: primitive: 328 *)
 	^Error signal: rawPop printString
 )
 private rawPerformGet = (
-	(* :literalmessage: primitive: 160 *)
+	(* :pragma: primitive: 326 *)
 	^Error signal: rawPop printString
 )
 private rawPerformHas = (
-	(* :literalmessage: primitive: 167 *)
+	(* :pragma: primitive: 332 *)
 	^Error signal: rawPop printString
 )
 private rawPerformInstanceOf = (
-	(* :literalmessage: primitive: 166 *)
+	(* :pragma: primitive: 331 *)
 	^Error signal: rawPop printString
 )
 private rawPerformNew: numArgs = (
-	(* :literalmessage: primitive: 164 *)
+	(* :pragma: primitive: 330 *)
 	^Error signal: rawPop printString
 )
 private rawPerformSet = (
-	(* :literalmessage: primitive: 161 *)
+	(* :pragma: primitive: 327 *)
 	^Error signal: rawPop printString
 )
 private rawPop = (
-	(* :literalmessage: primitive: 157 *)
+	(* :pragma: primitive: 323 *)
 	^Alien withIndex: rawPopAgain
 )
 private rawPopAgain = (
-	(* :literalmessage: primitive: 158 *)
+	(* :pragma: primitive: 324 *)
 	panic
 )
 private rawPush: object = (
-	(* :literalmessage: primitive: 154 *)
+	(* :pragma: primitive: 320 *)
 	object isKindOfClosure
 		ifTrue: [pushExpat: object]
 		ifFalse: [rawPushAlien: object index]
 )
 private rawPushAlien: alienIndex = (
-	(* :literalmessage: primitive: 155 *)
+	(* :pragma: primitive: 321 *)
 	panic
 )
 private rawPushExpat: expatIndex = (
-	(* :literalmessage: primitive: 156 *)
+	(* :pragma: primitive: 322 *)
 	panic
 )
 (* JavaScript: delete this[key] *)
@@ -162,7 +162,7 @@ public removeKey: key = (
 ) : (
 )
 private panic = (
-	(* :literalmessage: primitive: 103 *)
+	(* :pragma: primitive: 187 *)
 )
 ) : (
 )

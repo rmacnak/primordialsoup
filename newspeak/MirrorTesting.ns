@@ -63,6 +63,8 @@ public testIsKindOfClassDeclarationMirror = (
 	deny: classMixinMirror isKindOfClassDeclarationMirror.
 	classMirror slots do:
 		[:slotMirror | deny: slotMirror isKindOfClassDeclarationMirror].
+	classMirror transientSlots do:
+		[:slotMirror | deny: slotMirror isKindOfClassDeclarationMirror].
 	classMirror methods do:
 		[:methodMirror | deny: methodMirror isKindOfClassDeclarationMirror].
 	classMirror nestedClasses do:
@@ -143,6 +145,8 @@ public testIsKindOfClassHeaderMirror = (
 	assert: classHeaderMirror isKindOfClassHeaderMirror.
 	deny: classMixinMirror isKindOfClassHeaderMirror.
 	classMirror slots do:
+		[:slotMirror | deny: slotMirror isKindOfClassHeaderMirror].
+	classMirror transientSlots do:
 		[:slotMirror | deny: slotMirror isKindOfClassHeaderMirror].
 	classMirror methods do:
 		[:methodMirror | deny: methodMirror isKindOfClassHeaderMirror].
@@ -298,6 +302,15 @@ public testClassMirrorSuperclass = (
 
 	(* :todo: Cases with generalized mixin application *)
 )
+public testClassMirrorTransientSlots = (
+	| mirror |
+	mirror:: ClassMirror reflecting: model Klass.
+	assertSet: (mirror transientSlots collect: [:slot | slot name])
+	equals: {'superTransientSlot'. 'publicTransientSlot'. 'protectedTransientSlot'. 'defaultTransientSlot'. 'privateTransientSlot'. 'mutableTransientSlot'. 'immutableTransientSlot'. 'selectorsTestSlot'. 'literalsTestSlot'}.
+
+	mirror:: classOf: mirror.
+	mirror slots.
+)
 public testIsKindOfClassMirror = (
 	|
 	objectMirror = ObjectMirror reflecting: model.
@@ -315,6 +328,8 @@ public testIsKindOfClassMirror = (
 	deny: classHeaderMirror isKindOfClassMirror.
 	deny: classMixinMirror isKindOfClassMirror.
 	classMirror slots do:
+		[:slotMirror | deny: slotMirror isKindOfClassMirror].
+	classMirror transientSlots do:
 		[:slotMirror | deny: slotMirror isKindOfClassMirror].
 	classMirror methods do:
 		[:methodMirror | deny: methodMirror isKindOfClassMirror].
@@ -382,6 +397,8 @@ public testIsKindOfMethodMirror = (
 	deny: classHeaderMirror isKindOfMethodMirror.
 	deny: classMixinMirror isKindOfMethodMirror.
 	classMirror slots do:
+		[:slotMirror | deny: slotMirror isKindOfMethodMirror].
+	classMirror transientSlots do:
 		[:slotMirror | deny: slotMirror isKindOfMethodMirror].
 	classMirror methods do:
 		[:methodMirror | assert: methodMirror isKindOfMethodMirror].
@@ -469,6 +486,8 @@ public testIsKindOfMixinMirror = (
 	deny: classHeaderMirror isKindOfMixinMirror.
 	assert: classMixinMirror isKindOfMixinMirror.
 	classMirror slots do:
+		[:slotMirror | deny: slotMirror isKindOfMixinMirror].
+	classMirror transientSlots do:
 		[:slotMirror | deny: slotMirror isKindOfMixinMirror].
 	classMirror methods do:
 		[:methodMirror | deny: methodMirror isKindOfMixinMirror].
@@ -568,6 +587,18 @@ public testMixinMirrorSlots = (
 	equals: {}.
 	mirror slots do: [:slot | assert: slot definingMixin equals: mirror].
 )
+public testMixinMirrorTransientSlots = (
+	| mirror |
+	mirror:: (ClassMirror reflecting: model Klass) mixin.
+	assertSet: (mirror transientSlots collect: [:slot | slot name])
+	equals: {'publicTransientSlot'. 'protectedTransientSlot'. 'defaultTransientSlot'. 'privateTransientSlot'. 'mutableTransientSlot'. 'immutableTransientSlot'. 'selectorsTestSlot'. 'literalsTestSlot'}.
+	mirror transientSlots do: [:slot | assert: slot definingMixin equals: mirror].
+
+	mirror:: mirror declaration classSide.
+	assertSet: (mirror transientSlots collect: [:slot | slot name])
+	equals: {}.
+	mirror transientSlots do: [:slot | assert: slot definingMixin equals: mirror].
+)
 ) : (
 TEST_CONTEXT = ()
 )
@@ -620,6 +651,8 @@ public testIsKindOfObjectMirror = (
 	deny: classHeaderMirror isKindOfObjectMirror.
 	deny: classMixinMirror isKindOfObjectMirror.
 	classMirror slots do:
+		[:slotMirror | deny: slotMirror isKindOfObjectMirror].
+	classMirror transientSlots do:
 		[:slotMirror | deny: slotMirror isKindOfObjectMirror].
 	classMirror methods do:
 		[:methodMirror | deny: methodMirror isKindOfObjectMirror].
@@ -859,6 +892,8 @@ public testIsKindOfSlotDeclarationMirror = (
 	deny: classMixinMirror isKindOfSlotDeclarationMirror.
 	classMirror slots do:
 		[:slotMirror | assert: slotMirror isKindOfSlotDeclarationMirror].
+	classMirror transientSlots do:
+		[:slotMirror | deny: slotMirror isKindOfSlotDeclarationMirror].
 	classMirror methods do:
 		[:methodMirror | deny: methodMirror isKindOfSlotDeclarationMirror].
 	classMirror nestedClasses do:
@@ -905,6 +940,59 @@ in: collection findMirrorNamed: name = (
 	^nil
 )
 ) : (
+)
+public class TransientSlotDeclarationMirrorTests = TestBase () (
+public testIsKindOfTransientSlotDeclarationMirror = (
+	|
+	objectMirror = ObjectMirror reflecting: model.
+	classMirror = objectMirror getClass.
+	instanceMixinMirror = classMirror mixin.
+	classDeclarationMirror = instanceMixinMirror declaration.
+	classHeaderMirror = classDeclarationMirror header.
+	classMixinMirror = classDeclarationMirror classSide.
+	|
+
+	deny: objectMirror isKindOfTransientSlotDeclarationMirror.
+	deny: classMirror isKindOfTransientSlotDeclarationMirror.
+	deny: instanceMixinMirror isKindOfTransientSlotDeclarationMirror.
+	deny: classDeclarationMirror isKindOfTransientSlotDeclarationMirror.
+	deny: classHeaderMirror isKindOfTransientSlotDeclarationMirror.
+	deny: classMixinMirror isKindOfTransientSlotDeclarationMirror.
+	classMirror slots do:
+		[:slotMirror | deny: slotMirror isKindOfTransientSlotDeclarationMirror].
+	classMirror transientSlots do:
+		[:slotMirror | assert: slotMirror isKindOfTransientSlotDeclarationMirror].
+	classMirror methods do:
+		[:methodMirror | deny: methodMirror isKindOfTransientSlotDeclarationMirror].
+	classMirror nestedClasses do:
+		[:nestedClassMirror | deny: nestedClassMirror isKindOfTransientSlotDeclarationMirror].
+)
+public testTransientSlotDeclarationMirrorAccessModifier = (
+	| transientSlots |
+	transientSlots:: (ClassMirror reflecting: model Klass) mixin transientSlots.
+	assert: (in: transientSlots findMirrorNamed: 'defaultTransientSlot') accessModifier equals: #protected.
+	assert: (in: transientSlots findMirrorNamed: 'privateTransientSlot') accessModifier equals: #private.
+	assert: (in: transientSlots findMirrorNamed: 'protectedTransientSlot') accessModifier equals: #protected.
+	assert: (in: transientSlots findMirrorNamed: 'publicTransientSlot') accessModifier equals: #public.
+)
+public testTransientSlotDeclarationMirrorLiterals = (
+	| transientSlot |
+	transientSlot::
+		in: (ClassMirror reflecting: model Klass) mixin transientSlots
+		findMirrorNamed: #literalsTestSlot.
+
+	assertSet: transientSlot literals equals: {'string literal'}.
+)
+public testTransientSlotDeclarationMirrorSelectors = (
+	| transientSlot |
+	transientSlot::
+		in: (ClassMirror reflecting: model Klass) mixin transientSlots
+		findMirrorNamed: #selectorsTestSlot.
+
+	assertSet: transientSlot selectors equals: {#thisIsASelector:}.
+)
+) : (
+TEST_CONTEXT = ()
 )
 ) : (
 )

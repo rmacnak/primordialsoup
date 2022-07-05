@@ -248,16 +248,7 @@ public testActivationEvaluateWithScope = (
 	assert: eval result reflectee equals: 17.
 )
 public testActivationFactory = (
-	| Point thread activation |
-	(* Need a fresh compile to ensure consistency of the factory compilation strategy. Can be removed the next time the bootstrap compiler is updated. *)
-	Point:: classFromSource: 'class Point x: x y: y = Object new (
-		|
-		public x = x.
-		public y ::= y.
-		public z
-		|
-	)()'.
-
+	| thread activation |
 	thread:: ActivationMirror invokeSuspended: [Point x: 3 y: 4].
 
 	assertThread: thread atMethod: #testActivationFactory snippet: 'Point'.
@@ -1516,9 +1507,6 @@ public testSimulationImplicitReceiverSend = (
 )
 public testSimulationJump = (
 	| mirror = ObjectMirror reflecting: self. |
-
-	"a" isKindOfString ifFalse: [^self]. (* This fails badly enough on Squeak to lock up the UI. *)
-
 	assertSimulation: [(mirror evaluate: 'foo') result] answers: (mirror evaluate: 'foo') result.
 )
 public testSimulationNonBooleanReceiver = (

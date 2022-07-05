@@ -48,13 +48,13 @@ public readEdges = (
 		object method: readRef.
 		object closure: readRef.
 		object receiver: readRef.
-		object size: stream uint16.
+		object size: stream leb128.
 		1 to: object size do:
 			[:index | object tempAt: index put: readRef]].
 )
 public readNodes = (
 	firstRefIndex:: nextRefIndex.
-	stream unsigned timesRepeat:
+	stream leb128 timesRepeat:
 		[registerRef: Activation new].
 	lastRefIndex:: nextRefIndex - 1.
 )
@@ -75,8 +75,8 @@ public readEdges = (
 )
 public readNodes = (
 	firstRefIndex:: nextRefIndex.
-	stream unsigned timesRepeat:
-		[registerRef: (Array new: stream unsigned)].
+	stream leb128 timesRepeat:
+		[registerRef: (Array new: stream leb128)].
 	lastRefIndex:: nextRefIndex - 1.
 )
 ) : (
@@ -88,8 +88,8 @@ public readEdges = (
 )
 public readNodes = (
 	(* ByteArray accessors are known to be side-effect free. *)
-	stream unsigned timesRepeat:
-		[ | size = stream unsigned. object = ByteArray new: size. |
+	stream leb128 timesRepeat:
+		[ | size = stream leb128. object = ByteArray new: size. |
 		1 to: size do: [:index | object at: index put: stream uint8].
 		registerRef: object].
 )
@@ -113,8 +113,8 @@ public readEdges = (
 )
 public readNodes = (
 	firstRefIndex:: nextRefIndex.
-	stream unsigned timesRepeat:
-		[registerRef: (closureWithNumCopied: stream uint16)].
+	stream leb128 timesRepeat:
+		[registerRef: (closureWithNumCopied: stream leb128)].
 	lastRefIndex:: nextRefIndex - 1.
 )
 ) : (
@@ -136,7 +136,7 @@ public readEdges = (
 )
 public readNodes = (
 	firstRefIndex:: nextRefIndex.
-	stream unsigned timesRepeat:
+	stream leb128 timesRepeat:
 		[registerRef: Ephemeron new].
 	lastRefIndex:: nextRefIndex - 1.
 )
@@ -148,7 +148,7 @@ public adoptInstances = (
 public readEdges = (
 )
 public readNodes = (
-	stream unsigned timesRepeat:
+	stream leb128 timesRepeat:
 		[registerRef: stream float64].
 )
 ) : (
@@ -159,17 +159,25 @@ public adoptInstances = (
 public readEdges = (
 )
 public readNodes = (
-	stream unsigned timesRepeat:
-		[registerRef: stream int64].
-
-	(* :todo: Add use direct diget accessors. *)
-	stream unsigned timesRepeat:
+	stream leb128 timesRepeat:
+		[registerRef: stream sleb128].
+)
+) : (
+)
+class LargeIntegerCluster = () (
+public adoptInstances = (
+)
+public readEdges = (
+)
+public readNodes = (
+	(* :todo: Add and use direct digit accessors. *)
+	stream leb128 timesRepeat:
 		[ | negative digitLength integer |
 		negative:: stream uint8 = 1.
-		digitLength:: stream uint16.
+		digitLength:: stream leb128.
 		integer:: 0.
 		0 to: digitLength - 1 << 3 by: 8 do:
-			[:shift | integer:: integer bitOr: (stream uint8 << shift)].
+			[:shift | integer:: integer | (stream uint8 << shift)].
 		negative ifTrue: [integer:: 0 - integer].
 		registerRef: integer].
 )
@@ -198,7 +206,7 @@ public readEdges = (
 public readNodes = (
 	| allocClass = TemporaryClass withFormat: numSlots. |
 	firstRefIndex:: nextRefIndex.
-	stream unsigned timesRepeat:
+	stream leb128 timesRepeat:
 		[registerRef: allocClass vfBasicNew].
 	lastRefIndex:: nextRefIndex - 1.
 )
@@ -210,13 +218,13 @@ public adoptInstances = (
 public readEdges = (
 )
 public readNodes = (
-	stream unsigned timesRepeat: [
-		| size = stream unsigned. acc = ByteArray new: size. |
+	stream leb128 timesRepeat: [
+		| size = stream leb128. acc = ByteArray new: size. |
 		1 to: size do: [:index | acc at: index put: stream uint8].
 		registerRef: (String withAll: acc)].
 
-	stream unsigned timesRepeat: [
-		| size = stream unsigned. acc = ByteArray new: size. |
+	stream leb128 timesRepeat: [
+		| size = stream leb128. acc = ByteArray new: size. |
 		1 to: size do: [:index | acc at: index put: stream uint8].
 		registerRef: (String withAll: acc) asSymbol].
 )
@@ -237,8 +245,8 @@ public readEdges = (
 )
 public readNodes = (
 	firstRefIndex:: nextRefIndex.
-	stream unsigned timesRepeat:
-		[registerRef: (WeakArray new: stream unsigned)].
+	stream leb128 timesRepeat:
+		[registerRef: (WeakArray new: stream leb128)].
 	lastRefIndex:: nextRefIndex - 1.
 )
 ) : (
@@ -247,10 +255,10 @@ public deserialize: bytes = (
 	| numClusters |
 	stream:: ReadStream over: bytes.
 	assert: [stream uint16 = 16r1984] message: 'Not VictoryFuel'.
-	assert: [stream uint16 = version] message: 'Version mismatch'.
-	numClusters:: stream uint16.
+	assert: [stream leb128 = version] message: 'Version mismatch'.
+	numClusters:: stream leb128.
 	clusters:: Array new: numClusters.
-	refs:: Array new: stream uint32.
+	refs:: Array new: stream leb128.
 	nextRefIndex:: 1.
 	sharedObjects do: [:sharedObject | registerRef: sharedObject].
 
@@ -261,26 +269,25 @@ public deserialize: bytes = (
 	^readRef
 )
 readCluster = (
-	| format ::= stream int32. |
+	| format ::= stream sleb128. |
 
 	format >= 0 ifTrue: [^RegularObjectCluster for: format].
 
-	format:: 0 - format.
-
-	format = kSmiCid ifTrue: [^IntegerCluster new].
-	format = kFloat64Cid ifTrue: [^FloatCluster new].
-	format = kByteArrayCid ifTrue: [^ByteArrayCluster new].
-	format = kStringCid ifTrue: [^StringCluster new].
-	format = kArrayCid ifTrue: [^ArrayCluster new].
-	format = kWeakArrayCid ifTrue: [^WeakArrayCluster new].
-	format = kEphemeronCid ifTrue: [^EphemeronCluster new].
-	format = kActivationCid ifTrue: [^ActivationCluster new].
-	format = kClosureCid ifTrue: [^ClosureCluster new].
+	format = kIntegerCluster ifTrue: [^IntegerCluster new].
+	format = kLargeIntegerCluster ifTrue: [^LargeIntegerCluster new].
+	format = kFloatCluster ifTrue: [^FloatCluster new].
+	format = kByteArrayCluster ifTrue: [^ByteArrayCluster new].
+	format = kStringCluster ifTrue: [^StringCluster new].
+	format = kArrayCluster ifTrue: [^ArrayCluster new].
+	format = kWeakArrayCluster ifTrue: [^WeakArrayCluster new].
+	format = kEphemeronCluster ifTrue: [^EphemeronCluster new].
+	format = kActivationCluster ifTrue: [^ActivationCluster new].
+	format = kClosureCluster ifTrue: [^ClosureCluster new].
 
 	unknownFormat.
 )
 readRef = (
-	^refs at: stream unsigned
+	^refs at: stream leb128
 )
 registerRef: object = (
 	refs at: nextRefIndex put: object.
@@ -288,81 +295,95 @@ registerRef: object = (
 )
 ) : (
 )
-class ReadStream over: bytes = (|
-data = bytes.
-public position ::= 0.
+public class ReadStream over: bytes <ByteArray> = (|
+data <ByteArray> = bytes.
+position <Integer> ::= 0.
 |) (
-public float64 = (
+public float32 ^<Float> = (
+	| result |
+	result:: data float32At: position.
+	position:: 4 + position.
+	^result
+)
+public float64 ^<Float> = (
 	| result |
 	result:: data float64At: position.
-	position:: position + 8.
+	position:: 8 + position.
 	^result
 )
-public int32 = (
-	| result high |
-	result:: high:: data at: 1 + position.
-	result >= 128 ifTrue: [result:: result - 16r100].
-	result:: (result << 8) | (data at: 2 + position).
-	result:: (result << 8) | (data at: 3 + position).
-	result:: (result << 8) | (data at: 4 + position).
-	position:: position + 4.
-	^result
-)
-public int64 = (
-	| result high |
-	result:: data at: 1 + position.
-	result >= 128 ifTrue: [result:: result - 16r100].
-	result:: (result << 8) | (data at: 2 + position).
-	result:: (result << 8) | (data at: 3 + position).
-	result:: (result << 8) | (data at: 4 + position).
-	result:: (result << 8) | (data at: 5 + position).
-	result:: (result << 8) | (data at: 6 + position).
-	result:: (result << 8) | (data at: 7 + position).
-	result:: (result << 8) | (data at: 8 + position).
-	position:: position + 8.
-	^result
-)
-public uint16 = (
+public int16 ^<Integer> = (
 	| result |
-	result:: data at: 1 + position.
-	result:: (result << 8) | (data at: 2 + position).
-	position:: position + 2.
+	result:: data int16At: position.
+	position:: 2 + position.
 	^result
 )
-public uint32 = (
+public int32 ^<Integer> = (
 	| result |
-	result:: data at: 1 + position.
-	result:: (result << 8) | (data at: 2 + position).
-	result:: (result << 8) | (data at: 3 + position).
-	result:: (result << 8) | (data at: 4 + position).
-	position:: position + 4.
+	result:: data int32At: position.
+	position:: 4 + position.
 	^result
 )
-public uint8 = (
-	position:: position + 1.
-	^data at: position
+public int64 ^<Integer> = (
+	| result |
+	result:: data int64At: position.
+	position:: 8 + position.
+	^result
 )
-public unsigned = (
-	| acc b |
-	b:: uint8.
-	b > 127 ifTrue: [^b - 128].
-	acc:: b.
-
-	b:: uint8.
-	b > 127 ifTrue: [^(b - 128) << 7 | acc].
-	acc:: acc | (b << 7).
-
-	b:: uint8.
-	b > 127 ifTrue: [^(b - 128) << 14 | acc].
-	acc:: acc | (b << 14).
-
-	b:: uint8.
-	b > 127 ifTrue: [^(b - 128) << 21 | acc].
-	acc:: acc | (b << 21).
-
-	b:: uint8.
-	b > 127 ifTrue: [^(b - 128) << 28 | acc].
-	unreachable.
+public int8 ^<Integer> = (
+	| result |
+	result:: data int8At: position.
+	position:: 1 + position.
+	^result
+)
+public leb128 ^<Integer> = (
+	| d p shift byte result |
+	result:: (byte:: (d:: data) at: (p:: 1 + position)) & 127.
+	shift:: 7.
+	[byte > 127] whileTrue:
+		[byte:: d at: (p:: 1 + p).
+		 result:: 127 & byte << shift | result.
+		 shift:: 7 + shift].
+	position:: p.
+	^result
+)
+public sleb128 ^<Integer> = (
+	| d p shift byte result |
+	d:: data.
+	p:: position.
+	shift:: 0.
+	result:: 0.
+	[byte:: d at: (p:: 1 + p).
+	 result:: 127 & byte << shift | result.
+	 shift:: 7 + shift.
+	 byte > 127] whileTrue.
+	position:: p.
+	byte >= 64 ifTrue:
+		[^-1 << shift | result].
+	^result
+)
+public uint16 ^<Integer> = (
+	| result |
+	result:: data uint16At: position.
+	position:: 2 + position.
+	^result
+)
+public uint32 ^<Integer> = (
+	| result |
+	result:: data uint32At: position.
+	position:: 4 + position.
+	^result
+)
+public uint64 ^<Integer> = (
+	| result |
+	result:: data uint64At: position.
+	position:: 8 + position.
+	^result
+)
+public uint8 ^<Integer> = (
+	| result |
+	result:: data uint8At: position.
+	position:: 1 + position.
+	^result
 )
 ) : (
 )
@@ -401,12 +422,12 @@ public writeEdges = (
 		writeRef: object method.
 		writeRef: object closure.
 		writeRef: object receiver.
-		stream uint16: object size. (* !!!! *)
+		stream leb128: object size. (* !!!! *)
 		1 to: object size do: [:index | writeRef: (object tempAt: index)]].
 )
 public writeNodes = (
-	writeFormat: kActivationCid negated.
-	stream unsigned: objects size.
+	writeFormat: kActivationCluster.
+	stream leb128: objects size.
 	objects do: [:object |
 		registerRef: object.
 		(* :todo: Have small and large contexts?
@@ -434,12 +455,12 @@ public writeEdges = (
 		1 to: object size do: [:index | writeRef: (object at: index)]].
 )
 public writeNodes = (
-	writeFormat: kArrayCid negated.
-	stream unsigned: objects size.
+	writeFormat: kArrayCluster.
+	stream leb128: objects size.
 	(* Array accessors are known to be side-effect free. *)
 	objects do: [:object |
 		registerRef: object.
-		stream unsigned: object size].
+		stream leb128: object size].
 )
 ) : (
 )
@@ -452,12 +473,12 @@ public analyze: object = (
 public writeEdges = (
 )
 public writeNodes = (
-	writeFormat: kByteArrayCid negated.
-	stream unsigned: objects size.
+	writeFormat: kByteArrayCluster.
+	stream leb128: objects size.
 	(* ByteArray accessors are known to be side-effect free. *)
 	objects do: [:object |
 		registerRef: object.
-		stream unsigned: object size.
+		stream leb128: object size.
 		1 to: object size do: [:index | stream uint8: (object at: index)]].
 )
 ) : (
@@ -482,11 +503,11 @@ public writeEdges = (
 		1 to: (numCopiedOf: object) do: [:index | writeRef: (copiedOf: object at: index)]]
 )
 public writeNodes = (
-	writeFormat: kClosureCid negated.
-	stream unsigned: objects size.
+	writeFormat: kClosureCluster.
+	stream leb128: objects size.
 	objects do: [:object |
 		registerRef: object.
-		stream uint16: (numCopiedOf: object)].
+		stream leb128: (numCopiedOf: object)].
 )
 ) : (
 )
@@ -510,8 +531,8 @@ public writeEdges = (
 		writeRef: object finalizer].
 )
 public writeNodes = (
-	writeFormat: kEphemeronCid negated.
-	stream unsigned: objects size.
+	writeFormat: kEphemeronCluster.
+	stream leb128: objects size.
 	objects do: [:object | registerRef: object].
 )
 ) : (
@@ -525,8 +546,8 @@ public analyze: object = (
 public writeEdges = (
 )
 public writeNodes = (
-	writeFormat: kFloat64Cid negated.
-	stream unsigned: objects size.
+	writeFormat: kFloatCluster.
+	stream leb128: objects size.
 	objects do: [:object |
 		registerRef: object.
 		stream float64: object].
@@ -535,26 +556,34 @@ public writeNodes = (
 )
 class IntegerCluster = (|
 objects = List new.
-large = List new.
 |) (
 public analyze: object = (
-	(* :todo: Separate large integers into their own cluster. *)
-	LargeInteger = (classOf: object)
-		ifTrue: [large add: object]
-		ifFalse: [objects add: object].
+	objects add: object.
 )
 public writeEdges = (
 )
 public writeNodes = (
-	writeFormat: kSmiCid negated.
-	stream unsigned: objects size.
+	writeFormat: kIntegerCluster.
+	stream leb128: objects size.
 	objects do: [:object |
 		registerRef: object.
-		stream int64: object].
-
-	(* :todo: Add use direct diget accessors. *)
-	stream unsigned: large size.
-	large do: [:object | | abs tmp digitLength |
+		stream sleb128: object].
+)
+) : (
+)
+class LargeIntegerCluster = (|
+objects = List new.
+|) (
+public analyze: object = (
+	objects add: object.
+)
+public writeEdges = (
+)
+public writeNodes = (
+	(* :todo: Add and use direct digit accessors. *)
+	writeFormat: kLargeIntegerCluster.
+	stream leb128: objects size.
+	objects do: [:object | | abs tmp digitLength |
 		registerRef: object.
 		object < 0
 			ifTrue:
@@ -568,7 +597,7 @@ public writeNodes = (
 		[0 = tmp] whileFalse:
 			[digitLength:: digitLength + 1.
 			 tmp:: tmp >> 8].
-		stream uint16: digitLength.
+		stream leb128: digitLength.
 		tmp:: abs.
 		digitLength timesRepeat:
 			[stream uint8: (tmp bitAnd: 255).
@@ -597,7 +626,7 @@ computeSlotFilter: k <Behavior> = (
 	[ | slots = (slotOf: cls at: 4) _slots. |
 	 slots size to: 1 by: -1 do:
 		[:index |
-		 filter at: cursor put: (transientFilter: (slots at: index)).
+		 filter at: cursor put: ((slots at: index) isTransient ifTrue: [0] ifFalse: [1]).
 		 cursor:: cursor - 1].
 	 cls:: slotOf: cls at: 1.
 	 nil = cls] whileFalse.
@@ -607,10 +636,6 @@ computeSlotFilter: k <Behavior> = (
 	Metaclass = (classOf: klass) ifTrue: [instancesAreBehaviors:: true].
 	instancesAreBehaviors ifTrue: [filter at: 5 put: 0].
 	^filter
-)
-transientFilter: tuple = (
-	tuple size < 4 ifTrue: [^1].
-	^(tuple at: 4) ifTrue: [0] ifFalse: [1]
 )
 public writeEdges = (
 	| filter = slotFilter. |
@@ -622,7 +647,7 @@ public writeEdges = (
 )
 public writeNodes = (
 	writeFormat: slotFilter size.
-	stream unsigned: objects size.
+	stream leb128: objects size.
 	objects do: [:object | registerRef: object].
 )
 ) : (
@@ -642,19 +667,19 @@ public symbols = (
 public writeEdges = (
 )
 public writeNodes = (
-	writeFormat: kStringCid negated.
+	writeFormat: kStringCluster.
 
 	(* String accessors are known to be side-effect free. *)
-	stream unsigned: noncanonical size.
+	stream leb128: noncanonical size.
 	noncanonical do: [:object |
 		registerRef: object.
-		stream unsigned: object size.
+		stream leb128: object size.
 		1 to: object size do: [:index | stream uint8: (object at: index)]].
 
-	stream unsigned: canonical size.
+	stream leb128: canonical size.
 	canonical do: [:object |
 		registerRef: object.
-		stream unsigned: object size.
+		stream leb128: object size.
 		1 to: object size do: [:index | stream uint8: (object at: index)]].
 )
 ) : (
@@ -673,12 +698,12 @@ public writeEdges = (
 		1 to: object size do: [:index | writeWeakRef: (object at: index)]].
 )
 public writeNodes = (
-	writeFormat: kWeakArrayCid negated.
-	stream unsigned: objects size.
+	writeFormat: kWeakArrayCluster.
+	stream leb128: objects size.
 	(* WeakArray accessors are known to be side-effect free. *)
 	objects do: [:object |
 		registerRef: object.
-		stream unsigned: object size].
+		stream leb128: object size].
 )
 ) : (
 )
@@ -693,9 +718,9 @@ createSpecialClassClusters = (
 	intCluster:: IntegerCluster new.
 	clusters at: SmallInteger put: intCluster.
 	clusters at: MediumInteger put: intCluster.
-	clusters at: LargeInteger put: intCluster.
 	orderedClusters add: intCluster.
 
+	orderedClusters add: (clusters at: LargeInteger put: LargeIntegerCluster new).
 	orderedClusters add: (clusters at: Float put: FloatCluster new).
 	orderedClusters add: (clusters at: ByteArray put: ByteArrayCluster new).
 	orderedClusters add: (clusters at: String put: StringCluster new).
@@ -742,23 +767,23 @@ public serialize: root = (
 		 ephemerons retrace].
 
 	stream uint16: 16r1984.
-	stream uint16: version.
-	stream uint16: orderedClusters size.
-	stream uint32: refs size.
+	stream leb128: version.
+	stream leb128: orderedClusters size.
+	stream leb128: refs size.
 	orderedClusters do: [:c | c writeNodes].
 	orderedClusters do: [:c | c writeEdges].
 	writeRef: root.
 
-	^stream stealBytes
+	^stream asByteArray
 )
 writeFormat: format = (
-	stream int32: format.
+	stream sleb128: format.
 )
 writeRef: object = (
-	stream unsigned: (refs at: object).
+	stream leb128: (refs at: object).
 )
 writeWeakRef: object = (
-	stream unsigned: (refs at: object ifAbsent: [refs at: nil])
+	stream leb128: (refs at: object ifAbsent: [refs at: nil])
 )
 ) : (
 )
@@ -793,6 +818,7 @@ list: a equals: b = (
 replace: object = (
 	Method = (classOf: object) ifTrue: [^replaceMethod: object].
 	InstanceMixin = (classOf: object) ifTrue: [^replaceMixin: object].
+	SlotDeclaration = (classOf: object) ifTrue: [^replaceSlot: object].
 	^replacements atOrItself: object
 )
 replaceClass: old with: nue = (
@@ -807,7 +833,7 @@ replaceMethod: method = (
 		 newMethod bytecode: (canonicalize: method bytecode in: canonicalBytecode).
 		 newMethod mixin: method mixin.
 		 newMethod selector: method selector.
-		 newMethod source: (replaceSource: method source).
+		 newMethod metadata: (replaceSource: method metadata).
 		 newMethod]
 )
 replaceMixin: mixin = (
@@ -816,7 +842,7 @@ replaceMixin: mixin = (
 		 newMixin _name: mixin _name.
 		 newMixin _methods: mixin _methods.
 		 newMixin _enclosingMixin: mixin _enclosingMixin.
-		 newMixin _slots: (canonicalizeEmpty: (mixin _slots collect: [:s | replaceSlot: s])).
+		 newMixin _slots: (canonicalizeEmpty: mixin _slots).
 		 newMixin _nestedMixins: (canonicalizeEmpty: mixin _nestedMixins).
 		 newMixin _applications: mixin _applications.
 		 newMixin _classMixin: mixin _classMixin.
@@ -826,9 +852,13 @@ replaceMixin: mixin = (
 		 newMixin]
 )
 replaceSlot: slot = (
-	| copy = Array withAll: slot. |
-	copy at: 5 put: (replaceSource: (copy at: 5)).
-	^copy
+	^replacements at: slot ifAbsentPut:
+		[ | newSlot = SlotDeclaration new. |
+		 newSlot header: slot header.
+		 newSlot name: slot name.
+		 newSlot mixin: slot mixin.
+		 newSlot metadata: (replaceSource: slot metadata).
+		 newSlot]
 )
 replaceSource: source = (
 	nil = source ifTrue: [^nil].
@@ -867,14 +897,14 @@ public serialize: root = (
 	replaceSymbolTable.
 
 	stream uint16: 16r1984.
-	stream uint16: version.
-	stream uint16: orderedClusters size.
-	stream uint32: refs size - 1. (* -1 accounts for symbol table placeholder *)
+	stream leb128: version.
+	stream leb128: orderedClusters size.
+	stream leb128: refs size - 1. (* -1 accounts for symbol table placeholder *)
 	orderedClusters do: [:c | c writeNodes].
 	orderedClusters do: [:c | c writeEdges].
 	writeRef: root.
 
-	^stream stealBytes
+	^stream asByteArray
 )
 public snapshotApp: app withRuntime: runtime keepSource: s = (
 	| newPlatform newKernel methods objectStore |
@@ -890,7 +920,7 @@ public snapshotApp: app withRuntime: runtime keepSource: s = (
 	1 to: methods size do: [:index |
 		| method = methods at: index. |
 		method selector = #'initializer`new' ifTrue: [
-			method header: 200 << 16. (* public + return self *)
+			method header: (Method headerForAccessModifier: #public primitive: 126 numArgs: 0).
 			method bytecode: nil]].
 
 	replaceClass: Activation with: newKernel Activation.
@@ -937,130 +967,161 @@ class TemporaryClass withFormat: fmt = (|
 	subclasses
 |) (
 public vfBasicNew = (
-	(* :literalmessage: primitive: 34 *)
+	(* :pragma: primitive: 140 *)
 	panic.
 )
 ) : (
 )
-class WriteStream = (|
-data ::= ByteArray new: 32 * 1024.
-public position ::= 0.
+public class WriteStream = (|
+data <ByteArray> ::= ByteArray new: 32 * 1024.
+position <Integer> ::= 0.
 |) (
-public float64: value = (
-	position + 8 > data size ifTrue: [data:: data copyWithSize: data size * 2].
-	data float64At: position put: value.
-	position:: position + 8.
-)
-public int32: value = (
-	position + 4 > data size ifTrue: [data:: data copyWithSize: data size * 2].
-	data at: position + 1 put: (value >> 24 bitAnd: 255).
-	data at: position + 2 put: (value >> 16 bitAnd: 255).
-	data at: position + 3 put: (value >> 8 bitAnd: 255).
-	data at: position + 4 put: (value bitAnd: 255).
-	position:: position + 4.
-)
-public int64: value = (
-	position + 8 > data size ifTrue: [data:: data copyWithSize: data size * 2].
-	data at: position + 1 put: (value >> 56 bitAnd: 255).
-	data at: position + 2 put: (value >> 48 bitAnd: 255).
-	data at: position + 3 put: (value >> 40 bitAnd: 255).
-	data at: position + 4 put: (value >> 32 bitAnd: 255).
-	data at: position + 5 put: (value >> 24 bitAnd: 255).
-	data at: position + 6 put: (value >> 16 bitAnd: 255).
-	data at: position + 7 put: (value >> 8 bitAnd: 255).
-	data at: position + 8 put: (value bitAnd: 255).
-	position:: position + 8.
-)
-public stealBytes = (
+public asByteArray ^<ByteArray> = (
 	^data copyWithSize: position
 )
-public uint16: value = (
-	position + 2 > data size ifTrue: [data:: data copyWithSize: data size * 2].
-	data at: position + 1 put: value >> 8.
-	data at: position + 2 put: (value bitAnd: 255).
-	position:: position + 2.
+ensureCapacity: availableNeeded = (
+	position + availableNeeded > data size ifTrue:
+		[data:: data copyWithSize: 2 * data size].
 )
-public uint32: value = (
-	position + 4 > data size ifTrue: [data:: data copyWithSize: data size * 2].
-	data at: position + 1 put: value >> 24.
-	data at: position + 2 put: (value >> 16 bitAnd: 255).
-	data at: position + 3 put: (value >> 8 bitAnd: 255).
-	data at: position + 4 put: (value bitAnd: 255).
-	position:: position + 4.
+public float32: value <Float> = (
+	ensureCapacity: 4.
+	data float64At: position put: value.
+	position:: 4 + position.
 )
-public uint8: value = (
-	position + 1 > data size ifTrue: [data:: data copyWithSize: data size * 2].
-	position:: position + 1.
-	data at: position put: value.
+public float64: value <Float> = (
+	ensureCapacity: 8.
+	data float64At: position put: value.
+	position:: 8 + position.
 )
-public unsigned: value = (
-	| v ::= value. |
-	[v > 127] whileTrue:
-		[uint8: (v bitAnd: 127).
-		 v:: v >> 7].
-	uint8: v + 128.
+public int16: value <Integer> = (
+	ensureCapacity: 2.
+	data int16At: position put: value.
+	position:: 2 + position.
+)
+public int32: value <Integer> = (
+	ensureCapacity: 4.
+	data int32At: position put: value.
+	position:: 4 + position.
+)
+public int64: value <Integer> = (
+	ensureCapacity: 8.
+	data int64At: position put: value.
+	position:: 8 + position.
+)
+public int8: value <Integer> = (
+	ensureCapacity: 1.
+	data int8At: position put: value.
+	position:: 1 + position.
+)
+public leb128: value <Integer> = (
+	| d p shift byte v |
+	ensureCapacity: 10.
+	d:: data.
+	p:: position.
+	v:: value.
+	[byte:: v & 127.
+	 v:: v >> 7.
+	 v = 0] whileFalse:
+		[d at: (p:: 1 + p) put: 128 | byte].
+	d at: (p:: 1 + p) put: byte.
+	position:: p.
+)
+public sleb128: value <Integer> = (
+	| d p shift byte v |
+	ensureCapacity: 10.
+	d:: data.
+	p:: position.
+	v:: value.
+	[byte:: v & 127.
+	 v:: v >> 7.
+	 v = 0 ifTrue: [byte < 64 ifTrue:
+		[d at: (p:: 1 + p) put: byte. position:: p. ^self]].
+	 v = -1 ifTrue: [byte >= 64 ifTrue:
+		[d at: (p:: 1 + p) put: byte. position:: p. ^self]].
+	 d at: (p:: 1 + p) put: 128 | byte] repeat.
+)
+public uint16: value <Integer> = (
+	ensureCapacity: 2.
+	data uint16At: position put: value.
+	position:: 2 + position.
+)
+public uint32: value <Integer> = (
+	ensureCapacity: 4.
+	data uint32At: position put: value.
+	position:: 4 + position.
+)
+public uint64: value <Integer> = (
+	ensureCapacity: 8.
+	data uint64At: position put: value.
+	position:: 8 + position.
+)
+public uint8: value <Integer> = (
+	ensureCapacity: 1.
+	data uint8At: position put: value.
+	position:: 1 + position.
 )
 ) : (
 )
 private class: klass adoptInstance: object = (
-	(* :literalmessage: primitive: 134 *)
+	(* :pragma: primitive: 142 *)
 	panic.
 )
 private classOf: object = (
-	(* :literalmessage: primitive: 85 *)
+	(* :pragma: primitive: 127 *)
 	panic.
 )
 private closureWithNumCopied: numCopied <Integer> ^<Closure> = (
-	(* :literalmessage: primitive: 82 *)
+	(* :pragma: primitive: 146 *)
 	panic.
 )
 private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
-	(* :literalmessage: primitive: 77 *)
+	(* :pragma: primitive: 154 *)
 	panic.
 )
 private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Object> = (
-	(* :literalmessage: primitive: 78 *)
+	(* :pragma: primitive: 155 *)
 	panic.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
-	(* :literalmessage: primitive: 71 *)
+	(* :pragma: primitive: 148 *)
 	panic.
 )
 private definingActivationOf: closure <Closure> put: value <Activation> = (
-	(* :literalmessage: primitive: 72 *)
+	(* :pragma: primitive: 149 *)
 	panic.
 )
 private initialBCIOf: closure <Closure> ^<Integer> = (
-	(* :literalmessage: primitive: 73 *)
+	(* :pragma: primitive: 150 *)
 	panic.
 )
 private initialBCIOf: closure <Closure> put: value <Integer> = (
-	(* :literalmessage: primitive: 74 *)
+	(* :pragma: primitive: 151 *)
 	panic.
 )
 private isCanonical: object = (
-	(* :literalmessage: primitive: 126 *)
+	(* :pragma: primitive: 128 *)
 	panic.
 )
-private kActivationCid = ( ^12 )
-private kArrayCid = ( ^9 )
-private kByteArrayCid = ( ^7 )
-private kClosureCid = ( ^13 )
-private kEphemeronCid = ( ^11 )
-private kFloat64Cid = ( ^6 )
-private kSmiCid = ( ^3 )
-private kStringCid = ( ^8 )
-private kWeakArrayCid = ( ^10 )
+private kActivationCluster = ( ^-9 )
+private kArrayCluster = ( ^-6 )
+private kByteArrayCluster = ( ^-5 )
+private kClosureCluster = ( ^-8 )
+private kEphemeronCluster = ( ^-10 )
+private kFloatCluster = ( ^-3 )
+private kIntegerCluster = ( ^-1 )
+private kLargeIntegerCluster = ( ^-2 )
+private kStringCluster = ( ^-4 )
+private kWeakArrayCluster = ( ^-7 )
 private numArgsOf: closure <Closure> put: value <Integer> = (
-	(* :literalmessage: primitive: 76 *)
+	(* :pragma: primitive: 153 *)
 	panic.
 )
 private numCopiedOf: closure <Closure> ^<Integer> = (
-	(* :literalmessage: primitive: 70 *)
+	(* :pragma: primitive: 147 *)
 	panic.
 )
 private panic = (
-	(* :literalmessage: primitive: 103 *)
+	(* :pragma: primitive: 187 *)
 )
 sharedObjects = (
 	^{
@@ -1093,11 +1154,11 @@ sharedObjects = (
 	}
 )
 private slotOf: object at: index = (
-	(* :literalmessage: primitive: 35 *)
+	(* :pragma: primitive: 130 *)
 	panic.
 )
 private slotOf: object at: index put: value = (
-	(* :literalmessage: primitive: 36 *)
+	(* :pragma: primitive: 131 *)
 	panic.
 )
 private version = ( ^0 )

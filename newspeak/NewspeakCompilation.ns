@@ -477,7 +477,7 @@ public codeBodyNode: node <CodeBodyAST> = (
 		parameters: parameters
 		temporaries: temporaries
 		statements: statements.
-	result literalMessages: node literalMessages.
+	result pragmas: node pragmas.
 	^result
 )
 depthOfEnclosingClass: name <Symbol> ^<Integer> = (

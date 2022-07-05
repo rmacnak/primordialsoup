@@ -554,11 +554,11 @@ public eventualSendTo: receiver selector: selector arguments: arguments = (
 	^(asInternalRef: receiver) eventualSend: selector arguments: arguments
 )
 private exit: code = (
-	(* :literalmessage: primitive: 107 *)
+	(* :pragma: primitive: 189 *)
 	panic.
 )
 private finish: wakeup = (
-	(* :literalmessage: primitive: 139 *)
+	(* :pragma: primitive: 188 *)
 	panic.
 )
 public unhandledException: exception from: signalActivationSender = (
@@ -582,7 +582,7 @@ public close = (
 	portMap removeKey: id.
 )
 private close: portId = (
-	(* :literalmessage: primitive: 136 *)
+	(* :pragma: primitive: 193 *)
 	panic
 )
 public deliver: bytes = (
@@ -593,7 +593,7 @@ public deliver: bytes = (
 	handler value: message
 )
 private rawSpawn: bytes = (
-	(* :literalmessage: primitive: 137 *)
+	(* :pragma: primitive: 195 *)
 	panic.
 )
 public send: message = (
@@ -609,12 +609,12 @@ public spawn: message = (
 	rawSpawn: bytes.
 )
 private to: port send: data = (
-	(* :literalmessage: primitive: 138 *)
+	(* :pragma: primitive: 194 *)
 	panic.
 )
 ) : (
 private createPort = (
-	(* :literalmessage: primitive: 135 *)
+	(* :pragma: primitive: 192 *)
 	panic.
 )
 public new = (
@@ -852,7 +852,7 @@ private asInternalRef: externalRefOrUnboxedNearRef = (
 		ifFalse: [InternalNearRef wrapping: externalRefOrUnboxedNearRef]
 )
 private classOf: object = (
-	(* :literalmessage: primitive: 85 *)
+	(* :pragma: primitive: 127 *)
 	panic.
 )
 private createFarReferenceTo: target in: targetActor for: sourceActor = (
@@ -862,7 +862,7 @@ private currentMonotonicMillis = (
 	^currentMonotonicNanos quo: 1000000
 )
 private currentMonotonicNanos = (
-	(* :literalmessage: primitive: 100 *)
+	(* :pragma: primitive: 264 *)
 	panic.
 )
 private isRef: object <Object> ^<Boolean> = (
@@ -879,7 +879,7 @@ private isValueObject: object <Object> ^<Boolean> = (
 	^false
 )
 private panic = (
-	(* :literalmessage: primitive: 103 *)
+	(* :pragma: primitive: 187 *)
 )
 private wrapArgument: argument from: sourceActor to: targetActor = (
 	(* [argument] lives in [sourceActor], answer the corresponding proxy that lives in [targetActor] *)

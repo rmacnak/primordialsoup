@@ -25,6 +25,14 @@ protected class ProtectedNestedClass = () (
 public class PublicNestedClass = () (
 ) : (
 )
+transient defaultTransientSlot = 3.
+transient immutableTransientSlot = 6.
+transient literalsTestSlot = use: 'string literal'.
+transient mutableTransientSlot ::= 5.
+private transient privateTransientSlot = 4.
+protected transient protectedTransientSlot = 2.
+public transient publicTransientSlot = 1.
+transient selectorsTestSlot = thisIsASelector: #thisIsNotASelector.
 >>> binaryMethod = (
 )
 defaultMethod = (
@@ -89,6 +97,7 @@ superSlot = arg.
 class SuperNestedClass = () (
 ) : (
 )
+transient superTransientSlot = init.
 superMethod = (
 )
 ) : (

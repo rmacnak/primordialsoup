@@ -22,13 +22,17 @@ class Deserializer : public ValueObject {
   ~Deserializer();
 
   intptr_t position() { return cursor_ - snapshot_; }
-  uint8_t ReadUint8();
-  uint16_t ReadUint16();
-  uint32_t ReadUint32();
-  int32_t ReadInt32();
-  int64_t ReadInt64();
-  double ReadFloat64();
-  intptr_t ReadUnsigned();
+  template <typename T>
+  T Read() {
+    T result;
+    memcpy(&result, cursor_, sizeof(T));
+    cursor_ += sizeof(T);
+    return result;
+  }
+  template <typename T = uintptr_t>
+  T ReadLEB128();
+  template <typename T = intptr_t>
+  T ReadSLEB128();
 
   void Deserialize();
 
@@ -40,7 +44,7 @@ class Deserializer : public ValueObject {
     refs_[next_ref_++] = object;
   }
   Object ReadRef() {
-    return Ref(ReadUnsigned());
+    return Ref(ReadLEB128());
   }
   Object Ref(intptr_t i) {
     ASSERT(i > 0);

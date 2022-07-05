@@ -521,39 +521,6 @@ public parseLiteral = (
 
 	expected: 'literal'
 )
-public parseLiteralMessageCommentOpt = (
-	[ | comment subparser pragmas = List new. pragma |
-	[skipWhitespace.
-	 comment:: keepComment.
-	 nil = comment] whileFalse:
-		[subparser:: Parser for: comment.
-		 pragma:: subparser advanceToken parseLiteralMessageOpt.
-		 nil = pragma ifFalse: [pragmas add: pragma]].
-	pragmas isEmpty ifTrue: [^nil].
-	^pragmas] on: Error do: [:e | ^nil].
-)
-public parseLiteralMessageOpt = (
-	(* : literalmessage : unaryMessage | (keyword, literal)+ *)
-	| selector arguments |
-	tokenKind = #':' ifFalse: [^nil].
-	advanceToken.
-	tokenKind = #keyword ifFalse: [^nil].
-	tokenValue = 'literalmessage:' ifFalse: [^nil].
-	advanceToken.
-	tokenKind = 'identifier' ifTrue:
-		[^MessageAST new send: tokenValue asSymbol with: {}].
-
-	selector:: ''.
-	arguments:: List new.
-	[tokenKind = #end] whileFalse:
-		[tokenKind = #keyword ifFalse: [^nil].
-		 selector:: selector, tokenValue.
-		 advanceToken.
-		 arguments add: parseLiteral].
-
-	arguments isEmpty ifTrue: [^nil].
-	^MessageAST new send: selector asSymbol with: arguments asArray
-)
 public parseMessagePattern = (
 	(* messagePattern = unaryMsgPattern | binaryMsgPattern | keywordMsgPattern. *)
 
@@ -578,11 +545,11 @@ public parseMethodDeclaration = (
 	advanceToken.
 
 	(tokenKind = #'(') ifFalse: [expected: '('].
-	pragmas:: parseLiteralMessageCommentOpt.
+	pragmas:: parsePragmaCommentOpt.
 	advanceToken.
 
 	body:: parseCodeBody.
-	body literalMessages: pragmas.
+	body pragmas: pragmas.
 
 	(tokenKind = #')') ifFalse: [expected: ')'].
 	declEnd:: tokenEnd.
@@ -623,6 +590,39 @@ public parseParenthesizedTypeExpression = (
 	tokenKind = #')' ifFalse: [expected: ')'].
 	advanceToken.
 	^result
+)
+public parsePragmaCommentOpt = (
+	[ | comment subparser pragmas = List new. pragma |
+	[skipWhitespace.
+	 comment:: keepComment.
+	 nil = comment] whileFalse:
+		[subparser:: Parser for: comment.
+		 pragma:: subparser advanceToken parsePragmaOpt.
+		 nil = pragma ifFalse: [pragmas add: pragma]].
+	pragmas isEmpty ifTrue: [^nil].
+	^pragmas] on: Error do: [:e | ^nil].
+)
+public parsePragmaOpt = (
+	(* :pragma: unaryMessage | (keyword, literal)+ *)
+	| selector arguments |
+	tokenKind = #':' ifFalse: [^nil].
+	advanceToken.
+	tokenKind = #keyword ifFalse: [^nil].
+	tokenValue = 'pragma:' ifFalse: [^nil].
+	advanceToken.
+	tokenKind = 'identifier' ifTrue:
+		[^MessageAST new send: tokenValue asSymbol with: {}].
+
+	selector:: ''.
+	arguments:: List new.
+	[tokenKind = #end] whileFalse:
+		[tokenKind = #keyword ifFalse: [^nil].
+		 selector:: selector, tokenValue.
+		 advanceToken.
+		 arguments add: parseLiteral].
+
+	arguments isEmpty ifTrue: [^nil].
+	^MessageAST new send: selector asSymbol with: arguments asArray
 )
 public parsePrimary = (
 	(* primary = slotName | literal | block | parenthesizedExpression. *)

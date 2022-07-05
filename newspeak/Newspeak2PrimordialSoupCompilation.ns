@@ -1059,7 +1059,7 @@ public methodNode: node <MethodAST> = (
 
 	self applyForEffectTo: node body.
 	cgen code debugInfo: debugInfo. (* set debug info *)
-	processLiteralMessagesOf: node.
+	processPragmasOf: node.
 
 	result:: cgen close.
 	cleanup.
@@ -1119,11 +1119,11 @@ popAndStoreInto: var <AllocatedLocal> = (
 				popIntoRemoteTemporary: var original remoteOffset
 				inVector: var remoteVector offset]
 )
-processLiteralMessagesOf: node <MethodAST> = (
-	| bodyLitMessages |
-	bodyLitMessages:: node body literalMessages.
-	nil = bodyLitMessages ifFalse:
-		[bodyLitMessages do: [:messageAST |
+processPragmasOf: node <MethodAST> = (
+	| pragmas |
+	pragmas:: node body pragmas.
+	nil = pragmas ifFalse:
+		[pragmas do: [:messageAST |
 			(messageAST selector = #primitive:) ifTrue:
 				[cgen code primitive: messageAST arguments first value]]].
 )
@@ -1572,7 +1572,7 @@ public codeBodyNode: node <CodeBodyAST> = (
 	  parameters: (node parameters collect: [:parameter | allocateLocal: parameter])
 	  temporaries: (node temporaries collect: [:temporary | allocateLocal: temporary])
 	  statements: (node statements collect: [:statement | statement apply: self]);
-		literalMessages: node literalMessages;
+		pragmas: node pragmas;
 	  copyPositionFrom: node
 )
 public conditionalNode: node <ConditionalAST> = (

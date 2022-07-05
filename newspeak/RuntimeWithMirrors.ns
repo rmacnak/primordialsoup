@@ -24,11 +24,11 @@ public zircon = Zircon usingPlatform: self internalKernel: ik.
 public js = JS usingPlatform: self internalKernel: ik.
 |) (
 public numberOfProcessors ^<Integer> = (
-	(* :literalmessage: primitive: 97 *)
+	(* :pragma: primitive: 256 *)
 	panic.
 )
 public operatingSystem ^<String> = (
-	(* :literalmessage: primitive: 99 *)
+	(* :pragma: primitive: 257 *)
 	panic.
 )
 ) : (

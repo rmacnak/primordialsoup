@@ -260,7 +260,7 @@ public class CodeBodyAST = AST (|
 	public temporaries <List[TemporaryAST]>
 	public statements <List[StatementAST]>
 	public isSeq <Boolean> ::=true.
-	public literalMessages <List[MessageAST]>
+	public pragmas <List[MessageAST]>
 |) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool codeBodyNode: self

@@ -1,10 +1,11 @@
-class PrimordialFuelTesting usingPlatform: p minitest: m testApp: a = (|
+class PrimordialFuelTesting usingPlatform: p minitest: m testApp: a testStruct: s = (|
 private WeakArray = p kernel WeakArray.
 private Ephemeron = p kernel Ephemeron.
 private Serializer = p victoryFuel Serializer.
 private Deserializer = p victoryFuel Deserializer.
 private TestContext = m TestContext.
 private PrimordialFuelTestApp = a.
+private PrimordialFuelTestStruct = s.
 |) (
 public class SerializationTests = TestContext () (
 roundTrip: object = (
@@ -189,6 +190,20 @@ public testStrings = (
 	after:: roundTrip: before.
 	assert: after equals: before.
 	assert: after hash equals: before hash.
+)
+public testTransientSlots = (
+	| before after |
+	before:: PrimordialFuelTestStruct new.
+	assert: before counter equals: 0.
+	assert: before transientSlot equals: 1.
+	assert: before counter equals: 1.
+
+	after:: roundTrip: before.
+	assert: after counter equals: 1.
+	assert: after transientSlot equals: 2.
+	assert: after counter equals: 2.
+	assert: before transientSlot equals: 1.
+	assert: before counter equals: 1.
 )
 public testWeakArrays = (
 	| before after |

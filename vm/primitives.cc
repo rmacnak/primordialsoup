@@ -31,9 +31,6 @@ namespace psoup {
 const bool kSuccess = true;
 const bool kFailure = false;
 
-// TODO(rmacnak): Re-group the primitives and re-assign their numbers once the
-// set of primitives is more stable.
-
 #define PRIMITIVE_LIST(V)                                                      \
   V(1, Number_add)                                                             \
   V(2, Number_subtract)                                                        \
@@ -43,184 +40,226 @@ const bool kFailure = false;
   V(6, Number_mod)                                                             \
   V(7, Number_quo)                                                             \
   V(8, Number_rem)                                                             \
-  V(9, Number_equal)                                                           \
-  V(10, Number_less)                                                           \
-  V(11, Number_greater)                                                        \
-  V(12, Number_lessOrEqual)                                                    \
-  V(13, Number_greaterOrEqual)                                                 \
-  V(14, Number_asInteger)                                                      \
-  V(15, Number_asDouble)                                                       \
-  V(16, Integer_bitAnd)                                                        \
-  V(17, Integer_bitOr)                                                         \
-  V(18, Integer_bitXor)                                                        \
-  V(19, Integer_bitShiftLeft)                                                  \
-  V(20, Integer_bitShiftRight)                                                 \
-  V(21, Double_floor)                                                          \
-  V(22, Double_ceiling)                                                        \
-  V(23, Double_sin)                                                            \
-  V(24, Double_cos)                                                            \
-  V(25, Double_tan)                                                            \
-  V(26, Double_asin)                                                           \
-  V(27, Double_acos)                                                           \
-  V(28, Double_atan)                                                           \
-  V(29, Double_atan2)                                                          \
-  V(30, Double_exp)                                                            \
-  V(31, Double_ln)                                                             \
-  V(32, Double_log)                                                            \
-  V(33, Double_sqrt)                                                           \
-  V(34, Behavior_basicNew)                                                     \
-  V(35, Object_instVarAt)                                                      \
-  V(36, Object_instVarAtPut)                                                   \
-  V(37, Object_instVarSize)                                                    \
-  V(38, Array_class_new)                                                       \
-  V(39, Array_at)                                                              \
-  V(40, Array_atPut)                                                           \
-  V(41, Array_size)                                                            \
-  V(42, WeakArray_class_new)                                                   \
-  V(43, WeakArray_at)                                                          \
-  V(44, WeakArray_atPut)                                                       \
-  V(45, WeakArray_size)                                                        \
-  V(46, ByteArray_class_new)                                                   \
-  V(47, ByteArray_at)                                                          \
-  V(48, ByteArray_atPut)                                                       \
-  V(49, ByteArray_size)                                                        \
-  V(50, Bytes_copyByteArrayFromTo)                                             \
-  V(51, String_at)                                                             \
-  V(53, String_size)                                                           \
-  V(54, String_hash)                                                           \
-  V(55, Activation_sender)                                                     \
-  V(56, Activation_senderPut)                                                  \
-  V(57, Activation_bci)                                                        \
-  V(58, Activation_bciPut)                                                     \
-  V(59, Activation_method)                                                     \
-  V(60, Activation_methodPut)                                                  \
-  V(61, Activation_closure)                                                    \
-  V(62, Activation_closurePut)                                                 \
-  V(63, Activation_receiver)                                                   \
-  V(64, Activation_receiverPut)                                                \
-  V(65, Activation_tempAt)                                                     \
-  V(66, Activation_tempAtPut)                                                  \
-  V(67, Activation_tempSize)                                                   \
-  V(68, Activation_class_new)                                                  \
-  V(69, Closure_class_new)                                                     \
-  V(70, Closure_numCopied)                                                     \
-  V(71, Closure_definingActivation)                                            \
-  V(72, Closure_definingActivationPut)                                         \
-  V(73, Closure_initialBci)                                                    \
-  V(74, Closure_initialBciPut)                                                 \
-  V(75, Closure_numArgs)                                                       \
-  V(76, Closure_numArgsPut)                                                    \
-  V(77, Closure_copiedAt)                                                      \
-  V(78, Closure_copiedAtPut)                                                   \
-  V(79, ByteArray_replaceFromToWithStartingAt)                                 \
-  V(80, Array_replaceFromToWithStartingAt)                                     \
-  V(81, Array_copyFromTo)                                                      \
-  V(82, Closure_class_withNumCopied)                                           \
-  V(84, Object_referencesTo)                                                   \
-  V(85, Object_class)                                                          \
-  V(86, Object_identical)                                                      \
-  V(87, Object_identityHash)                                                   \
-  V(88, Object_heapSize)                                                       \
-  V(89, Object_performWithAll)                                                 \
-  V(90, Closure_value0)                                                        \
-  V(91, Closure_value1)                                                        \
-  V(92, Closure_value2)                                                        \
-  V(93, Closure_value3)                                                        \
-  V(94, Closure_valueArray)                                                    \
-  V(95, Activation_jump)                                                       \
-  V(96, Behavior_allInstances)                                                 \
-  V(97, Platform_numberOfProcessors)                                           \
-  V(98, Array_elementsForwardIdentity)                                         \
-  V(99, Platform_operatingSystem)                                              \
-  V(100, Time_monotonicNanos)                                                  \
-  V(101, Time_utcEpochNanos)                                                   \
-  V(102, print)                                                                \
-  V(103, panic)                                                                \
-  V(104, flushCache)                                                           \
-  V(105, collectGarbage)                                                       \
-  V(106, Double_isFinite)                                                      \
-  V(107, MessageLoop_exit)                                                     \
-  V(108, Double_asStringFixed)                                                 \
-  V(109, Double_asStringExponential)                                           \
-  V(110, Double_asStringPrecision)                                             \
-  V(111, Number_asString)                                                      \
-  V(112, Double_isInfinite)                                                    \
-  V(113, Closure_ensure)                                                       \
-  V(114, String_equals)                                                        \
-  V(115, String_concat)                                                        \
-  V(116, Closure_onDo)                                                         \
-  V(117, Bytes_startsWith)                                                     \
-  V(118, Bytes_endsWith)                                                       \
-  V(119, Bytes_indexOf)                                                        \
-  V(120, Bytes_lastIndexOf)                                                    \
-  V(121, Bytes_copyStringFromTo)                                               \
-  V(122, ByteArray_class_withAll)                                              \
-  V(123, String_class_with)                                                    \
-  V(124, String_class_withAll)                                                 \
-  V(125, Double_rounded)                                                       \
-  V(126, Object_isCanonical)                                                   \
-  V(127, Object_markCanonical)                                                 \
-  V(128, writeBytesToFile)                                                     \
-  V(130, readFileAsBytes)                                                      \
-  V(131, Double_pow)                                                           \
-  V(132, Double_class_parse)                                                   \
-  V(133, currentActivation)                                                    \
-  V(134, Behavior_adoptInstance)                                               \
-  V(135, openPort)                                                             \
-  V(136, closePort)                                                            \
-  V(137, spawn)                                                                \
-  V(138, send)                                                                 \
-  V(139, MessageLoop_finish)                                                   \
-  V(140, Activation_tempSizePut)                                               \
-  V(141, doPrimitiveWithArgs)                                                  \
-  V(142, simulationRoot)                                                       \
-  V(143, MessageLoop_awaitSignal)                                              \
-  V(144, MessageLoop_cancelSignalWait)                                         \
-  V(145, ZXHandle_close)                                                       \
-  V(146, ZXChannel_create)                                                     \
-  V(147, ZXChannel_read)                                                       \
-  V(148, ZXChannel_write)                                                      \
-  V(149, ZXVmo_create)                                                         \
-  V(150, ZXVmo_getSize)                                                        \
-  V(151, ZXVmo_setSize)                                                        \
-  V(152, ZXVmo_read)                                                           \
-  V(153, ZXVmo_write)                                                          \
-  V(154, JS_pushValue)                                                         \
-  V(155, JS_pushAlien)                                                         \
-  V(156, JS_pushExpat)                                                         \
-  V(157, JS_popValue)                                                          \
-  V(158, JS_peekAlien)                                                         \
-  V(159, JS_peekExpat)                                                         \
-  V(160, JS_performGet)                                                        \
-  V(161, JS_performSet)                                                        \
-  V(162, JS_performDelete)                                                     \
-  V(163, JS_performInvoke)                                                     \
-  V(164, JS_performNew)                                                        \
-  V(165, ZXStatus_getString)                                                   \
-  V(166, JS_performInstanceOf)                                                 \
-  V(167, JS_performHas)                                                        \
-  V(200, quickReturnSelf)                                                      \
-  V(236, Bytes_uint8At)                                                        \
-  V(237, Bytes_uint8AtPut)                                                     \
-  V(238, Bytes_uint16At)                                                       \
-  V(239, Bytes_uint16AtPut)                                                    \
-  V(240, Bytes_uint32At)                                                       \
-  V(241, Bytes_uint32AtPut)                                                    \
-  V(242, Bytes_uint64At)                                                       \
-  V(243, Bytes_uint64AtPut)                                                    \
-  V(244, Bytes_int8At)                                                         \
-  V(245, Bytes_int8AtPut)                                                      \
-  V(246, Bytes_int16At)                                                        \
-  V(247, Bytes_int16AtPut)                                                     \
-  V(248, Bytes_int32At)                                                        \
-  V(249, Bytes_int32AtPut)                                                     \
-  V(250, Bytes_int64At)                                                        \
-  V(251, Bytes_int64AtPut)                                                     \
-  V(252, Bytes_float32At)                                                      \
-  V(253, Bytes_float32AtPut)                                                   \
-  V(254, Bytes_float64At)                                                      \
-  V(255, Bytes_float64AtPut)                                                   \
-
+  /* V(9, Number_sign) */                                                      \
+  /* V(10, Number_euclieanDiv) */                                              \
+  /* V(11, Number_euclieanRem) */                                              \
+  V(12, Number_equal)                                                          \
+  V(13, Number_less)                                                           \
+  V(14, Number_greater)                                                        \
+  V(15, Number_lessOrEqual)                                                    \
+  V(16, Number_greaterOrEqual)                                                 \
+  V(17, Number_asInteger)                                                      \
+  V(18, Number_asDouble)                                                       \
+  V(19, Number_asString)                                                       \
+  V(20, Integer_bitAnd)                                                        \
+  V(21, Integer_bitOr)                                                         \
+  V(22, Integer_bitXor)                                                        \
+  V(23, Integer_bitShiftLeft)                                                  \
+  V(24, Integer_bitShiftRight)                                                 \
+  /* V(25, Integer_cpop) */                                                    \
+  /* V(26, Integer_ctz) */                                                     \
+  /* V(27, Integer_bitLength) */                                               \
+  /* V(28, Integer_digitAt) */                                                 \
+  /* V(29, Integer_digitLength) */                                             \
+  /* V(30, Integer_asDigits) */                                                \
+  /* V(31, Integer_class_fromDigits) */                                        \
+  V(32, Double_floor)                                                          \
+  V(33, Double_ceiling)                                                        \
+  /* V(34, Double_truncated) */                                                \
+  V(35, Double_rounded)                                                        \
+  /* V(36, Double_tiesToEven) */                                               \
+  V(37, Double_sin)                                                            \
+  V(38, Double_cos)                                                            \
+  V(39, Double_tan)                                                            \
+  V(40, Double_asin)                                                           \
+  V(41, Double_acos)                                                           \
+  V(42, Double_atan)                                                           \
+  V(43, Double_atan2)                                                          \
+  /* V(44, Double_sinh) */                                                     \
+  /* V(45, Double_cosh) */                                                     \
+  /* V(46, Double_tanh) */                                                     \
+  /* V(47, Double_asinh) */                                                    \
+  /* V(48, Double_acosh) */                                                    \
+  /* V(49, Double_atanh) */                                                    \
+  V(50, Double_exp)                                                            \
+  V(51, Double_ln)                                                             \
+  V(52, Double_log)                                                            \
+  V(53, Double_sqrt)                                                           \
+  V(54, Double_pow)                                                            \
+  V(55, Double_asStringFixed)                                                  \
+  V(56, Double_asStringExponential)                                            \
+  V(57, Double_asStringPrecision)                                              \
+  V(58, Double_isFinite)                                                       \
+  V(59, Double_isInfinite)                                                     \
+  /* V(60, Double_isSubnormal) */                                              \
+  /* V(61, Double_isNaN) */                                                    \
+  /* V(62, Double_is?) */                                                      \
+  V(63, Double_class_parse)                                                    \
+  /* V(64, Double_asBits) */                                                   \
+  /* V(65, Double_fromBits) */                                                 \
+  V(66, Array_class_new)                                                       \
+  /* V(67, Array_class_new_fill) */                                            \
+  /* V(68, Array_class_new_selffill) */                                        \
+  V(69, Array_at)                                                              \
+  V(70, Array_atPut)                                                           \
+  V(71, Array_size)                                                            \
+  V(72, Array_replaceFromToWithStartingAt)                                     \
+  V(73, Array_copyFromTo)                                                      \
+  /* V(74, Array_?) */                                                         \
+  V(75, WeakArray_class_new)                                                   \
+  /* V(76, WeakArray_class_new_fill) */                                        \
+  /* V(77, WeakArray_class_new_selffill) */                                    \
+  V(78, WeakArray_at)                                                          \
+  V(79, WeakArray_atPut)                                                       \
+  V(80, WeakArray_size)                                                        \
+  /* V(81, WeakArray_replaceFromToWithStartingAt) */                           \
+  /* V(82, WeakArray_copyFromTo) */                                            \
+  /* V(83, WeakArray_?) */                                                     \
+  V(84, Bytes_uint8At)                                                         \
+  V(85, Bytes_uint8AtPut)                                                      \
+  V(86, Bytes_uint16At)                                                        \
+  V(87, Bytes_uint16AtPut)                                                     \
+  V(88, Bytes_uint32At)                                                        \
+  V(89, Bytes_uint32AtPut)                                                     \
+  V(90, Bytes_uint64At)                                                        \
+  V(91, Bytes_uint64AtPut)                                                     \
+  V(92, Bytes_int8At)                                                          \
+  V(93, Bytes_int8AtPut)                                                       \
+  V(94, Bytes_int16At)                                                         \
+  V(95, Bytes_int16AtPut)                                                      \
+  V(96, Bytes_int32At)                                                         \
+  V(97, Bytes_int32AtPut)                                                      \
+  V(98, Bytes_int64At)                                                         \
+  V(99, Bytes_int64AtPut)                                                      \
+  V(100, Bytes_float32At)                                                      \
+  V(101, Bytes_float32AtPut)                                                   \
+  V(102, Bytes_float64At)                                                      \
+  V(103, Bytes_float64AtPut)                                                   \
+  V(104, Bytes_startsWith)                                                     \
+  V(105, Bytes_endsWith)                                                       \
+  V(106, Bytes_indexOf)                                                        \
+  V(107, Bytes_lastIndexOf)                                                    \
+  V(108, Bytes_copyStringFromTo)                                               \
+  V(109, Bytes_copyByteArrayFromTo)                                            \
+  V(110, ByteArray_class_new)                                                  \
+  /* V(111, ByteArray_class_with) */                                           \
+  V(112, ByteArray_class_withAll)                                              \
+  V(113, ByteArray_at)                                                         \
+  V(114, ByteArray_atPut)                                                      \
+  V(115, ByteArray_size)                                                       \
+  V(116, ByteArray_replaceFromToWithStartingAt)                                \
+  V(117, String_at)                                                            \
+  V(118, String_size)                                                          \
+  V(119, String_hash)                                                          \
+  V(120, String_equals)                                                        \
+  V(121, String_concat)                                                        \
+  V(122, String_class_with)                                                    \
+  V(123, String_class_withAll)                                                 \
+  /* V(124, String_?) */                                                       \
+  /* V(125, String_?) */                                                       \
+  V(126, Object_yourself)                                                      \
+  V(127, Object_class)                                                         \
+  V(128, Object_isCanonical)                                                   \
+  V(129, Object_markCanonical)                                                 \
+  V(130, Object_instVarAt)                                                     \
+  V(131, Object_instVarAtPut)                                                  \
+  V(132, Object_instVarSize)                                                   \
+  V(133, Object_referencesTo)                                                  \
+  V(134, Object_performWithAll)                                                \
+  V(135, Object_identical)                                                     \
+  V(136, Object_identityHash)                                                  \
+  V(137, Object_heapSize)                                                      \
+  /* V(138, Object_?) */                                                       \
+  /* V(139, Object_?) */                                                       \
+  V(140, Behavior_basicNew)                                                    \
+  V(141, Behavior_allInstances)                                                \
+  V(142, Behavior_adoptInstance)                                               \
+  /* V(143, Behavior_?) */                                                     \
+  /* V(144, Behavior_?) */                                                     \
+  V(145, Closure_class_new)                                                    \
+  V(146, Closure_class_withNumCopied)                                          \
+  V(147, Closure_numCopied)                                                    \
+  V(148, Closure_definingActivation)                                           \
+  V(149, Closure_definingActivationPut)                                        \
+  V(150, Closure_initialBci)                                                   \
+  V(151, Closure_initialBciPut)                                                \
+  V(152, Closure_numArgs)                                                      \
+  V(153, Closure_numArgsPut)                                                   \
+  V(154, Closure_copiedAt)                                                     \
+  V(155, Closure_copiedAtPut)                                                  \
+  V(156, Closure_value0)                                                       \
+  V(157, Closure_value1)                                                       \
+  V(158, Closure_value2)                                                       \
+  V(159, Closure_value3)                                                       \
+  V(160, Closure_valueArray)                                                   \
+  V(161, Closure_onDo)                                                         \
+  V(162, Closure_ensure)                                                       \
+  V(163, simulationRoot)                                                       \
+  V(164, currentActivation)                                                    \
+  V(165, Activation_jump)                                                      \
+  V(166, Activation_sender)                                                    \
+  V(167, Activation_senderPut)                                                 \
+  V(168, Activation_bci)                                                       \
+  V(169, Activation_bciPut)                                                    \
+  V(170, Activation_method)                                                    \
+  V(171, Activation_methodPut)                                                 \
+  V(172, Activation_closure)                                                   \
+  V(173, Activation_closurePut)                                                \
+  V(174, Activation_receiver)                                                  \
+  V(175, Activation_receiverPut)                                               \
+  V(176, Activation_tempAt)                                                    \
+  V(177, Activation_tempAtPut)                                                 \
+  V(178, Activation_tempSize)                                                  \
+  V(179, Activation_tempSizePut)                                               \
+  V(180, Activation_class_new)                                                 \
+  V(181, doPrimitiveWithArgs)                                                  \
+  V(182, Interpreter_flushCache)                                               \
+  V(183, Heap_becomeForward)                                                   \
+  V(184, Heap_collectGarbage)                                                  \
+  /* V(185, Heap_allocationTable) */                                           \
+  /* V(186, Heap_summary) */                                                   \
+  V(187, panic)                                                                \
+  V(188, MessageLoop_finish)                                                   \
+  V(189, MessageLoop_exit)                                                     \
+  V(190, MessageLoop_awaitSignal)                                              \
+  V(191, MessageLoop_cancelSignalWait)                                         \
+  V(192, openPort)                                                             \
+  V(193, closePort)                                                            \
+  V(194, send)                                                                 \
+  V(195, spawn)                                                                \
+  /* V(196, killtree) */                                                       \
+  /* V(197, sendoob) */                                                        \
+  /* V(198, mailboxpeek) */                                                    \
+  V(256, Platform_numberOfProcessors)                                          \
+  V(257, Platform_operatingSystem)                                             \
+  V(264, Time_monotonicNanos)                                                  \
+  V(265, Time_utcEpochNanos)                                                   \
+  V(272, ZXStatus_getString)                                                   \
+  V(273, ZXHandle_close)                                                       \
+  V(274, ZXChannel_create)                                                     \
+  V(275, ZXChannel_read)                                                       \
+  V(276, ZXChannel_write)                                                      \
+  V(277, ZXVmo_create)                                                         \
+  V(278, ZXVmo_getSize)                                                        \
+  V(279, ZXVmo_setSize)                                                        \
+  V(280, ZXVmo_read)                                                           \
+  V(281, ZXVmo_write)                                                          \
+  V(320, JS_pushValue)                                                         \
+  V(321, JS_pushAlien)                                                         \
+  V(322, JS_pushExpat)                                                         \
+  V(323, JS_popValue)                                                          \
+  V(324, JS_peekAlien)                                                         \
+  V(325, JS_peekExpat)                                                         \
+  V(326, JS_performGet)                                                        \
+  V(327, JS_performSet)                                                        \
+  V(328, JS_performDelete)                                                     \
+  V(329, JS_performInvoke)                                                     \
+  V(330, JS_performNew)                                                        \
+  V(331, JS_performInstanceOf)                                                 \
+  V(332, JS_performHas)                                                        \
+  V(509, print)                                                                \
+  V(510, readFileAsBytes)                                                      \
+  V(511, writeBytesToFile)                                                     \
 
 #define DEFINE_PRIMITIVE(name)                                                 \
   static bool primitive##name(intptr_t num_args, Heap* H, Interpreter* I)
@@ -2195,7 +2234,7 @@ DEFINE_PRIMITIVE(Object_heapSize) {
   RETURN_SMI(heap_size);
 }
 
-DEFINE_PRIMITIVE(Array_elementsForwardIdentity) {
+DEFINE_PRIMITIVE(Heap_becomeForward) {
   ASSERT(num_args == 2);
   Array left = static_cast<Array>(I->Stack(1));
   Array right = static_cast<Array>(I->Stack(0));
@@ -2258,7 +2297,7 @@ DEFINE_PRIMITIVE(panic) {
 }
 
 
-DEFINE_PRIMITIVE(flushCache) {
+DEFINE_PRIMITIVE(Interpreter_flushCache) {
   // Atomicity may require this to be part of an atomic install's become. If so,
   // remove this separate primitive.
   UNREACHABLE();
@@ -2266,7 +2305,7 @@ DEFINE_PRIMITIVE(flushCache) {
 }
 
 
-DEFINE_PRIMITIVE(collectGarbage) {
+DEFINE_PRIMITIVE(Heap_collectGarbage) {
   H->CollectAll(Heap::kPrimitive);  // SAFEPOINT
   RETURN_SELF();
 }
@@ -2924,14 +2963,14 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
   }
 
   intptr_t index = primitive_index->value();
-  if (index == 133 ||  // currentActivation
-      index == 90 ||  // Closure_value0
-      index == 91 ||  // Closure_value1
-      index == 92 ||  // Closure_value2
-      index == 93 ||  // Closure_value3
-      index == 94 ||  // Closure_valueArray
-      index == 95 ||  // Activation_jump
-      index == 89) {  // Object_performWithAll
+  if (index == 164 ||  // currentActivation
+      index == 156 ||  // Closure_value0
+      index == 157 ||  // Closure_value1
+      index == 158 ||  // Closure_value2
+      index == 159 ||  // Closure_value3
+      index == 160 ||  // Closure_valueArray
+      index == 165 ||  // Activation_jump
+      index == 134) {  // Object_performWithAll
     return kFailure;
   }
 
@@ -2939,16 +2978,16 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
 
   // TODO(rmacnak): We're repeating the accessor primitives in the interpreter
   // and here. We should invoke these uniformly.
-  if ((index & 256) != 0) {
+  if ((index & 512) != 0) {
     // Getter
-    intptr_t offset = index & 255;
+    intptr_t offset = index & 511;
     ASSERT(callee_num_args == 0);
     ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
     Object value = static_cast<RegularObject>(receiver)->slot(offset);
     RETURN(value);
-  } else if ((index & 512) != 0) {
+  } else if ((index & 1024) != 0) {
     // Setter
-    intptr_t offset = index & 255;
+    intptr_t offset = index & 511;
     ASSERT(callee_num_args == 1);
     Object value = arguments->element(0);
     ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
@@ -3660,7 +3699,7 @@ DEFINE_PRIMITIVE(JS_performHas) {
 #endif
 }
 
-DEFINE_PRIMITIVE(quickReturnSelf) {
+DEFINE_PRIMITIVE(Object_yourself) {
   ASSERT(num_args == 0);
   return kSuccess;
 }

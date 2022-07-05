@@ -22,8 +22,8 @@ class Primitives {
   static void Startup();
   static void Shutdown();
 
-  static bool IsUnwindProtect(intptr_t prim) { return prim == 113; }
-  static bool IsSimulationRoot(intptr_t prim) { return prim == 142; }
+  static bool IsUnwindProtect(intptr_t prim) { return prim == 162; }
+  static bool IsSimulationRoot(intptr_t prim) { return prim == 163; }
 
   static bool Invoke(intptr_t prim,
                      intptr_t num_args,
@@ -36,7 +36,7 @@ class Primitives {
   }
 
  private:
-  static constexpr intptr_t kNumPrimitives = 256;
+  static constexpr intptr_t kNumPrimitives = 512;
 
   static PrimitiveFunction* primitive_table_[kNumPrimitives];
 };

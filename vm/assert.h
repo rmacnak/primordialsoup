@@ -72,6 +72,6 @@ class Assert {
 
 #endif  // if defined(DEBUG)
 
-#define COMPILE_ASSERT(cond) static_assert(cond)
+#define COMPILE_ASSERT(cond) static_assert(cond, "")
 
 #endif  // VM_ASSERT_H_

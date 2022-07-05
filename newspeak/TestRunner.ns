@@ -19,7 +19,7 @@ testConfigs = {
 Promise
 |) (
 private exit: code = (
-	(* :literalmessage: primitive: 107 *)
+	(* :pragma: primitive: 189 *)
 	panic.
 )
 public main: platform args: args = (

@@ -112,11 +112,11 @@ parentMain: args = (
 	compileSources: sourcePaths binaries: binaryPaths outputs: outputTuples.
 )
 readFileAsBytes: filename = (
-	(* :literalmessage: primitive: 130 *)
+	(* :pragma: primitive: 510 *)
 	halt.
 )
 writeBytes: bytes toFileNamed: filename = (
-	(* :literalmessage: primitive: 128 *)
+	(* :pragma: primitive: 511 *)
 	halt.
 )
 ) : (

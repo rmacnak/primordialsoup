@@ -4,6 +4,8 @@
 
 #include "vm/snapshot.h"
 
+#include <type_traits>
+
 #include "vm/heap.h"
 #include "vm/interpreter.h"
 #include "vm/object.h"
@@ -32,7 +34,7 @@ class RegularObjectCluster : public Cluster {
   ~RegularObjectCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     if (cid_ == kIllegalCid) {
       cid_ = h->AllocateClassId();
     }
@@ -68,14 +70,14 @@ class ByteArrayCluster : public Cluster {
   ~ByteArrayCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUnsigned();
+      intptr_t size = d->ReadLEB128();
       ByteArray object = h->AllocateByteArray(size, Heap::kSnapshot);
       for (intptr_t j = 0; j < size; j++) {
-        object->set_element(j, d->ReadUint8());
+        object->set_element(j, d->Read<uint8_t>());
       }
       d->RegisterRef(object);
       ASSERT(object->IsByteArray());
@@ -97,16 +99,16 @@ class StringCluster : public Cluster {
   }
 
   void ReadNodes(Deserializer* d, Heap* h, bool is_canonical) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUnsigned();
+      intptr_t size = d->ReadLEB128();
       String object = h->AllocateString(size, Heap::kSnapshot);
       ASSERT(!object->is_canonical());
       object->set_is_canonical(is_canonical);
       for (intptr_t j = 0; j < size; j++) {
-        object->set_element(j, d->ReadUint8());
+        object->set_element(j, d->Read<uint8_t>());
       }
       d->RegisterRef(object);
     }
@@ -122,11 +124,11 @@ class ArrayCluster : public Cluster {
   ~ArrayCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUnsigned();
+      intptr_t size = d->ReadLEB128();
       Array object = h->AllocateArray(size, Heap::kSnapshot);
       d->RegisterRef(object);
     }
@@ -150,11 +152,11 @@ class WeakArrayCluster : public Cluster {
   ~WeakArrayCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUnsigned();
+      intptr_t size = d->ReadLEB128();
       WeakArray object = h->AllocateWeakArray(size, Heap::kSnapshot);
       d->RegisterRef(object);
     }
@@ -178,11 +180,11 @@ class ClosureCluster : public Cluster {
   ~ClosureCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      intptr_t size = d->ReadUint16();
+      intptr_t size = d->ReadLEB128();
       Closure object = h->AllocateClosure(size, Heap::kSnapshot);
       d->RegisterRef(object);
     }
@@ -213,7 +215,7 @@ class ActivationCluster : public Cluster {
   ~ActivationCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
@@ -233,7 +235,7 @@ class ActivationCluster : public Cluster {
       object->set_closure(Closure::Cast(d->ReadRef()), kNoBarrier);
       object->set_receiver(d->ReadRef(), kNoBarrier);
 
-      intptr_t size = d->ReadUint16();
+      intptr_t size = d->ReadLEB128();
       ASSERT(size < kMaxTemps);
       object->set_stack_depth(SmallInteger::New(size));
 
@@ -247,17 +249,17 @@ class ActivationCluster : public Cluster {
   }
 };
 
-class SmallIntegerCluster : public Cluster {
+class IntegerCluster : public Cluster {
  public:
-  SmallIntegerCluster() {}
-  ~SmallIntegerCluster() {}
+  IntegerCluster() {}
+  ~IntegerCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      int64_t value = d->ReadInt64();
+      int64_t value = d->ReadSLEB128<int64_t>();
       if (SmallInteger::IsSmiValue(value)) {
         SmallInteger object = SmallInteger::New(value);
         ASSERT(object->IsSmallInteger());
@@ -269,11 +271,23 @@ class SmallIntegerCluster : public Cluster {
       }
     }
     ASSERT(d->next_ref() == ref_stop_);
+  }
 
-    intptr_t num_large = d->ReadUnsigned();
-    for (intptr_t i = 0; i < num_large; i++) {
-      bool negative = d->ReadUint8();
-      intptr_t bytes = d->ReadUint16();
+  void ReadEdges(Deserializer* d, Heap* h) {}
+};
+
+class LargeIntegerCluster : public Cluster {
+ public:
+  LargeIntegerCluster() {}
+  ~LargeIntegerCluster() {}
+
+  void ReadNodes(Deserializer* d, Heap* h) {
+    intptr_t num_objects = d->ReadLEB128();
+    ref_start_ = d->next_ref();
+    ref_stop_ = ref_start_ + num_objects;
+    for (intptr_t i = 0; i < num_objects; i++) {
+      bool negative = d->Read<uint8_t>();
+      intptr_t bytes = d->ReadLEB128();
       intptr_t digits = (bytes + (sizeof(digit_t) - 1)) / sizeof(digit_t);
       intptr_t full_digits = bytes / sizeof(digit_t);
 
@@ -286,7 +300,7 @@ class SmallIntegerCluster : public Cluster {
         for (intptr_t shift = 0;
              shift < static_cast<intptr_t>(kDigitBits);
              shift += 8) {
-          digit = digit | (d->ReadUint8() << shift);
+          digit = digit | (d->Read<uint8_t>() << shift);
         }
         object->set_digit(j, digit);
       }
@@ -298,13 +312,14 @@ class SmallIntegerCluster : public Cluster {
         for (intptr_t shift = 0;
              shift < (leftover_bytes * 8);
              shift += 8) {
-          digit = digit | (d->ReadUint8() << shift);
+          digit = digit | (d->Read<uint8_t>() << shift);
         }
         object->set_digit(digits - 1, digit);
       }
 
       d->RegisterRef(object);
     }
+    ASSERT(d->next_ref() == ref_stop_);
   }
 
   void ReadEdges(Deserializer* d, Heap* h) {}
@@ -316,11 +331,11 @@ class FloatCluster : public Cluster {
   ~FloatCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
-    intptr_t num_objects = d->ReadUnsigned();
+    intptr_t num_objects = d->ReadLEB128();
     ref_start_ = d->next_ref();
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
-      double value = d->ReadFloat64();
+      double value = d->Read<double>();
       Float64 object = h->AllocateFloat64(Heap::kSnapshot);
       object->set_value(value);
       d->RegisterRef(object);
@@ -362,19 +377,19 @@ void Deserializer::Deserialize() {
     while (*cursor_++ != static_cast<uint8_t>('\n')) {}
   }
 
-  uint16_t magic = ReadUint16();
+  uint16_t magic = Read<uint16_t>();
   if (magic != 0x1984) {
     FATAL("Wrong magic value");
   }
-  uint16_t version = ReadUint16();
+  uint16_t version = ReadLEB128();
   if (version != 0) {
     FATAL("Wrong version (%d)", version);
   }
 
-  num_clusters_ = ReadUint16();
+  num_clusters_ = ReadLEB128();
   clusters_ = new Cluster*[num_clusters_];
 
-  intptr_t num_nodes = ReadUint32();
+  intptr_t num_nodes = ReadLEB128();
   refs_ = new Object[num_nodes + 1];  // Refs are 1-origin.
   next_ref_ = 1;
 
@@ -426,119 +441,72 @@ void Deserializer::Deserialize() {
 #endif
 }
 
-
-uint8_t Deserializer::ReadUint8() {
-  return *cursor_++;
-}
-
-
-uint16_t Deserializer::ReadUint16() {
-  int16_t result = ReadUint8();
-  result = (result << 8) | ReadUint8();
+template <typename T>
+T Deserializer::ReadLEB128() {
+  COMPILE_ASSERT(std::is_unsigned<T>());
+  const int8_t* cursor = reinterpret_cast<const int8_t*>(cursor_);
+  T result = 0;
+  uintptr_t shift = 0;
+  intptr_t byte;
+  do {
+    byte = *cursor++;
+    result |= static_cast<T>(byte & 0x7F) << shift;
+    shift += 7;
+  } while (byte < 0);
+  cursor_ = reinterpret_cast<const uint8_t*>(cursor);
   return result;
 }
 
-
-uint32_t Deserializer::ReadUint32() {
-  uint32_t result = ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
+template <typename T>
+T Deserializer::ReadSLEB128() {
+  COMPILE_ASSERT(std::is_signed<T>());
+  typedef typename std::make_unsigned<T>::type Unsigned;
+  const int8_t* cursor = reinterpret_cast<const int8_t*>(cursor_);
+  T result = 0;
+  uintptr_t shift = 0;
+  intptr_t byte;
+  do {
+    byte = *cursor++;
+    result |= static_cast<Unsigned>(byte & 0x7F) << shift;
+    shift += 7;
+  } while (byte < 0);
+  if (((byte & 0x40) != 0) && (shift < sizeof(T) * 8)) {
+    result |= ~static_cast<Unsigned>(0) << shift;
+  }
+  cursor_ = reinterpret_cast<const uint8_t*>(cursor);
   return result;
 }
 
-
-int32_t Deserializer::ReadInt32() {
-  uint32_t result = ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  return static_cast<int32_t>(result);
-}
-
-
-int64_t Deserializer::ReadInt64() {
-  uint64_t result = ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  result = (result << 8) | ReadUint8();
-  return static_cast<int64_t>(result);
-}
-
-double Deserializer::ReadFloat64() {
-  double result = *reinterpret_cast<const double*>(cursor_);
-  cursor_ += sizeof(double);
-  return result;
-}
-
-static const int8_t kDataBitsPerByte = 7;
-static const int8_t kByteMask = (1 << kDataBitsPerByte) - 1;
-static const int8_t kMaxUnsignedDataPerByte = kByteMask;
-static const uint8_t kEndUnsignedByteMarker = (255 - kMaxUnsignedDataPerByte);
-
-intptr_t Deserializer::ReadUnsigned() {
-  const uint8_t* c = cursor_;
-  // ASSERT(c < end_);
-  uint8_t b = *c++;
-  if (b > kMaxUnsignedDataPerByte) {
-    cursor_ = c;
-    return static_cast<uint32_t>(b) - kEndUnsignedByteMarker;
-  }
-
-  int32_t r = 0;
-  r |= static_cast<uint32_t>(b);
-  // ASSERT(c < end_);
-  b = *c++;
-  if (b > kMaxUnsignedDataPerByte) {
-    cursor_ = c;
-    return r | ((static_cast<uint32_t>(b) - kEndUnsignedByteMarker) << 7);
-  }
-
-  r |= static_cast<uint32_t>(b) << 7;
-  // ASSERT(c < end_);
-  b = *c++;
-  if (b > kMaxUnsignedDataPerByte) {
-    cursor_ = c;
-    return r | ((static_cast<uint32_t>(b) - kEndUnsignedByteMarker) << 14);
-  }
-
-  r |= static_cast<uint32_t>(b) << 14;
-  // ASSERT(c < end_);
-  b = *c++;
-  if (b > kMaxUnsignedDataPerByte) {
-    cursor_ = c;
-    return r | ((static_cast<uint32_t>(b) - kEndUnsignedByteMarker) << 21);
-  }
-
-  r |= static_cast<uint32_t>(b) << 21;
-  // ASSERT(c < end_);
-  b = *c++;
-  ASSERT(b > kMaxUnsignedDataPerByte);
-  cursor_ = c;
-  return r | ((static_cast<uint32_t>(b) - kEndUnsignedByteMarker) << 28);
-}
-
+enum {
+  kIntegerCluster = -1,
+  kLargeIntegerCluster = -2,
+  kFloatCluster = -3,
+  kStringCluster = -4,
+  kByteArrayCluster = -5,
+  kArrayCluster = -6,
+  kWeakArrayCluster = -7,
+  kClosureCluster = -8,
+  kActivationCluster = -9,
+  kEphemeronCluster = -10,
+};
 
 Cluster* Deserializer::ReadCluster() {
-  intptr_t format = ReadInt32();
+  intptr_t format = ReadSLEB128();
 
   if (format >= 0) {
     return new RegularObjectCluster(format);
   } else {
-    switch (-format) {
-      case kByteArrayCid: return new ByteArrayCluster();
-      case kStringCid: return new StringCluster();
-      case kArrayCid: return new ArrayCluster();
-      case kWeakArrayCid: return new WeakArrayCluster();
-      case kEphemeronCid: return new RegularObjectCluster(3, kEphemeronCid);
-      case kClosureCid: return new ClosureCluster();
-      case kActivationCid: return new ActivationCluster();
-      case kSmiCid: return new SmallIntegerCluster();
-      case kFloat64Cid: return new FloatCluster();
+    switch (format) {
+      case kByteArrayCluster: return new ByteArrayCluster();
+      case kStringCluster: return new StringCluster();
+      case kArrayCluster: return new ArrayCluster();
+      case kWeakArrayCluster: return new WeakArrayCluster();
+      case kEphemeronCluster: return new RegularObjectCluster(3, kEphemeronCid);
+      case kClosureCluster: return new ClosureCluster();
+      case kActivationCluster: return new ActivationCluster();
+      case kIntegerCluster: return new IntegerCluster();
+      case kLargeIntegerCluster: return new LargeIntegerCluster();
+      case kFloatCluster: return new FloatCluster();
     }
     FATAL("Unknown cluster format %" Pd "\n", format);
     return NULL;

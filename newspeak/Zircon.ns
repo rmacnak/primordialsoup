@@ -25,11 +25,11 @@ protected onStatus: status signals: pending = (
 		[onClose_ value. ^self].
 )
 private rawRead: channel <Integer> multipleReturn: _ <Array> = (
-	(* :literalmessage: primitive: 147 *)
+	(* :pragma: primitive: 275 *)
 	^(ArgumentError value: nil) signal
 )
 private rawWrite: channel <Integer> bytes: bytes <ByteArray> handles: handles <Array> multipleReturn: _ <Array> = (
-	(* :literalmessage: primitive: 148 *)
+	(* :pragma: primitive: 276 *)
 	^(ArgumentError value: nil) signal
 )
 public read ^<Message> = (
@@ -53,7 +53,7 @@ public new = (
 	^{ self handle: (multipleReturn at: 1). self handle: (multipleReturn at: 2) }
 )
 private rawCreate: options <Integer> multipleReturn: _ <Array> = (
-	(* :literalmessage: primitive: 146 *)
+	(* :pragma: primitive: 274 *)
 	^(ArgumentError value: options) signal
 )
 )
@@ -72,19 +72,19 @@ public class Socket handle: h = ZirconObject handle: h (
 public class VMO handle: h = ZirconObject handle: h (
 ) (
 private rawGetSize: handle <Integer> multipleReturn: _ <Array> = (
-	(* :literalmessage: primitive: 150 *)
+	(* :pragma: primitive: 278 *)
 	panic.
 )
 private rawRead: handle <Integer> size: readSize offset: offset multipleReturn: _ <Array> = (
-	(* :literalmessage: primitive: 152 *)
+	(* :pragma: primitive: 280 *)
 	^(ArgumentError value: readSize) signal
 )
 private rawSetSize: handle <Integer> size: newSize multipleReturn: _ <Array> = (
-	(* :literalmessage: primitive: 151 *)
+	(* :pragma: primitive: 279 *)
 	^(ArgumentError value: newSize) signal
 )
 private rawWrite: handle <Integer> bytes: bytes offset: offset multipleReturn: _ <Array> = (
-	(* :literalmessage: primitive: 153 *)
+	(* :pragma: primitive: 281 *)
 	^(ArgumentError value: bytes) signal
 )
 public read: numBytes from: vmoOffset = (
@@ -110,7 +110,7 @@ public new: size options: options = (
 	^self handle: (multipleReturn at: 1)
 )
 private rawNew: size <Integer> options: options <Integer> multipleReturn: _ <Array> = (
-	(* :literalmessage: primitive: 149 *)
+	(* :pragma: primitive: 277 *)
 	^(ArgumentError value: size) signal
 )
 )
@@ -123,7 +123,7 @@ public printString ^<String> = (
 	^'ZirconException: ', (statusGetString: status), ', ', status printString
 )
 private statusGetString: status = (
-	(* :literalmessage: primitive: 165 *)
+	(* :pragma: primitive: 272 *)
 	panic
 )
 ) : (
@@ -147,15 +147,15 @@ public close = (
 protected onStatus: status signals: pending = (
 )
 private rawAwait: h signals: s = (
-	(* :literalmessage: primitive: 143 *)
+	(* :pragma: primitive: 190 *)
 	panic
 )
 private rawCancelWait: waitId = (
-	(* :literalmessage: primitive: 144 *)
+	(* :pragma: primitive: 191 *)
 	panic
 )
 private rawClose: handle <Integer> = (
-	(* :literalmessage: primitive: 145 *)
+	(* :pragma: primitive: 273 *)
 	panic
 )
 public takeHandle ^<Integer> = (
@@ -181,7 +181,7 @@ private checkStatus: status = (
 	OK = status ifFalse: [^(ZirconException status: status) signal].
 )
 private panic = (
-	(* :literalmessage: primitive: 103 *)
+	(* :pragma: primitive: 187 *)
 )
 ) : (
 )

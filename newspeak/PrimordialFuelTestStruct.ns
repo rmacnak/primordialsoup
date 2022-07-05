@@ -1,0 +1,6 @@
+class PrimordialFuelTestStruct = (
+	| public counter ::= 0. |
+) (
+public transient transientSlot = counter:: counter + 1.
+) : (
+)

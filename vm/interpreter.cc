@@ -799,18 +799,18 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
     if (TRACE_PRIMITIVES) {
       OS::PrintErr("Primitive %" Pd "\n", prim);
     }
-    if ((prim & 256) != 0) {
+    if ((prim & 512) != 0) {
       // Getter
-      intptr_t offset = prim & 255;
+      intptr_t offset = prim & 511;
       ASSERT(num_args == 0);
       Object receiver = Stack(0);
       ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
       Object value = static_cast<RegularObject>(receiver)->slot(offset);
       PopNAndPush(1, value);
       return;
-    } else if ((prim & 512) != 0) {
+    } else if ((prim & 1024) != 0) {
       // Setter
-      intptr_t offset = prim & 255;
+      intptr_t offset = prim & 511;
       ASSERT(num_args == 1);
       Object receiver = Stack(1);
       Object value = Stack(0);

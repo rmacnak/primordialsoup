@@ -587,28 +587,28 @@ class Method : public HeapObject {
   inline Object source() const;
 
   bool IsPublic() const {
-    uword am = header()->value() >> 28;
+    uword am = header()->value() & 3;
     ASSERT((am == 0) || (am == 1) || (am == 2));
     return am == 0;
   }
   bool IsProtected() const {
-    uword am = header()->value() >> 28;
+    uword am = header()->value() & 3;
     ASSERT((am == 0) || (am == 1) || (am == 2));
     return am == 1;
   }
   bool IsPrivate() const {
-    uword am = header()->value() >> 28;
+    uword am = header()->value() & 3;
     ASSERT((am == 0) || (am == 1) || (am == 2));
     return am == 2;
   }
   intptr_t Primitive() const {
-    return (header()->value() >> 16) & 1023;
+    return header()->value() >> 18;
   }
   intptr_t NumArgs() const {
-    return (header()->value() >> 0) & 255;
+    return (header()->value() >> 2) & 255;
   }
   intptr_t NumTemps() const {
-    return (header()->value() >> 8) & 255;
+    return (header()->value() >> 10) & 255;
   }
 
   const uint8_t* IP(const SmallInteger bci) {

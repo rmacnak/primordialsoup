@@ -22,11 +22,11 @@ private aboutToReturn: result through: firstUnwindActivation = (
 	^home return: result
 )
 public bci = (
-	(* :literalmessage: primitive: 57 *)
+	(* :pragma: primitive: 168 *)
 	panic.
 )
 public bci: value = (
-	(* :literalmessage: primitive: 58 *)
+	(* :pragma: primitive: 169 *)
 	panic.
 )
 (* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer be reached along the chain of senders. *)
@@ -34,11 +34,11 @@ private cannotReturn: result = (
 	^(CannotReturn result: result) signal
 )
 public closure = (
-	(* :literalmessage: primitive: 61 *)
+	(* :pragma: primitive: 172 *)
 	panic.
 )
 public closure: value = (
-	(* :literalmessage: primitive: 62 *)
+	(* :pragma: primitive: 173 *)
 	panic.
 )
 (* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
@@ -73,14 +73,14 @@ public isDead ^<Boolean> = (
 	^nil = bci
 )
 public isUnwindContext ^<Boolean> = (
-	^113 = method primitive
+	^162 = method primitive
 )
 public method = (
-	(* :literalmessage: primitive: 59 *)
+	(* :pragma: primitive: 170 *)
 	panic.
 )
 public method: value = (
-	(* :literalmessage: primitive: 60 *)
+	(* :pragma: primitive: 171 *)
 	panic.
 )
 (* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
@@ -123,11 +123,11 @@ public push: value = (
 	^self tempAt: newDepth put: value
 )
 public receiver = (
-	(* :literalmessage: primitive: 63 *)
+	(* :pragma: primitive: 174 *)
 	panic.
 )
 public receiver: value = (
-	(* :literalmessage: primitive: 64 *)
+	(* :pragma: primitive: 175 *)
 	panic.
 )
 public resume: value = (
@@ -150,27 +150,27 @@ public return: value = (
 	^sender resume: value
 )
 public sender = (
-	(* :literalmessage: primitive: 55 *)
+	(* :pragma: primitive: 166 *)
 	panic.
 )
 public sender: value = (
-	(* :literalmessage: primitive: 56 *)
+	(* :pragma: primitive: 167 *)
 	panic.
 )
 public size = (
-	(* :literalmessage: primitive: 67 *)
+	(* :pragma: primitive: 178 *)
 	panic.
 )
 public size: newDepth = (
-	(* :literalmessage: primitive: 140 *)
+	(* :pragma: primitive: 179 *)
 	panic.
 )
 public tempAt: index = (
-	(* :literalmessage: primitive: 65 *)
+	(* :pragma: primitive: 176 *)
 	^(ArgumentError value: index) signal
 )
 public tempAt: index put: value = (
-	(* :literalmessage: primitive: 66 *)
+	(* :pragma: primitive: 177 *)
 	^(ArgumentError value: index) signal
 )
 (* Make myself unresumable. *)
@@ -196,7 +196,7 @@ public top = (
 )
 ) : (
 public new ^<Activation> = (
-	(* :literalmessage: primitive: 68 *)
+	(* :pragma: primitive: 180 *)
 	panic.
 )
 )
@@ -229,11 +229,11 @@ public asArray ^<Array[E]> = (
 	^self
 )
 public at: index <Integer> ^<E> = (
-	(* :literalmessage: primitive: 39 *)
+	(* :pragma: primitive: 69 *)
 	^(ArgumentError value: index) signal
 )
 public at: index <Integer> put: value <E> ^<E> = (
-	(* :literalmessage: primitive: 40 *)
+	(* :pragma: primitive: 70 *)
 	^(ArgumentError value: index) signal
 )
 public collect: transform <[:E | F]> ^<Array[F]> = (
@@ -244,7 +244,7 @@ public collect: transform <[:E | F]> ^<Array[F]> = (
 	^results
 )
 public copyFrom: start <Integer> to: stop <Integer> ^<Array[E]> = (
-	(* :literalmessage: primitive: 81 *)
+	(* :pragma: primitive: 73 *)
 	^ArgumentError new signal
 )
 public copyWith: newElement <E> ^<Array[E]> = (
@@ -314,7 +314,7 @@ public reject: predicate <[:E | Boolean]> ^<Array[E]> = (
 	^result copyFrom: 1 to: cursor
 )
 public replaceFrom: start <Integer> to: stop <Integer> with: replacement <Array> startingAt: replacementStart <Integer> = (
-	(* :literalmessage: primitive: 80 *)
+	(* :pragma: primitive: 72 *)
 	^ArgumentError new signal
 )
 public select: predicate <[:E | Boolean]> ^<Array[E]> = (
@@ -329,7 +329,7 @@ public select: predicate <[:E | Boolean]> ^<Array[E]> = (
 	^result copyFrom: 1 to: cursor
 )
 public size ^<Integer> = (
-	(* :literalmessage: primitive: 41 *)
+	(* :pragma: primitive: 71 *)
 	panic.
 )
 public sort: lessOrEqual <[:E :E | Boolean]> = (
@@ -348,7 +348,7 @@ public sortFrom: start to: stop by: lessOrEqual <[:E :E | Boolean]> = (
 )
 ) : (
 public new: size <Integer> ^<Array[E]> = (
-	(* :literalmessage: primitive: 38 *)
+	(* :pragma: primitive: 66 *)
 	^(ArgumentError value: size) signal
 )
 public withAll: collection <Collection[E]> ^<Array[E]> = (
@@ -388,23 +388,23 @@ public isKindOfBoolean ^<Boolean> = (
 public class ByteArray _cannotInstantiate = Collection (
 ) (
 public at: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 47 *)
+	(* :pragma: primitive: 113 *)
 	^(ArgumentError value: index) signal
 )
 public at: index <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 48 *)
+	(* :pragma: primitive: 114 *)
 	^(ArgumentError value: index) signal
 )
 public copyByteArrayFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 50 *)
+	(* :pragma: primitive: 109 *)
 	^ArgumentError new signal
 )
 public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 50 *)
+	(* :pragma: primitive: 109 *)
 	^ArgumentError new signal
 )
 public copyStringFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 121 *)
+	(* :pragma: primitive: 108 *)
 	^ArgumentError new signal
 )
 public copyWithSize: newSize <Integer> ^<ByteArray> = (
@@ -418,62 +418,62 @@ public do: action <[:Integer]> = (
 	1 to: self size do: [:index <Integer> | action value: (self at: index)].
 )
 public endsWith: suffix <ByteArray | String> ^<Boolean> = (
-	(* :literalmessage: primitive: 118 *)
+	(* :pragma: primitive: 105 *)
 	^(ArgumentError value: suffix) signal
 )
 public float32At: offset <Integer> ^<Float> = (
-	(* :literalmessage: primitive: 252 *)
+	(* :pragma: primitive: 100 *)
 	^(ArgumentError value: offset) signal
 )
 public float32At: offset <Integer> put: value <Float> ^<Float> = (
-	(* :literalmessage: primitive: 253 *)
+	(* :pragma: primitive: 101 *)
 	^(ArgumentError value: offset) signal
 )
 public float64At: offset <Integer> ^<Float> = (
-	(* :literalmessage: primitive: 254 *)
+	(* :pragma: primitive: 102 *)
 	^(ArgumentError value: offset) signal
 )
 public float64At: offset <Integer> put: value <Float> ^<Float> = (
-	(* :literalmessage: primitive: 255 *)
+	(* :pragma: primitive: 103 *)
 	^(ArgumentError value: offset) signal
 )
 public indexOf: substring <ByteArray | String> ^<Integer> = (
 	^self indexOf: substring startingAt: 1
 )
 public indexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 119 *)
+	(* :pragma: primitive: 106 *)
 	^ArgumentError new signal
 )
 public int16At: offset <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 246 *)
+	(* :pragma: primitive: 94 *)
 	^(ArgumentError value: offset) signal
 )
 public int16At: offset <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 247 *)
+	(* :pragma: primitive: 95 *)
 	^(ArgumentError value: offset) signal
 )
 public int32At: offset <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 248 *)
+	(* :pragma: primitive: 96 *)
 	^(ArgumentError value: offset) signal
 )
 public int32At: offset <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 249 *)
+	(* :pragma: primitive: 97 *)
 	^(ArgumentError value: offset) signal
 )
 public int64At: offset <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 250 *)
+	(* :pragma: primitive: 98 *)
 	^(ArgumentError value: offset) signal
 )
 public int64At: offset <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 251 *)
+	(* :pragma: primitive: 99 *)
 	^(ArgumentError value: offset) signal
 )
 public int8At: offset <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 244 *)
+	(* :pragma: primitive: 92 *)
 	^(ArgumentError value: offset) signal
 )
 public int8At: offset <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 245 *)
+	(* :pragma: primitive: 93 *)
 	^(ArgumentError value: offset) signal
 )
 public isEmpty ^<Boolean> = (
@@ -486,60 +486,60 @@ public lastIndexOf: substring <ByteArray | String> ^<Integer> = (
 	^self lastIndexOf: substring startingAt: 1 + self size
 )
 public lastIndexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 120 *)
+	(* :pragma: primitive: 107 *)
 	^ArgumentError new signal
 )
 public replaceFrom: start <Integer> to: stop <Integer> with: replacement <ByteArray | String> startingAt: replacementStart <Integer> = (
-	(* :literalmessage: primitive: 79 *)
+	(* :pragma: primitive: 116 *)
 	^ArgumentError new signal
 )
 public size ^<Integer> = (
-	(* :literalmessage: primitive: 49 *)
+	(* :pragma: primitive: 115 *)
 	panic.
 )
 public startsWith: prefix <ByteArray | String> ^<Boolean> = (
-	(* :literalmessage: primitive: 117 *)
+	(* :pragma: primitive: 104 *)
 	^(ArgumentError value: prefix) signal
 )
 public uint16At: offset <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 238 *)
+	(* :pragma: primitive: 86 *)
 	^(ArgumentError value: offset) signal
 )
 public uint16At: offset <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 239 *)
+	(* :pragma: primitive: 87 *)
 	^(ArgumentError value: offset) signal
 )
 public uint32At: offset <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 240 *)
+	(* :pragma: primitive: 88 *)
 	^(ArgumentError value: offset) signal
 )
 public uint32At: offset <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 241 *)
+	(* :pragma: primitive: 89 *)
 	^(ArgumentError value: offset) signal
 )
 public uint64At: offset <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 242 *)
+	(* :pragma: primitive: 90 *)
 	^(ArgumentError value: offset) signal
 )
 public uint64At: offset <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 243 *)
+	(* :pragma: primitive: 91 *)
 	^(ArgumentError value: offset) signal
 )
 public uint8At: offset <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 236 *)
+	(* :pragma: primitive: 84 *)
 	^(ArgumentError value: offset) signal
 )
 public uint8At: offset <Integer> put: value <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 237 *)
+	(* :pragma: primitive: 85 *)
 	^(ArgumentError value: offset) signal
 )
 ) : (
 public new: size <Integer> ^<ByteArray> = (
-	(* :literalmessage: primitive: 46 *)
+	(* :pragma: primitive: 110 *)
 	^(ArgumentError value: size) signal
 )
 public withAll: bytes <Collection[Integer] | ByteArray | String> ^<ByteArray> = (
-	(* :literalmessage: primitive: 122 *)
+	(* :pragma: primitive: 112 *)
 	| result index |
 	result:: ByteArray new: bytes size.
 	index:: 1.
@@ -565,7 +565,7 @@ private subclasses <WeakArray>
 |) (
 (* Sent by the compiler from factory methods. *)
 protected basicNew = (
-	(* :literalmessage: primitive: 34 *)
+	(* :pragma: primitive: 140 *)
 	panic.
 )
 public name ^<String> = (
@@ -621,7 +621,7 @@ public cull: arg1 cull: arg2 cull: arg3 = (
 	^numArgsError: 3
 )
 public ensure: onUnwind <[]> = (
-	(* :literalmessage: primitive: 113 *)
+	(* :pragma: primitive: 162 *)
 	| complete result |
 	result:: self value.
 	nil = complete ifTrue:
@@ -633,7 +633,7 @@ public isKindOfClosure ^<Boolean> = (
 	^true
 )
 public numArgs ^<Integer> = (
-	(* :literalmessage: primitive: 75 *)
+	(* :pragma: primitive: 152 *)
 	panic.
 )
 private numArgsError: argsProvided = (
@@ -641,7 +641,7 @@ private numArgsError: argsProvided = (
 	^(ArgumentError value: self) signal
 )
 public on: exceptionClass <E class> do: catch <[:E]> = (
-	(* :literalmessage: primitive: 116 *)
+	(* :pragma: primitive: 161 *)
 	| handlerActive ::= true. |
 	^self value
 )
@@ -653,32 +653,32 @@ public repeat = (
 	^[self value] repeat
 )
 public value = (
-	(* :literalmessage: primitive: 90 *)
+	(* :pragma: primitive: 156 *)
 	self numArgs = 0 ifFalse: [^numArgsError: 0].
 	panic.
 )
 public value: arg1 = (
-	(* :literalmessage: primitive: 91 *)
+	(* :pragma: primitive: 157 *)
 	self numArgs = 1 ifFalse: [^numArgsError: 1].
 	panic.
 )
 public value: arg1 value: arg2 = (
-	(* :literalmessage: primitive: 92 *)
+	(* :pragma: primitive: 158 *)
 	self numArgs = 2 ifFalse: [^numArgsError: 2].
 	panic.
 )
 public value: arg1 value: arg2 value: arg3 = (
-	(* :literalmessage: primitive: 93 *)
+	(* :pragma: primitive: 159 *)
 	self numArgs = 3 ifFalse: [^numArgsError: 3].
 	panic.
 )
 public valueWithArguments: arguments = (
-	(* :literalmessage: primitive: 94 *)
+	(* :pragma: primitive: 160 *)
 	self numArgs = arguments size ifFalse: [^numArgsError: arguments size].
 	^self valueWithArgumentsAgain: (Array withAll: arguments)
 )
 private valueWithArgumentsAgain: arguments = (
-	(* :literalmessage: primitive: 94 *)
+	(* :pragma: primitive: 160 *)
 	self numArgs = arguments size ifFalse: [^numArgsError: arguments size].
 	panic.
 )
@@ -807,10 +807,10 @@ private invokeNextHandler = (
 
 	activation:: handlerActivation sender.
 	[nil = activation] whileFalse:
-		[activation method primitive = 142 ifTrue:
+		[activation method primitive = 163 ifTrue:
 			[returnToSimulationRoot: activation.
 			 panic].
-		 activation method primitive = 116 ifTrue:
+		 activation method primitive = 161 ifTrue:
 			[(is: (activation tempAt: 1) interestedIn: super class) ifTrue:
 				[(activation tempAt: 3) ifTrue:
 					[^invokeOnDoHandler: activation]]].
@@ -838,7 +838,7 @@ private is: handlerExceptionClass <Any> interestedIn: signaledExceptionClass <Be
 	^false
 )
 private jumpTo: activation = (
-	(* :literalmessage: primitive: 95 *)
+	(* :pragma: primitive: 165 *)
 	panic.
 )
 (* Yield control to the next enclosing #on:do: handler. *)
@@ -960,25 +960,25 @@ public asFloat ^<Float> = (
 	^self
 )
 public asStringExponential: fractionDigits <Integer> ^<String> = (
-	(* :literalmessage: primitive: 109 *)
+	(* :pragma: primitive: 56 *)
 	^(ArgumentError value: fractionDigits) signal
 )
 public asStringFixed: fractionDigits <Integer> ^<String> = (
-	(* :literalmessage: primitive: 108 *)
+	(* :pragma: primitive: 55 *)
 	^(ArgumentError value: fractionDigits) signal
 )
 public asStringPrecision: precision <Integer> ^<String> = (
-	(* :literalmessage: primitive: 110 *)
+	(* :pragma: primitive: 57 *)
 	^(ArgumentError value: precision) signal
 )
 (* Round to the smallest integer value not less than the receiver. *)
 public ceiling ^<Float> = (
-	(* :literalmessage: primitive: 22 *)
+	(* :pragma: primitive: 33 *)
 	panic.
 )
 (* Answer the cosine of the receiver, measured in radians. *)
 public cos ^<Float> = (
-	(* :literalmessage: primitive: 24 *)
+	(* :pragma: primitive: 38 *)
 	panic.
 )
 public divideFromFraction: left <Fraction> ^<Number> = (
@@ -986,23 +986,23 @@ public divideFromFraction: left <Fraction> ^<Number> = (
 )
 (* Answer e raised to the power of the receiver. *)
 public exp ^<Float> = (
-	(* :literalmessage: primitive: 30 *)
+	(* :pragma: primitive: 50 *)
 	panic.
 )
 (* Round to the largest integer value not greater than the receiver. *)
 public floor ^<Float> = (
-	(* :literalmessage: primitive: 21 *)
+	(* :pragma: primitive: 32 *)
 	panic.
 )
 public hash ^<Integer> = (
 	^self asInteger
 )
 public isFinite ^<Boolean> = (
-	(* :literalmessage: primitive: 106 *)
+	(* :pragma: primitive: 58 *)
 	panic.
 )
 public isInfinite ^<Boolean> = (
-	(* :literalmessage: primitive: 112 *)
+	(* :pragma: primitive: 59 *)
 	panic.
 )
 public isKindOfFloat ^<Boolean> = (
@@ -1013,39 +1013,38 @@ public isNaN ^<Boolean> = (
 )
 (* Answer the natural logarithm of the receiver. *)
 public ln ^<Float> = (
-	(* :literalmessage: primitive: 31 *)
+	(* :pragma: primitive: 51 *)
 	panic.
 )
 (* Answer the common logarithm of the receiver. *)
 public log ^<Float> = (
-	(* :literalmessage: primitive: 32 *)
+	(* :pragma: primitive: 52 *)
 	panic.
 )
 public multiplyFromFraction: left <Fraction> ^<Number> = (
 	^left asFloat * self
 )
 private pow: exponent <Float> ^<Float> = (
-	(* :literalmessage: primitive: 131 *)
+	(* :pragma: primitive: 54 *)
 	^(ArgumentError value: exponent) signal
 )
 (* Answer the receiver raised to the power of the argument. *)
 public raisedTo: exponent <Number> ^<Float> = (
 	^self pow: exponent asFloat
 )
-(* Answer the receiver rounded to the nearest integer value. *)
+(* Answer the receiver rounded to the nearest integer value, ties to max magnitude. *)
 public rounded ^<Float> = (
-	(* :todo: ties to even? *)
-	(* :literalmessage: primitive: 125 *)
+	(* :pragma: primitive: 35 *)
 	panic.
 )
 (* Answer the sine of the receiver measured in radians. *)
 public sin ^<Float> = (
-	(* :literalmessage: primitive: 23 *)
+	(* :pragma: primitive: 37 *)
 	panic.
 )
 (* Answer the square root of the receiver. *)
 public sqrt ^<Float> = (
-	(* :literalmessage: primitive: 33 *)
+	(* :pragma: primitive: 53 *)
 	panic.
 )
 public subtractFromFraction: left <Fraction> ^<Number> = (
@@ -1053,12 +1052,12 @@ public subtractFromFraction: left <Fraction> ^<Number> = (
 )
 (* Answer the tangent of the receiver measured in radians. *)
 public tan ^<Float> = (
-	(* :literalmessage: primitive: 25 *)
+	(* :pragma: primitive: 39 *)
 	panic.
 )
 ) : (
 public parse: string <String> ^<Float> = (
-	(* :literalmessage: primitive: 132 *)
+	(* :pragma: primitive: 63 *)
 	^(ArgumentError value: string) signal
 )
 )
@@ -1397,11 +1396,10 @@ private methodsWithAccessorsAtOffset: offset <Integer> ^<MethodDictionary> = (
 
 	methodIndex:: 1.
 	1 to: _slots size do: [:i |
-		| slotDescriptor name isMutable accessModifier |
-		slotDescriptor:: _slots at: i.
-		name:: slotDescriptor at: 1.
-		isMutable:: slotDescriptor at: 2.
-		accessModifier:: slotDescriptor at: 3.
+		| slot name accessModifier |
+		slot:: _slots at: i.
+		name:: slot name.
+		accessModifier:: slot accessModifier.
 
 		newMethods at: methodIndex put:
 			(Method newGetterForSlot: name at: i + offset accessModifier: accessModifier).
@@ -1409,7 +1407,7 @@ private methodsWithAccessorsAtOffset: offset <Integer> ^<MethodDictionary> = (
 		newMethods at: methodIndex put:
 			(Method newInitializerForSlot: name at: i + offset).
 		methodIndex:: methodIndex + 1.
-		isMutable ifTrue:
+		slot isMutable ifTrue:
 			[newMethods at: methodIndex put:
 				(Method newSetterForSlot: name at: i + offset accessModifier: accessModifier).
 			methodIndex:: methodIndex + 1]].
@@ -1450,23 +1448,23 @@ class Integer = Number (
 ) (
 (* Answer the bitwise and of the receiver and argument in two's complement form. *)
 public & other <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 16 *)
+	(* :pragma: primitive: 20 *)
 	^(ArgumentError value: other) signal
 )
 public / other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 4 *)
+	(* :pragma: primitive: 4 *)
 	other isKindOfInteger ifFalse: [^other divideFromNumber: self].
 	0 = other ifTrue: [^(ArgumentError value: other) signal].
 	^Fraction numerator: self denominator: other
 )
 (* Two's complement shift left. *)
 public << other <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 19 *)
+	(* :pragma: primitive: 23 *)
 	^(ArgumentError value: other) signal
 )
 (* Two's complement arithmetic shift right. *)
 public >> other <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 20 *)
+	(* :pragma: primitive: 24 *)
 	^(ArgumentError value: other) signal
 )
 public addFromFraction: left <Fraction> ^<Number> = (
@@ -1491,7 +1489,7 @@ public asStringRadix: radix <Integer> ^<String> = (
 )
 (* Answer the bitwise and of the receiver and argument in two's complement form. *)
 public bitAnd: other <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 16 *)
+	(* :pragma: primitive: 20 *)
 	^(ArgumentError value: other) signal
 )
 (* Answer the complement of the receiver in two's complement form. *)
@@ -1500,12 +1498,12 @@ public bitInvert ^<Integer> = (
 )
 (* Answer the bitwise inclusive or of the receiver and argument in two's complement form. *)
 public bitOr: other <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 17 *)
+	(* :pragma: primitive: 21 *)
 	^(ArgumentError value: other) signal
 )
 (* Answer the bitwise exclusive or of the receiver and argument in two's complement form. *)
 public bitXor: other <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 18 *)
+	(* :pragma: primitive: 22 *)
 	^(ArgumentError value: other) signal
 )
 public ceiling ^<Integer> = (
@@ -1561,7 +1559,7 @@ public timesRepeat: action <[]> ^<Integer> = (
 )
 (* Answer the bitwise inclusive or of the receiver and argument in two's complement form. *)
 public | other <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 17 *)
+	(* :pragma: primitive: 21 *)
 	^(ArgumentError value: other) signal
 )
 ) : (
@@ -1610,11 +1608,11 @@ public selector <Symbol> = s.
 public arguments <Array[Object]> = a.
 |) (
 private object: receiver perform: selector with: arguments = (
-	(* :literalmessage: primitive: 89 *)
+	(* :pragma: primitive: 134 *)
 	^object: receiver perform: selector asSymbol withAgain: (Array withAll: arguments)
 )
 private object: receiver perform: selector withAgain: arguments = (
-	(* :literalmessage: primitive: 89 *)
+	(* :pragma: primitive: 134 *)
 	panic.
 )
 (* Send a message to the argument according as an ordinary send. *)
@@ -1663,10 +1661,10 @@ public selector <Symbol> (* Must be slot 5, known to the VM. *)
 public metadata
 |) (
 public accessModifier ^<Symbol> = (
-	| ac = header >> 28. |
-	0 = ac ifTrue: [^#public].
-	1 = ac ifTrue: [^#protected].
-	2 = ac ifTrue: [^#private].
+	| am = header & 3. |
+	0 = am ifTrue: [^#public].
+	1 = am ifTrue: [^#protected].
+	2 = am ifTrue: [^#private].
 	panic.
 )
 public isPrivate ^<Boolean> = (
@@ -1682,21 +1680,17 @@ public isSynthetic ^<Boolean> = (
 	^nil = metadata
 )
 public numArgs ^<Integer> = (
-	^(header >> 0) bitAnd: 255
+	^header >> 2 & 255
 )
 public numTemps ^<Integer> = (
-	^(header >> 8) bitAnd: 255
+	^header >> 10 & 255
 )
 public primitive ^<Integer> = (
-	^(header >> 16) bitAnd: 1023
+	^header >> 18
 )
 public source = (
 	metadata isKindOfDebugInfo ifTrue: [^metadata source].
 	^metadata
-)
-public source: s = (
-	(* Can be removed after next bootstrap compiler update. *)
-	metadata: s
 )
 ) : (
 public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
@@ -1704,32 +1698,32 @@ public headerForAccessModifier: am primitive: prim numArgs: numArgs = (
 	#public = am ifTrue: [ami:: 0].
 	#protected = am ifTrue: [ami:: 1].
 	#private = am ifTrue: [ami:: 2].
-	^(ami << 28) | (prim << 16) | (numArgs)
+	^(prim << 18) | (numArgs << 2) | (ami)
 )
 public headerForAccessModifier: am primitive: prim numTemps: numTemps numArgs: numArgs = (
 	| ami |
 	#public = am ifTrue: [ami:: 0].
 	#protected = am ifTrue: [ami:: 1].
 	#private = am ifTrue: [ami:: 2].
-	^(ami << 28) | (prim << 16) | (numTemps << 8) | (numArgs)
+	^(prim << 18) | (numTemps << 10) | (numArgs << 2) | (ami)
 )
 public newGetterForSlot: name at: index accessModifier: am = (
 	| accessor = Method new. |
-	accessor header: (headerForAccessModifier: am primitive: 256 + index - 1 numArgs: 0).
+	accessor header: (headerForAccessModifier: am primitive: 512 + index - 1 numArgs: 0).
 	accessor mixin: self. (* The method has no sends, so this is only for debugging. *)
 	accessor selector: name.
 	^accessor
 )
 public newInitializerForSlot: name at: index = (
 	| accessor = Method new. |
-	accessor header: (headerForAccessModifier: #private primitive: 512 + index - 1 numArgs: 1).
+	accessor header: (headerForAccessModifier: #private primitive: 1024 + index - 1 numArgs: 1).
 	accessor mixin: self. (* The method has no sends, so this is only for debugging. *)
 	accessor selector: ('init`', name, ':') asSymbol.
 	^accessor
 )
 public newSetterForSlot: name at: index accessModifier: am = (
 	| accessor = Method new. |
-	accessor header: (headerForAccessModifier: am primitive: 512 + index - 1 numArgs: 1).
+	accessor header: (headerForAccessModifier: am primitive: 1024 + index - 1 numArgs: 1).
 	accessor mixin: self. (* The method has no sends, so this is only for debugging. *)
 	accessor selector: (name, ':') asSymbol.
 	^accessor
@@ -1748,57 +1742,57 @@ public printString ^<String> = (
 class Number = () (
 (* Answer the receiver multiplied by the argument. *)
 public * other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 3 *)
+	(* :pragma: primitive: 3 *)
 	^other multiplyFromNumber: self
 )
 (* Answer the sum of the receiver and the argument. *)
 public + other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 1 *)
+	(* :pragma: primitive: 1 *)
 	^other addFromNumber: self
 )
 (*Answer the difference of the argument from the receiver*)
 public - other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 2 *)
+	(* :pragma: primitive: 2 *)
 	^other subtractFromNumber: self
 )
 (* Answer the receiver divided by the argument.
 	 'Exact' division. For integer division see // and quo: *)
 public / other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 4 *)
+	(* :pragma: primitive: 4 *)
 	^other divideFromNumber: self
 )
 (* Answer the receiver divided by the argument, rounded to nearest integer toward negative infinity.  The remainder of this division is given by \\ *)
 public // other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 5 *)
+	(* :pragma: primitive: 5 *)
 	^(ArgumentError value: other) signal
 )
 public < other <Number> ^<Boolean> = (
-	(* :literalmessage: primitive: 10 *)
+	(* :pragma: primitive: 13 *)
 	other isKindOfFraction ifTrue: [^other >= self].
 	^(ArgumentError value: other) signal
 )
 public <= other <Number> ^<Boolean> = (
-	(* :literalmessage: primitive: 12 *)
+	(* :pragma: primitive: 15 *)
 	other isKindOfFraction ifTrue: [^other > self].
 	^(ArgumentError value: other) signal
 )
 public = other <Object> ^<Boolean> = (
-	(* :literalmessage: primitive: 9 *)
+	(* :pragma: primitive: 12 *)
 	^(ArgumentError value: other) signal
 )
 public > other <Number> ^<Boolean> = (
-	(* :literalmessage: primitive: 11 *)
+	(* :pragma: primitive: 14 *)
 	other isKindOfFraction ifTrue: [^other <= self].
 	^(ArgumentError value: other) signal
 )
 public >= other <Number> ^<Boolean> = (
-	(* :literalmessage: primitive: 13 *)
+	(* :pragma: primitive: 16 *)
 	other isKindOfFraction ifTrue: [^other < self].
 	^(ArgumentError value: other) signal
 )
 (* Answer the remainder of division rounded to the nearest integer toward negative inifinity.  The quoitent of this division is given by // *)
 public \\ other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 6 *)
+	(* :pragma: primitive: 6 *)
 	^(ArgumentError value: other) signal
 )
 (* Answer the absolute value of the receiver. *)
@@ -1807,16 +1801,16 @@ public abs ^<Number> = (
 	^self
 )
 public asFloat ^<Float> = (
-	(* :literalmessage: primitive: 15 *)
+	(* :pragma: primitive: 18 *)
 	panic.
 )
 (* Answer the integer part of the receiver (truncation). *)
 public asInteger ^<Integer> = (
-	(* :literalmessage: primitive: 14 *)
+	(* :pragma: primitive: 17 *)
 	^(ArgumentError value: self) signal
 )
 public asString ^<String> = (
-	(* :literalmessage: primitive: 111 *)
+	(* :pragma: primitive: 19 *)
 	panic.
 )
 public between: min <Number> and: max <Number> ^<Boolean> = (
@@ -1861,7 +1855,7 @@ public printString ^<String> = (
 )
 (* Answer the receiver divided by the argument, rounded to nearest integer toward zero. The remainder of this division is given by rem: *)
 public quo: other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 7 *)
+	(* :pragma: primitive: 7 *)
 	^(ArgumentError value: other) signal
 )
 public raisedTo: exponent <Number> ^<Number> = (
@@ -1882,7 +1876,7 @@ private raisedToInteger: exponent <Integer> ^<Integer | Fraction> = (
 )
 (* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
 public rem: other <Number> ^<Number> = (
-	(* :literalmessage: primitive: 8 *)
+	(* :pragma: primitive: 8 *)
 	^(ArgumentError value: other) signal
 )
 (* Answer the sine of the receiver measured in radians. *)
@@ -1931,7 +1925,7 @@ public class Object = super Object (
 	Furthermore, this method must be consistent with the implementation of hash, that is:
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
 public = other <Object> ^<Boolean> = (
-	(* :literalmessage: primitive: 86 *)
+	(* :pragma: primitive: 135 *)
 	panic.
 )
 protected Array = (
@@ -1993,7 +1987,7 @@ protected await: promise <Promise[V]> ^<V> = (
 
 	This method is not public to make it easier to separate the authority of an instance from the authority of its class. This is similar to how the flatness of the metaclass heirarchy separates the interface of an object from the interface of its class. *)
 protected class ^<Behavior> = (
-	(* :literalmessage: primitive: 85 *)
+	(* :pragma: primitive: 127 *)
 	panic.
 )
 private continue: continuation withException: exception = (
@@ -2018,7 +2012,7 @@ protected doesNotUnderstand: message <Message> = (
 	The hash code must obey the requirements set forth in the method '=', that is, the following must hold:
 	* if x = y evaluates to true then x hash = y hash must evaluate to true. *)
 public hash ^<Integer> = (
-	(* :literalmessage: primitive: 87 *)
+	(* :pragma: primitive: 136 *)
 	panic.
 )
 public isNil ^<Boolean> = (
@@ -2065,11 +2059,11 @@ public mixin
 public metadata
 |
 ) (
-public accessModifier = (
+public accessModifier ^<Symbol> = (
 	| am = header & 3. |
-	am = 0 ifTrue: [^#public].
-	am = 1 ifTrue: [^#protected].
-	am = 2 ifTrue: [^#private].
+	0 = am ifTrue: [^#public].
+	1 = am ifTrue: [^#protected].
+	2 = am ifTrue: [^#private].
 	panic.
 )
 public accessModifier: am = (
@@ -2078,14 +2072,6 @@ public accessModifier: am = (
 	#protected = am ifTrue: [ami:: 1].
 	#private = am ifTrue: [ami:: 2].
 	header:: header | ami.
-)
-public at: index = (
-	1 = index ifTrue: [^name].
-	2 = index ifTrue: [^isMutable].
-	3 = index ifTrue: [^accessModifier].
-	4 = index ifTrue: [^isTransient].
-	5 = index ifTrue: [^metadata].
-	halt.
 )
 public isMutable = (
 	^header >> 2 & 1 = 1
@@ -2098,12 +2084,6 @@ public isTransient = (
 )
 public isTransient: v = (
 	header:: (v ifTrue: [1] ifFalse: [0]) << 3 | header.
-)
-public size = (
-	^5
-)
-public do: action <[:Integer]> = (
-	1 to: self size do: [:index <Integer> | action value: (self at: index)].
 )
 ) : (
 )
@@ -2144,11 +2124,11 @@ public class String _cannotInstantiate = (
 ) (
 (* Concatenation. *)
 public , other <String> ^<String> = (
-	(* :literalmessage: primitive: 115 *)
+	(* :pragma: primitive: 121 *)
 	^(ArgumentError value: other) signal
 )
 public = other <Object> ^<Boolean> = (
-	(* :literalmessage: primitive: 114 *)
+	(* :pragma: primitive: 120 *)
 	panic.
 )
 public asString ^<String> = (
@@ -2159,26 +2139,26 @@ public asSymbol ^<String> = (
 	^intern: self.
 )
 public at: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 51 *)
+	(* :pragma: primitive: 117 *)
 	^(ArgumentError value: index) signal
 )
 public copyByteArrayFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 50 *)
+	(* :pragma: primitive: 109 *)
 	^ArgumentError new signal
 )
 public copyFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 121 *)
+	(* :pragma: primitive: 108 *)
 	^ArgumentError new signal
 )
 public copyStringFrom: start <Integer> to: stop <Integer> ^<String> = (
-	(* :literalmessage: primitive: 121 *)
+	(* :pragma: primitive: 108 *)
 	^ArgumentError new signal
 )
 public do: action <[:Integer]> = (
 	1 to: self size do: [:index <Integer> | action value: (self at: index)].
 )
 public endsWith: suffix <ByteArray | String> ^<Boolean> = (
-	(* :literalmessage: primitive: 118 *)
+	(* :pragma: primitive: 105 *)
 	^(ArgumentError value: suffix) signal
 )
 private escape: code to: sb = (
@@ -2199,14 +2179,14 @@ public first ^<Integer> = (
 	^self at: 1
 )
 public hash ^<Integer> = (
-	(* :literalmessage: primitive: 54 *)
+	(* :pragma: primitive: 119 *)
 	panic.
 )
 public indexOf: substring <ByteArray | String> ^<Integer> = (
 	^self indexOf: substring startingAt: 1
 )
 public indexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 119 *)
+	(* :pragma: primitive: 106 *)
 	^ArgumentError new signal
 )
 public isEmpty ^<Boolean> = (
@@ -2222,7 +2202,7 @@ public lastIndexOf: substring <ByteArray | String> ^<Integer> = (
 	^self lastIndexOf: substring startingAt: 1 + self size
 )
 public lastIndexOf: substring <ByteArray | String> startingAt: index <Integer> ^<Integer> = (
-	(* :literalmessage: primitive: 120 *)
+	(* :pragma: primitive: 107 *)
 	^ArgumentError new signal
 )
 public out = (
@@ -2236,24 +2216,24 @@ public printString ^<String> = (
 	^sb asString
 )
 public size ^<Integer> = (
-	(* :literalmessage: primitive: 53 *)
+	(* :pragma: primitive: 118 *)
 	panic.
 )
 public startsWith: prefix <ByteArray | String> ^<Boolean> = (
-	(* :literalmessage: primitive: 117 *)
+	(* :pragma: primitive: 104 *)
 	^(ArgumentError value: prefix) signal
 )
 ) : (
 public with: byte <Integer> ^<String> = (
-	(* :literalmessage: primitive: 123 *)
+	(* :pragma: primitive: 122 *)
 	^(ArgumentError value: byte) signal
 )
 public withAll: bytes <Collection[Integer] | ByteArray | String> ^<String> = (
-	(* :literalmessage: primitive: 124 *)
+	(* :pragma: primitive: 123 *)
 	^self withAllAgain: (ByteArray withAll: bytes)
 )
 private withAllAgain: bytes <ByteArray> ^<String> = (
-	(* :literalmessage: primitive: 124 *)
+	(* :pragma: primitive: 123 *)
 	panic
 )
 )
@@ -2369,11 +2349,11 @@ public printString ^<String> = (
 public class WeakArray _cannotInstantiate = Collection (
 ) (
 public at: index <Integer> ^<E> = (
-	(* :literalmessage: primitive: 43 *)
+	(* :pragma: primitive: 78 *)
 	^(ArgumentError value: index) signal
 )
 public at: index <Integer> put: value <E> ^<E> = (
-	(* :literalmessage: primitive: 44 *)
+	(* :pragma: primitive: 79 *)
 	^(ArgumentError value: index) signal
 )
 public copyWith: newElement <E> ^<WeakArray[E]> = (
@@ -2401,12 +2381,12 @@ public keysAndValuesDo: action <[:Integer :E]> = (
 	1 to: self size do: [:index | action value: index value: (self at: index)].
 )
 public size ^<Integer> = (
-	(* :literalmessage: primitive: 45 *)
+	(* :pragma: primitive: 80 *)
 	panic.
 )
 ) : (
 public new: size <Integer> ^<WeakArray[E]> = (
-	(* :literalmessage: primitive: 42 *)
+	(* :pragma: primitive: 75 *)
 	^(ArgumentError value: size) signal
 )
 )
@@ -2561,19 +2541,19 @@ public buildObjectStore = (
 	}
 )
 private classOf: object = (
-	(* :literalmessage: primitive: 85 *)
+	(* :pragma: primitive: 127 *)
 	panic.
 )
 private currentActivation ^<Activation> = (
-	(* :literalmessage: primitive: 133 *)
+	(* :pragma: primitive: 164 *)
 	panic.
 )
 private currentMonotonicNanos = (
-	(* :literalmessage: primitive: 100 *)
+	(* :pragma: primitive: 264 *)
 	panic.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
-	(* :literalmessage: primitive: 71 *)
+	(* :pragma: primitive: 148 *)
 	panic.
 )
 private enclosingObjectOf: behavior = (
@@ -2589,15 +2569,15 @@ private formatOf: behavior put: value = (
 	^self slotOf: behavior at: 6 put: value
 )
 public garbageCollect = (
-	(* :literalmessage: primitive: 105 *)
+	(* :pragma: primitive: 184 *)
 	panic.
 )
 private identityHashOf: a = (
-	(* :literalmessage: primitive: 87 *)
+	(* :pragma: primitive: 136 *)
 	panic.
 )
 private instantiate: klass = (
-	(* :literalmessage: primitive: 34 *)
+	(* :pragma: primitive: 140 *)
 	panic.
 )
 private intern: string = (
@@ -2626,11 +2606,11 @@ private intern: string = (
 	^string
 )
 private is: a identicalTo: b = (
-	(* :literalmessage: primitive: 86 *)
+	(* :pragma: primitive: 135 *)
 	panic.
 )
 private isCanonical: object = (
-	(* :literalmessage: primitive: 126 *)
+	(* :pragma: primitive: 128 *)
 	panic.
 )
 private methodsOf: behavior = (
@@ -2652,10 +2632,10 @@ private nameOf: klass put: value = (
 	^self slotOf: klass at: 7 put: value
 )
 private panic = (
-	(* :literalmessage: primitive: 103 *)
+	(* :pragma: primitive: 187 *)
 )
 print: message = (
-	(* :literalmessage: primitive: 102 *)
+	(* :pragma: primitive: 509 *)
 )
 private rehashSymbolTable = (
 	| oldTable dead ::= 0. newCapacity newTable newUsed ::= 0. |
@@ -2685,15 +2665,15 @@ private rehashSymbolTable = (
 	symbolTableUsed:: newUsed.
 )
 private setCanonical: object = (
-	(* :literalmessage: primitive: 127 *)
+	(* :pragma: primitive: 129 *)
 	panic.
 )
 private slotOf: object at: index = (
-	(* :literalmessage: primitive: 35 *)
+	(* :pragma: primitive: 130 *)
 	panic.
 )
 private slotOf: object at: index put: value = (
-	(* :literalmessage: primitive: 36 *)
+	(* :pragma: primitive: 131 *)
 	panic.
 )
 private subclassesOf: klass = (

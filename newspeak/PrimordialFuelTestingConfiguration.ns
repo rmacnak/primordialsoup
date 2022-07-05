@@ -1,12 +1,14 @@
 class PrimordialFuelTestingConfiguration packageTestsUsing: manifest = (|
 private PrimordialFuelTesting = manifest PrimordialFuelTesting.
 private PrimordialFuelTestApp = manifest PrimordialFuelTestApp.
+private PrimordialFuelTestStruct = manifest PrimordialFuelTestStruct.
 |) (
 public testModulesUsingPlatform: p minitest: m = (
 	^{PrimordialFuelTesting
 		usingPlatform: p
 		minitest: m
-		testApp: PrimordialFuelTestApp}
+		testApp: PrimordialFuelTestApp
+		testStruct: PrimordialFuelTestStruct}
 )
 ) : (
 )

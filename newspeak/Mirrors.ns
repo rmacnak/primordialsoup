@@ -83,12 +83,12 @@ private computeDebugInfo = (
 				within: (mxn: definingMixin _enclosingMixin)) initializers first debugInfo].
 		 (* Transient slot getter / setter / initializer *)
 		 definingMixin _slots do:
-			[:tuple | (isTransient: tuple) ifTrue:
+			[:slot | slot isTransient ifTrue:
 				[ |
-				  getterName = demangleTransientSlotName: (tuple at: 1).
+				  getterName = demangleTransientSlotName: slot name.
 				  setterName = getterName, ':'.
 				  initName = getterName, '`init'.
-				  source = tuple at: 5.
+				  source = slot metadata.
 				  |
 				rawMethod selector = getterName ifTrue:
 					[^(compiler
@@ -179,12 +179,12 @@ public method ^<MethorMirror> = (
 				source: definingMixin _headerSource].
 		 (* Transient slot getter / setter / initializer *)
 		 definingMixin _slots do:
-			[:tuple | (isTransient: tuple) ifTrue:
+			[:slot | slot isTransient ifTrue:
 				[ |
-				  getterName = demangleTransientSlotName: (tuple at: 1).
+				  getterName = demangleTransientSlotName: slot name.
 				  setterName = getterName, ':'.
 				  initName = getterName, '`init'.
-				  source = tuple at: 5.
+				  source = slot metadata.
 				  |
 				rawMethod selector = getterName ifTrue:
 					[^SyntheticMethodMirror
@@ -247,7 +247,7 @@ public return: result <ObjectMirror> ^<ThreadMirror> = (
 public sender ^<ActivationMirror> = (
 	| rawSender = reflectee sender. |
 	nil = rawSender ifTrue: [^nil].
-	rawSender method primitive = 142 ifTrue: [^nil (* Hide simulation root. *)].
+	rawSender method primitive = 163 ifTrue: [^nil (* Hide simulation root. *)].
 	^ActivationMirror reflecting: rawSender thread: thread
 )
 public slots ^<List[SlotMirror]> = (
@@ -305,7 +305,7 @@ private newExistingMixins <Map[IntermediateClassDeclaration,InstanceMixin]>
 |) (
 allInstVarNamesOf: cls = (
 	nil = cls ifTrue: [^{}].
-	^(allInstVarNamesOf: (superclassOf: cls)) , ((mixinOf: cls) _slots collect: [:slotDesc | slotDesc at: 1])
+	^(allInstVarNamesOf: (superclassOf: cls)) , ((mixinOf: cls) _slots collect: [:slot | slot name])
 )
 private cleanup = (
 	updateMixinsAndClasses: nil.
@@ -371,7 +371,7 @@ private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<
 			 newSlots:: newMixin _slots.
 			 oldSlots size = newSlots size ifFalse: [^true].
 			 1 to: oldSlots size do:
-				[:index | ((oldSlots at: index) at: 1) = ((newSlots at: index) at: 1) ifFalse: [^true]]].
+				[:index | ((oldSlots at: index) name) = ((newSlots at: index) name) ifFalse: [^true]]].
 		 oldCls:: superclassOf: oldCls.
 		 newCls:: superclassOf: newCls].
 	^false
@@ -702,8 +702,8 @@ private to: sb writeClassDeclaration: instanceMixin = (
 	instanceMixin _nestedMixins do:
 		[:nestedMixin | to: sb writeClassDeclaration: nestedMixin].
 	instanceMixin _slots do:
-		[:slot | (isTransient: slot) ifTrue:
-			[sb writeln: (slot at: 5)]].
+		[:slot | slot isTransient ifTrue:
+			[sb writeln: slot metadata]].
 	instanceMixin _methods do:
 		[:method | method isSynthetic ifFalse:
 			[sb writeln: method source]].
@@ -932,17 +932,13 @@ public slots ^<Collection[SlotDeclarationMirror]> = (
 		[:index |
 		cls:: classes at: index.
 		(mixinOf: cls) _slots do:
-			[:slotDescriptor |
-			| name isMutable accessModifier |
-			name:: slotDescriptor at: 1.
-			isMutable:: slotDescriptor at: 2.
-			accessModifier:: slotDescriptor at: 3.
-			(name indexOf: '`') = 0 ifTrue:
+			[:slot |
+			(slot name indexOf: '`') = 0 ifTrue:
 				[(* Not synthetic. *)
 				result add: (SlotDeclarationMirror
-					name: name
-					isMutable: isMutable
-					accessModifier: accessModifier
+					name: slot name
+					isMutable: slot isMutable
+					accessModifier: slot accessModifier
 					mixin: self mixin)]]].
 	^MirrorGroup wrapping: result
 )
@@ -974,10 +970,10 @@ public transientSlots ^<Collection[TransientSlotDeclarationMirror]> = (
 		[:index |
 		cls:: classes at: index.
 		(mixinOf: cls) _slots do:
-			[:slotDescriptor |
-			(isTransient: slotDescriptor) ifTrue:
+			[:slot |
+			slot isTransient ifTrue:
 				[result add: (TransientSlotDeclarationMirror
-					descriptor: slotDescriptor
+					descriptor: slot
 					mixin: self mixin)]]].
 	^MirrorGroup wrapping: result
 )
@@ -1328,25 +1324,21 @@ public nestedClasses ^<Collection[ClassDeclarationMirror]> = (
 )
 public slots ^<Collection[SlotDeclarationMirror]> = (
 	| results = List new. |
-	mixin _slots do: [:slotDescriptor |
-		| slotName isMutable accessModifier |
-		slotName:: slotDescriptor at: 1.
-		isMutable:: slotDescriptor at: 2.
-		accessModifier:: slotDescriptor at: 3.
-		0 = (slotName indexOf: '`') ifTrue: (* not synthetic *)
+	mixin _slots do: [:slot |
+		0 = (slot name indexOf: '`') ifTrue: (* not synthetic *)
 			[results add: (SlotDeclarationMirror
-				name: slotName
-				isMutable: isMutable
-				accessModifier: accessModifier
+				name: slot name
+				isMutable: slot isMutable
+				accessModifier: slot accessModifier
 				mixin: self)]].
 	^MirrorGroup wrapping: results
 )
 public transientSlots ^<Collection[TransientSlotDeclarationMirror]> = (
 	| results = List new. |
-	mixin _slots do: [:slotDescriptor |
-		(isTransient: slotDescriptor) ifTrue:
+	mixin _slots do: [:slot |
+		slot isTransient ifTrue:
 			[results add: (TransientSlotDeclarationMirror
-				descriptor: slotDescriptor
+				descriptor: slot
 				mixin: self)]].
 	^MirrorGroup wrapping: results
 )
@@ -1551,7 +1543,7 @@ private indexOfSlotNamed: name in: startCls = (
 	[nil = cls] whileFalse:
 		[slots:: (mixinOf: cls) _slots.
 		 1 to: slots size do:
-			[:index | ((slots at: index) at: 1) = name ifTrue:
+			[:index | (slots at: index) name = name ifTrue:
 				[^(formatOf: cls) - slots size + index]].
 		 cls:: (superclassOf: cls)].
 	^-1
@@ -1588,7 +1580,7 @@ public slots ^<Collection[SlotMirror]> = (
 	 slots size to: 1 by: -1 do:
 		[:i |
 		 result at: cursor put:
-			(slot: ((slots at: i) at: 1) value: (slotOf: reflectee at: cursor)).
+			(slot: ((slots at: i) name) value: (slotOf: reflectee at: cursor)).
 		 cursor:: cursor - 1].
 	 cls:: superclassOf: cls.
 	 cls = nil] whileFalse.
@@ -1769,7 +1761,7 @@ cannotReturn: result = (
 	activate: method receiver: activation arguments: {result}.
 )
 private doPrimitive: index <Integer> receiver: receiver <Object> arguments: arguments <Array> = (
-	(* :literalmessage: primitive: 141 *)
+	(* :pragma: primitive: 181 *)
 	'doPrimitive failed' out.
 	index out.
 	receiver out.
@@ -1824,7 +1816,7 @@ method = (
 	^activation method
 )
 private newClosureIn: definingActivation initialBCI: initialBCI numArgs: numArgs numCopied: numCopied = (
-	(* :literalmessage: primitive: 69 *)
+	(* :pragma: primitive: 145 *)
 	panic.
 )
 nonBooleanReceiver: nonBoolean = (
@@ -1974,9 +1966,9 @@ returnNonLocal: result = (
 	[unwind = home] whileFalse:
 		[nil = unwind ifTrue:
 			[^cannotReturn: result].
-		unwind method primitive = 113 ifTrue:
+		unwind method primitive = 162 ifTrue:
 			[^aboutToReturn: result through: unwind].
-		unwind method primitive = 142 ifTrue:
+		unwind method primitive = 163 ifTrue:
 			[^cannotReturn: result].
 		unwind:: unwind sender].
 
@@ -2059,29 +2051,29 @@ tryPrimitive: primitive receiver: newReceiver arguments: arguments = (
 	0 = primitive ifTrue: [^false].
 
 	(* Simulation guard *)
-	112 = primitive ifTrue: ['simulation guard' out. panic].
+	(* x = primitive ifTrue: ['simulation guard' out. panic]. *)
 
 	(* Current activation *)
-	133 = primitive ifTrue: [activation push: activation. ^true].
+	164 = primitive ifTrue: [activation push: activation. ^true].
 
 	(* Closure activation *)
-	90 = primitive ifTrue:
+	156 = primitive ifTrue:
 		[newReceiver numArgs = 0 ifFalse: [^false].
 		 activateClosure: newReceiver arguments: arguments.
 		 ^true].
-	91 = primitive ifTrue:
+	157 = primitive ifTrue:
 		[newReceiver numArgs = 1 ifFalse: [^false].
 		 activateClosure: newReceiver arguments: arguments.
 		 ^true].
-	92 = primitive ifTrue:
+	158 = primitive ifTrue:
 		[newReceiver numArgs = 2 ifFalse: [^false].
 		 activateClosure: newReceiver arguments: arguments.
 		 ^true].
-	93 = primitive ifTrue:
+	159 = primitive ifTrue:
 		[newReceiver numArgs = 3 ifFalse: [^false].
 		 activateClosure: newReceiver arguments: arguments.
 		 ^true].
-	94 = primitive ifTrue:
+	160 = primitive ifTrue:
 		[ | closureArgs = arguments at: 1. |
 		 Array = (classOf: closureArgs) ifFalse: [^false].
 		 closureArgs size = newReceiver numArgs ifFalse: [^false].
@@ -2089,10 +2081,10 @@ tryPrimitive: primitive receiver: newReceiver arguments: arguments = (
 		 ^true].
 
 	(* Jump *)
-	95 = primitive ifTrue: [activation:: arguments at: 1. ^true].
+	165 = primitive ifTrue: [activation:: arguments at: 1. ^true].
 
 	(* Perform *)
-	89 = primitive ifTrue:
+	134 = primitive ifTrue:
 		[ | object selector performArguments |
 		object:: arguments at: 1.
 		selector:: arguments at: 2.
@@ -2199,10 +2191,10 @@ private hasSender: activation = (
 )
 private isBottom: activation <Activation> ^<Boolean> = (
 	nil = activation sender ifTrue: [^true].
-	^142 = activation sender method primitive
+	^163 = activation sender method primitive
 )
 private jumpTo: activation = (
-	(* :literalmessage: primitive: 95 *)
+	(* :pragma: primitive: 165 *)
 	panic.
 )
 private lookupNewMethod: activation = (
@@ -2259,7 +2251,7 @@ public resume = (
 	^resumeImpl
 )
 private resumeImpl = (
-	(* :literalmessage: primitive: 142 *)
+	(* :pragma: primitive: 163 *)
 	| threadAtTemp1 jumpResult |
 	threadAtTemp1:: self. (* Known to exception signaling machinery. *)
 
@@ -2292,7 +2284,7 @@ public return: returnValue from: activation = (
 	state: #running.
 )
 private simulatorRoot = (
-	(* :literalmessage: primitive: 142 *)
+	(* :pragma: primitive: 163 *)
 	panic.
 )
 private simulatorRootMethod = (
@@ -2448,7 +2440,7 @@ private descriptor = d.
 public definingMixin = mxn.
 |) (
 public accessModifier ^<Symbol> = (
-	(* Not `descriptor at: 3`, which is always private to prevent overrides. *)
+	(* Not `descriptor accessModifier`, which is always private to prevent overrides. *)
 	^getter accessModifier
 )
 private getter ^<Method> = (
@@ -2463,7 +2455,7 @@ public isKindOfTransientSlotDeclarationMirror ^<Boolean> = (
 	^true
 )
 public isMutable ^<Boolean> = (
-	^descriptor at: 2
+	^descriptor isMutable
 )
 public literals ^<Set[Object]> = (
 	^(Printer for: initializer) literals
@@ -2475,26 +2467,26 @@ private mixin ^<InstanceMixin> = (
 	^reflectees at: definingMixin
 )
 public name ^<Symbol> = (
-	^demangleTransientSlotName: (descriptor at: 1)
+	^demangleTransientSlotName: descriptor name
 )
 public selectors ^<Set[String]> = (
 	^(Printer for: initializer) selectors
 )
 public source ^<String> = (
-	^descriptor at: 5
+	^descriptor metadata
 )
 ) : (
 )
 private allInstancesOf: cls = (
-	(* :literalmessage: primitive: 96 *)
+	(* :pragma: primitive: 141 *)
 	panic.
 )
 private allReferersOf: target = (
-	(* :literalmessage: primitive: 84 *)
+	(* :pragma: primitive: 133 *)
 	panic.
 )
 private allocate: cls = (
-	(* :literalmessage: primitive: 34 *)
+	(* :pragma: primitive: 140 *)
 	panic.
 )
 buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec = (
@@ -2533,21 +2525,21 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 	i declaration initializers: initializers.
 
 	mixin _slots do:
-		[:tuple |
-		| slot = intermediates IntermediateSlotDeclaration new. |
-		slot name: (tuple at: 1).
-		slot isMutable: (tuple at: 2).
-		slot accessModifier: (tuple at: 3).
-		(isSyntheticSlotSelector: slot name) ifFalse:
-			[i slots add: slot].
-		(isTransient: tuple) ifTrue:
-			[ | slot = intermediates IntermediateTransientSlotDeclaration new. |
-			slot name: (demangleTransientSlotName: (tuple at: 1)).
-			slot source: (tuple at: 5).
-			slot getter: (buildIntermediateMethod: slot name within: mixin).
-			slot setter: (buildIntermediateMethod: slot name, ':' within: mixin).
-			slot initializer: (buildIntermediateMethod: slot name, '`init' within: mixin).
-			i transientSlots add: slot].
+		[:slot |
+		| islot = intermediates IntermediateSlotDeclaration new. |
+		islot name: slot name.
+		islot isMutable: slot isMutable.
+		islot accessModifier: slot accessModifier.
+		(isSyntheticSlotSelector: islot name) ifFalse:
+			[i slots add: islot].
+		slot isTransient ifTrue:
+			[ | islot = intermediates IntermediateTransientSlotDeclaration new. |
+			islot name: (demangleTransientSlotName: slot name).
+			islot source: slot metadata.
+			islot getter: (buildIntermediateMethod: islot name within: mixin).
+			islot setter: (buildIntermediateMethod: islot name, ':' within: mixin).
+			islot initializer: (buildIntermediateMethod: islot name, '`init' within: mixin).
+			i transientSlots add: islot].
 		].
 
 	mixin _nestedMixins do:
@@ -2592,7 +2584,7 @@ buildIntermediateMethod: selector within: mixin <InstanceMixin> = (
 	^methodIR
 )
 private classOf: object = (
-	(* :literalmessage: primitive: 85 *)
+	(* :pragma: primitive: 127 *)
 	panic.
 )
 private compiler = (
@@ -2617,19 +2609,19 @@ private constructCompiler = (
 	compilerX:: compilation Compiler new.
 )
 private copiedOf: closure <Closure> at: index <Integer> ^<Object> = (
-	(* :literalmessage: primitive: 77 *)
+	(* :pragma: primitive: 154 *)
 	panic.
 )
 private copiedOf: closure <Closure> at: index <Integer> put: value <Object> ^<Object> = (
-	(* :literalmessage: primitive: 78 *)
+	(* :pragma: primitive: 155 *)
 	panic.
 )
 private currentActivation ^<Activation> = (
-	(* :literalmessage: primitive: 133 *)
+	(* :pragma: primitive: 164 *)
 	panic.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (
-	(* :literalmessage: primitive: 71 *)
+	(* :pragma: primitive: 148 *)
 	panic.
 )
 private demangleTransientSlotName: name = (
@@ -2637,7 +2629,7 @@ private demangleTransientSlotName: name = (
 	^(name copyFrom: 1 to: name size - 5) asSymbol
 )
 private elementsOf: old forwardIdentityToElementsOf: new = (
-	(* :literalmessage: primitive: 98 *)
+	(* :pragma: primitive: 183 *)
 	panic.
 )
 private enclosingObjectOf: behavior = (
@@ -2647,15 +2639,15 @@ private formatOf: behavior = (
 	^self slotOf: behavior at: 6
 )
 private heapSizeOf: object = (
-	(* :literalmessage: primitive: 88 *)
+	(* :pragma: primitive: 137 *)
 	panic.
 )
 private identityHashOf: a = (
-	(* :literalmessage: primitive: 87 *)
+	(* :pragma: primitive: 136 *)
 	panic.
 )
 private initialBCIOf: closure <Closure> ^<Integer> = (
-	(* :literalmessage: primitive: 73 *)
+	(* :pragma: primitive: 150 *)
 	panic.
 )
 private intermediates = (
@@ -2663,7 +2655,7 @@ private intermediates = (
 	^intermediatesX
 )
 private is: a identicalTo: b = (
-	(* :literalmessage: primitive: 86 *)
+	(* :pragma: primitive: 135 *)
 	panic.
 )
 private isBehavior: object = (
@@ -2684,10 +2676,6 @@ private isSubinitializerSelector: selector = (
 private isSyntheticSlotSelector: selector = (
 	^selector endsWith: '`slot'
 )
-private isTransient: tuple = (
-	tuple size < 4 ifTrue: [^false].
-	^tuple at: 4
-)
 private metadataFrom: source <String> ^<Array[Metadata]> = (
 	nil = source ifTrue: [^nil].
 	^(parsing Parser for: source) keepComments asArray
@@ -2700,22 +2688,22 @@ private mixinOf: behavior = (
 	^self slotOf: behavior at: 4
 )
 private numCopiedOf: closure <Closure> ^<Integer> = (
-	(* :literalmessage: primitive: 70 *)
+	(* :pragma: primitive: 147 *)
 	panic.
 )
 private panic = (
-	(* :literalmessage: primitive: 103 *)
+	(* :pragma: primitive: 187 *)
 )
 private parsing = (
 	nil = parsingX ifTrue: [constructCompiler].
 	^parsingX
 )
 private slotOf: object at: index = (
-	(* :literalmessage: primitive: 35 *)
+	(* :pragma: primitive: 130 *)
 	panic.
 )
 private slotOf: object at: index put: value = (
-	(* :literalmessage: primitive: 36 *)
+	(* :pragma: primitive: 131 *)
 	panic.
 )
 private subclassesOf: klass = (

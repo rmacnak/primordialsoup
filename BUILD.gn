@@ -190,6 +190,7 @@ action("snapshots") {
     "newspeak/ParserCombinators.ns",
     "newspeak/PrimordialFuel.ns",
     "newspeak/PrimordialFuelTestApp.ns",
+    "newspeak/PrimordialFuelTestStruct.ns",
     "newspeak/PrimordialFuelTesting.ns",
     "newspeak/PrimordialFuelTestingConfiguration.ns",
     "newspeak/Richards.ns",
