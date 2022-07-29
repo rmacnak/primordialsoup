@@ -1,0 +1,211 @@
+class Time usingPlatform: p = (|
+	public Timer = p actors Timer.
+	private StringBuilder = p kernel StringBuilder.
+|) (
+public class DateTime nanosecondsSinceEpoch: nanos <Integer> isUtc: local <Boolean> = (
+	|
+	public nanosecondsSinceEpoch <Integer> = nanos.
+	public isUtc <Boolean> = local.
+	private parts_
+	|
+) (
+public = other <Object> = (
+	other isKindOfDateTime ifFalse: [^false].
+	nanosecondsSinceEpoch = other nanosecondsSinceEpoch ifFalse: [^false].
+	^isUtc = other isUtc
+)
+public asString = (
+	| s = StringBuilder new: 32. |
+	s add: ({'Mon'. 'Tue'. 'Wed'. 'Thu'. 'Fri'. 'Sat'. 'Sun'} at: weekday).
+	s add: ' '.
+	s add: year asString.
+	s add: '-'.
+	on: s pad2: month.
+	s add: '-'.
+	on: s pad2: day.
+	s add: ' '.
+	on: s pad2: hour.
+	s add: ':'.
+	on: s pad2: minute.
+	s add: ':'.
+	on: s pad2: second.
+	s add: ' '.
+	s add: timeZoneName.
+	^s asString
+)
+public asStringIso8601 = (
+	| s = StringBuilder new: 32. |
+	s add: year asString.
+	s add: '-'.
+	on: s pad2: month.
+	s add: '-'.
+	on: s pad2: day.
+	s add: 'T'.
+	on: s pad2: hour.
+	s add: ':'.
+	on: s pad2: minute.
+	s add: ':'.
+	on: s pad2: (second \\ 60). (* No leap seconds *)
+	s add: '.'.
+	on: s pad3: (nanosecondsSinceEpoch // 1000000 \\ 1000).
+	isUtc ifTrue: [s add: 'Z'].
+	^s asString
+)
+(* The day of the month in [1, 31]. *)
+public day ^<Integer> = ( ^parts at: 4 )
+public hash ^<Boolean> = (
+	^nanosecondsSinceEpoch bitXor: class hash
+)
+(* The hour of the day in [0, 23]. *)
+public hour ^<Integer> = ( ^parts at: 3 )
+public isKindOfDateTime ^<Boolean> = (
+	^true
+)
+private localtime: nanos parts: parts = (
+	(* :pragma: primitive: 266 *)
+	panic.
+)
+(* The minute of the hour in [0, 59]. *)
+public minute ^<Integer> = ( ^parts at: 2 )
+(* The month in [1, 12]. *)
+public month ^<Integer> = ( ^parts at: 5 )
+private on: s pad2: num = (
+	s addByte: ('0123456789' at: num // 10 + 1).
+	s addByte: ('0123456789' at: num \\ 10 + 1).
+)
+private on: s pad3: num = (
+	s addByte: ('0123456789' at: num // 100 + 1).
+	s addByte: ('0123456789' at: num // 10 \\ 10 + 1).
+	s addByte: ('0123456789' at: num \\ 10 + 1).
+)
+private parts = (
+	nil = parts_ ifTrue:
+		[| seconds parts status |
+		 seconds:: nanosecondsSinceEpoch // 1000000000.
+		 parts:: Array new: 9.
+		 isUtc
+			ifTrue:
+				[parts at: 8 put: 0.
+				 parts at: 9 put: 'UTC']
+			ifFalse:
+				[status:: localtime: seconds parts: parts.
+				 0 = status ifFalse: [^Error signal: 'localtime: ', status asString]].
+		 split: seconds + (parts at: 8) into: parts.
+		 parts_:: parts].
+	^parts_
+)
+public printString = (
+	^self asString
+)
+(* The second of the minute in [0, 59]. *)
+public second ^<Integer> = ( ^parts at: 1 )
+private split: seconds into: parts = (
+	|
+	DAYS_IN_4_YEARS = 1461.
+	DAYS_IN_100_YEARS = 36524.
+	DAYS_IN_400_YEARS = 146097.
+	DAYS_1970_TO_2000 = 10957.
+	DAYS_OFFSET = (1000 * DAYS_IN_400_YEARS) + (5 * DAYS_IN_400_YEARS) - DAYS_1970_TO_2000.
+	YEARS_OFFSET = 400000.
+	resultYear
+	resultMonth
+	resultDay
+	daysSince1970
+	days
+	yd1
+	yd2
+	yd3
+	isLeap
+	daysUntilMonth
+	|
+
+	daysSince1970:: seconds // 86400.
+	days:: daysSince1970 + DAYS_OFFSET.
+	resultYear:: 400 * (days quo: DAYS_IN_400_YEARS) - YEARS_OFFSET.
+	days:: (days rem: DAYS_IN_400_YEARS) - 1.
+	yd1:: days quo: DAYS_IN_100_YEARS.
+	days:: (days rem: DAYS_IN_100_YEARS) + 1.
+	resultYear:: 100 * yd1 + resultYear.
+	yd2:: days quo: DAYS_IN_4_YEARS.
+	days:: (days rem: DAYS_IN_4_YEARS) - 1.
+	resultYear:: 4 * yd2 + resultYear.
+	yd3:: days quo: 365.
+	days:: days rem: 365.
+	resultYear:: resultYear + yd3.
+
+	isLeap:: ((yd1 = 0) | (yd2 = 0) not) & (yd3 = 0).
+	isLeap ifTrue: [days:: days + 1].
+
+	daysUntilMonth:: isLeap
+		ifFalse: [{0. 31. 59. 90. 120. 151. 181. 212. 243. 273. 304. 334}]
+		ifTrue: [{0. 31. 60. 91. 121. 152. 182. 213. 244. 274. 305. 335}].
+
+	resultMonth:: 12.
+	[(daysUntilMonth at: resultMonth) > days] whileTrue:
+		[resultMonth:: resultMonth - 1].
+
+	resultDay:: days - (daysUntilMonth at: resultMonth) + 1.
+
+	parts at: 1 put: (seconds \\ 60). (* second *)
+	parts at: 2 put: (seconds // 60 \\ 60). (* minute *)
+	parts at: 3 put: (seconds // 3600 \\ 24). (* hour *)
+	parts at: 4 put: resultDay. (* mday *)
+	parts at: 5 put: resultMonth. (* month *)
+	parts at: 6 put: resultYear. (* year *)
+	parts at: 7 put: daysSince1970 + 3 \\ 7 + 1. (* wday *)
+)
+public timeZoneName ^<String> = ( ^parts at: 9 )
+(* The day of the week in [1, 7]. *)
+public weekday ^<Integer> = ( ^parts at: 7 )
+public year ^<Integer> = ( ^parts at: 6 )
+) : (
+public nanosecondsSinceEpoch: nanos <Integer> ^<DateTime> = (
+	^self nanosecondsSinceEpoch: nanos isUtc: true
+)
+public nowLocal ^<DateTime> = (
+	^self nanosecondsSinceEpoch: currentRealtimeNanos isUtc: false
+)
+public nowUtc ^<DateTime> = (
+	^self nanosecondsSinceEpoch: currentRealtimeNanos isUtc: true
+)
+public parse: iso8601string <String> ^<DateTime> = (
+	panic.
+)
+)
+(* Measures durations using the system's monotonic clock. *)
+public class Stopwatch = (
+|
+private cumulativeNanos ::= 0.
+private startNanos
+|) (
+public elapsedMicroseconds ^<Integer> = (
+	^elapsedNanoseconds quo: 1000
+)
+public elapsedMilliseconds ^<Integer> = (
+	^elapsedNanoseconds quo: 1000000
+)
+public elapsedNanoseconds ^<Integer> = (
+	nil = startNanos ifTrue: [^cumulativeNanos].
+	^cumulativeNanos + (currentMonotonicNanos - startNanos)
+)
+public start = (
+	nil = startNanos ifFalse: [^self (* Already running. *)].
+	startNanos:: currentMonotonicNanos.
+)
+public stop = (
+	nil = startNanos ifTrue: [^self (* Already stopped. *)].
+	cumulativeNanos:: cumulativeNanos + (currentMonotonicNanos - startNanos).
+	startNanos:: nil.
+)
+) : (
+)
+private currentMonotonicNanos = (
+	(* :pragma: primitive: 264 *)
+	panic.
+)
+private currentRealtimeNanos = (
+	(* :pragma: primitive: 265 *)
+	panic.
+)
+) : (
+)

@@ -3,6 +3,7 @@ Minitest = manifest Minitest.
 testConfigs = {
 	manifest KernelTestsConfiguration packageTestsUsing: manifest.
 	manifest KernelWeakTestsConfiguration packageTestsUsing: manifest.
+	manifest TimeTestsConfiguration packageTestsUsing: manifest.
 	manifest MinitestTestsConfiguration packageTestsUsing: manifest.
 	manifest AccessModifierTestingConfiguration packageTestsUsing: manifest.
 	manifest ActorsTestingConfiguration packageTestsUsing: manifest.
@@ -26,7 +27,7 @@ public main: platform args: args = (
 	| keepAlive stopwatch minitest testModules tester |
 	keepAlive:: platform actors Port new.
 	Promise:: platform actors Promise.
-	stopwatch:: platform kernel Stopwatch new start.
+	stopwatch:: platform time Stopwatch new start.
 	minitest:: Minitest usingPlatform: platform.
 	testModules:: platform collections List new.
 	testConfigs do:

@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "vm/assert.h"
 
@@ -23,6 +24,21 @@ void OS::Shutdown() {}
 int64_t OS::CurrentMonotonicNanos() {
   double now = emscripten_get_now();
   return now * kNanosecondsPerMillisecond;
+}
+
+
+int64_t OS::CurrentRealtimeNanos() {
+  struct timespec ts;
+  if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+    UNREACHABLE();
+    return 0;
+  }
+  // Convert to nanoseconds.
+  int64_t result = ts.tv_sec;
+  result *= kNanosecondsPerSecond;
+  result += ts.tv_nsec;
+
+  return result;
 }
 
 

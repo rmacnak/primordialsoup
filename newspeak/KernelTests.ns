@@ -3,7 +3,7 @@ private TestContext = m TestContext.
 private Message = p kernel Message.
 private MessageNotUnderstood = p kernel MessageNotUnderstood.
 private Exception = p kernel Exception.
-private Stopwatch = p kernel Stopwatch.
+private Stopwatch = p time Stopwatch.
 private StringBuilder = p kernel StringBuilder.
 private List = p collections List.
 |) (
@@ -5276,91 +5276,6 @@ public testPrintString = (
 public testYourself = (
 	| o = Object new. |
 	assert: o yourself equals: o.
-)
-) : (
-TEST_CONTEXT = ()
-)
-public class StopwatchTests = TestContext () (
-busyMilliseconds: millis = (
-	| stopwatch = Stopwatch new. |
-	stopwatch start.
-	[stopwatch elapsedMilliseconds < millis] whileTrue.
-)
-public testStopwatchAccumulate = (
-	| stopwatch = Stopwatch new. |
-	stopwatch start.
-	busyMilliseconds: 5.
-	stopwatch stop.
-	assert: [stopwatch elapsedMilliseconds >= 5].
-	assert: [stopwatch elapsedMicroseconds >= 5000].
-
-	busyMilliseconds: 5.
-
-	stopwatch start.
-	busyMilliseconds: 5.
-	stopwatch stop.
-	assert: [stopwatch elapsedMilliseconds >= 10].
-	assert: [stopwatch elapsedMicroseconds >= 10000].
-
-	busyMilliseconds: 5.
-
-	stopwatch start.
-	busyMilliseconds: 5.
-	stopwatch stop.
-	assert: [stopwatch elapsedMilliseconds >= 15].
-	assert: [stopwatch elapsedMicroseconds >= 15000].
-)
-public testStopwatchDoubleStart = (
-	| stopwatch = Stopwatch new. |
-	stopwatch start.
-
-	busyMilliseconds: 5.
-
-	stopwatch start. (* Should not reset the elapsed time. *)
-
-	busyMilliseconds: 5.
-
-	assert: [stopwatch elapsedMilliseconds >= 10].
-	assert: [stopwatch elapsedMicroseconds >= 10000].
-	stopwatch stop.
-	assert: [stopwatch elapsedMilliseconds >= 10].
-	assert: [stopwatch elapsedMicroseconds >= 10000].
-)
-public testStopwatchEqualityIsIdentity = (
-	|
-	stopwatch1 = Stopwatch new.
-	stopwatch2 = Stopwatch new.
-	|
-	assert: stopwatch1 elapsedMilliseconds equals: stopwatch2 elapsedMilliseconds.
-	assert: stopwatch1 elapsedMicroseconds equals: stopwatch2 elapsedMicroseconds.
-	deny: stopwatch1 equals: stopwatch2.
-)
-public testStopwatchInitialState = (
-	| stopwatch = Stopwatch new. |
-	assert: stopwatch elapsedMilliseconds equals: 0.
-	assert: stopwatch elapsedMicroseconds equals: 0.
-)
-public testStopwatchInitiallyStopped = (
-	| stopwatch = Stopwatch new. |
-	busyMilliseconds: 5.
-
-	assert: stopwatch elapsedMilliseconds equals: 0.
-	assert: stopwatch elapsedMicroseconds equals: 0.
-)
-public testStopwatchMovesAfterStarted = (
-	| stopwatch |
-	stopwatch:: Stopwatch new.
-	stopwatch start.
-	[stopwatch elapsedMilliseconds < 5] whileTrue.
-
-	stopwatch:: Stopwatch new.
-	stopwatch start.
-	[stopwatch elapsedMicroseconds < 5] whileTrue.
-)
-public testStopwatchStartStopValues = (
-	| stopwatch = Stopwatch new. |
-	assert: stopwatch start equals: stopwatch.
-	assert: stopwatch stop equals: stopwatch.
 )
 ) : (
 TEST_CONTEXT = ()

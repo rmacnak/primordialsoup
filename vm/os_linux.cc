@@ -37,6 +37,21 @@ int64_t OS::CurrentMonotonicNanos() {
 }
 
 
+int64_t OS::CurrentRealtimeNanos() {
+  struct timespec ts;
+  if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
+    UNREACHABLE();
+    return 0;
+  }
+  // Convert to nanoseconds.
+  int64_t result = ts.tv_sec;
+  result *= kNanosecondsPerSecond;
+  result += ts.tv_nsec;
+
+  return result;
+}
+
+
 const char* OS::Name() { return "linux"; }
 
 

@@ -25,6 +25,16 @@ int64_t OS::CurrentMonotonicNanos() {
 }
 
 
+int64_t OS::CurrentRealtimeNanos() {
+  struct timespec ts;
+  if (timespec_get(&ts, TIME_UTC) == 0) {
+    FATAL("timespec_get failed");
+    return 0;
+  }
+  return zx_time_add_duration(ZX_SEC(ts.tv_sec), ZX_NSEC(ts.tv_nsec));
+}
+
+
 const char* OS::Name() { return "fuchsia"; }
 
 

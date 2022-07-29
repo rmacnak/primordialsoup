@@ -21,7 +21,7 @@ class BenchmarkRunner packageUsing: manifest = (
 	}.
 |) (
 class Benchmarking usingPlatform: p = (|
-private Stopwatch = p kernel Stopwatch.
+private Stopwatch = p time Stopwatch.
 private List = p collections List.
 private cachedPlatform = p.
 |) (
@@ -35,8 +35,8 @@ measure: block forAtLeast: milliseconds = (
 	elapsed:: stopwatch elapsedMilliseconds.
 	elapsed < milliseconds] whileTrue.
 
-	score:: (round: runs * 1000 asFloat / elapsed to: 0.1 asFloat) asFloat.
-	^score printString
+	score:: runs * 1000 asFloat / elapsed.
+	^score asStringFixed: 1
 )
 public report = (
 	benchmarks do:
@@ -46,9 +46,6 @@ public report = (
 		self measure: [b bench] forAtLeast: 3.
 		score:: measure: [b bench] forAtLeast: 20.
 		(benchmark name, ': ', score) out].
-)
-round: n to: quantum = (
-	^(n // quantum) * quantum
 )
 ) : (
 )

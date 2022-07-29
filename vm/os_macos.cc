@@ -30,6 +30,11 @@ int64_t OS::CurrentMonotonicNanos() {
 }
 
 
+int64_t OS::CurrentRealtimeNanos() {
+  return clock_gettime_nsec_np(CLOCK_REALTIME);
+}
+
+
 const char* OS::Name() { return "macos"; }
 
 

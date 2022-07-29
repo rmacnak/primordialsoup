@@ -1,0 +1,250 @@
+class TimeTests usingPlatform: p minitest: m = (|
+private TestContext = m TestContext.
+private DateTime = p time DateTime.
+private Stopwatch = p time Stopwatch.
+|) (
+public class DateTimeTests = TestContext () (
+public testDateTimeEquality = (
+	| a b c d e f g h |
+	a:: DateTime nanosecondsSinceEpoch: 1 isUtc: true.
+	b:: DateTime nanosecondsSinceEpoch: 1 isUtc: true.
+	c:: DateTime nanosecondsSinceEpoch: 1 isUtc: false.
+	d:: DateTime nanosecondsSinceEpoch: 1 isUtc: false.
+	e:: DateTime nanosecondsSinceEpoch: 2 isUtc: true.
+	f:: DateTime nanosecondsSinceEpoch: 2 isUtc: true.
+	g:: DateTime nanosecondsSinceEpoch: 2 isUtc: false.
+	h:: DateTime nanosecondsSinceEpoch: 2 isUtc: false.
+
+	assert: a equals: b.
+	assert: a hash equals: b hash.
+	assert: c equals: d.
+	assert: c hash equals: d hash.
+	assert: e equals: f.
+	assert: e hash equals: f hash.
+	assert: g equals: h.
+	assert: g hash equals: h hash.
+
+	deny: a equals: c.
+	deny: a equals: e.
+	deny: a equals: g.
+
+	deny: c equals: a.
+	deny: c equals: e.
+	deny: c equals: g.
+
+	deny: e equals: a.
+	deny: e equals: c.
+	deny: e equals: g.
+
+	deny: g equals: a.
+	deny: g equals: c.
+	deny: g equals: e.
+)
+public testDateTimeLeapDays = (
+	| date |
+	date:: DateTime nanosecondsSinceEpoch: 951696000000000000.
+	assert: date asString equals: 'Mon 2000-02-28 00:00:00 UTC'.
+	date:: DateTime nanosecondsSinceEpoch: 951782400000000000.
+	assert: date asString equals: 'Tue 2000-02-29 00:00:00 UTC'.
+	date:: DateTime nanosecondsSinceEpoch: 951868800000000000.
+	assert: date asString equals: 'Wed 2000-03-01 00:00:00 UTC'.
+
+	date:: DateTime nanosecondsSinceEpoch: 1077926400000000000.
+	assert: date asString equals: 'Sat 2004-02-28 00:00:00 UTC'.
+	date:: DateTime nanosecondsSinceEpoch: 1078012800000000000.
+	assert: date asString equals: 'Sun 2004-02-29 00:00:00 UTC'.
+	date:: DateTime nanosecondsSinceEpoch: 1078099200000000000.
+	assert: date asString equals: 'Mon 2004-03-01 00:00:00 UTC'.
+
+	date:: DateTime nanosecondsSinceEpoch: 4107456000000000000.
+	assert: date asString equals: 'Sun 2100-02-28 00:00:00 UTC'.
+	date:: DateTime nanosecondsSinceEpoch: 4107542400000000000.
+	assert: date asString equals: 'Mon 2100-03-01 00:00:00 UTC'.
+	date:: DateTime nanosecondsSinceEpoch: 4107628800000000000.
+	assert: date asString equals: 'Tue 2100-03-02 00:00:00 UTC'.
+)
+public testDateTimeMoonLanding = (
+	| date |
+	date:: DateTime nanosecondsSinceEpoch: -14182916000000000.
+	assert: date isKindOfDateTime.
+	assert: date isUtc.
+	assert: date asString equals: 'Sun 1969-07-20 20:18:04 UTC'.
+	assert: date asStringIso8601 equals: '1969-07-20T20:18:04.000Z'.
+	assert: date weekday equals: 7.
+	assert: date year equals: 1969.
+	assert: date month equals: 7.
+	assert: date day equals: 20.
+	assert: date hour equals: 20.
+	assert: date minute equals: 18.
+	assert: date second equals: 4.
+	assert: date timeZoneName equals: 'UTC'.
+)
+public testDateTimeNowLocal = (
+	| date |
+	date:: DateTime nowLocal.
+	assert: date isKindOfDateTime.
+	deny: date isUtc.
+	deny: (date asStringIso8601 endsWith: 'Z').
+	assert: (date weekday between: 1 and: 7).
+	assert: date year >= 2022.
+	assert: (date month between: 1 and: 12).
+	assert: (date day between: 1 and: 31).
+	assert: (date hour between: 0 and: 23).
+	assert: (date minute between: 0 and: 59).
+	assert: (date second between: 0 and: 59).
+	(* The local time zone could be anything, even UTC. *)
+	assert: date timeZoneName isKindOfString.
+)
+public testDateTimeNowUtc = (
+	| date |
+	date:: DateTime nowUtc.
+	assert: date isUtc.
+	assert: date isKindOfDateTime.
+	assert: (date asStringIso8601 endsWith: 'Z').
+	assert: (date weekday between: 1 and: 7).
+	assert: date year >= 2022.
+	assert: (date month between: 1 and: 12).
+	assert: (date day between: 1 and: 31).
+	assert: (date hour between: 0 and: 23).
+	assert: (date minute between: 0 and: 59).
+	assert: (date second between: 0 and: 59).
+	assert: date timeZoneName equals: 'UTC'.
+)
+public testDateTimeSqueakEpoch = (
+	| date |
+	date:: DateTime nanosecondsSinceEpoch: -2177427600000000000.
+	assert: date isKindOfDateTime.
+	assert: date isUtc.
+	assert: date asString equals: 'Tue 1901-01-01 07:00:00 UTC'.
+	assert: date asStringIso8601 equals: '1901-01-01T07:00:00.000Z'.
+	assert: date weekday equals: 2.
+	assert: date year equals: 1901.
+	assert: date month equals: 1.
+	assert: date day equals: 1.
+	assert: date hour equals: 7.
+	assert: date minute equals: 0.
+	assert: date second equals: 0.
+	assert: date timeZoneName equals: 'UTC'.
+)
+public testDateTimeUnixEpoch = (
+	| date |
+	date:: DateTime nanosecondsSinceEpoch: 0.
+	assert: date isKindOfDateTime.
+	assert: date isUtc.
+	assert: date asString equals: 'Thu 1970-01-01 00:00:00 UTC'.
+	assert: date asStringIso8601 equals: '1970-01-01T00:00:00.000Z'.
+	assert: date weekday equals: 4.
+	assert: date year equals: 1970.
+	assert: date month equals: 1.
+	assert: date day equals: 1.
+	assert: date hour equals: 0.
+	assert: date minute equals: 0.
+	assert: date second equals: 0.
+	assert: date timeZoneName equals: 'UTC'.
+)
+public testDateTimeWindowsEpoch = (
+	| date |
+	date:: DateTime nanosecondsSinceEpoch: -11676096000000000000.
+	assert: date isKindOfDateTime.
+	assert: date isUtc.
+	assert: date asString equals: 'Sat 1600-01-01 00:00:00 UTC'.
+	assert: date asStringIso8601 equals: '1600-01-01T00:00:00.000Z'.
+	assert: date weekday equals: 6.
+	assert: date year equals: 1600.
+	assert: date month equals: 1.
+	assert: date day equals: 1.
+	assert: date hour equals: 0.
+	assert: date minute equals: 0.
+	assert: date second equals: 0.
+	assert: date timeZoneName equals: 'UTC'.
+)
+) : (
+TEST_CONTEXT = ()
+)
+public class StopwatchTests = TestContext () (
+busyMilliseconds: millis = (
+	| stopwatch = Stopwatch new. |
+	stopwatch start.
+	[stopwatch elapsedMilliseconds < millis] whileTrue.
+)
+public testStopwatchAccumulate = (
+	| stopwatch = Stopwatch new. |
+	stopwatch start.
+	busyMilliseconds: 5.
+	stopwatch stop.
+	assert: [stopwatch elapsedMilliseconds >= 5].
+	assert: [stopwatch elapsedMicroseconds >= 5000].
+
+	busyMilliseconds: 5.
+
+	stopwatch start.
+	busyMilliseconds: 5.
+	stopwatch stop.
+	assert: [stopwatch elapsedMilliseconds >= 10].
+	assert: [stopwatch elapsedMicroseconds >= 10000].
+
+	busyMilliseconds: 5.
+
+	stopwatch start.
+	busyMilliseconds: 5.
+	stopwatch stop.
+	assert: [stopwatch elapsedMilliseconds >= 15].
+	assert: [stopwatch elapsedMicroseconds >= 15000].
+)
+public testStopwatchDoubleStart = (
+	| stopwatch = Stopwatch new. |
+	stopwatch start.
+
+	busyMilliseconds: 5.
+
+	stopwatch start. (* Should not reset the elapsed time. *)
+
+	busyMilliseconds: 5.
+
+	assert: [stopwatch elapsedMilliseconds >= 10].
+	assert: [stopwatch elapsedMicroseconds >= 10000].
+	stopwatch stop.
+	assert: [stopwatch elapsedMilliseconds >= 10].
+	assert: [stopwatch elapsedMicroseconds >= 10000].
+)
+public testStopwatchEqualityIsIdentity = (
+	|
+	stopwatch1 = Stopwatch new.
+	stopwatch2 = Stopwatch new.
+	|
+	assert: stopwatch1 elapsedMilliseconds equals: stopwatch2 elapsedMilliseconds.
+	assert: stopwatch1 elapsedMicroseconds equals: stopwatch2 elapsedMicroseconds.
+	deny: stopwatch1 equals: stopwatch2.
+)
+public testStopwatchInitialState = (
+	| stopwatch = Stopwatch new. |
+	assert: stopwatch elapsedMilliseconds equals: 0.
+	assert: stopwatch elapsedMicroseconds equals: 0.
+)
+public testStopwatchInitiallyStopped = (
+	| stopwatch = Stopwatch new. |
+	busyMilliseconds: 5.
+
+	assert: stopwatch elapsedMilliseconds equals: 0.
+	assert: stopwatch elapsedMicroseconds equals: 0.
+)
+public testStopwatchMovesAfterStarted = (
+	| stopwatch |
+	stopwatch:: Stopwatch new.
+	stopwatch start.
+	[stopwatch elapsedMilliseconds < 5] whileTrue.
+
+	stopwatch:: Stopwatch new.
+	stopwatch start.
+	[stopwatch elapsedMicroseconds < 5] whileTrue.
+)
+public testStopwatchStartStopValues = (
+	| stopwatch = Stopwatch new. |
+	assert: stopwatch start equals: stopwatch.
+	assert: stopwatch stop equals: stopwatch.
+)
+) : (
+TEST_CONTEXT = ()
+)
+) : (
+)

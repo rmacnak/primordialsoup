@@ -15,6 +15,7 @@ class OS {
   static void Shutdown();
 
   static int64_t CurrentMonotonicNanos();
+  static int64_t CurrentRealtimeNanos();
 
   static const char* Name();
   static intptr_t NumberOfAvailableProcessors();

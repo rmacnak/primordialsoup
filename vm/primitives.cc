@@ -4,14 +4,18 @@
 
 #include "vm/primitives.h"
 
+#include <errno.h>
 #include <math.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #if defined(OS_FUCHSIA)
 #include <zircon/status.h>
 #include <zircon/syscalls.h>
 #elif defined(OS_EMSCRIPTEN)
 #include <emscripten.h>
+#elif defined(OS_WINDOWS)
+#include <stringapiset.h>
 #endif
 
 #include "vm/assert.h"
@@ -233,7 +237,8 @@ const bool kFailure = false;
   V(256, Platform_numberOfProcessors)                                          \
   V(257, Platform_operatingSystem)                                             \
   V(264, Time_monotonicNanos)                                                  \
-  V(265, Time_utcEpochNanos)                                                   \
+  V(265, Time_realtimeNanos)                                                   \
+  V(266, Time_localtime)                                                       \
   V(272, ZXStatus_getString)                                                   \
   V(273, ZXHandle_close)                                                       \
   V(274, ZXChannel_create)                                                     \
@@ -2266,8 +2271,54 @@ DEFINE_PRIMITIVE(Time_monotonicNanos) {
 }
 
 
-DEFINE_PRIMITIVE(Time_utcEpochNanos) { UNIMPLEMENTED(); return kSuccess; }
+DEFINE_PRIMITIVE(Time_realtimeNanos) {
+  ASSERT(num_args == 0);
+  int64_t now = OS::CurrentRealtimeNanos();
+  RETURN_MINT(now);
+}
 
+DEFINE_PRIMITIVE(Time_localtime) {
+  ASSERT(num_args == 2);
+  MINT_ARGUMENT(seconds, 1);
+  Array result = static_cast<Array>(I->Stack(0));
+  if (!result->IsArray() || (result->Size() < 9)) return kFailure;
+
+  struct tm dst;
+#if defined(OS_WINDOWS)
+  __time64_t src = seconds;
+  intptr_t status = _localtime64_s(&dst, &src);
+  if (status != 0) {
+    RETURN_SMI(status);
+  }
+  TIME_ZONE_INFORMATION info;
+  memset(&info, 0, sizeof(info));
+  GetTimeZoneInformation(&info);
+  intptr_t utc_offset = info.Bias * -60;
+  wchar_t* wchar_name = dst.tm_isdst ? info.DaylightName : info.StandardName;
+  intptr_t length = WideCharToMultiByte(CP_UTF8, 0, wchar_name, -1,
+                                        NULL, 0, NULL, NULL);
+  String tzname = H->AllocateString(length);  // SAFEPOINT
+  WideCharToMultiByte(CP_UTF8, 0, wchar_name, -1,
+                      reinterpret_cast<char*>(tzname->element_addr(0)), length,
+                      NULL, NULL);
+#else
+  time_t src = seconds;
+  intptr_t status = 0;
+  if (localtime_r(&src, &dst) == NULL) {
+    status = errno;
+    RETURN_SMI(status);
+  }
+  intptr_t utc_offset = dst.tm_gmtoff;
+  intptr_t length = strlen(dst.tm_zone);
+  String tzname = H->AllocateString(length);  // SAFEPOINT
+  memcpy(tzname->element_addr(0), dst.tm_zone, length);
+#endif
+
+  result = static_cast<Array>(I->Stack(0));
+  result->set_element(7, SmallInteger::New(utc_offset));
+  result->set_element(8, tzname);
+  RETURN_SMI(status);
+}
 
 DEFINE_PRIMITIVE(print) {
   ASSERT(num_args == 1);

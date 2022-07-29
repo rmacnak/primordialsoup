@@ -2092,33 +2092,6 @@ public class SmallInteger _cannotInstantiate = Integer (
 ) (
 ) : (
 )
-(* Measures durations using the system's monotonic clock. *)
-public class Stopwatch = (
-|
-private cumulativeNanos ::= 0.
-private startNanos
-|) (
-public elapsedMicroseconds ^<Integer> = (
-	^elapsedNanoseconds quo: 1000
-)
-public elapsedMilliseconds ^<Integer> = (
-	^elapsedNanoseconds quo: 1000000
-)
-public elapsedNanoseconds ^<Integer> = (
-	nil = startNanos ifTrue: [^cumulativeNanos].
-	^cumulativeNanos + (currentMonotonicNanos - startNanos)
-)
-public start = (
-	nil = startNanos ifFalse: [^self (* Already running. *)].
-	startNanos:: currentMonotonicNanos.
-)
-public stop = (
-	nil = startNanos ifTrue: [^self (* Already stopped. *)].
-	cumulativeNanos:: cumulativeNanos + (currentMonotonicNanos - startNanos).
-	startNanos:: nil.
-)
-) : (
-)
 (* An immutable, fixed-length sequence of integers between 0 and 255. Often interpreted as UTF-8. *)
 public class String _cannotInstantiate = (
 ) (
@@ -2546,10 +2519,6 @@ private classOf: object = (
 )
 private currentActivation ^<Activation> = (
 	(* :pragma: primitive: 164 *)
-	panic.
-)
-private currentMonotonicNanos = (
-	(* :pragma: primitive: 264 *)
 	panic.
 )
 private definingActivationOf: closure <Closure> ^<Activation> = (

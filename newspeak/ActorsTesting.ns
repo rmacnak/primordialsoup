@@ -5,7 +5,7 @@ class ActorsTesting usingPlatform: p actors: a testActor: ta minitest: m = (|
 	private List = p collections List.
 	private Resolver = a Resolver.
 	private Timer = a Timer.
-	private Stopwatch = p kernel Stopwatch.
+	private Stopwatch = p time Stopwatch.
 	private Actor = a Actor.
 	private Promise = a Promise.
 |) (
