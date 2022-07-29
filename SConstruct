@@ -175,6 +175,9 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '/NXCOMPAT',
       '/DEBUG',  # Debug symbols
     ]
+    env['LIBS'] = [
+      'Bcrypt.lib',
+    ]
   elif target_os == 'emscripten':
     env['LINKFLAGS'] += [
       '-s', 'ALLOW_MEMORY_GROWTH=1',
@@ -395,22 +398,22 @@ def Main():
       raise Exception("Android NDK paths not known for this OS")
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
-        + android_host_name + '/bin/armv7a-linux-androideabi24-clang++'
+        + android_host_name + '/bin/armv7a-linux-androideabi28-clang++'
     BuildVM(target_cxx, 'arm', 'android', False, None);
     BuildVM(target_cxx, 'arm', 'android', True, None);
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
-        + android_host_name + '/bin/aarch64-linux-android24-clang++'
+        + android_host_name + '/bin/aarch64-linux-android28-clang++'
     BuildVM(target_cxx, 'arm64', 'android', False, None);
     BuildVM(target_cxx, 'arm64', 'android', True, None);
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
-        + android_host_name + '/bin/i686-linux-android24-clang++'
+        + android_host_name + '/bin/i686-linux-android28-clang++'
     BuildVM(target_cxx, 'ia32', 'android', False, None);
     BuildVM(target_cxx, 'ia32', 'android', True, None);
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
-        + android_host_name + '/bin/x86_64-linux-android24-clang++'
+        + android_host_name + '/bin/x86_64-linux-android28-clang++'
     BuildVM(target_cxx, 'x64', 'android', False, None);
     BuildVM(target_cxx, 'x64', 'android', True, None);
 

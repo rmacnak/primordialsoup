@@ -239,6 +239,7 @@ const bool kFailure = false;
   V(264, Time_monotonicNanos)                                                  \
   V(265, Time_realtimeNanos)                                                   \
   V(266, Time_localtime)                                                       \
+  V(267, Random_getEntropy)                                                    \
   V(272, ZXStatus_getString)                                                   \
   V(273, ZXHandle_close)                                                       \
   V(274, ZXChannel_create)                                                     \
@@ -2319,6 +2320,18 @@ DEFINE_PRIMITIVE(Time_localtime) {
   result->set_element(8, tzname);
   RETURN_SMI(status);
 }
+
+
+DEFINE_PRIMITIVE(Random_getEntropy) {
+  ASSERT(num_args == 2);
+  SMI_ARGUMENT(size, 0);
+  if (size < 0) return kFailure;
+  ByteArray buffer = static_cast<ByteArray>(I->Stack(1));
+  if (!buffer->IsByteArray() || (buffer->Size() < size)) return kFailure;
+  intptr_t status = OS::GetEntropy(buffer->element_addr(0), size);
+  RETURN_SMI(status);
+}
+
 
 DEFINE_PRIMITIVE(print) {
   ASSERT(num_args == 1);

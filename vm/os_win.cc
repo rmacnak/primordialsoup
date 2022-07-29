@@ -7,6 +7,7 @@
 
 #include "vm/os.h"
 
+#include <bcrypt.h>
 #include <malloc.h>
 #include <process.h>
 #include <time.h>
@@ -36,6 +37,18 @@ static int64_t GetCurrentMonotonicFrequency() {
     FATAL("QueryPerformanceCounter not supported");
   }
   return qpc_ticks_per_second;
+}
+
+
+intptr_t OS::GetEntropy(void* buffer, size_t size) {
+  if (size <= 0) {
+    return 0;
+  }
+  NTSTATUS status = BCryptGenRandom(NULL,
+                                    reinterpret_cast<PUCHAR>(buffer),
+                                    static_cast<ULONG>(size),
+                                    BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+  return status >= 0 ? 0 : 1;
 }
 
 

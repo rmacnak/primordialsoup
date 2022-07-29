@@ -17,6 +17,8 @@ class OS {
   static int64_t CurrentMonotonicNanos();
   static int64_t CurrentRealtimeNanos();
 
+  static intptr_t GetEntropy(void* buffer, size_t size);
+
   static const char* Name();
   static intptr_t NumberOfAvailableProcessors();
 

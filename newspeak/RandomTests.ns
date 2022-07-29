@@ -1,0 +1,53 @@
+class RandomTests usingPlatform: p minitest: m = (|
+private TestContext = m TestContext.
+private Random = p random Random.
+|) (
+public class RandomTest = TestContext () (
+public testRandomDeterminism = (
+	|
+	random1 = Random seed: 42.
+	random2 = Random seed: 42.
+	|
+	1 to: 64000 do:
+		[:i | assert: (random1 nextInteger: i) equals: (random2 nextInteger: i)].
+	64000 timesRepeat:
+		[assert: random1 nextBoolean equals: random2 nextBoolean].
+	64000 timesRepeat:
+		[assert: random1 nextFloat equals: random2 nextFloat].
+)
+public testRandomNextBoolean = (
+	| random = Random new. |
+	64000 timesRepeat:
+		[ | b = random nextBoolean. |
+		 assert: b isKindOfBoolean].
+)
+public testRandomNextFloat = (
+	| random = Random new. |
+	64000 timesRepeat:
+		[ | f = random nextFloat. |
+		 assert: f isKindOfFloat.
+		 assert: f >= 0.
+		 assert: f < 1].
+)
+public testRandomNextInteger = (
+	| random = Random new. |
+	1 to: 64000 do:
+		[:limit | | i = random nextInteger: limit. |
+		 assert: i isKindOfInteger.
+		 assert: i >= 0.
+		 assert: i < limit].
+)
+public testRandomNextIntegerErrors = (
+	| random = Random new. |
+	should: [random nextInteger: -1] signal: Exception.
+	should: [random nextInteger: nil] signal: Exception.
+	should: [random nextInteger: true] signal: Exception.
+	should: [random nextInteger: false] signal: Exception.
+	should: [random nextInteger: '10'] signal: Exception.
+	should: [random nextInteger: 4 asFloat] signal: Exception.
+)
+) : (
+TEST_CONTEXT = ()
+)
+) : (
+)

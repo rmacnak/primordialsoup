@@ -11,6 +11,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/random.h>
 #include <time.h>
 
 #include "vm/assert.h"
@@ -39,6 +40,11 @@ int64_t OS::CurrentRealtimeNanos() {
   result += ts.tv_nsec;
 
   return result;
+}
+
+
+intptr_t OS::GetEntropy(void* buffer, size_t size) {
+  return getentropy(buffer, size);
 }
 
 

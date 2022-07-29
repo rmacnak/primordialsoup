@@ -7,12 +7,13 @@
 
 #include "vm/os.h"
 
-#include <android/log.h>  // NOLINT
-#include <errno.h>  // NOLINT
-#include <time.h>  // NOLINT
-#include <sys/time.h>  // NOLINT
-#include <sys/types.h>  // NOLINT
-#include <unistd.h>  // NOLINT
+#include <android/log.h>
+#include <errno.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/random.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "vm/assert.h"
 
@@ -49,6 +50,14 @@ int64_t OS::CurrentRealtimeNanos() {
   result += ts.tv_nsec;
 
   return result;
+}
+
+
+intptr_t OS::GetEntropy(void* buffer, size_t size) {
+  if (getentropy(buffer, size) == -1) {
+    return errno;
+  }
+  return 0;
 }
 
 

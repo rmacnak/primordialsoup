@@ -1,0 +1,63 @@
+class Random usingPlatform: platform = (
+) (
+public class Random seed: seed <Integer> = (
+	|
+	private state0 ::= seed & 16rFFFFFFFFFFFFFFFF.
+	private state1 ::= 0.
+	|
+) (
+(* Return a uniformly distributed boolean value. *)
+public nextBoolean ^<Boolean> = (
+	^nextState & 1 = 1
+)
+public nextBytes: byteCount <Integer> ^<ByteArray> = (
+	| result |
+	byteCount < 0 ifTrue: [^(ArgumentError value: byteCount) signa].
+	result:: ByteArray new: byteCount.
+	1 to: byteCount do:
+		[:index | result at: index put: (nextState & 255)].
+	^result
+)
+(* Return a uniformly distributed float value between 0.0 and 1.0. *)
+public nextFloat ^<Float> = (
+	| bits = ByteArray new: 8. |
+	bits int64At: 0 put: nextState
+		& 16r000FFFFFFFFFFFFF (* 52-bit mantissa *)
+		| 16r3FE0000000000000. (* sign 0, exponent 0 *)
+	^bits float64At: 0
+)
+(* Return a uniformly distributed integer value between 0 and [max]. *)
+public nextInteger: max <Integer> ^<Integer> = (
+	| moduloMax value |
+	max <= 0 ifTrue: [^(ArgumentError value: max) signal].
+	max >= 16rFFFFFFFF ifTrue: [^(ArgumentError value: max) signal].
+	(* Account for modulo bias. *)
+	moduloMax:: 16rFFFFFFFF - (16rFFFFFFFF \\ max).
+	[value:: nextState & 16rFFFFFFFF. value >= moduloMax] whileTrue.
+	^value \\ max
+)
+private nextState ^<Integer> = (
+	(* xorshift128+. Sebastiano Vigna. "Further scramblings of Marsaglia’s xorshift generators." *)
+	| s1 s0 result |
+	s1:: state0.
+	s0:: state1.
+	result:: s0 + s1 & 16rFFFFFFFFFFFFFFFF.
+	state0:: s0.
+	s1:: s1 << 23 & 16rFFFFFFFFFFFFFFFF bitXor: s1.
+	state1:: ((s1 bitXor: s0) bitXor: (s1 >> 18)) bitXor: (s0 >> 5).
+	^result
+)
+) : (
+private getEntropy: buffer <ByteArray> size: size <Integer> = (
+	(* :pragma: primitive: 267 *)
+	panic.
+)
+public new ^<Random> = (
+	| buffer = ByteArray new: 8. status |
+	status:: getEntropy: buffer size: 8.
+	0 = status ifFalse: [^Error signal: status asString].
+	^self seed: (buffer int64At: 0)
+)
+)
+) : (
+)

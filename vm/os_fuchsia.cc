@@ -35,6 +35,12 @@ int64_t OS::CurrentRealtimeNanos() {
 }
 
 
+intptr_t OS::GetEntropy(void* buffer, size_t size) {
+  zx_cprng_draw(buffer, size);
+  return ZX_OK;
+}
+
+
 const char* OS::Name() { return "fuchsia"; }
 
 

@@ -4,6 +4,7 @@ testConfigs = {
 	manifest KernelTestsConfiguration packageTestsUsing: manifest.
 	manifest KernelWeakTestsConfiguration packageTestsUsing: manifest.
 	manifest TimeTestsConfiguration packageTestsUsing: manifest.
+	manifest RandomTestsConfiguration packageTestsUsing: manifest.
 	manifest MinitestTestsConfiguration packageTestsUsing: manifest.
 	manifest AccessModifierTestingConfiguration packageTestsUsing: manifest.
 	manifest ActorsTestingConfiguration packageTestsUsing: manifest.

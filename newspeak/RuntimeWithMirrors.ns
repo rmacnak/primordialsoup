@@ -12,6 +12,7 @@ public Newspeak2PrimordialSoupCompilation = manifest Newspeak2PrimordialSoupComp
 
 private PrimordialFuel = manifest PrimordialFuel.
 private Time = manifest Time.
+private Random = manifest Random.
 private Zircon = manifest Zircon.
 private JS = manifest JS.
 |) (
@@ -22,6 +23,7 @@ public mirrors = Mirrors usingPlatform: self internalKernel: ik namespace: outer
 public victoryFuel = PrimordialFuel usingPlatform: self internalKernel: ik.
 public actors = Actors usingPlatform: self internalKernel: ik.
 public time = Time usingPlatform: self.
+public random = Random usingPlatform: self.
 public zircon = Zircon usingPlatform: self internalKernel: ik.
 public js = JS usingPlatform: self internalKernel: ik.
 |) (
