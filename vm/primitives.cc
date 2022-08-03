@@ -286,7 +286,7 @@ const bool kFailure = false;
     right->IsLargeInteger())                                                   \
 
 #define IS_FLOAT_OP(left, right)                                               \
-  (left->IsFloat64() || right->IsFloat64())                                    \
+  (left->IsFloat() || right->IsFloat())                                        \
 
 #define SMI_VALUE(integer)                                                     \
   static_cast<SmallInteger>(integer)->value()                                  \
@@ -311,8 +311,8 @@ const bool kFailure = false;
     raw_float = static_cast<SmallInteger>(number)->value();                    \
   } else if (number->IsMediumInteger()) {                                      \
     raw_float = static_cast<MediumInteger>(number)->value();                   \
-  } else if (number->IsFloat64()) {                                            \
-    raw_float = static_cast<Float64>(number)->value();                         \
+  } else if (number->IsFloat()) {                                              \
+    raw_float = static_cast<Float>(number)->value();                           \
   } else if (number->IsLargeInteger()) {                                       \
     raw_float = LargeInteger::AsDouble(static_cast<LargeInteger>(number));     \
   } else {                                                                     \
@@ -324,8 +324,8 @@ const bool kFailure = false;
     raw_float = static_cast<SmallInteger>(number)->value();                    \
   } else if (number->IsMediumInteger()) {                                      \
     raw_float = static_cast<MediumInteger>(number)->value();                   \
-  } else if (number->IsFloat64()) {                                            \
-    raw_float = static_cast<Float64>(number)->value();                         \
+  } else if (number->IsFloat()) {                                              \
+    raw_float = static_cast<Float>(number)->value();                           \
   } else if (number->IsLargeInteger()) {                                       \
     raw_float = LargeInteger::AsDouble(static_cast<LargeInteger>(number));     \
   } else {                                                                     \
@@ -352,8 +352,8 @@ const bool kFailure = false;
 
 #define FLOAT_ARGUMENT(name, index)                                            \
   double name;                                                                 \
-  if (I->Stack(index)->IsFloat64()) {                                          \
-    name = static_cast<Float64>(I->Stack(index))->value();                     \
+  if (I->Stack(index)->IsFloat()) {                                            \
+    name = static_cast<Float>(I->Stack(index))->value();                       \
   } else {                                                                     \
     return kFailure;                                                           \
   }                                                                            \
@@ -383,7 +383,7 @@ const bool kFailure = false;
   RETURN(LargeInteger::Reduce(large_integer, H));                              \
 
 #define RETURN_FLOAT(raw_float)                                                \
-  Float64 result = H->AllocateFloat64();                                       \
+  Float result = H->AllocateFloat();                                           \
   result->set_value(raw_float);                                                \
   RETURN(result);                                                              \
 
@@ -931,8 +931,8 @@ DEFINE_PRIMITIVE(Number_greaterOrEqual) {
 DEFINE_PRIMITIVE(Number_asInteger) {
   ASSERT(num_args == 0);
   Object receiver = I->Stack(0);
-  if (receiver->IsFloat64()) {
-    double raw_receiver = static_cast<Float64>(receiver)->value();
+  if (receiver->IsFloat()) {
+    double raw_receiver = static_cast<Float>(receiver)->value();
     Object result;
     if (LargeInteger::FromDouble(raw_receiver, &result, H)) {
       RETURN(result);
@@ -1174,8 +1174,8 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
 
 #define FLOAT_FUNCTION_1(func)                                  \
   ASSERT(num_args == 0);                                        \
-  Float64 rcvr = static_cast<Float64>(I->Stack(0));             \
-  if (!rcvr->IsFloat64()) {                                     \
+  Float rcvr = static_cast<Float>(I->Stack(0));                 \
+  if (!rcvr->IsFloat()) {                                       \
     return kFailure;                                            \
   }                                                             \
   RETURN_FLOAT(func(rcvr->value()));                            \
@@ -1183,12 +1183,12 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
 
 #define FLOAT_FUNCTION_2(func)                                  \
   ASSERT(num_args == 1);                                        \
-  Float64 rcvr = static_cast<Float64>(I->Stack(1));             \
-  Float64 arg = static_cast<Float64>(I->Stack(0));              \
-  if (!rcvr->IsFloat64()) {                                     \
+  Float rcvr = static_cast<Float>(I->Stack(1));                 \
+  Float arg = static_cast<Float>(I->Stack(0));                  \
+  if (!rcvr->IsFloat()) {                                       \
     return kFailure;                                            \
   }                                                             \
-  if (!arg->IsFloat64()) {                                      \
+  if (!arg->IsFloat()) {                                        \
     return kFailure;                                            \
   }                                                             \
   RETURN_FLOAT(func(rcvr->value(), arg->value()));              \
@@ -2458,8 +2458,8 @@ DEFINE_PRIMITIVE(Number_asString) {
   } else if (receiver->IsMediumInteger()) {
     int64_t value = static_cast<MediumInteger>(receiver)->value();
     length = snprintf(buffer, sizeof(buffer), "%" Pd64 "", value);
-  } else if (receiver->IsFloat64()) {
-    double value = static_cast<Float64>(receiver)->value();
+  } else if (receiver->IsFloat()) {
+    double value = static_cast<Float>(receiver)->value();
     length = DoubleToCStringAsShortest(value, buffer, sizeof(buffer));
   } else if (receiver->IsLargeInteger()) {
     LargeInteger large = static_cast<LargeInteger>(receiver);
@@ -3580,8 +3580,8 @@ DEFINE_PRIMITIVE(JS_pushValue) {
     _JS_pushInteger(value);
     RETURN_SELF();
   }
-  if (object->IsFloat64()) {
-    double value = static_cast<Float64>(object)->value();
+  if (object->IsFloat()) {
+    double value = static_cast<Float>(object)->value();
     _JS_pushFloat(value);
     RETURN_SELF();
   }

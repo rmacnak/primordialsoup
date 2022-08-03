@@ -26,13 +26,13 @@ intptr_t HeapObject::HeapSizeFromClass() const {
     return static_cast<const ForwardingCorpse>(*this)->overflow_size();
   case kFreeListElementCid:
     return static_cast<const FreeListElement>(*this)->overflow_size();
-  case kSmiCid:
+  case kSmallIntegerCid:
     UNREACHABLE();
-  case kMintCid:
+  case kMediumIntegerCid:
     return AllocationSize(sizeof(MediumInteger::Layout));
-  case kFloat64Cid:
-    return AllocationSize(sizeof(Float64::Layout));
-  case kBigintCid:
+  case kFloatCid:
+    return AllocationSize(sizeof(Float::Layout));
+  case kLargeIntegerCid:
     return AllocationSize(sizeof(LargeInteger::Layout) +
         sizeof(digit_t) * LargeInteger::Cast(*this)->capacity());
   case kByteArrayCid:
@@ -69,11 +69,11 @@ void HeapObject::Pointers(Object** from, Object** to) {
   case kIllegalCid:
   case kForwardingCorpseCid:
   case kFreeListElementCid:
-  case kSmiCid:
+  case kSmallIntegerCid:
     UNREACHABLE();
-  case kMintCid:
-  case kBigintCid:
-  case kFloat64Cid:
+  case kMediumIntegerCid:
+  case kLargeIntegerCid:
+  case kFloatCid:
   case kByteArrayCid:
   case kStringCid:
     // No pointers (or only smis for size/hash)
@@ -121,17 +121,17 @@ char* Object::ToCString(Heap* heap) const {
   case kForwardingCorpseCid:
   case kFreeListElementCid:
     UNREACHABLE();
-  case kSmiCid:
+  case kSmallIntegerCid:
     return OS::PrintStr("a SmallInteger(%" Pd ")",
                         static_cast<const SmallInteger>(*this)->value());
-  case kMintCid:
+  case kMediumIntegerCid:
     return OS::PrintStr("a MediumInteger(%" Pd64 ")",
                         MediumInteger::Cast(*this)->value());
-  case kBigintCid:
+  case kLargeIntegerCid:
     return OS::PrintStr("a LargeInteger(%" Pd " digits)",
                         LargeInteger::Cast(*this)->size());
-  case kFloat64Cid:
-    return OS::PrintStr("a Float(%lf)", Float64::Cast(*this)->value());
+  case kFloatCid:
+    return OS::PrintStr("a Float(%lf)", Float::Cast(*this)->value());
   case kByteArrayCid:
     return OS::PrintStr("a ByteArray(%" Pd ")", ByteArray::Cast(*this)->Size());
   case kStringCid:
@@ -150,7 +150,8 @@ char* Object::ToCString(Heap* heap) const {
     return strdup("a Closure");
   default:
     Behavior cls = Klass(heap);
-    Behavior theMetaclass = heap->ClassAt(kSmiCid)->Klass(heap)->Klass(heap);
+    Behavior theMetaclass =
+        heap->ClassAt(kSmallIntegerCid)->Klass(heap)->Klass(heap);
     if (cls->Klass(heap) == theMetaclass) {
       ASSERT(cls->HeapSize() >= AllocationSize(sizeof(Metaclass::Layout)));
       // A Metaclass.

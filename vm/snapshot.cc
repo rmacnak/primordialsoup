@@ -336,7 +336,7 @@ class FloatCluster : public Cluster {
     ref_stop_ = ref_start_ + num_objects;
     for (intptr_t i = 0; i < num_objects; i++) {
       double value = d->Read<double>();
-      Float64 object = h->AllocateFloat64(Heap::kSnapshot);
+      Float object = h->AllocateFloat(Heap::kSnapshot);
       object->set_value(value);
       d->RegisterRef(object);
     }
@@ -405,10 +405,10 @@ void Deserializer::Deserialize() {
 
   ObjectStore os = static_cast<ObjectStore>(ReadRef());
 
-  heap_->RegisterClass(kSmiCid, os->SmallInteger());
-  heap_->RegisterClass(kMintCid, os->MediumInteger());
-  heap_->RegisterClass(kBigintCid, os->LargeInteger());
-  heap_->RegisterClass(kFloat64Cid, os->Float64());
+  heap_->RegisterClass(kSmallIntegerCid, os->SmallInteger());
+  heap_->RegisterClass(kMediumIntegerCid, os->MediumInteger());
+  heap_->RegisterClass(kLargeIntegerCid, os->LargeInteger());
+  heap_->RegisterClass(kFloatCid, os->Float());
   heap_->RegisterClass(kByteArrayCid, os->ByteArray());
   heap_->RegisterClass(kStringCid, os->String());
   heap_->RegisterClass(kArrayCid, os->Array());

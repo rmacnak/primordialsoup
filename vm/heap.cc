@@ -1198,8 +1198,8 @@ void Heap::ForwardClassIds() {
   // For forwarded classes, use the cid of the old class. For most classes, we
   // could use the cid of the new class or a newlly allocated cid (provided all
   // the instances are updated). But for the classes whose representation is
-  // defined by the VM we need to keep the fixed cids (e.g., kSmiCid), so we may
-  // as well treat them all the same way.
+  // defined by the VM we need to keep the fixed cids (e.g., kSmallIntegerCid),
+  // so we may as well treat them all the same way.
   Object nil = interpreter_->nil_obj();
   for (intptr_t old_cid = kFirstLegalCid;
        old_cid < class_table_size_;

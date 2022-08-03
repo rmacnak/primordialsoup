@@ -245,7 +245,7 @@ class Heap {
   MediumInteger AllocateMediumInteger(Allocator allocator = kNormal) {
     const intptr_t heap_size = AllocationSize(sizeof(MediumInteger::Layout));
     uword addr = Allocate(heap_size, allocator);
-    HeapObject obj = HeapObject::Initialize(addr, kMintCid, heap_size);
+    HeapObject obj = HeapObject::Initialize(addr, kMediumIntegerCid, heap_size);
     MediumInteger result = static_cast<MediumInteger>(obj);
     ASSERT(result->IsMediumInteger());
     ASSERT(result->HeapSize() == heap_size);
@@ -257,7 +257,7 @@ class Heap {
     const intptr_t heap_size = AllocationSize(capacity * sizeof(digit_t) +
                                               sizeof(LargeInteger::Layout));
     uword addr = Allocate(heap_size, allocator);
-    HeapObject obj = HeapObject::Initialize(addr, kBigintCid, heap_size);
+    HeapObject obj = HeapObject::Initialize(addr, kLargeIntegerCid, heap_size);
     LargeInteger result = static_cast<LargeInteger>(obj);
     result->set_capacity(capacity);
     ASSERT(result->IsLargeInteger());
@@ -265,12 +265,12 @@ class Heap {
     return result;
   }
 
-  Float64 AllocateFloat64(Allocator allocator = kNormal) {
-    const intptr_t heap_size = AllocationSize(sizeof(Float64::Layout));
+  Float AllocateFloat(Allocator allocator = kNormal) {
+    const intptr_t heap_size = AllocationSize(sizeof(Float::Layout));
     uword addr = Allocate(heap_size, allocator);
-    HeapObject obj = HeapObject::Initialize(addr, kFloat64Cid, heap_size);
-    Float64 result = static_cast<Float64>(obj);
-    ASSERT(result->IsFloat64());
+    HeapObject obj = HeapObject::Initialize(addr, kFloatCid, heap_size);
+    Float result = static_cast<Float>(obj);
+    ASSERT(result->IsFloat());
     ASSERT(result->HeapSize() == heap_size);
     return result;
   }

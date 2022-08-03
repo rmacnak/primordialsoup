@@ -64,10 +64,10 @@ enum ClassIds {
 
   kFirstLegalCid = 3,
 
-  kSmiCid = 3,
-  kMintCid = 4,
-  kBigintCid = 5,
-  kFloat64Cid = 6,
+  kSmallIntegerCid = 3,
+  kMediumIntegerCid = 4,
+  kLargeIntegerCid = 5,
+  kFloatCid = 6,
   kByteArrayCid = 7,
   kStringCid = 8,
   kArrayCid = 9,
@@ -130,9 +130,9 @@ class Object {
   bool IsByteArray() const { return ClassId() == kByteArrayCid; }
   bool IsString() const { return ClassId() == kStringCid; }
   bool IsActivation() const { return ClassId() == kActivationCid; }
-  bool IsMediumInteger() const { return ClassId() == kMintCid; }
-  bool IsLargeInteger() const { return ClassId() == kBigintCid; }
-  bool IsFloat64() const { return ClassId() == kFloat64Cid; }
+  bool IsMediumInteger() const { return ClassId() == kMediumIntegerCid; }
+  bool IsLargeInteger() const { return ClassId() == kLargeIntegerCid; }
+  bool IsFloat() const { return ClassId() == kFloatCid; }
   bool IsWeakArray() const { return ClassId() == kWeakArrayCid; }
   bool IsEphemeron() const { return ClassId() == kEphemeronCid; }
   bool IsClosure() const { return ClassId() == kClosureCid; }
@@ -280,7 +280,7 @@ class HeapObject : public Object {
 
 intptr_t Object::ClassId() const {
   if (IsSmallInteger()) {
-    return kSmiCid;
+    return kSmallIntegerCid;
   } else {
     return static_cast<const HeapObject*>(this)->cid();
   }
@@ -619,8 +619,8 @@ class Method : public HeapObject {
   }
 };
 
-class Float64 : public HeapObject {
-  HEAP_OBJECT_IMPLEMENTATION(Float64, HeapObject)
+class Float : public HeapObject {
+  HEAP_OBJECT_IMPLEMENTATION(Float, HeapObject)
 
  public:
   inline double value() const;
@@ -718,7 +718,7 @@ class ObjectStore : public HeapObject {
   inline Behavior String() const;
   inline Behavior Closure() const;
   inline Behavior Ephemeron() const;
-  inline Behavior Float64() const;
+  inline Behavior Float() const;
   inline Behavior LargeInteger() const;
   inline Behavior MediumInteger() const;
   inline Behavior Message() const;
@@ -813,7 +813,7 @@ class Activation::Layout : public HeapObject::Layout {
   Object temps_[kMaxTemps];
 };
 
-class Float64::Layout : public HeapObject::Layout {
+class Float::Layout : public HeapObject::Layout {
  public:
   double value_;
 };
@@ -881,7 +881,7 @@ class ObjectStore::Layout : public HeapObject::Layout {
   Behavior String_;
   Behavior Closure_;
   Behavior Ephemeron_;
-  Behavior Float64_;
+  Behavior Float_;
   Behavior LargeInteger_;
   Behavior MediumInteger_;
   Behavior Message_;
@@ -1142,8 +1142,8 @@ Object* Activation::to() {
   return reinterpret_cast<Object*>(&ptr()->stack_depth_) + StackDepth();
 }
 
-double Float64::value() const { return ptr()->value_; }
-void Float64::set_value(double v) { ptr()->value_ = v; }
+double Float::value() const { return ptr()->value_; }
+void Float::set_value(double v) { ptr()->value_ = v; }
 
 SmallInteger Closure::num_copied() const {
   return Load(&ptr()->num_copied_, kNoBarrier);
@@ -1248,7 +1248,7 @@ Behavior ObjectStore::ByteArray() const { return ptr()->ByteArray_; }
 Behavior ObjectStore::String() const { return ptr()->String_; }
 Behavior ObjectStore::Closure() const { return ptr()->Closure_; }
 Behavior ObjectStore::Ephemeron() const { return ptr()->Ephemeron_; }
-Behavior ObjectStore::Float64() const { return ptr()->Float64_; }
+Behavior ObjectStore::Float() const { return ptr()->Float_; }
 Behavior ObjectStore::LargeInteger() const { return ptr()->LargeInteger_; }
 Behavior ObjectStore::MediumInteger() const { return ptr()->MediumInteger_; }
 Behavior ObjectStore::Message() const { return ptr()->Message_; }
