@@ -67,7 +67,7 @@ int64_t OS::CurrentMonotonicNanos() {
 
 int64_t OS::CurrentRealtimeNanos() {
   static const int64_t kTimeEpoc = 116444736000000000LL;
-  static const int64_t kTimeScaler = 10;  // 100 ns to us.
+  static const int64_t kTimeScaler = 100;  // 100 ns to ns.
   // Although win32 uses 64-bit integers for representing timestamps,
   // these are packed into a FILETIME structure. The FILETIME
   // structure is just a struct representing a 64-bit integer. The
@@ -80,7 +80,7 @@ int64_t OS::CurrentRealtimeNanos() {
   };
   TimeStamp time;
   GetSystemTimeAsFileTime(&time.ft_);
-  return (time.t_ - kTimeEpoc) / kTimeScaler;
+  return (time.t_ - kTimeEpoc) * kTimeScaler;
 }
 
 

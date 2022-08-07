@@ -311,16 +311,13 @@ def Main():
 
   target_arch = ARGUMENTS.get('arch', None)
   host_arch = None
-  if (platform.machine() == 'x86_64' or
-      platform.machine() == 'AMD64'):
+  if platform.machine() in ['x86_64', 'AMD64']:
     host_arch = 'x64'
-  elif platform.machine() == 'i386':
+  elif platform.machine() == ['i386', 'X86']:
     host_arch = 'ia32'
-  elif (platform.machine() == 'aarch64' or
-        platform.machine() == 'arm64'):
+  elif platform.machine() in ['aarch64', 'arm64', 'ARM64']:
     host_arch = 'arm64'
-  elif (platform.machine() == 'armv7l' or
-        platform.machine() == 'armv6l'):
+  elif platform.machine() in ['armv7l', 'armv6l', 'ARM']:
     host_arch = 'arm'
   elif platform.machine() == 'mips':
     host_arch = 'mips'

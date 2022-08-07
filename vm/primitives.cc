@@ -2294,8 +2294,15 @@ DEFINE_PRIMITIVE(Time_localtime) {
   TIME_ZONE_INFORMATION info;
   memset(&info, 0, sizeof(info));
   GetTimeZoneInformation(&info);
-  intptr_t utc_offset = info.Bias * -60;
-  wchar_t* wchar_name = dst.tm_isdst ? info.DaylightName : info.StandardName;
+  intptr_t utc_offset;
+  wchar_t* wchar_name;
+  if (dst.tm_isdst) {
+    utc_offset = (info.Bias + info.DaylightBias) * -60;
+    wchar_name = info.DaylightName;
+  } else {
+    utc_offset = info.Bias * -60;
+    wchar_name = info.StandardName;
+  }
   intptr_t length = WideCharToMultiByte(CP_UTF8, 0, wchar_name, -1,
                                         NULL, 0, NULL, NULL);
   String tzname = H->AllocateString(length);  // SAFEPOINT
