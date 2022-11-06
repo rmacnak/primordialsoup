@@ -299,7 +299,7 @@ public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^<V | X> = (
 )
 scanFor: key <K> ^<Integer> = (
 	| index start |
-	index:: start:: (key hash bitOr: 1) \\ table size.
+	index:: start:: key hash << 1 \\ table size + 1.
 	[ | element |
 	 table = (element:: table at: index) ifTrue: [^index].
 	 key = element ifTrue: [^index].
@@ -308,7 +308,7 @@ scanFor: key <K> ^<Integer> = (
 )
 scanForEmptySlotFor: key = (
 	| index start |
-	index:: start:: (key hash bitOr: 1) \\ table size.
+	index:: start:: key hash << 1 \\ table size + 1.
 	[table = (table at: index) ifTrue: [^index].
 	 (index:: index + 1 \\ table size + 1) = start] whileFalse.
 	self errorNoFreeSpace
