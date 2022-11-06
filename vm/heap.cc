@@ -15,6 +15,9 @@ class Region {
     VirtualMemory memory = VirtualMemory::Allocate(size,
                                                    VirtualMemory::kReadWrite,
                                                    "primordialsoup-heap");
+#if defined(DEBUG)
+    memset(reinterpret_cast<void*>(memory.base()), kUnallocatedByte, size);
+#endif
     Region* region = reinterpret_cast<Region*>(memory.base());
     region->memory_ = memory;
     region->object_end_ = region->object_start();
@@ -42,8 +45,6 @@ class Region {
   }
   uword object_end() const { return object_end_; }
   void set_object_end(uword value) { object_end_ = value; }
-
-  size_t Size() const { return object_end() - object_start(); }
 
   Region* next() const { return next_; }
   void set_next(Region* next) { next_ = next; }
@@ -103,8 +104,6 @@ Heap::Heap() :
     weak_list_(nullptr) {
   to_.Allocate(kInitialSemispaceCapacity);
   from_.Allocate(kInitialSemispaceCapacity);
-  top_ = to_.object_start();
-  end_ = to_.limit();
 
   remembered_set_capacity_ = 1024;
   remembered_set_ = new HeapObject[remembered_set_capacity_];
@@ -156,23 +155,36 @@ Message Heap::AllocateMessage() {
   return static_cast<Message>(new_instance);
 }
 
-uword Heap::AllocateNew(intptr_t size) {
-  ASSERT(size < kLargeAllocation);
-  uword addr = TryAllocateNew(size);
-  if (addr == 0) {
+uword Heap::AllocateNormal(intptr_t size) {
+  if (size >= kLargeAllocation) {
+    return AllocateOldLarge(size, kControlGrowth);
+  }
+
+  uword addr = top_;
+  if (addr + size > end_) {
     Scavenge(kNewSpace);
     if (old_size_ > old_limit_) {
       MarkSweep(kTenure);
     }
-    addr = TryAllocateNew(size);
-    if (addr == 0) {
+    addr = top_;
+    if (addr + size > end_) {
       return AllocateOldSmall(size, kControlGrowth);
     }
   }
+  top_ = addr + size;
 #if defined(DEBUG)
   memset(reinterpret_cast<void*>(addr), kUninitializedByte, size);
 #endif
   return addr;
+}
+
+uword Heap::AllocateCopy(intptr_t size) {
+  uword result = top_;
+  intptr_t remaining = end_ - top_;
+  ASSERT(size <= remaining);
+  ASSERT((result & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
+  top_ = result + size;
+  return result;
 }
 
 uword Heap::AllocateTenure(intptr_t size) {
@@ -193,9 +205,7 @@ uword Heap::AllocateOldSmall(intptr_t size, GrowthPolicy growth) {
       region->set_object_end(region->limit());
     }
   }
-  if (addr == 0) {
-    FATAL("Failed to allocate %" Pd " bytes\n", size);
-  }
+  ASSERT(addr != 0);
   old_size_ += size;
 #if defined(DEBUG)
   memset(reinterpret_cast<void*>(addr), kUninitializedByte, size);
@@ -206,11 +216,9 @@ uword Heap::AllocateOldSmall(intptr_t size, GrowthPolicy growth) {
 uword Heap::AllocateOldLarge(intptr_t size, GrowthPolicy growth) {
   ASSERT(size >= kLargeAllocation);
   Region* region = AllocateRegion(size + AllocationSize(sizeof(Region)),
-                                growth);
+                                  growth);
   uword addr = region->TryAllocate(size);
-  if (addr == 0) {
-    FATAL("Failed to allocate %" Pd " bytes\n", size);
-  }
+  ASSERT(addr != 0);
   old_size_ += size;
 #if defined(DEBUG)
   memset(reinterpret_cast<void*>(addr), kUninitializedByte, size);
@@ -218,50 +226,28 @@ uword Heap::AllocateOldLarge(intptr_t size, GrowthPolicy growth) {
   return addr;
 }
 
-uword Heap::AllocateSnapshotSmall(intptr_t size) {
-  ASSERT(size < kLargeAllocation);
-  Region* region = regions_;
-  if (region == nullptr) {
-    region = AllocateRegion(kRegionSize, kForceGrowth);
+uword Heap::AllocateSnapshot(intptr_t size) {
+  if (size >= kLargeAllocation) {
+    return AllocateOldLarge(size, kForceGrowth);
   }
-  uword addr = region->TryAllocate(size);
-  if (addr == 0) {
-    intptr_t remaining = region->limit() - region->object_end();
+
+  uword addr = top_;
+  if (addr + size > end_) {
+    intptr_t remaining = end_ - top_;
     if (remaining > 0) {
-      freelist_.EnqueueRange(region->object_end(), remaining);
-      region->set_object_end(region->limit());
+      freelist_.EnqueueRange(top_, remaining);
+      old_size_ -= remaining;
     }
-
-    region = AllocateRegion(kRegionSize, kForceGrowth);
-    addr = region->TryAllocate(size);
+    Region* region = AllocateRegion(kRegionSize, kForceGrowth);
+    top_ = region->object_start();
+    end_ = region->limit();
+    region->set_object_end(end_);
+    remaining = end_ - top_;
+    old_size_ += remaining;
+    ASSERT(size <= remaining);
+    addr = top_;
   }
-  if (addr == 0) {
-    FATAL("Failed to allocate %" Pd " bytes\n", size);
-  }
-  old_size_ += size;
-#if defined(DEBUG)
-  memset(reinterpret_cast<void*>(addr), kUninitializedByte, size);
-#endif
-  return addr;
-}
-
-uword Heap::AllocateSnapshotLarge(intptr_t size) {
-  ASSERT(size >= kLargeAllocation);
-  uword addr;
-  Region* region = Region::Allocate(size + AllocationSize(sizeof(Region)));
-  old_capacity_ += region->size();
-  // Keep the current region since it likely still has free space.
-  if (regions_ == nullptr) {
-    regions_ = region;
-  } else {
-    region->set_next(regions_->next());
-    regions_->set_next(region);
-  }
-  addr = region->TryAllocate(size);
-  if (addr == 0) {
-    FATAL("Failed to allocate %" Pd " bytes\n", size);
-  }
-  old_size_ += size;
+  top_ = addr + size;
 #if defined(DEBUG)
   memset(reinterpret_cast<void*>(addr), kUninitializedByte, size);
 #endif
@@ -546,7 +532,7 @@ bool Heap::ScavengePointer(Object* ptr) {
     if (old_target->Addr() < survivor_end_) {
       new_target_addr = AllocateTenure(size);
     } else {
-      new_target_addr = TryAllocateNew(size);
+      new_target_addr = AllocateCopy(size);
     }
 
     ASSERT(new_target_addr != 0);
@@ -611,7 +597,7 @@ bool Heap::ScavengeClass(intptr_t cid) {
   if (old_target->Addr() < survivor_end_) {
     new_target_addr = AllocateTenure(size);
   } else {
-    new_target_addr = TryAllocateNew(size);
+    new_target_addr = AllocateCopy(size);
   }
 
   ASSERT(new_target_addr != 0);
@@ -1296,6 +1282,15 @@ void Heap::InitializeAfterSnapshot() {
              cls->id() == SmallInteger::New(kEphemeronCid));
     }
   }
+
+  // Switch bump pointer allocation from old-space to new-space.
+  intptr_t remaining = end_ - top_;
+  if (remaining > 0) {
+    freelist_.EnqueueRange(top_, remaining);
+    old_size_ -= remaining;
+  }
+  top_ = to_.object_start();
+  end_ = to_.limit();
 
   SetOldAllocationLimit();
 }

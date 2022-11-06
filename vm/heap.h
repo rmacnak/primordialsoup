@@ -364,37 +364,29 @@ class Heap {
   void ForwardRoots();
   void ForwardHeap();
 
-  uword TryAllocateNew(intptr_t size) {
-    uword result = top_;
-    intptr_t remaining = end_ - top_;
-    if (remaining < size) {
-      return 0;
-    }
-    ASSERT((result & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
-    top_ += size;
-    return result;
-  }
-
   uword Allocate(intptr_t size, Allocator allocator) {
     ASSERT(Utils::IsAligned(size, kObjectAlignment));
-    if (allocator == kSnapshot) {
-      if (size >= kLargeAllocation) {
-        return AllocateSnapshotLarge(size);
+    if (size < kLargeAllocation) {
+      uword result = top_;
+      if (result + size <= end_) {
+        top_ = result + size;
+#if defined(DEBUG)
+        memset(reinterpret_cast<void*>(result), kUninitializedByte, size);
+#endif
+        return result;
       }
-      return AllocateSnapshotSmall(size);
     }
-    if (size >= kLargeAllocation) {
-      return AllocateOldLarge(size, kControlGrowth);
-    }
-    return AllocateNew(size);
+    return allocator == kSnapshot
+        ? AllocateSnapshot(size)
+        : AllocateNormal(size);
   }
 
-  uword AllocateNew(intptr_t size);
+  uword AllocateNormal(intptr_t size);
+  uword AllocateSnapshot(intptr_t size);
+  uword AllocateCopy(intptr_t size);
   uword AllocateTenure(intptr_t size);
   uword AllocateOldSmall(intptr_t size, GrowthPolicy growth);
   uword AllocateOldLarge(intptr_t size, GrowthPolicy growth);
-  uword AllocateSnapshotSmall(intptr_t size);
-  uword AllocateSnapshotLarge(intptr_t size);
 
   Region* AllocateRegion(intptr_t region_size, GrowthPolicy growth);
 
