@@ -882,9 +882,6 @@ void Heap::MarkEphemeronList() {
     survivor->set_next(nullptr);
 
     if (IsMarkSweepSurvivor(survivor->key())) {
-      // TODO(rmacnak): These scavenges potentially add to the ephemeron list
-      // that we are in the middle of traversing. Add tests for ephemerons
-      // only reachable from another ephemeron.
       MarkObject(survivor->key());
       MarkObject(survivor->value());
       MarkObject(survivor->finalizer());

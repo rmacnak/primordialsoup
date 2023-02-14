@@ -28,7 +28,7 @@ An object's class is encoded as an index into a class table, its cid. The cid oc
 
 An object's size is encoded in allocation (double-word) units, or 0 if it is larger than the 8/16-bit header field allows. The size field can only overflow for variable-length objects such as arrays or strings, in which case the object's size in memory is computed from its length field. The size field is only used for computing the address of the next object in the heap for iteration, and is not used for bounds checks.
 
-The objects of a handful of classes have special representations, and their cids are constant values known to the VM. These classes are SmallInteger, MediumInteger, LargeInteger, Float64, ByteArray, String, Array, WeakArray, Ephemeron, Activation and Closure. All other objects have a fixed number of pointers as determined by their class. In particular, Method, Class, Metaclass, InstanceMixin and ClassMixin are regular classes.
+The objects of a handful of classes have special representations, and their cids are constant values known to the VM. These classes are SmallInteger, MediumInteger, LargeInteger, Float, ByteArray, String, Array, WeakArray, Ephemeron, Activation and Closure. All other objects have a fixed number of pointers as determined by their class. In particular, Method, Class, Metaclass, InstanceMixin and ClassMixin are regular classes.
 
 SmallIntegers represent signed 31-/63-bit values on 32-/64-bit architectures respectively, MediumIntegers represent signed 64-bit values, and LargeIntegers represent values with greater magnitude. Integer operations produce the smallest representation that can fit the result.
 
@@ -70,7 +70,7 @@ Messages between isolates use the same snapshot format, but they contain partial
 
 ## Bytecode
 
-Primordial Soup uses a variable-length, stack-machine bytecode derived from the Newsqueak V4 bytecode of the [Cog VM](http://www.mirandabanda.org/cogblog/about-cog/).
+Primordial Soup uses a variable-length, stack-machine bytecode derived from the Newsqueak V4 bytecode of the [Cog VM](http://www.mirandabanda.org/cogblog/about-cog/). Unlike earlier bytecode support for Newspeak, there is a direct bytecode for eventual sends, which greatly simplifies correct implementation of stepping and senders.
 
 ## Stack-to-Context Mapping
 
@@ -81,7 +81,7 @@ Newspeak, like Smalltalk, provides first-class activation records. Newspeak call
  - expression evaluation with access to local slots
  - resumable exceptions
  - generators
- - continutations, full or delimited
+ - continuations, full or delimited
  - corountines or other kinds cooperative multi-threading
 
 The simplest implementation allocates activation objects for each method or closure invocation and executes the program by manipulating these objects. Most program time, however, is spent in simple sends and returns. Primordial Soup avoids the allocation and indirection costs of such an implementation by running execution on a mostly conventional stack.
@@ -92,7 +92,7 @@ Each frame has an extra zero-initialized slot to remember a paired activation ob
  - the object is paired with a dead frame: all the volatile state is set to nil and frame pointer is cleared
  - the object is paired with a living frame: we read state out of the frame or flush the stack to objects, write state to the object, then restore the top activation to the stack
 
-In the common case where first-class activations are not used, the only overhead compared to an implementation not providing first-class activations is the initialization of the extra frame slot.  In particular, no extra work is performed on return; all volatile state is implicitly cleared by return making the frame pointer from activation object invalid. For a more detailed account of this scheme in the Cog VM, see [Under Cover Contexts and the Big Frame-Up](http://www.mirandabanda.org/cogblog/2009/01/14/under-cover-contexts-and-the-big-frame-up).
+In the common case where first-class activations are not used, the only overhead compared to an implementation not providing first-class activations is the initialization of the extra frame slot.  In particular, no extra work is performed on return; all volatile state is implicitly cleared by return making the frame pointer from the activation object invalid. For a more detailed account of this scheme in the Cog VM, see [Under Cover Contexts and the Big Frame-Up](http://www.mirandabanda.org/cogblog/2009/01/14/under-cover-contexts-and-the-big-frame-up).
 
 ## Bootstraping
 

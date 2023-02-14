@@ -47,7 +47,7 @@ compileSources: sourcePaths binaries: binaryPaths outputs: outputTuples = (
 	binaryPaths do:
 		[:binaryPath |
 		 namespace
-			at: (binaryPath copyFrom: 1 to: (binaryPath indexOf: '.') - 1).
+			at: (binaryPath copyFrom: 1 to: (binaryPath indexOf: '.') - 1)
 			put: (readFileAsBytes: binaryPath)].
 
 	port handler:

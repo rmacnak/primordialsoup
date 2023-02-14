@@ -313,7 +313,7 @@ def Main():
   host_arch = None
   if platform.machine() in ['x86_64', 'AMD64']:
     host_arch = 'x64'
-  elif platform.machine() == ['i386', 'X86']:
+  elif platform.machine() in ['i386', 'X86']:
     host_arch = 'ia32'
   elif platform.machine() in ['aarch64', 'arm64', 'ARM64']:
     host_arch = 'arm64'

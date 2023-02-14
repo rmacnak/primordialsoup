@@ -14,9 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install Dependencies
-        run: sudo apt-get install g++ scons
+        run: sudo apt-get install g++-multilib scons
       - name: Build
-        run: ./build arch=x64
+        run: ./build
       - name: Test
         run: ./test
   macos:
@@ -26,7 +26,7 @@ jobs:
       - name: Install Dependencies
         run: HOMEBREW_NO_AUTO_UPDATE=1 brew install scons
       - name: Build
-        run: ./build arch=x64
+        run: ./build
       - name: Test
         run: ./test
   windows:
