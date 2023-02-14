@@ -71,3 +71,11 @@ jobs:
         run: ./out/ReleaseUBSanX64/primordialsoup out/snapshots/TestRunner.vfuel
         env:
           UBSAN_OPTIONS: halt_on_error=1
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Dependencies
+        run: sudo apt-get install g++-multilib scons
+      - name: Build
+        run: ./build ndk=$ANDROID_NDK
