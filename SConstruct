@@ -122,7 +122,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-Wno-unused-parameter',
       '-fno-rtti',
       '-fno-exceptions',
-      '-fpic',
+      '-fpie',
       '-fvisibility=hidden',
       '-fdata-sections',
       '-ffunction-sections',
