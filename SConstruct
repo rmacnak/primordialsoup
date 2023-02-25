@@ -242,10 +242,10 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     'bignum',
     'bignum-dtoa',
     'cached-powers',
-    'diy-fp',
-    'double-conversion',
+    'double-to-string',
     'fast-dtoa',
     'fixed-dtoa',
+    'string-to-double',
     'strtod',
   ]
   for cc in double_conversion_ccs:
