@@ -513,6 +513,23 @@ static void SetForwarded(HeapObject old_obj, HeapObject new_obj) {
   *reinterpret_cast<uword*>(old_obj->Addr()) = header;
 }
 
+// Specialization of memcpy that can assume the addresses are word-aligned and
+// the size is a positive multiple of two words.
+static void objcpy(void* __restrict dst,
+                   const void* __restrict src,
+                   size_t size) {
+  COMPILE_ASSERT(kObjectAlignment == 2 * kWordSize);
+  uword* dst_cursor = reinterpret_cast<uword*>(dst);
+  const uword* src_cursor = reinterpret_cast<const uword*>(src);
+  do {
+    uword a = *src_cursor++;
+    uword b = *src_cursor++;
+    *dst_cursor++ = a;
+    *dst_cursor++ = b;
+    size -= kObjectAlignment;
+  } while (size != 0);
+}
+
 bool Heap::ScavengePointer(Object* ptr) {
   HeapObject old_target = static_cast<HeapObject>(*ptr);
   if (old_target->IsImmediateOrOldObject()) {
@@ -536,7 +553,7 @@ bool Heap::ScavengePointer(Object* ptr) {
     }
 
     ASSERT(new_target_addr != 0);
-    memcpy(reinterpret_cast<void*>(new_target_addr),
+    objcpy(reinterpret_cast<void*>(new_target_addr),
            reinterpret_cast<void*>(old_target->Addr()),
            size);
     new_target = HeapObject::FromAddr(new_target_addr);
@@ -556,17 +573,12 @@ void Heap::ScavengeOldObject(HeapObject obj) {
   } else if (cid == kEphemeronCid) {
     AddToEphemeronList(static_cast<Ephemeron>(obj));
   } else {
-    bool has_new_target = false;
-    if (ScavengeClass(cid)) {
-      has_new_target = true;
-    }
+    bool has_new_target = ScavengeClass(cid);
     Object* from;
     Object* to;
     obj->Pointers(&from, &to);
     for (Object* ptr = from; ptr <= to; ptr++) {
-      if (ScavengePointer(ptr)) {
-        has_new_target = true;
-      }
+      has_new_target |= ScavengePointer(ptr);
     }
     if (has_new_target) {
       AddToRememberedSet(obj);
@@ -601,7 +613,7 @@ bool Heap::ScavengeClass(intptr_t cid) {
   }
 
   ASSERT(new_target_addr != 0);
-  memcpy(reinterpret_cast<void*>(new_target_addr),
+  objcpy(reinterpret_cast<void*>(new_target_addr),
          reinterpret_cast<void*>(old_target->Addr()),
          size);
   HeapObject new_target = HeapObject::FromAddr(new_target_addr);
@@ -708,17 +720,16 @@ void Heap::ProcessMarkStack() {
     ASSERT(cid != kForwardingCorpseCid);
     ASSERT(cid != kFreeListElementCid);
 
-    MarkObject(ClassAt(cid));
-
     if (cid == kWeakArrayCid) {
       AddToWeakList(static_cast<WeakArray>(obj));
     } else if (cid == kEphemeronCid) {
       AddToEphemeronList(static_cast<Ephemeron>(obj));
     } else {
+      MarkObject(ClassAt(cid));
+      bool has_new_target = ClassAt(cid)->IsNewObject();
       Object* from;
       Object* to;
       obj->Pointers(&from, &to);
-      bool has_new_target = ClassAt(cid)->IsNewObject();
       for (Object* ptr = from; ptr <= to; ptr++) {
         Object target = *ptr;
         has_new_target |= target->IsNewObject();
@@ -847,21 +858,18 @@ void Heap::ScavengeEphemeronList() {
     survivor->set_next(nullptr);
 
     if (IsScavengeSurvivor(survivor->key())) {
-      ScavengePointer(survivor->key_ptr());
-      ScavengePointer(survivor->value_ptr());
-      ScavengePointer(survivor->finalizer_ptr());
-
-      if (survivor->IsOldObject() &&
-          (survivor->key()->IsNewObject() ||
-           survivor->value()->IsNewObject() ||
-           survivor->finalizer()->IsNewObject()) &&
-          !survivor->is_remembered()) {
+      bool has_new_target = false;
+      Object* from = survivor->key_ptr();
+      Object* to = survivor->finalizer_ptr();
+      for (Object* ptr = from; ptr <= to; ptr++) {
+        has_new_target |= ScavengePointer(ptr);
+      }
+      if (has_new_target && survivor->IsOldObject()) {
         AddToRememberedSet(survivor);
       }
     } else {
       // Fate of key is not yet known, return the ephemeron to list.
-      survivor->set_next(ephemeron_list_);
-      ephemeron_list_ = survivor;
+      AddToEphemeronList(survivor);
     }
 
     survivor = next;
@@ -882,21 +890,20 @@ void Heap::MarkEphemeronList() {
     survivor->set_next(nullptr);
 
     if (IsMarkSweepSurvivor(survivor->key())) {
-      MarkObject(survivor->key());
-      MarkObject(survivor->value());
-      MarkObject(survivor->finalizer());
-
-      if (survivor->IsOldObject() &&
-          (survivor->key()->IsNewObject() ||
-           survivor->value()->IsNewObject() ||
-           survivor->finalizer()->IsNewObject()) &&
-          !survivor->is_remembered()) {
+      bool has_new_target = false;
+      Object* from = survivor->key_ptr();
+      Object* to = survivor->finalizer_ptr();
+      for (Object* ptr = from; ptr <= to; ptr++) {
+        Object target = *ptr;
+        has_new_target |= target->IsNewObject();
+        MarkObject(target);
+      }
+      if (has_new_target && survivor->IsOldObject()) {
         AddToRememberedSet(survivor);
       }
     } else {
       // Fate of the key is not yet known; add the ephemeron back to the list.
-      survivor->set_next(ephemeron_list_);
-      ephemeron_list_ = survivor;
+      AddToEphemeronList(survivor);
     }
 
     survivor = next;
@@ -935,16 +942,15 @@ void Heap::MournWeakListScavenge() {
   while (survivor != nullptr) {
     ASSERT(survivor->IsWeakArray());
 
+    bool has_new_target = false;
     Object* from;
     Object* to;
     survivor->Pointers(&from, &to);
     for (Object* ptr = from; ptr <= to; ptr++) {
-      MournWeakPointerScavenge(ptr);
-      if (survivor->IsOldObject() &&
-          (*ptr)->IsNewObject() &&
-          !survivor->is_remembered()) {
-        AddToRememberedSet(survivor);
-      }
+      has_new_target |= MournWeakPointerScavenge(ptr);
+    }
+    if (has_new_target && survivor->IsOldObject()) {
+      AddToRememberedSet(survivor);
     }
 
     WeakArray next = survivor->next();
@@ -960,16 +966,16 @@ void Heap::MournWeakListMarkSweep() {
   while (survivor != nullptr) {
     ASSERT(survivor->IsWeakArray());
 
+    bool has_new_target = false;
     Object* from;
     Object* to;
     survivor->Pointers(&from, &to);
     for (Object* ptr = from; ptr <= to; ptr++) {
       MournWeakPointerMarkSweep(ptr);
-      if (survivor->IsOldObject() &&
-          (*ptr)->IsNewObject() &&
-          !survivor->is_remembered()) {
-        AddToRememberedSet(survivor);
-      }
+      has_new_target |= (*ptr)->IsNewObject();
+    }
+    if (has_new_target && survivor->IsOldObject()) {
+      AddToRememberedSet(survivor);
     }
 
     WeakArray next = survivor->next();
@@ -980,10 +986,10 @@ void Heap::MournWeakListMarkSweep() {
 }
 
 
-void Heap::MournWeakPointerScavenge(Object* ptr) {
+bool Heap::MournWeakPointerScavenge(Object* ptr) {
   HeapObject old_target = static_cast<HeapObject>(*ptr);
   if (old_target->IsImmediateOrOldObject()) {
-    return;
+    return false;
   }
 
   DEBUG_ASSERT(InFromSpace(old_target));
@@ -999,6 +1005,7 @@ void Heap::MournWeakPointerScavenge(Object* ptr) {
   DEBUG_ASSERT(new_target->IsOldObject() || InToSpace(new_target));
 
   *ptr = new_target;
+  return new_target->IsNewObject();
 }
 
 void Heap::MournWeakPointerMarkSweep(Object* ptr) {
@@ -1155,18 +1162,13 @@ void Heap::ForwardHeap() {
     while (scan < region->object_end()) {
       HeapObject obj = HeapObject::FromAddr(scan);
       if (obj->cid() >= kFirstLegalCid) {
-        bool has_new_target = false;
-        if (ForwardClass(this, obj)) {
-          has_new_target = true;
-        }
         obj->set_is_remembered(false);
+        bool has_new_target = ForwardClass(this, obj);
         Object* from;
         Object* to;
         obj->Pointers(&from, &to);
         for (Object* ptr = from; ptr <= to; ptr++) {
-          if (ForwardPointer(ptr)) {
-            has_new_target = true;
-          }
+          has_new_target |= ForwardPointer(ptr);
         }
         if (has_new_target) {
           AddToRememberedSet(obj);

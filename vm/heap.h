@@ -351,7 +351,7 @@ class Heap {
   void AddToWeakList(WeakArray survivor);
   void MournWeakListScavenge();
   void MournWeakListMarkSweep();
-  void MournWeakPointerScavenge(Object* ptr);
+  bool MournWeakPointerScavenge(Object* ptr);
   void MournWeakPointerMarkSweep(Object* ptr);
 
   // Weak class table.
