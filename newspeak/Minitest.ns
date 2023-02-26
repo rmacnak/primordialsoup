@@ -178,7 +178,6 @@ OTHER DEALINGS IN THE SOFTWARE. *)
 class Minitest usingPlatform: platform = (
 |
 	private Exception = platform kernel Exception.
-	private UnhandledError = platform kernel UnhandledError.
 
 	private Map = platform collections Map.
 	private IdentityMap = platform collections Map.
@@ -552,9 +551,6 @@ public isFailure = (
 (* An exception thrown when an assertion fails inside a test. The description of the failure is the exception's message text. *)
 class TestFailureException = Exception (
 ) (
-public defaultAction = (
-	UnhandledError signalForException: self
-)
 public isKindOfTestFailureException = (
 	^true
 )

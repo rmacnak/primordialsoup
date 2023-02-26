@@ -22,10 +22,6 @@ public Stopwatch = (
 public StringBuilder = (
 	^internalKernel StringBuilder
 )
-(* squeak compatibility *)
-public UnhandledError = (
-	^Exception
-)
 public WeakArray = (
 	^internalKernel WeakArray
 )
