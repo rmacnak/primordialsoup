@@ -446,12 +446,12 @@ public testBehaviorInternalsAreHidden = (
 	should: [Object format] signal: MessageNotUnderstood.
 
 	(* PrimordialSoup *)
-	should: [Object _superclass] signal: MessageNotUnderstood.
-	should: [Object _methods] signal: MessageNotUnderstood.
-	should: [Object _enclosingObject] signal: MessageNotUnderstood.
-	should: [Object _mixin] signal: MessageNotUnderstood.
-	should: [Object _classIndex] signal: MessageNotUnderstood.
-	should: [Object _format] signal: MessageNotUnderstood.
+	should: [Object superclass] signal: MessageNotUnderstood.
+	should: [Object methods] signal: MessageNotUnderstood.
+	should: [Object enclosingObject] signal: MessageNotUnderstood.
+	should: [Object mixin] signal: MessageNotUnderstood.
+	should: [Object classIndex] signal: MessageNotUnderstood.
+	should: [Object format] signal: MessageNotUnderstood.
 )
 public testBehaviorName = (
 	(* :todo: Which to we want? *)
@@ -1473,6 +1473,30 @@ public testExceptionTypeMatch3 = (
 	assert: innerHandler.
 	assert: afterInnerTry.
 	deny: outerHandler.
+)
+public testExceptionTypeMatch4 = (
+	|
+	beforeSignal ::= false.
+	afterSignal ::= false.
+	afterInnerTry ::= false.
+	outerHandler ::= false.
+	innerHandler ::= false.
+	|
+
+	[
+		[
+			beforeSignal:: true.
+			TestException new signal.
+			afterSignal:: true.
+		] on: #NotAClass do: [:ex | innerHandler:: true].
+		afterInnerTry:: true.
+	] on: TestException do: [:ex | outerHandler:: true].
+
+	assert: beforeSignal.
+	deny: afterSignal.
+	deny: innerHandler.
+	deny: afterInnerTry.
+	assert: outerHandler.
 )
 public testNonLocalReturnCrossingExceptionHandler = (
 	assert: nonLocalReturnCrossingExceptionHandler equals: 'correct'

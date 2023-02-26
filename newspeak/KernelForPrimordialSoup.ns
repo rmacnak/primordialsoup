@@ -831,10 +831,16 @@ private invokeOnDoHandler: handler <Activation> = (
 	^handler return: handlerResult
 )
 private is: handlerExceptionClass <Any> interestedIn: signaledExceptionClass <Behavior> = (
-	| cls ::= signaledExceptionClass. |
-	[nil = cls] whileFalse:
-		[(mixinOf: cls) = (mixinOf: handlerExceptionClass) ifTrue: [^true].
-		cls:: (superclassOf: cls)].
+	| cls mxn |
+	cls:: classOf: handlerExceptionClass.
+	Metaclass = cls ifTrue: [^false (* [handlerExceptionClass] is a metaclass *)].
+	cls:: classOf: cls.
+	Metaclass = cls ifFalse: [^false (* [handlerExceptionClass] is an instance *)].
+	mxn:: mixinOf: handlerExceptionClass.
+	cls:: signaledExceptionClass.
+	[(mixinOf: cls) = mxn ifTrue: [^true].
+	 cls:: (superclassOf: cls).
+	 nil = cls] whileFalse.
 	^false
 )
 private jumpTo: activation = (
