@@ -114,6 +114,11 @@ typedef intptr_t word;
 typedef uintptr_t uword;
 
 
+// Various toolchains are missing either std::nullptr_t or unqualified
+// nullptr_t, so we declare it ourselves.
+typedef decltype(nullptr) nullptr_t;
+
+
 // Byte sizes.
 constexpr int kWordSize = sizeof(word);
 constexpr int kDoubleSize = sizeof(double);  // NOLINT
