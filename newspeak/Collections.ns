@@ -391,28 +391,6 @@ public at: key <K> put: value ^<V> = (
 	keyIndex:: table_ at: bucketIndex.
 	^table_ at: 1 + keyIndex put: value
 )
-checkRehash = (
-	| oldTable oldFirstKeyIndex oldLastKeyIndex |
-	nextKeyIndex_ + 2 < table_ size ifTrue: [^self].
-
-	oldTable:: table_.
-	oldFirstKeyIndex:: 1 + buckets_.
-	oldLastKeyIndex:: nextKeyIndex_ - 1.
-
-	createTable: size << 1.
-
-	oldFirstKeyIndex to: oldLastKeyIndex by: 2 do:
-		[:oldKeyIndex | | key newBucketIndex newKeyIndex |
-		 key:: oldTable at: oldKeyIndex.
-		 oldTable = key ifFalse:
-			[newBucketIndex:: scanForEmptySlotFor: key.
-			 newKeyIndex:: nextKeyIndex_.
-			 nextKeyIndex_:: 2 + newKeyIndex.
-			 table_
-				at: newBucketIndex put: newKeyIndex;
-				at: newKeyIndex put: key;
-				at: 1 + newKeyIndex put: (oldTable at: 1 + oldKeyIndex)]].
-)
 public collect: transform <[:V | W]> ^<Map[K, W]> = (
 	|
 	result = OrderedMap new: size.
@@ -454,7 +432,7 @@ insert: bucketIndex key: key value: value = (
 		at: bucketIndex put: keyIndex;
 		at: keyIndex put: key;
 		at: 1 + keyIndex put: value.
-	checkRehash.
+	nextKeyIndex_ + 2 >= table_ size ifTrue: [rehash].
 	^value
 )
 public isEmpty ^<Boolean> = (
@@ -486,6 +464,26 @@ public keysAndValuesDo: action <[:K :V]>  = (
 		 table = key ifFalse:
 			[action value: key value: (table at: 1 + keyIndex)]].
 )
+rehash = (
+	| oldTable oldFirstKeyIndex oldLastKeyIndex |
+	oldTable:: table_.
+	oldFirstKeyIndex:: 1 + buckets_.
+	oldLastKeyIndex:: nextKeyIndex_ - 1.
+
+	createTable: size << 1.
+
+	oldFirstKeyIndex to: oldLastKeyIndex by: 2 do:
+		[:oldKeyIndex | | key newBucketIndex newKeyIndex |
+		 key:: oldTable at: oldKeyIndex.
+		 oldTable = key ifFalse:
+			[newBucketIndex:: scanForEmptySlotFor: key.
+			 newKeyIndex:: nextKeyIndex_.
+			 nextKeyIndex_:: 2 + newKeyIndex.
+			 table_
+				at: newBucketIndex put: newKeyIndex;
+				at: newKeyIndex put: key;
+				at: 1 + newKeyIndex put: (oldTable at: 1 + oldKeyIndex)]].
+)
 public reject: predicate <[:V | Boolean]> ^<Map[K, V]> = (
 	|
 	result = OrderedMap new: size.
@@ -514,6 +512,7 @@ public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^<V | X> = (
 	oldValue:: table at: 1 + keyIndex.
 	table at: 1 + keyIndex put: table.
 	table at: keyIndex put: table.
+	deleted_ > size ifTrue: [rehash].
 	^oldValue
 )
 scanFor: key <K> ^<Integer> = (
@@ -610,27 +609,6 @@ public asArray ^<Array[E]> = (
 			 cursor:: 1 + cursor]].
 	^result
 )
-checkRehash = (
-	| oldTable oldFirstKeyIndex oldLastKeyIndex |
-	nextKeyIndex_ + 1 < table_ size ifTrue: [^self].
-
-	oldTable:: table_.
-	oldFirstKeyIndex:: 1 + buckets_.
-	oldLastKeyIndex:: nextKeyIndex_ - 1.
-
-	createTable: size << 1.
-
-	oldFirstKeyIndex to: oldLastKeyIndex do:
-		[:oldKeyIndex | | element newBucketIndex newKeyIndex |
-		 element:: oldTable at: oldKeyIndex.
-		 oldTable = element ifFalse:
-			[newBucketIndex:: scanForEmptySlotFor: element.
-			 newKeyIndex:: nextKeyIndex_.
-			 nextKeyIndex_:: 1 + newKeyIndex.
-			 table_
-				at: newBucketIndex put: newKeyIndex;
-				at: newKeyIndex put: element]].
-)
 createTable: numElements <Integer> = (
 	(* [1, buckets_] is the hash table. 0 means empty, 1 means deleted, otherwise the index of the element.
 	   [buckets_ + 1, size] are the elements in insertion order. table_ means deleted. *)
@@ -670,7 +648,7 @@ insert: bucketIndex element: element = (
 	table_
 		at: bucketIndex put: keyIndex;
 		at: keyIndex put: element.
-	checkRehash.
+	nextKeyIndex_ + 1 >= table_ size ifTrue: [rehash].
 	^element
 )
 public isEmpty ^<Boolean> = (
@@ -684,6 +662,25 @@ public isKindOfSet ^<Boolean> = (
 )
 protected newForCollectUsingAdd: capacity = (
 	^OrderedSet new: capacity
+)
+rehash = (
+	| oldTable oldFirstKeyIndex oldLastKeyIndex |
+	oldTable:: table_.
+	oldFirstKeyIndex:: 1 + buckets_.
+	oldLastKeyIndex:: nextKeyIndex_ - 1.
+
+	createTable: size << 1.
+
+	oldFirstKeyIndex to: oldLastKeyIndex do:
+		[:oldKeyIndex | | element newBucketIndex newKeyIndex |
+		 element:: oldTable at: oldKeyIndex.
+		 oldTable = element ifFalse:
+			[newBucketIndex:: scanForEmptySlotFor: element.
+			 newKeyIndex:: nextKeyIndex_.
+			 nextKeyIndex_:: 1 + newKeyIndex.
+			 table_
+				at: newBucketIndex put: newKeyIndex;
+				at: newKeyIndex put: element]].
 )
 public remove: element <E> ^<E> = (
 	^self remove: element ifAbsent: [(NotFound element: element) signal].
@@ -699,6 +696,7 @@ public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
 	deleted_:: 1 + deleted_.
 	oldElement:: table at: keyIndex.
 	table at: keyIndex put: table.
+	deleted_ > size ifTrue: [rehash].
 	^oldElement
 )
 public removeAll: collection <Collection[E]> = (

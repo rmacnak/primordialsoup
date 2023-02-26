@@ -397,6 +397,31 @@ public testListEnumeration = (
 	assert: (list detect: [:e | e > 5]) equals: 6.
 	assert: (list detect: [:e | e > 55] ifNone: ['None']) equals: 'None'.
 )
+public testListEnumerationEmpty = (
+	| list evens odds sum |
+	list:: List new.
+
+	evens:: list select: [:e | e \\ 2 = 0].
+	assert: evens size equals: 0.
+
+	odds:: list reject: [:e | e \\ 2 = 0].
+	assert: odds size equals: 0.
+
+	sum:: list inject: 0 into: [:a :b | a + b].
+	assert: sum equals: 0.
+
+	sum:: list reduce: [:a :b | a + b] ifEmpty: ['Empty'].
+	assert: sum equals: 'Empty'.
+
+	should: [list reduce: [:a :b | a + b]] signal: Error.
+
+	deny: (list anySatisfy: [:e | fail]).
+	assert: (list allSatisfy: [:e | fail]).
+	assert: (list noneSatisfy: [:e | fail]).
+
+	should: [list detect: [:e | e > 5]] signal: Error.
+	assert: (list detect: [:e | e > 55] ifNone: ['None']) equals: 'None'.
+)
 public testListEqualityIsIdentity = (
 	|
 	empty1 = List new.
@@ -856,6 +881,20 @@ public testMapReject = (
 	assert: (result at: 'gray') equals: 'gris'.
 	assert: (result at: 'black') equals: 'noir'.
 )
+public testMapScalingContiguousHashes = (
+	(* Test will be noticeably slow if implementation is quadratic *)
+	| n map |
+	n:: 10000.
+	map:: Map new.
+	1 to: n do: [:i | map at: i put: i * 2].
+	assert: map size equals: n.
+	1 to: n do: [:i | assert: (map at: i) equals: i * 2].
+
+	map:: Map new.
+	n to: 1 by: -1 do: [:i | map at: i put: i * 2].
+	assert: map size equals: n.
+	n to: 1 by: -1 do: [:i | assert: (map at: i) equals: i * 2].
+)
 public testMapSelect = (
 	| map result |
 	map:: Map new.
@@ -1100,6 +1139,26 @@ public testOrderedMapReject = (
 	assert: (values at: 3) equals: 'gris'.
 	assert: (values at: 4) equals: 'noir'.
 )
+public testOrderedMapScalingContiguousHashes = (
+	(* Test will be noticeably slow if implementation is quadratic *)
+	| n map |
+	n:: 10000.
+	map:: OrderedMap new.
+	1 to: n do: [:i | map at: i put: i * 2].
+	assert: map size equals: n.
+	1 to: n do: [:i | assert: (map at: i) equals: i * 2].
+	1 to: n do: [:i | map removeKey: i].
+	assert: map size equals: 0.
+	1 to: n do: [:i | deny: (map includesKey: i)].
+
+	map:: OrderedMap new.
+	n to: 1 by: -1 do: [:i | map at: i put: i * 2].
+	assert: map size equals: n.
+	n to: 1 by: -1 do: [:i | assert: (map at: i) equals: i * 2].
+	n to: 1 by: -1 do: [:i | map removeKey: i].
+	assert: map size equals: 0.
+	n to: 1 by: -1 do: [:i | deny: (map includesKey: i)].
+)
 public testOrderedMapSelect = (
 	| map result keys values |
 	map:: OrderedMap new.
@@ -1333,6 +1392,26 @@ public testOrderedSetReject = (
 	assert: (array at: 1) equals: 'red'.
 	assert: (array at: 2) equals: 'blue'.
 	assert: (array at: 3) equals: 'gray'.
+)
+public testOrderedSetScalingContiguousHashes = (
+	(* Test will be noticeably slow if implementation is quadratic *)
+	| n set |
+	n:: 10000.
+	set:: OrderedSet new.
+	1 to: n do: [:i | set add: i].
+	assert: set size equals: n.
+	1 to: n do: [:i | assert: (set includes: i)].
+	1 to: n do: [:i | set remove: i].
+	assert: set size equals: 0.
+	1 to: n do: [:i | deny: (set includes: i)].
+
+	set:: OrderedSet new.
+	n to: 1 by: -1 do: [:i | set add: i].
+	assert: set size equals: n.
+	n to: 1 by: -1 do: [:i | assert: (set includes: i)].
+	n to: 1 by: -1 do: [:i | set remove: i].
+	assert: set size equals: 0.
+	n to: 1 by: -1 do: [:i | deny: (set includes: i)].
 )
 public testOrderedSetSelect = (
 	| set result array |
@@ -1568,6 +1647,20 @@ public testSetNilElement = (
 	assert: (set add: nil) equals: nil.
 	assert: set size equals: 9.
 	assert: (set includes: nil).
+)
+public testSetScalingContiguousHashes = (
+	(* Test will be noticeably slow if implementation is quadratic *)
+	| n set |
+	n:: 10000.
+	set:: Set new.
+	1 to: n do: [:i | set add: i].
+	assert: set size equals: n.
+	1 to: n do: [:i | assert: (set includes: i)].
+
+	set:: Set new.
+	n to: 1 by: -1 do: [:i | set add: i].
+	assert: set size equals: n.
+	n to: 1 by: -1 do: [:i | assert: (set includes: i)].
 )
 public testSetSelfElement = (
 	| set = Set new. |
