@@ -63,8 +63,8 @@ const bool kFailure = false;
   /* V(25, Integer_cpop) */                                                    \
   /* V(26, Integer_ctz) */                                                     \
   /* V(27, Integer_bitLength) */                                               \
-  /* V(28, Integer_digitAt) */                                                 \
-  /* V(29, Integer_digitLength) */                                             \
+  V(28, Integer_digitAt)                                                       \
+  V(29, Integer_digitLength)                                                   \
   /* V(30, Integer_asDigits) */                                                \
   /* V(31, Integer_class_fromDigits) */                                        \
   V(32, Double_floor)                                                          \
@@ -1171,6 +1171,91 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
   return kFailure;
 }
 
+DEFINE_PRIMITIVE(Integer_digitAt) {
+  ASSERT(num_args == 1);
+  Object rcvr = I->Stack(1);
+  SMI_ARGUMENT(index, 0);
+  index--;
+
+  if (rcvr->IsSmallInteger() || rcvr->IsMediumInteger()) {
+    int64_t value = rcvr->IsSmallInteger()
+        ? static_cast<SmallInteger>(rcvr)->value()
+        : static_cast<MediumInteger>(rcvr)->value();
+    if (index < 0 || index >= 8) {
+      return kFailure;
+    }
+    uint64_t abs_value;
+    if (value < 0) {
+      abs_value = -static_cast<uint64_t>(value);
+    } else {
+      abs_value = static_cast<uint64_t>(value);
+    }
+    abs_value = abs_value >> (8 * index);
+    if (abs_value == 0) {
+      return kFailure;
+    }
+    intptr_t digit = abs_value & 0xFF;
+    RETURN_SMI(digit);
+  }
+  if (rcvr->IsLargeInteger()) {
+    LargeInteger value = static_cast<LargeInteger>(rcvr);
+    intptr_t len = (value->size() - 1) * sizeof(digit_t);
+    digit_t high = value->digit(value->size() - 1);
+    while (high != 0) {
+      len++;
+      high = high >> 8;
+    }
+    if (index < 0 || index >= len) {
+      return kFailure;
+    }
+    intptr_t digit = value->digit(index / sizeof(digit_t));
+    digit >>= (8 * (index % sizeof(digit_t)));
+    digit &= 0xFF;
+    RETURN_SMI(digit);
+  }
+
+  return kFailure;
+}
+
+DEFINE_PRIMITIVE(Integer_digitLength) {
+  ASSERT(num_args == 0);
+  Object rcvr = I->Stack(0);
+  if (rcvr->IsSmallInteger() || rcvr->IsMediumInteger()) {
+    int64_t value = rcvr->IsSmallInteger()
+        ? static_cast<SmallInteger>(rcvr)->value()
+        : static_cast<MediumInteger>(rcvr)->value();
+    uint64_t abs_value;
+    if (value < 0) {
+      abs_value = -static_cast<uint64_t>(value);
+    } else {
+      abs_value = static_cast<uint64_t>(value);
+    }
+    intptr_t result = 0;
+    while (abs_value != 0) {
+      result++;
+      abs_value = abs_value >> 8;
+    }
+    RETURN_SMI(result);
+  }
+  if (rcvr->IsLargeInteger()) {
+    LargeInteger value = static_cast<LargeInteger>(rcvr);
+    intptr_t result = (value->size() - 1) * sizeof(digit_t);
+    digit_t high = value->digit(value->size() - 1);
+    while (high != 0) {
+      result++;
+      high = high >> 8;
+    }
+    RETURN_SMI(result);
+  }
+  return kFailure;
+}
+
+#if 0
+DEFINE_PRIMITIVE(Integer_fromDigits) {
+  UNIMPLEMENTED();
+  return kFailure;
+}
+#endif
 
 #define FLOAT_FUNCTION_1(func)                                  \
   ASSERT(num_args == 0);                                        \

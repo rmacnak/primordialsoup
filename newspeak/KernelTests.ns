@@ -2650,7 +2650,7 @@ public testIntegerAdd = (
 	assert: maxInt63 + maxInt32 equals: 4611686020574871550.
 
 	assert: minInt31 + maxInt32 equals: 1073741823.
-	assert: maxInt32 + minInt31  equals: 1073741823.
+	assert: maxInt32 + minInt31 equals: 1073741823.
 	assert: minInt31 + maxInt63 equals: 4611686017353646079.
 	assert: maxInt63 + minInt31 equals: 4611686017353646079.
 	assert: minInt32 + maxInt63 equals: 4611686016279904255.
@@ -2752,6 +2752,233 @@ public testIntegerFloor = (
 	assert: maxInt32 floor equals: maxInt32.
 	assert: maxInt63 floor equals: maxInt63.
 	assert: maxInt64 floor equals: maxInt64.
+)
+public testIntegerGreatestCommonDivisor = (
+	assert: (-7 gcd: -7) equals: 7.
+	assert: (-7 gcd: -6) equals: 1.
+	assert: (-7 gcd: -5) equals: 1.
+	assert: (-7 gcd: -4) equals: 1.
+	assert: (-7 gcd: -3) equals: 1.
+	assert: (-7 gcd: -2) equals: 1.
+	assert: (-7 gcd: -1) equals: 1.
+	assert: (-7 gcd: 0) equals: 7.
+	assert: (-7 gcd: 1) equals: 1.
+	assert: (-7 gcd: 2) equals: 1.
+	assert: (-7 gcd: 3) equals: 1.
+	assert: (-7 gcd: 4) equals: 1.
+	assert: (-7 gcd: 5) equals: 1.
+	assert: (-7 gcd: 6) equals: 1.
+	assert: (-7 gcd: 7) equals: 7.
+	assert: (-6 gcd: -7) equals: 1.
+	assert: (-6 gcd: -6) equals: 6.
+	assert: (-6 gcd: -5) equals: 1.
+	assert: (-6 gcd: -4) equals: 2.
+	assert: (-6 gcd: -3) equals: 3.
+	assert: (-6 gcd: -2) equals: 2.
+	assert: (-6 gcd: -1) equals: 1.
+	assert: (-6 gcd: 0) equals: 6.
+	assert: (-6 gcd: 1) equals: 1.
+	assert: (-6 gcd: 2) equals: 2.
+	assert: (-6 gcd: 3) equals: 3.
+	assert: (-6 gcd: 4) equals: 2.
+	assert: (-6 gcd: 5) equals: 1.
+	assert: (-6 gcd: 6) equals: 6.
+	assert: (-6 gcd: 7) equals: 1.
+	assert: (-5 gcd: -7) equals: 1.
+	assert: (-5 gcd: -6) equals: 1.
+	assert: (-5 gcd: -5) equals: 5.
+	assert: (-5 gcd: -4) equals: 1.
+	assert: (-5 gcd: -3) equals: 1.
+	assert: (-5 gcd: -2) equals: 1.
+	assert: (-5 gcd: -1) equals: 1.
+	assert: (-5 gcd: 0) equals: 5.
+	assert: (-5 gcd: 1) equals: 1.
+	assert: (-5 gcd: 2) equals: 1.
+	assert: (-5 gcd: 3) equals: 1.
+	assert: (-5 gcd: 4) equals: 1.
+	assert: (-5 gcd: 5) equals: 5.
+	assert: (-5 gcd: 6) equals: 1.
+	assert: (-5 gcd: 7) equals: 1.
+	assert: (-4 gcd: -7) equals: 1.
+	assert: (-4 gcd: -6) equals: 2.
+	assert: (-4 gcd: -5) equals: 1.
+	assert: (-4 gcd: -4) equals: 4.
+	assert: (-4 gcd: -3) equals: 1.
+	assert: (-4 gcd: -2) equals: 2.
+	assert: (-4 gcd: -1) equals: 1.
+	assert: (-4 gcd: 0) equals: 4.
+	assert: (-4 gcd: 1) equals: 1.
+	assert: (-4 gcd: 2) equals: 2.
+	assert: (-4 gcd: 3) equals: 1.
+	assert: (-4 gcd: 4) equals: 4.
+	assert: (-4 gcd: 5) equals: 1.
+	assert: (-4 gcd: 6) equals: 2.
+	assert: (-4 gcd: 7) equals: 1.
+	assert: (-3 gcd: -7) equals: 1.
+	assert: (-3 gcd: -6) equals: 3.
+	assert: (-3 gcd: -5) equals: 1.
+	assert: (-3 gcd: -4) equals: 1.
+	assert: (-3 gcd: -3) equals: 3.
+	assert: (-3 gcd: -2) equals: 1.
+	assert: (-3 gcd: -1) equals: 1.
+	assert: (-3 gcd: 0) equals: 3.
+	assert: (-3 gcd: 1) equals: 1.
+	assert: (-3 gcd: 2) equals: 1.
+	assert: (-3 gcd: 3) equals: 3.
+	assert: (-3 gcd: 4) equals: 1.
+	assert: (-3 gcd: 5) equals: 1.
+	assert: (-3 gcd: 6) equals: 3.
+	assert: (-3 gcd: 7) equals: 1.
+	assert: (-2 gcd: -7) equals: 1.
+	assert: (-2 gcd: -6) equals: 2.
+	assert: (-2 gcd: -5) equals: 1.
+	assert: (-2 gcd: -4) equals: 2.
+	assert: (-2 gcd: -3) equals: 1.
+	assert: (-2 gcd: -2) equals: 2.
+	assert: (-2 gcd: -1) equals: 1.
+	assert: (-2 gcd: 0) equals: 2.
+	assert: (-2 gcd: 1) equals: 1.
+	assert: (-2 gcd: 2) equals: 2.
+	assert: (-2 gcd: 3) equals: 1.
+	assert: (-2 gcd: 4) equals: 2.
+	assert: (-2 gcd: 5) equals: 1.
+	assert: (-2 gcd: 6) equals: 2.
+	assert: (-2 gcd: 7) equals: 1.
+	assert: (-1 gcd: -7) equals: 1.
+	assert: (-1 gcd: -6) equals: 1.
+	assert: (-1 gcd: -5) equals: 1.
+	assert: (-1 gcd: -4) equals: 1.
+	assert: (-1 gcd: -3) equals: 1.
+	assert: (-1 gcd: -2) equals: 1.
+	assert: (-1 gcd: -1) equals: 1.
+	assert: (-1 gcd: 0) equals: 1.
+	assert: (-1 gcd: 1) equals: 1.
+	assert: (-1 gcd: 2) equals: 1.
+	assert: (-1 gcd: 3) equals: 1.
+	assert: (-1 gcd: 4) equals: 1.
+	assert: (-1 gcd: 5) equals: 1.
+	assert: (-1 gcd: 6) equals: 1.
+	assert: (-1 gcd: 7) equals: 1.
+	assert: (0 gcd: -7) equals: 7.
+	assert: (0 gcd: -6) equals: 6.
+	assert: (0 gcd: -5) equals: 5.
+	assert: (0 gcd: -4) equals: 4.
+	assert: (0 gcd: -3) equals: 3.
+	assert: (0 gcd: -2) equals: 2.
+	assert: (0 gcd: -1) equals: 1.
+	assert: (0 gcd: 0) equals: 0.
+	assert: (0 gcd: 1) equals: 1.
+	assert: (0 gcd: 2) equals: 2.
+	assert: (0 gcd: 3) equals: 3.
+	assert: (0 gcd: 4) equals: 4.
+	assert: (0 gcd: 5) equals: 5.
+	assert: (0 gcd: 6) equals: 6.
+	assert: (0 gcd: 7) equals: 7.
+	assert: (1 gcd: -7) equals: 1.
+	assert: (1 gcd: -6) equals: 1.
+	assert: (1 gcd: -5) equals: 1.
+	assert: (1 gcd: -4) equals: 1.
+	assert: (1 gcd: -3) equals: 1.
+	assert: (1 gcd: -2) equals: 1.
+	assert: (1 gcd: -1) equals: 1.
+	assert: (1 gcd: 0) equals: 1.
+	assert: (1 gcd: 1) equals: 1.
+	assert: (1 gcd: 2) equals: 1.
+	assert: (1 gcd: 3) equals: 1.
+	assert: (1 gcd: 4) equals: 1.
+	assert: (1 gcd: 5) equals: 1.
+	assert: (1 gcd: 6) equals: 1.
+	assert: (1 gcd: 7) equals: 1.
+	assert: (2 gcd: -7) equals: 1.
+	assert: (2 gcd: -6) equals: 2.
+	assert: (2 gcd: -5) equals: 1.
+	assert: (2 gcd: -4) equals: 2.
+	assert: (2 gcd: -3) equals: 1.
+	assert: (2 gcd: -2) equals: 2.
+	assert: (2 gcd: -1) equals: 1.
+	assert: (2 gcd: 0) equals: 2.
+	assert: (2 gcd: 1) equals: 1.
+	assert: (2 gcd: 2) equals: 2.
+	assert: (2 gcd: 3) equals: 1.
+	assert: (2 gcd: 4) equals: 2.
+	assert: (2 gcd: 5) equals: 1.
+	assert: (2 gcd: 6) equals: 2.
+	assert: (2 gcd: 7) equals: 1.
+	assert: (3 gcd: -7) equals: 1.
+	assert: (3 gcd: -6) equals: 3.
+	assert: (3 gcd: -5) equals: 1.
+	assert: (3 gcd: -4) equals: 1.
+	assert: (3 gcd: -3) equals: 3.
+	assert: (3 gcd: -2) equals: 1.
+	assert: (3 gcd: -1) equals: 1.
+	assert: (3 gcd: 0) equals: 3.
+	assert: (3 gcd: 1) equals: 1.
+	assert: (3 gcd: 2) equals: 1.
+	assert: (3 gcd: 3) equals: 3.
+	assert: (3 gcd: 4) equals: 1.
+	assert: (3 gcd: 5) equals: 1.
+	assert: (3 gcd: 6) equals: 3.
+	assert: (3 gcd: 7) equals: 1.
+	assert: (4 gcd: -7) equals: 1.
+	assert: (4 gcd: -6) equals: 2.
+	assert: (4 gcd: -5) equals: 1.
+	assert: (4 gcd: -4) equals: 4.
+	assert: (4 gcd: -3) equals: 1.
+	assert: (4 gcd: -2) equals: 2.
+	assert: (4 gcd: -1) equals: 1.
+	assert: (4 gcd: 0) equals: 4.
+	assert: (4 gcd: 1) equals: 1.
+	assert: (4 gcd: 2) equals: 2.
+	assert: (4 gcd: 3) equals: 1.
+	assert: (4 gcd: 4) equals: 4.
+	assert: (4 gcd: 5) equals: 1.
+	assert: (4 gcd: 6) equals: 2.
+	assert: (4 gcd: 7) equals: 1.
+	assert: (5 gcd: -7) equals: 1.
+	assert: (5 gcd: -6) equals: 1.
+	assert: (5 gcd: -5) equals: 5.
+	assert: (5 gcd: -4) equals: 1.
+	assert: (5 gcd: -3) equals: 1.
+	assert: (5 gcd: -2) equals: 1.
+	assert: (5 gcd: -1) equals: 1.
+	assert: (5 gcd: 0) equals: 5.
+	assert: (5 gcd: 1) equals: 1.
+	assert: (5 gcd: 2) equals: 1.
+	assert: (5 gcd: 3) equals: 1.
+	assert: (5 gcd: 4) equals: 1.
+	assert: (5 gcd: 5) equals: 5.
+	assert: (5 gcd: 6) equals: 1.
+	assert: (5 gcd: 7) equals: 1.
+	assert: (6 gcd: -7) equals: 1.
+	assert: (6 gcd: -6) equals: 6.
+	assert: (6 gcd: -5) equals: 1.
+	assert: (6 gcd: -4) equals: 2.
+	assert: (6 gcd: -3) equals: 3.
+	assert: (6 gcd: -2) equals: 2.
+	assert: (6 gcd: -1) equals: 1.
+	assert: (6 gcd: 0) equals: 6.
+	assert: (6 gcd: 1) equals: 1.
+	assert: (6 gcd: 2) equals: 2.
+	assert: (6 gcd: 3) equals: 3.
+	assert: (6 gcd: 4) equals: 2.
+	assert: (6 gcd: 5) equals: 1.
+	assert: (6 gcd: 6) equals: 6.
+	assert: (6 gcd: 7) equals: 1.
+	assert: (7 gcd: -7) equals: 7.
+	assert: (7 gcd: -6) equals: 1.
+	assert: (7 gcd: -5) equals: 1.
+	assert: (7 gcd: -4) equals: 1.
+	assert: (7 gcd: -3) equals: 1.
+	assert: (7 gcd: -2) equals: 1.
+	assert: (7 gcd: -1) equals: 1.
+	assert: (7 gcd: 0) equals: 7.
+	assert: (7 gcd: 1) equals: 1.
+	assert: (7 gcd: 2) equals: 1.
+	assert: (7 gcd: 3) equals: 1.
+	assert: (7 gcd: 4) equals: 1.
+	assert: (7 gcd: 5) equals: 1.
+	assert: (7 gcd: 6) equals: 1.
+	assert: (7 gcd: 7) equals: 7.
 )
 public testIntegerMultiply = (
 	(* smi + smi, mint + mint, smi + mint, mint + smi *)
@@ -2862,13 +3089,13 @@ public testIntegerRaisedTo = (
 	(* Even exponent *)
 	r:: 1984 raisedTo: 10.
 	assert: r isKindOfInteger.
-	assert: r equals:  944967077844237655443063256907776.
+	assert: r equals: 944967077844237655443063256907776.
 	r:: 1984 raisedTo: -10.
 	assert: r isKindOfFraction.
 	assert: r equals: 1/944967077844237655443063256907776.
 	r:: -1984 raisedTo: 10.
 	assert: r isKindOfInteger.
-	assert: r equals:  944967077844237655443063256907776.
+	assert: r equals: 944967077844237655443063256907776.
 	r:: -1984 raisedTo: -10.
 	assert: r isKindOfFraction.
 	assert: r equals: 1/944967077844237655443063256907776.
@@ -2879,13 +3106,89 @@ public testIntegerRaisedTo = (
 	assert: r equals: 30740316814311424.
 	r:: 1984 raisedTo: -5.
 	assert: r isKindOfFraction.
-	assert: r equals:  1/30740316814311424.
+	assert: r equals: 1/30740316814311424.
 	r:: -1984 raisedTo: 5.
 	assert: r isKindOfInteger.
 	assert: r equals: -30740316814311424.
 	r:: -1984 raisedTo: -5.
 	assert: r isKindOfFraction.
-	assert: r equals:  -1/30740316814311424.
+	assert: r equals: -1/30740316814311424.
+)
+public testIntegerRaisedToModulo = (
+	| r |
+	r:: 0 raisedTo: 0 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 1.
+	r:: 10 raisedTo: 1 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 10.
+	r:: 10 raisedTo: 2 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 100.
+	r:: 10 raisedTo: 3 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 37.
+	r:: 10 raisedTo: 4 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 49.
+	r:: 10 raisedTo: 5 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 62.
+	r:: 10 raisedTo: 6 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 85.
+	r:: 10 raisedTo: 7 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 101.
+
+	r:: 10 raisedTo: -1 modulo: 107.
+	assert: r isKindOfFraction.
+	assert: r equals: 75.
+	r:: 10 raisedTo: -2 modulo: 107.
+	assert: r isKindOfFraction.
+	assert: r equals: 61.
+	r:: 10 raisedTo: -3 modulo: 107.
+	assert: r isKindOfFraction.
+	assert: r equals: 81.
+
+	(* Even exponent *)
+	r:: 1984 raisedTo: 10 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 30.
+	r:: 1984 raisedTo: -10 modulo: 107.
+	assert: r isKindOfFraction.
+	assert: r equals: 25.
+	r:: -1984 raisedTo: 10 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 30.
+	r:: -1984 raisedTo: -10 modulo: 107.
+	assert: r isKindOfFraction.
+	assert: r equals: 25.
+
+	(* Odd exponent *)
+	r:: 1984 raisedTo: 5 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 43.
+	r:: 1984 raisedTo: -5 modulo: 107.
+	assert: r isKindOfFraction.
+	assert: r equals: 5.
+	r:: -1984 raisedTo: 5 modulo: 107.
+	assert: r isKindOfInteger.
+	assert: r equals: 64.
+	r:: -1984 raisedTo: -5 modulo: 107.
+	assert: r isKindOfFraction.
+	assert: r equals: 102.
+)
+public testIntegerReciprocalModulo = (
+	1 to: 512 do: [:x |
+		x + 1 to: 512 do: [:modulus |
+			| inverse |
+			(x gcd: modulus) = 1
+				ifTrue:
+					[inverse:: x reciprocalModulo: modulus.
+					 assert: (x * inverse) \\ modulus equals: 1]
+				ifFalse:
+					[should: [x reciprocalModulo: modulus] signal: Error]]].
 )
 public testIntegerRounded = (
 	assert: -1 rounded equals: -1.
@@ -3286,6 +3589,22 @@ public testLargeIntegerComparisions = (
 	assert: 16rFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF > 16rFFFFFFFFFFFFFFFF.
 	deny: 16rFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF <= 16rFFFFFFFFFFFFFFFF.
 	assert: 16rFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF >= 16rFFFFFFFFFFFFFFFF.
+)
+public testLargeIntegerDigitAtErrors = (
+	should: [smallestPositiveLargeInteger digitAt: 9] signal: Error.
+	should: [largestNegativeLargeInteger digitAt: 9] signal: Error.
+
+	should: [smallestPositiveLargeInteger digitAt: -1] signal: Error.
+	should: [smallestPositiveLargeInteger digitAt: 0] signal: Error.
+	should: [smallestPositiveLargeInteger digitAt: nil] signal: Error.
+	should: [smallestPositiveLargeInteger digitAt: '1'] signal: Error.
+)
+public testLargeIntegerDigitLength = (
+	assert: smallestPositiveLargeInteger digitLength equals: 8.
+	assert: largestNegativeLargeInteger digitLength equals: 8.
+
+	assert: (1 << 800) digitLength equals: 101.
+	assert: (-1 << 800) digitLength equals: 101.
 )
 public testLargeIntegerDiv = (
 	|
@@ -4418,6 +4737,61 @@ public testMediumIntegerComparisons = (
 	assert: minInt64 <= maxInt64.
 	deny: minInt64 >= maxInt64.
 )
+public testMediumIntegerDigitAt = (
+	assert: (minInt63 digitAt: 1) equals: 16r00.
+	assert: (minInt63 digitAt: 2) equals: 16r00.
+	assert: (minInt63 digitAt: 3) equals: 16r00.
+	assert: (minInt63 digitAt: 4) equals: 16r00.
+	assert: (minInt63 digitAt: 5) equals: 16r00.
+	assert: (minInt63 digitAt: 6) equals: 16r00.
+	assert: (minInt63 digitAt: 7) equals: 16r00.
+	assert: (minInt63 digitAt: 8) equals: 16r40.
+
+	assert: (maxInt63 digitAt: 1) equals: 16rFF.
+	assert: (maxInt63 digitAt: 2) equals: 16rFF.
+	assert: (maxInt63 digitAt: 3) equals: 16rFF.
+	assert: (maxInt63 digitAt: 4) equals: 16rFF.
+	assert: (maxInt63 digitAt: 5) equals: 16rFF.
+	assert: (maxInt63 digitAt: 6) equals: 16rFF.
+	assert: (maxInt63 digitAt: 7) equals: 16rFF.
+	assert: (maxInt63 digitAt: 8) equals: 16r3F.
+
+	assert: (minInt64 digitAt: 1) equals: 16r00.
+	assert: (minInt64 digitAt: 2) equals: 16r00.
+	assert: (minInt64 digitAt: 3) equals: 16r00.
+	assert: (minInt64 digitAt: 4) equals: 16r00.
+	assert: (minInt64 digitAt: 5) equals: 16r00.
+	assert: (minInt64 digitAt: 6) equals: 16r00.
+	assert: (minInt64 digitAt: 7) equals: 16r00.
+	assert: (minInt64 digitAt: 8) equals: 16r80.
+
+	assert: (maxInt64 digitAt: 1) equals: 16rFF.
+	assert: (maxInt64 digitAt: 2) equals: 16rFF.
+	assert: (maxInt64 digitAt: 3) equals: 16rFF.
+	assert: (maxInt64 digitAt: 4) equals: 16rFF.
+	assert: (maxInt64 digitAt: 5) equals: 16rFF.
+	assert: (maxInt64 digitAt: 6) equals: 16rFF.
+	assert: (maxInt64 digitAt: 7) equals: 16rFF.
+	assert: (maxInt64 digitAt: 8) equals: 16r7F.
+)
+public testMediumIntegerDigitAtErrors = (
+	should: [minInt63 digitAt: 9] signal: Error.
+	should: [maxInt63 digitAt: 9] signal: Error.
+	should: [minInt64 digitAt: 9] signal: Error.
+	should: [maxInt64 digitAt: 9] signal: Error.
+
+	should: [minInt64 digitAt: -1] signal: Error.
+	should: [minInt64 digitAt: 0] signal: Error.
+	should: [minInt64 digitAt: nil] signal: Error.
+	should: [minInt64 digitAt: '1'] signal: Error.
+)
+public testMediumIntegerDigitLength = (
+	assert: minInt63 digitLength equals: 8.
+	assert: maxInt63 digitLength equals: 8.
+
+	assert: minInt64 digitLength equals: 8.
+	assert: maxInt64 digitLength equals: 8.
+)
 public testMediumIntegerDiv = (
 	assert: minInt31 // 1 equals: minInt31.
 	assert: minInt32 // 1 equals: minInt32.
@@ -4990,6 +5364,59 @@ public testSmallIntegerComparisons = (
 	deny: -5 <= -7.
 	assert: -5 >= -7.
 )
+public testSmallIntegerDigitAt = (
+	assert: (16r12 digitAt: 1) equals: 16r12.
+	assert: (16r1234 digitAt: 1) equals: 16r34.
+	assert: (16r1234 digitAt: 2) equals: 16r12.
+	assert: (16r123456 digitAt: 1) equals: 16r56.
+	assert: (16r123456 digitAt: 2) equals: 16r34.
+	assert: (16r123456 digitAt: 3) equals: 16r12.
+	assert: (16r12345678 digitAt: 1) equals: 16r78.
+	assert: (16r12345678 digitAt: 2) equals: 16r56.
+	assert: (16r12345678 digitAt: 3) equals: 16r34.
+	assert: (16r12345678 digitAt: 4) equals: 16r12.
+
+	assert: (-16r12 digitAt: 1) equals: 16r12.
+	assert: (-16r1234 digitAt: 1) equals: 16r34.
+	assert: (-16r1234 digitAt: 2) equals: 16r12.
+	assert: (-16r123456 digitAt: 1) equals: 16r56.
+	assert: (-16r123456 digitAt: 2) equals: 16r34.
+	assert: (-16r123456 digitAt: 3) equals: 16r12.
+	assert: (-16r12345678 digitAt: 1) equals: 16r78.
+	assert: (-16r12345678 digitAt: 2) equals: 16r56.
+	assert: (-16r12345678 digitAt: 3) equals: 16r34.
+	assert: (-16r12345678 digitAt: 4) equals: 16r12.
+)
+public testSmallIntegerDigitAtErrors = (
+	should: [0 digitAt: 1] signal: Error.
+	should: [16r12 digitAt: 2] signal: Error.
+	should: [16r1234 digitAt: 3] signal: Error.
+	should: [16r123456 digitAt: 4] signal: Error.
+	should: [16r12345678 digitAt: 5] signal: Error.
+
+	should: [-16r12 digitAt: 2] signal: Error.
+	should: [-16r1234 digitAt: 3] signal: Error.
+	should: [-16r123456 digitAt: 4] signal: Error.
+	should: [-16r12345678 digitAt: 5] signal: Error.
+
+	should: [42 digitAt: -1] signal: Error.
+	should: [42 digitAt: 0] signal: Error.
+	should: [42 digitAt: nil] signal: Error.
+	should: [42 digitAt: '1'] signal: Error.
+)
+public testSmallIntegerDigitLength = (
+	assert: 0 digitLength equals: 0.
+
+	assert: 16r12 digitLength equals: 1.
+	assert: 16r1234 digitLength equals: 2.
+	assert: 16r123456 digitLength equals: 3.
+	assert: 16r12345678 digitLength equals: 4.
+
+	assert: -16r12 digitLength equals: 1.
+	assert: -16r1234 digitLength equals: 2.
+	assert: -16r123456 digitLength equals: 3.
+	assert: -16r12345678 digitLength equals: 4.
+)
 public testSmallIntegerDiv = (
 	assert: -3 // 7 equals: -1.
 	assert: 3 // -7 equals: -1.
@@ -4998,7 +5425,7 @@ public testSmallIntegerDiv = (
 	assert: -7 // 3 equals: -3.
 	assert: 7 // -3 equals: -3.
 	assert: -7 // -3 equals: 2.
-	assert: 7 // 3  equals: 2.
+	assert: 7 // 3 equals: 2.
 
 	should: [42 // 0] signal: Error.
 

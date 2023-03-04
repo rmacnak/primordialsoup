@@ -580,28 +580,15 @@ public analyze: object = (
 public writeEdges = (
 )
 public writeNodes = (
-	(* :todo: Add and use direct digit accessors. *)
 	writeFormat: kLargeIntegerCluster.
 	stream leb128: objects size.
-	objects do: [:object | | abs tmp digitLength |
+	objects do: [:object | | digitLength |
 		registerRef: object.
-		object < 0
-			ifTrue:
-				[stream uint8: 1.
-				abs:: 0 - object]
-			ifFalse:
-				[stream uint8: 0.
-				abs:: object].
-		tmp:: abs.
-		digitLength:: 0.
-		[0 = tmp] whileFalse:
-			[digitLength:: digitLength + 1.
-			 tmp:: tmp >> 8].
+		stream uint8: (object < 0 ifTrue: [1] ifFalse: [0]).
+		digitLength:: object digitLength.
 		stream leb128: digitLength.
-		tmp:: abs.
-		digitLength timesRepeat:
-			[stream uint8: (tmp bitAnd: 255).
-			 tmp:: tmp >> 8]].
+		1 to: digitLength do:
+			[:index | stream uint8: (object digitAt: index)]].
 )
 ) : (
 )

@@ -1518,26 +1518,33 @@ public ceiling ^<Integer> = (
 public denominator ^<Integer> = (
 	^1
 )
+(* Answer the index'th digit in base 256. *)
+public digitAt: index <Integer> ^<Integer> = (
+	(* :pragma: primitive: 28 *)
+	^(ArgumentError value: index) signal
+)
+(* Answer the number of digits in base 256. *)
+public digitLength ^<Integer> = (
+	(* :pragma: primitive: 29 *)
+	panic.
+)
 public divideFromFraction: left <Fraction> ^<Number> = (
 	^left numerator / (left denominator * self)
 )
 public floor ^<Integer> = (
 	^self
 )
+(* Greatest common divisor *)
 public gcd: other <Integer> ^<Integer> = (
+	(* Euclidean algorithm *)
 	| n m |
 	n:: self.
 	m:: other.
-	[n = 0]
-		whileFalse:
-			[n:: m \\ (m:: n)].
+	[n = 0] whileFalse: [n:: m \\ (m:: n)].
 	^m abs
 )
 public hash ^<Integer> = (
 	^self
-)
-public inverseMod: modulus <Integer> ^<Integer> = (
-	panic.
 )
 public isKindOfFraction ^<Boolean> = (
 	^true
@@ -1550,6 +1557,40 @@ public multiplyFromFraction: left <Fraction> ^<Number> = (
 )
 public numerator ^<Integer> = (
 	^self
+)
+(* Modular exponentiation *)
+public raisedTo: exponent <Integer> modulo: modulus <Integer> ^<Integer | Fraction> = (
+	| result base e |
+	base:: self \\ modulus.
+	exponent < 0 ifTrue: [^(base reciprocalModulo: modulus) raisedTo: 0 - exponent modulo: modulus].
+	result:: 1.
+	e:: exponent.
+	[e > 0] whileTrue:
+		[0 = (e & 1) ifFalse: [result:: result * base \\ modulus].
+		 e:: e >> 1.
+		 base:: base * base \\ modulus].
+	^result
+)
+(* Modular multiplicative inverse *)
+public reciprocalModulo: modulus <Integer> ^<Integer> = (
+	(* Extended Euclidean algorithm *)
+	| t newt r newr |
+	t:: 0.
+	newt:: 1.
+	r:: modulus.
+	newr:: self.
+	[0 = newr] whileFalse:
+		[ | q tmp |
+		 q:: r // newr.
+		 tmp:: newt.
+		 newt:: t - (q * newt).
+		 t:: tmp.
+		 tmp:: newr.
+		 newr:: r - (q * newr).
+		 r:: tmp].
+	r > 1 ifTrue: [^Error signal: 'Not coprime'].
+	t < 0 ifTrue: [t:: t + modulus].
+	^t
 )
 public rounded ^<Integer> = (
 	^self
