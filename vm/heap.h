@@ -37,8 +37,7 @@ class Semispace {
   friend class Heap;
 
   void Allocate(size_t size) {
-    memory_ = VirtualMemory::Allocate(size,
-                                      VirtualMemory::kReadWrite,
+    memory_ = VirtualMemory::Allocate(size, VirtualMemory::kReadWrite,
                                       "primordialsoup-heap");
     ASSERT(Utils::IsAligned(memory_.base(), kObjectAlignment));
     ASSERT(memory_.size() == size);
@@ -63,7 +62,7 @@ class Semispace {
   void ReadWrite() { memory_.Protect(VirtualMemory::kReadWrite); }
   void NoAccess() { memory_.Protect(VirtualMemory::kNoAccess); }
 
-  Semispace() : memory_() { }
+  Semispace() : memory_() {}
 
   VirtualMemory memory_;
 };
@@ -376,9 +375,8 @@ class Heap {
         return result;
       }
     }
-    return allocator == kSnapshot
-        ? AllocateSnapshot(size)
-        : AllocateNormal(size);
+    return allocator == kSnapshot ? AllocateSnapshot(size)
+                                  : AllocateNormal(size);
   }
 
   uword AllocateNormal(intptr_t size);
@@ -437,7 +435,6 @@ class Heap {
 
   DISALLOW_COPY_AND_ASSIGN(Heap);
 };
-
 
 class HandleScope {
  public:

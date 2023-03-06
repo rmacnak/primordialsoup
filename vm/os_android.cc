@@ -9,9 +9,9 @@
 
 #include <android/log.h>
 #include <errno.h>
+#include <sys/random.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/random.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -21,7 +21,6 @@ namespace psoup {
 
 void OS::Startup() {}
 void OS::Shutdown() {}
-
 
 int64_t OS::CurrentMonotonicNanos() {
   struct timespec ts;
@@ -37,7 +36,6 @@ int64_t OS::CurrentMonotonicNanos() {
   return result;
 }
 
-
 int64_t OS::CurrentRealtimeNanos() {
   struct timespec ts;
   if (clock_gettime(CLOCK_REALTIME, &ts) != 0) {
@@ -52,7 +50,6 @@ int64_t OS::CurrentRealtimeNanos() {
   return result;
 }
 
-
 intptr_t OS::GetEntropy(void* buffer, size_t size) {
   if (getentropy(buffer, size) == -1) {
     return errno;
@@ -60,25 +57,20 @@ intptr_t OS::GetEntropy(void* buffer, size_t size) {
   return 0;
 }
 
-
 const char* OS::Name() { return "android"; }
-
 
 intptr_t OS::NumberOfAvailableProcessors() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
-
 void OS::DebugBreak() {
   __builtin_trap();
 }
-
 
 static void VFPrint(FILE* stream, const char* format, va_list args) {
   vfprintf(stream, format, args);
   fflush(stream);
 }
-
 
 void OS::Print(const char* format, ...) {
   va_list args;
@@ -89,7 +81,6 @@ void OS::Print(const char* format, ...) {
   va_end(args);
 }
 
-
 void OS::PrintErr(const char* format, ...) {
   va_list args;
   va_start(args, format);
@@ -99,13 +90,12 @@ void OS::PrintErr(const char* format, ...) {
   va_end(args);
 }
 
-
 char* OS::PrintStr(const char* format, ...) {
   va_list args;
   va_start(args, format);
   va_list measure_args;
   va_copy(measure_args, args);
-  intptr_t len = vsnprintf(NULL, 0, format, measure_args);
+  intptr_t len = vsnprintf(nullptr, 0, format, measure_args);
   va_end(measure_args);
 
   char* buffer = reinterpret_cast<char*>(malloc(len + 1));
@@ -119,11 +109,9 @@ char* OS::PrintStr(const char* format, ...) {
   return buffer;
 }
 
-
 void OS::Abort() {
   abort();
 }
-
 
 void OS::Exit(int code) {
   exit(code);

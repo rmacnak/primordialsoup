@@ -15,7 +15,6 @@ Behavior Object::Klass(Heap* heap) const {
   return heap->ClassAt(ClassId());
 }
 
-
 intptr_t HeapObject::HeapSizeFromClass() const {
   ASSERT(IsHeapObject());
 
@@ -60,7 +59,6 @@ intptr_t HeapObject::HeapSizeFromClass() const {
     return -1;
   }
 }
-
 
 void HeapObject::Pointers(Object** from, Object** to) {
   ASSERT(IsHeapObject());
@@ -107,13 +105,11 @@ void HeapObject::Pointers(Object** from, Object** to) {
   }
 }
 
-
 void HeapObject::AddToRememberedSet() const {
   Isolate* isolate = Isolate::Current();
-  ASSERT(isolate != NULL);
+  ASSERT(isolate != nullptr);
   isolate->heap()->AddToRememberedSet(*this);
 }
-
 
 char* Object::ToCString(Heap* heap) const {
   switch (ClassId()) {
@@ -178,19 +174,16 @@ char* Object::ToCString(Heap* heap) const {
   }
 }
 
-
 void Object::Print(Heap* heap) const {
   char* cstr = ToCString(heap);
   OS::Print("%s\n", cstr);
   free(cstr);
 }
 
-
 static void PrintStringError(String string) {
   const char* cstr = reinterpret_cast<const char*>(string->element_addr(0));
   OS::PrintErr("%.*s", static_cast<int>(string->Size()), cstr);
 }
-
 
 void Activation::PrintStack(Heap* heap) {
   Activation act = *this;
@@ -241,13 +234,11 @@ void Activation::PrintStack(Heap* heap) {
   }
 }
 
-
 #if defined(ARCH_IS_32_BIT)
 static uintptr_t kFNVPrime = 16777619;
 #elif defined(ARCH_IS_64_BIT)
 static uintptr_t kFNVPrime = 1099511628211;
 #endif
-
 
 SmallInteger String::EnsureHash(Isolate* isolate) {
   if (header_hash() == 0) {

@@ -7,16 +7,16 @@
 
 #include "vm/thread.h"
 
-#include <sys/errno.h>         // NOLINT
-#include <sys/types.h>         // NOLINT
-#include <sys/sysctl.h>        // NOLINT
-#include <mach/mach_init.h>    // NOLINT
-#include <mach/mach_host.h>    // NOLINT
-#include <mach/mach_port.h>    // NOLINT
-#include <mach/mach_traps.h>   // NOLINT
-#include <mach/task_info.h>    // NOLINT
-#include <mach/thread_info.h>  // NOLINT
-#include <mach/thread_act.h>   // NOLINT
+#include <mach/mach_host.h>
+#include <mach/mach_init.h>
+#include <mach/mach_port.h>
+#include <mach/mach_traps.h>
+#include <mach/task_info.h>
+#include <mach/thread_act.h>
+#include <mach/thread_info.h>
+#include <sys/errno.h>
+#include <sys/sysctl.h>
+#include <sys/types.h>
 
 #include "vm/assert.h"
 #include "vm/os.h"
@@ -29,9 +29,8 @@ namespace psoup {
     const int kBufferSize = 1024;                                              \
     char error_message[kBufferSize];                                           \
     Utils::StrError(result, error_message, kBufferSize);                       \
-    FATAL("pthread error: %d (%s)", result, error_message);                   \
+    FATAL("pthread error: %d (%s)", result, error_message);                    \
   }
-
 
 #if defined(DEBUG)
 #define ASSERT_PTHREAD_SUCCESS(result) VALIDATE_PTHREAD_RESULT(result)
@@ -39,7 +38,6 @@ namespace psoup {
 // NOTE: This (currently) expands to a no-op.
 #define ASSERT_PTHREAD_SUCCESS(result) ASSERT(result == 0)
 #endif
-
 
 #ifdef DEBUG
 #define RETURN_ON_PTHREAD_FAILURE(result)                                      \
@@ -55,7 +53,6 @@ namespace psoup {
 #define RETURN_ON_PTHREAD_FAILURE(result)                                      \
   if (result != 0) return result;
 #endif
-
 
 class ThreadStartData {
  public:
@@ -76,7 +73,6 @@ class ThreadStartData {
   DISALLOW_COPY_AND_ASSIGN(ThreadStartData);
 };
 
-
 // Dispatch to the thread start function provided by the caller. This trampoline
 // is used to ensure that the thread is properly destroyed if the thread just
 // exits.
@@ -94,9 +90,8 @@ static void* ThreadStart(void* data_ptr) {
   // Call the supplied thread start function handing it its parameters.
   function(parameter);
 
-  return NULL;
+  return nullptr;
 }
-
 
 int Thread::Start(const char* name,
                   ThreadStartFunction function,
@@ -117,48 +112,35 @@ int Thread::Start(const char* name,
   return 0;
 }
 
-
-const ThreadId Thread::kInvalidThreadId = reinterpret_cast<ThreadId>(NULL);
-const ThreadJoinId Thread::kInvalidThreadJoinId =
-    reinterpret_cast<ThreadJoinId>(NULL);
-
-
 ThreadId Thread::GetCurrentThreadId() {
   return pthread_self();
 }
-
 
 ThreadId Thread::GetCurrentThreadTraceId() {
   return ThreadIdFromIntPtr(pthread_mach_thread_np(pthread_self()));
 }
 
-
 ThreadJoinId Thread::GetCurrentThreadJoinId() {
   return pthread_self();
 }
 
-
 void Thread::Join(ThreadJoinId id) {
-  int result = pthread_join(id, NULL);
+  int result = pthread_join(id, nullptr);
   ASSERT(result == 0);
 }
-
 
 intptr_t Thread::ThreadIdToIntPtr(ThreadId id) {
   ASSERT(sizeof(id) == sizeof(intptr_t));
   return reinterpret_cast<intptr_t>(id);
 }
 
-
 ThreadId Thread::ThreadIdFromIntPtr(intptr_t id) {
   return reinterpret_cast<ThreadId>(id);
 }
 
-
 bool Thread::Compare(ThreadId a, ThreadId b) {
   return pthread_equal(a, b) != 0;
 }
-
 
 Mutex::Mutex() {
   pthread_mutexattr_t attr;
@@ -179,10 +161,9 @@ Mutex::Mutex() {
 
 #if defined(DEBUG)
   // When running with assertions enabled we do track the owner.
-  owner_ = Thread::kInvalidThreadId;
+  owner_ = kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
-
 
 Mutex::~Mutex() {
   int result = pthread_mutex_destroy(data_.mutex());
@@ -191,10 +172,9 @@ Mutex::~Mutex() {
 
 #if defined(DEBUG)
   // When running with assertions enabled we do track the owner.
-  ASSERT(owner_ == Thread::kInvalidThreadId);
+  ASSERT(owner_ == kInvalidThreadId);
 #endif  // defined(DEBUG)
 }
-
 
 void Mutex::Lock() {
   int result = pthread_mutex_lock(data_.mutex());
@@ -203,7 +183,6 @@ void Mutex::Lock() {
   ASSERT_PTHREAD_SUCCESS(result);  // Verify no other errors.
   CheckUnheldAndMark();
 }
-
 
 bool Mutex::TryLock() {
   int result = pthread_mutex_trylock(data_.mutex());
@@ -216,7 +195,6 @@ bool Mutex::TryLock() {
   return true;
 }
 
-
 void Mutex::Unlock() {
   CheckHeldAndUnmark();
   int result = pthread_mutex_unlock(data_.mutex());
@@ -224,7 +202,6 @@ void Mutex::Unlock() {
   ASSERT(result != EPERM);
   ASSERT_PTHREAD_SUCCESS(result);  // Verify no other errors.
 }
-
 
 Monitor::Monitor() {
   pthread_mutexattr_t attr;
@@ -242,20 +219,19 @@ Monitor::Monitor() {
   result = pthread_mutexattr_destroy(&attr);
   VALIDATE_PTHREAD_RESULT(result);
 
-  result = pthread_cond_init(data_.cond(), NULL);
+  result = pthread_cond_init(data_.cond(), nullptr);
   VALIDATE_PTHREAD_RESULT(result);
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  owner_ = Thread::kInvalidThreadId;
+  owner_ = kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
-
 
 Monitor::~Monitor() {
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == Thread::kInvalidThreadId);
+  ASSERT(owner_ == kInvalidThreadId);
 #endif  // defined(DEBUG)
 
   int result = pthread_mutex_destroy(data_.mutex());
@@ -264,7 +240,6 @@ Monitor::~Monitor() {
   result = pthread_cond_destroy(data_.cond());
   VALIDATE_PTHREAD_RESULT(result);
 }
-
 
 bool Monitor::TryEnter() {
   int result = pthread_mutex_trylock(data_.mutex());
@@ -277,13 +252,11 @@ bool Monitor::TryEnter() {
   return true;
 }
 
-
 void Monitor::Enter() {
   int result = pthread_mutex_lock(data_.mutex());
   VALIDATE_PTHREAD_RESULT(result);
   CheckUnheldAndMark();
 }
-
 
 void Monitor::Exit() {
   CheckHeldAndUnmark();
@@ -291,14 +264,12 @@ void Monitor::Exit() {
   VALIDATE_PTHREAD_RESULT(result);
 }
 
-
 void Monitor::Wait() {
   CheckHeldAndUnmark();
   int result = pthread_cond_wait(data_.cond(), data_.mutex());
   VALIDATE_PTHREAD_RESULT(result);
   CheckUnheldAndMark();
 }
-
 
 Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
   CheckHeldAndUnmark();
@@ -331,14 +302,12 @@ Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
   return retval;
 }
 
-
 void Monitor::Notify() {
   // When running with assertions enabled we track the owner.
   DEBUG_ASSERT(IsOwnedByCurrentThread());
   int result = pthread_cond_signal(data_.cond());
   VALIDATE_PTHREAD_RESULT(result);
 }
-
 
 void Monitor::NotifyAll() {
   // When running with assertions enabled we track the owner.

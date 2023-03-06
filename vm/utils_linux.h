@@ -8,8 +8,8 @@
 namespace psoup {
 
 inline char* Utils::StrError(int err, char* buffer, size_t bufsize) {
-#if !defined(__GLIBC__) ||                                              \
-((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
+#if !defined(__GLIBC__) ||                                                     \
+    ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE)
   // Use the XSI version.
   if (strerror_r(err, buffer, bufsize) != 0) {
     snprintf(buffer, bufsize, "%s", "strerror_r failed");

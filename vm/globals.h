@@ -14,9 +14,9 @@
 #include <windows.h>
 #endif  // defined(_WIN32)
 
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,7 +47,6 @@
 #error Automatic OS detection failed.
 #endif
 
-
 #if defined(_M_X64) || defined(_M_ARM64) || (__SIZEOF_POINTER__ == 8)
 #define ARCH_IS_64_BIT 1
 #elif defined(_M_IX86) || defined(_M_ARM) || (__SIZEOF_POINTER__ == 4)
@@ -56,7 +55,6 @@
 #error Unknown architecture.
 #endif
 
-
 // ATTRIBUTE_UNUSED indicates to the compiler that a variable/typedef is
 // expected to be unused and disables the related warning.
 #ifdef __GNUC__
@@ -64,7 +62,6 @@
 #else
 #define ATTRIBUTE_UNUSED
 #endif
-
 
 // Short form printf format specifiers
 #if defined(OS_EMSCRIPTEN)
@@ -80,7 +77,6 @@
 #define Pu64 PRIu64
 #define Px64 PRIx64
 
-
 // Suffixes for 64-bit integer literals.
 #ifdef _MSC_VER
 #define PSOUP_INT64_C(x) x##I64
@@ -90,13 +86,11 @@
 #define PSOUP_UINT64_C(x) x##ULL
 #endif
 
-
 // The following macro works on both 32 and 64-bit platforms.
 // Usage: instead of writing 0x1234567890123456ULL
 //      write PSOUP_2PART_UINT64_C(0x12345678,90123456);
 #define PSOUP_2PART_UINT64_C(a, b)                                             \
-                 (((static_cast<uint64_t>(a) << 32) + 0x##b##u))
-
+  (((static_cast<uint64_t>(a) << 32) + 0x##b##u))
 
 // Integer constants.
 constexpr int32_t kMinInt32 = 0x80000000;
@@ -107,24 +101,21 @@ constexpr int64_t kMaxInt64 = PSOUP_INT64_C(0x7FFFFFFFFFFFFFFF);
 constexpr uint64_t kMaxUint64 = PSOUP_2PART_UINT64_C(0xFFFFFFFF, FFFFFFFF);
 constexpr int64_t kSignBitDouble = PSOUP_INT64_C(0x8000000000000000);
 
-
 // Types for native machine words. Guaranteed to be able to hold pointers and
 // integers.
 typedef intptr_t word;
 typedef uintptr_t uword;
 
-
 // Various toolchains are missing either std::nullptr_t or unqualified
 // nullptr_t, so we declare it ourselves.
 typedef decltype(nullptr) nullptr_t;
 
-
 // Byte sizes.
 constexpr int kWordSize = sizeof(word);
-constexpr int kDoubleSize = sizeof(double);  // NOLINT
-constexpr int kFloatSize = sizeof(float);  // NOLINT
-constexpr int kInt32Size = sizeof(int32_t);  // NOLINT
-constexpr int kInt16Size = sizeof(int16_t);  // NOLINT
+constexpr int kDoubleSize = sizeof(double);
+constexpr int kFloatSize = sizeof(float);
+constexpr int kInt32Size = sizeof(int32_t);
+constexpr int kInt16Size = sizeof(int16_t);
 #if defined(ARCH_IS_32_BIT)
 constexpr int kWordSizeLog2 = 2;
 constexpr uword kUwordMax = kMaxUint32;
@@ -160,7 +151,7 @@ constexpr int kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
 // This should be used in the private: declarations for a class.
 #if !defined(DISALLOW_COPY_AND_ASSIGN)
 #define DISALLOW_COPY_AND_ASSIGN(TypeName)                                     \
-private:                                                                       \
+ private:                                                                      \
   TypeName(const TypeName&);                                                   \
   void operator=(const TypeName&)
 #endif  // !defined(DISALLOW_COPY_AND_ASSIGN)
@@ -172,7 +163,7 @@ private:                                                                       \
 // containing only static methods.
 #if !defined(DISALLOW_IMPLICIT_CONSTRUCTORS)
 #define DISALLOW_IMPLICIT_CONSTRUCTORS(TypeName)                               \
-private:                                                                       \
+ private:                                                                      \
   TypeName();                                                                  \
   DISALLOW_COPY_AND_ASSIGN(TypeName)
 #endif  // !defined(DISALLOW_IMPLICIT_CONSTRUCTORS)
@@ -183,15 +174,15 @@ private:                                                                       \
 // platform/assert.h.
 #if !defined(DISALLOW_ALLOCATION)
 #define DISALLOW_ALLOCATION()                                                  \
-public:                                                                        \
+ public:                                                                       \
   void operator delete(void* pointer) {                                        \
     fprintf(stderr, "unreachable code\n");                                     \
     abort();                                                                   \
   }                                                                            \
-private:                                                                       \
+                                                                               \
+ private:                                                                      \
   void* operator new(size_t size)
 #endif  // !defined(DISALLOW_ALLOCATION)
-
 
 // The type-based aliasing rule allows the compiler to assume that
 // pointers of different types (for some definition of different)
@@ -229,7 +220,6 @@ inline D bit_cast(const S& source) {
   return destination;
 }
 
-
 #if defined(__GNUC__) || defined(__clang__)
 // Tell the compiler to do printf format string checking if the
 // compiler supports it; see the 'format' attribute in
@@ -238,7 +228,7 @@ inline D bit_cast(const S& source) {
 // N.B.: As the GCC manual states, "[s]ince non-static C++ methods
 // have an implicit 'this' argument, the arguments of such methods
 // should be counted from two, not one."
-#define PRINTF_ATTRIBUTE(string_index, first_to_check) \
+#define PRINTF_ATTRIBUTE(string_index, first_to_check)                         \
   __attribute__((__format__(__printf__, string_index, first_to_check)))
 #else
 #define PRINTF_ATTRIBUTE(string_index, first_to_check)

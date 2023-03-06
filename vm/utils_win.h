@@ -10,8 +10,8 @@ namespace psoup {
 inline char* Utils::StrError(int err, char* buffer, size_t bufsize) {
   DWORD message_size =
       FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                    NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                    buffer, static_cast<DWORD>(bufsize), NULL);
+                    nullptr, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                    buffer, static_cast<DWORD>(bufsize), nullptr);
   if (message_size == 0) {
     if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
       snprintf(buffer, bufsize,

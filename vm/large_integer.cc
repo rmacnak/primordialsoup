@@ -14,7 +14,6 @@ namespace psoup {
 
 const intptr_t kMintDigits = sizeof(uint64_t) / sizeof(digit_t);
 
-
 LargeInteger LargeInteger::Expand(Object integer, Heap* H) {
   if (integer->IsLargeInteger()) {
     return static_cast<LargeInteger>(integer);
@@ -53,7 +52,6 @@ LargeInteger LargeInteger::Expand(Object integer, Heap* H) {
 
   return result;
 }
-
 
 Object LargeInteger::Reduce(LargeInteger large, Heap* H) {
   if (large->size() > kMintDigits) {
@@ -97,7 +95,6 @@ Object LargeInteger::Reduce(LargeInteger large, Heap* H) {
   }
 }
 
-
 static void Clamp(LargeInteger result) {
   for (intptr_t used = result->capacity() - 1; used >= 0; used--) {
     if (result->digit(used) != 0) {
@@ -108,7 +105,6 @@ static void Clamp(LargeInteger result) {
   result->set_size(0);
   result->set_negative(false);
 }
-
 
 static void Verify(LargeInteger integer) {
   ASSERT(integer->capacity() >= 0);
@@ -125,7 +121,6 @@ static void Verify(LargeInteger integer) {
     ASSERT(integer->digit(i) == 0);
   }
 }
-
 
 static intptr_t AbsCompare(LargeInteger left, LargeInteger right) {
   intptr_t d = right->size() - left->size();
@@ -145,11 +140,9 @@ static intptr_t AbsCompare(LargeInteger left, LargeInteger right) {
   return 0;
 }
 
-
 static bool AbsGreater(LargeInteger left, LargeInteger right) {
   return AbsCompare(left, right) < 0;
 }
-
 
 intptr_t LargeInteger::Compare(LargeInteger left, LargeInteger right) {
   if (left->negative()) {
@@ -166,11 +159,10 @@ intptr_t LargeInteger::Compare(LargeInteger left, LargeInteger right) {
   }
 }
 
-
 static LargeInteger AddAbsolutesWithSign(LargeInteger left,
-                                          LargeInteger right,
-                                          bool negative,
-                                          Heap* H) {
+                                         LargeInteger right,
+                                         bool negative,
+                                         Heap* H) {
   Verify(left);
   Verify(right);
 
@@ -191,7 +183,7 @@ static LargeInteger AddAbsolutesWithSign(LargeInteger left,
   ddigit_t carry = 0;
   for (intptr_t i = 0; i < shorter->size(); i++) {
     carry += static_cast<ddigit_t>(shorter->digit(i)) +
-        static_cast<ddigit_t>(longer->digit(i));
+             static_cast<ddigit_t>(longer->digit(i));
     result->set_digit(i, carry & kDigitMask);
     carry >>= kDigitShift;
     ASSERT((carry == 0) || (carry == 1));
@@ -210,11 +202,10 @@ static LargeInteger AddAbsolutesWithSign(LargeInteger left,
   return result;
 }
 
-
 static LargeInteger SubtractAbsolutesWithSign(LargeInteger left,
-                                               LargeInteger right,
-                                               bool negative,
-                                               Heap* H) {
+                                              LargeInteger right,
+                                              bool negative,
+                                              Heap* H) {
   Verify(left);
   Verify(right);
   ASSERT(left->size() >= right->size());
@@ -227,7 +218,7 @@ static LargeInteger SubtractAbsolutesWithSign(LargeInteger left,
   sddigit_t borrow = 0;
   for (intptr_t i = 0; i < right->size(); i++) {
     borrow += static_cast<ddigit_t>(left->digit(i)) -
-        static_cast<ddigit_t>(right->digit(i));
+              static_cast<ddigit_t>(right->digit(i));
     result->set_digit(i, borrow & kDigitMask);
     borrow >>= kDigitShift;
     ASSERT((borrow == 0) || (borrow == -1));
@@ -247,7 +238,6 @@ static LargeInteger SubtractAbsolutesWithSign(LargeInteger left,
   return result;
 }
 
-
 static void AbsAddOneInPlace(LargeInteger result) {
   if (result->size() == 0) {
     result->set_size(1);
@@ -266,11 +256,10 @@ static void AbsAddOneInPlace(LargeInteger result) {
   Verify(result);
 }
 
-
 LargeInteger MultiplyAbsolutesWithSign(LargeInteger left,
-                                        LargeInteger right,
-                                        bool negative,
-                                        Heap* H) {
+                                       LargeInteger right,
+                                       bool negative,
+                                       Heap* H) {
   Verify(left);
   Verify(right);
 
@@ -288,7 +277,7 @@ LargeInteger MultiplyAbsolutesWithSign(LargeInteger left,
     for (intptr_t j = 0; j < left->size(); j++) {
       ddigit_t left_digit = left->digit(j);
       carry += left_digit * right_digit +
-          static_cast<ddigit_t>(result->digit(i + j));
+               static_cast<ddigit_t>(result->digit(i + j));
       result->set_digit(i + j, carry & kDigitMask);
       carry >>= kDigitShift;
     }
@@ -303,10 +292,9 @@ LargeInteger MultiplyAbsolutesWithSign(LargeInteger left,
   return result;
 }
 
-
 LargeInteger LargeInteger::Add(LargeInteger left,
-                                LargeInteger right,
-                                Heap* H) {
+                               LargeInteger right,
+                               Heap* H) {
   if (left->negative() == right->negative()) {
     // -l + -r = -(l + r)
     //  l +  r =   l + r
@@ -324,10 +312,9 @@ LargeInteger LargeInteger::Add(LargeInteger left,
   }
 }
 
-
 LargeInteger LargeInteger::Subtract(LargeInteger left,
-                                     LargeInteger right,
-                                     Heap* H) {
+                                    LargeInteger right,
+                                    Heap* H) {
   if (left->negative() != right->negative()) {
     // -l -  r = -(l + r)
     //  l - -r =   l + r
@@ -345,10 +332,9 @@ LargeInteger LargeInteger::Subtract(LargeInteger left,
   }
 }
 
-
 LargeInteger LargeInteger::Multiply(LargeInteger left,
-                                     LargeInteger right,
-                                     Heap* h) {
+                                    LargeInteger right,
+                                    Heap* h) {
   //  l *  r =   l * r
   // -l * -r =   l * r
   // -l *  r = -(l * r)
@@ -357,10 +343,9 @@ LargeInteger LargeInteger::Multiply(LargeInteger left,
   return MultiplyAbsolutesWithSign(left, right, negative, h);
 }
 
-
 LargeInteger LargeInteger::And(LargeInteger left,
-                                LargeInteger right,
-                                Heap* H) {
+                               LargeInteger right,
+                               Heap* H) {
   Verify(left);
   Verify(right);
 
@@ -463,10 +448,9 @@ LargeInteger LargeInteger::And(LargeInteger left,
   return result;
 }
 
-
 LargeInteger LargeInteger::Or(LargeInteger left,
-                               LargeInteger right,
-                               Heap* H) {
+                              LargeInteger right,
+                              Heap* H) {
   Verify(left);
   Verify(right);
 
@@ -605,10 +589,9 @@ LargeInteger LargeInteger::Or(LargeInteger left,
   return result;
 }
 
-
 LargeInteger LargeInteger::Xor(LargeInteger left,
-                                LargeInteger right,
-                                Heap* H) {
+                               LargeInteger right,
+                               Heap* H) {
   Verify(left);
   Verify(right);
 
@@ -738,10 +721,9 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
   return result;
 }
 
-
 LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
-                                      intptr_t right,
-                                      Heap* H) {
+                                     intptr_t right,
+                                     Heap* H) {
   Verify(left);
 
   ASSERT(right >= 0);
@@ -800,10 +782,9 @@ LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
   return result;
 }
 
-
 LargeInteger LargeInteger::ShiftRight(LargeInteger left,
-                                       intptr_t right,
-                                       Heap* H) {
+                                      intptr_t right,
+                                      Heap* H) {
   Verify(left);
 
   intptr_t digit_shift = right / kDigitBits;
@@ -880,7 +861,6 @@ LargeInteger LargeInteger::ShiftRight(LargeInteger left,
   return result;
 }
 
-
 ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint16_t x) {
   if (x == 0) return 16;
   intptr_t n = 0;
@@ -890,7 +870,6 @@ ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint16_t x) {
   if (x <= 0x7FFF) { n = n + 1; }
   return n;
 }
-
 
 ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint32_t x) {
   if (x == 0) return 32;
@@ -903,12 +882,11 @@ ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint32_t x) {
   return n;
 }
 
-
 LargeInteger LargeInteger::Divide(DivOperationType op_type,
-                                   DivResultType result_type,
-                                   LargeInteger dividend,
-                                   LargeInteger divisor,
-                                   Heap* H) {
+                                  DivResultType result_type,
+                                  LargeInteger dividend,
+                                  LargeInteger divisor,
+                                  Heap* H) {
   Verify(dividend);
   Verify(divisor);
 
@@ -988,8 +966,8 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
       digit_t quoitent_d = (remainder_d * kDigitBase + dividend_d) / divisor_d;
       quoitent->set_digit(j, quoitent_d);
       remainder_d = (remainder_d * kDigitBase + dividend_d) -
-          (static_cast<ddigit_t>(quoitent_d) *
-           static_cast<ddigit_t>(divisor_d));
+                    (static_cast<ddigit_t>(quoitent_d) *
+                     static_cast<ddigit_t>(divisor_d));
     }
     Clamp(quoitent);
     Verify(quoitent);
@@ -1073,31 +1051,32 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
   intptr_t inv_normalize_shift = kDigitBits - normalize_shift;
   digit_t* norm_div = new digit_t[n];
   for (intptr_t i = n - 1; i > 0; i--) {
-    norm_div[i] = (divisor->digit(i) << normalize_shift) |
-        (static_cast<ddigit_t>(divisor->digit(i - 1)) >>
-            inv_normalize_shift);
+    norm_div[i] =
+        (divisor->digit(i) << normalize_shift) |
+        (static_cast<ddigit_t>(divisor->digit(i - 1)) >> inv_normalize_shift);
   }
   norm_div[0] = divisor->digit(0) << normalize_shift;
 
   digit_t* norm_rem = new digit_t[m + 1];
-  norm_rem[m] = static_cast<ddigit_t>(dividend->digit(m-1)) >>
-      inv_normalize_shift;
+  norm_rem[m] =
+      static_cast<ddigit_t>(dividend->digit(m - 1)) >> inv_normalize_shift;
   for (intptr_t i = m - 1; i > 0; i--) {
-    norm_rem[i] = (dividend->digit(i) << normalize_shift) |
-        (static_cast<ddigit_t>(dividend->digit(i - 1)) >>
-            inv_normalize_shift);
+    norm_rem[i] =
+        (dividend->digit(i) << normalize_shift) |
+        (static_cast<ddigit_t>(dividend->digit(i - 1)) >> inv_normalize_shift);
   }
   norm_rem[0] = dividend->digit(0) << normalize_shift;
 
   for (intptr_t j = m - n; j >= 0; j--) {
-    ddigit_t p = norm_rem[j+n] * kDigitBase + norm_rem[j+n-1];
-    ddigit_t q_est = p / norm_div[n-1];
-    ddigit_t r_est = p - (q_est * norm_div[n-1]);
+    ddigit_t p = norm_rem[j + n] * kDigitBase + norm_rem[j + n - 1];
+    ddigit_t q_est = p / norm_div[n - 1];
+    ddigit_t r_est = p - (q_est * norm_div[n - 1]);
   again:
     if ((q_est >= kDigitBase) ||
-        (q_est * norm_div[n-2]) > (kDigitBase * r_est + norm_rem[j+n-2])) {
+        (q_est * norm_div[n - 2]) >
+            (kDigitBase * r_est + norm_rem[j + n - 2])) {
       q_est = q_est - 1;
-      r_est = r_est + norm_div[n-1];
+      r_est = r_est + norm_div[n - 1];
       if (r_est < kDigitBase) goto again;
     }
 
@@ -1105,23 +1084,23 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
     sddigit_t t;
     for (intptr_t i = 0; i < n; i++) {
       ddigit_t p = q_est * norm_div[i];
-      t = norm_rem[i+j] - k - (p & kDigitMask);
-      norm_rem[i+j] = t;
+      t = norm_rem[i + j] - k - (p & kDigitMask);
+      norm_rem[i + j] = t;
       k = (p >> kDigitBits) - (t >> kDigitBits);
     }
-    t = norm_rem[j+n] - k;
-    norm_rem[j+n] = t;
+    t = norm_rem[j + n] - k;
+    norm_rem[j + n] = t;
 
     quoitent->set_digit(j, q_est);
     if (t < 0) {
       quoitent->set_digit(j, quoitent->digit(j) - 1);
       k = 0;
       for (intptr_t i = 0; i < n; i++) {
-        t = static_cast<ddigit_t>(norm_rem[i+j]) + norm_div[i] + k;
+        t = static_cast<ddigit_t>(norm_rem[i + j]) + norm_div[i] + k;
         norm_rem[i + j] = t;
         k = t >> kDigitBits;
       }
-      norm_rem[j+n] = norm_rem[j+n] + k;
+      norm_rem[j + n] = norm_rem[j + n] + k;
     }
   }
 
@@ -1168,9 +1147,9 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
     LargeInteger remainder = H->AllocateLargeInteger(n);
     remainder->set_negative(dividend->negative());
     for (intptr_t i = 0; i < n - 1; i++) {
-      digit_t d = (norm_rem[i] >> normalize_shift) |
-          (static_cast<ddigit_t>(norm_rem[i + 1]) <<
-              inv_normalize_shift);
+      digit_t d =
+          (norm_rem[i] >> normalize_shift) |
+          (static_cast<ddigit_t>(norm_rem[i + 1]) << inv_normalize_shift);
       remainder->set_digit(i, d);
     }
     remainder->set_digit(n - 1, norm_rem[n - 1] >> normalize_shift);
@@ -1196,7 +1175,6 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
   UNREACHABLE();
   return nullptr;
 }
-
 
 String LargeInteger::PrintString(LargeInteger large, Heap* H) {
 #if defined(ARCH_IS_32_BIT)
@@ -1266,7 +1244,6 @@ String LargeInteger::PrintString(LargeInteger large, Heap* H) {
 
   return result;
 }
-
 
 double LargeInteger::AsDouble(LargeInteger integer) {
   intptr_t used = integer->size();
@@ -1396,7 +1373,6 @@ double LargeInteger::AsDouble(LargeInteger integer) {
   return integer->negative() ? -value : value;
 }
 
-
 // We assume that doubles and uint64_t have the same endianness.
 static uint64_t double_to_uint64(double d) { return bit_cast<uint64_t>(d); }
 
@@ -1408,9 +1384,7 @@ class DoubleInternals {
   explicit DoubleInternals(double d) : d64_(double_to_uint64(d)) {}
 
   // Returns the double's bit as uint64.
-  uint64_t AsUint64() const {
-    return d64_;
-  }
+  uint64_t AsUint64() const { return d64_; }
 
   int Exponent() const {
     if (IsDenormal()) return kDenormalExponent;
@@ -1446,7 +1420,7 @@ class DoubleInternals {
 
   int Sign() const {
     uint64_t d64 = AsUint64();
-    return (d64 & kSignMask) == 0? 1: -1;
+    return (d64 & kSignMask) == 0 ? 1 : -1;
   }
 
  private:
@@ -1463,10 +1437,9 @@ class DoubleInternals {
   const uint64_t d64_;
 };
 
-
 static LargeInteger NewFromShiftedInt64(int64_t value,
-                                         intptr_t shift,
-                                         Heap* H) {
+                                        intptr_t shift,
+                                        Heap* H) {
   bool negative;
   uint64_t abs_value;
   if (value < 0) {
@@ -1524,7 +1497,6 @@ static LargeInteger NewFromShiftedInt64(int64_t value,
   Verify(result);
   return result;
 }
-
 
 bool LargeInteger::FromDouble(double raw_value, Object* result, Heap* H) {
   if (isinf(raw_value) || isnan(raw_value)) {
@@ -1626,6 +1598,5 @@ Object LargeInteger::FromUint64(uint64_t raw_value, Heap* H) {
     return large;
   }
 }
-
 
 }  // namespace psoup

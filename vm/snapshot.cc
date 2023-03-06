@@ -30,7 +30,7 @@ class Cluster {
 class RegularObjectCluster : public Cluster {
  public:
   explicit RegularObjectCluster(intptr_t format, intptr_t cid = kIllegalCid)
-    : format_(format), cid_(cid) {}
+      : format_(format), cid_(cid) {}
   ~RegularObjectCluster() {}
 
   void ReadNodes(Deserializer* d, Heap* h) {
@@ -208,7 +208,6 @@ class ClosureCluster : public Cluster {
   }
 };
 
-
 class ActivationCluster : public Cluster {
  public:
   ActivationCluster() {}
@@ -346,16 +345,14 @@ class FloatCluster : public Cluster {
   void ReadEdges(Deserializer* d, Heap* h) {}
 };
 
-Deserializer::Deserializer(Heap* heap, void* snapshot, size_t snapshot_length) :
-  snapshot_(reinterpret_cast<const uint8_t*>(snapshot)),
-  snapshot_length_(snapshot_length),
-  cursor_(snapshot_),
-  heap_(heap),
-  clusters_(NULL),
-  refs_(NULL),
-  next_ref_(0) {
-}
-
+Deserializer::Deserializer(Heap* heap, void* snapshot, size_t snapshot_length)
+    : snapshot_(reinterpret_cast<const uint8_t*>(snapshot)),
+      snapshot_length_(snapshot_length),
+      cursor_(snapshot_),
+      heap_(heap),
+      clusters_(nullptr),
+      refs_(nullptr),
+      next_ref_(0) {}
 
 Deserializer::~Deserializer() {
   for (intptr_t i = 0; i < num_clusters_; i++) {
@@ -365,7 +362,6 @@ Deserializer::~Deserializer() {
   delete[] clusters_;
   delete[] refs_;
 }
-
 
 void Deserializer::Deserialize() {
   int64_t start = OS::CurrentMonotonicNanos();
@@ -509,7 +505,7 @@ Cluster* Deserializer::ReadCluster() {
       case kFloatCluster: return new FloatCluster();
     }
     FATAL("Unknown cluster format %" Pd "\n", format);
-    return NULL;
+    return nullptr;
   }
 }
 

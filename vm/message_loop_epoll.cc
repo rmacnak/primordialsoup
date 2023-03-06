@@ -37,8 +37,8 @@ static bool SetBlockingHelper(intptr_t fd, bool blocking) {
 EPollMessageLoop::EPollMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
       mutex_(),
-      head_(NULL),
-      tail_(NULL),
+      head_(nullptr),
+      tail_(nullptr),
       wakeup_(0) {
   int result = pipe(interrupt_fds_);
   if (result != 0) {
@@ -115,7 +115,7 @@ void EPollMessageLoop::MessageEpilogue(int64_t new_wakeup) {
     it.it_value.tv_sec = new_wakeup / kNanosecondsPerSecond;
     it.it_value.tv_nsec = new_wakeup % kNanosecondsPerSecond;
   }
-  timerfd_settime(timer_fd_, TFD_TIMER_ABSTIME, &it, NULL);
+  timerfd_settime(timer_fd_, TFD_TIMER_ABSTIME, &it, nullptr);
 
   if ((open_ports_ == 0) && (open_waits_ == 0) && (wakeup_ == 0)) {
     Exit(0);
@@ -124,12 +124,12 @@ void EPollMessageLoop::MessageEpilogue(int64_t new_wakeup) {
 
 void EPollMessageLoop::Exit(intptr_t exit_code) {
   exit_code_ = exit_code;
-  isolate_ = NULL;
+  isolate_ = nullptr;
 }
 
 void EPollMessageLoop::PostMessage(IsolateMessage* message) {
   MutexLocker locker(&mutex_);
-  if (head_ == NULL) {
+  if (head_ == nullptr) {
     head_ = tail_ = message;
     Notify();
   } else {
@@ -149,12 +149,12 @@ void EPollMessageLoop::Notify() {
 IsolateMessage* EPollMessageLoop::TakeMessages() {
   MutexLocker locker(&mutex_);
   IsolateMessage* message = head_;
-  head_ = tail_ = NULL;
+  head_ = tail_ = nullptr;
   return message;
 }
 
 intptr_t EPollMessageLoop::Run() {
-  while (isolate_ != NULL) {
+  while (isolate_ != nullptr) {
     static const intptr_t kMaxEvents = 16;
     struct epoll_event events[kMaxEvents];
 
@@ -201,7 +201,7 @@ intptr_t EPollMessageLoop::Run() {
     }
 
     IsolateMessage* message = TakeMessages();
-    while (message != NULL) {
+    while (message != nullptr) {
       IsolateMessage* next = message->next_;
       DispatchMessage(message);
       message = next;
@@ -212,7 +212,7 @@ intptr_t EPollMessageLoop::Run() {
     PortMap::CloseAllPorts(this);
   }
 
-  while (head_ != NULL) {
+  while (head_ != nullptr) {
     IsolateMessage* message = head_;
     head_ = message->next_;
     delete message;

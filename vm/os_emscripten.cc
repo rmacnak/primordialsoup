@@ -21,12 +21,10 @@ namespace psoup {
 void OS::Startup() {}
 void OS::Shutdown() {}
 
-
 int64_t OS::CurrentMonotonicNanos() {
   double now = emscripten_get_now();
   return now * kNanosecondsPerMillisecond;
 }
-
 
 int64_t OS::CurrentRealtimeNanos() {
   struct timespec ts;
@@ -42,30 +40,24 @@ int64_t OS::CurrentRealtimeNanos() {
   return result;
 }
 
-
 intptr_t OS::GetEntropy(void* buffer, size_t size) {
   return getentropy(buffer, size);
 }
 
-
 const char* OS::Name() { return "emscripten"; }
-
 
 intptr_t OS::NumberOfAvailableProcessors() {
   return 1;
 }
 
-
 void OS::DebugBreak() {
   emscripten_debugger();
 }
-
 
 static void VFPrint(FILE* stream, const char* format, va_list args) {
   vfprintf(stream, format, args);
   fflush(stream);
 }
-
 
 void OS::Print(const char* format, ...) {
   va_list args;
@@ -74,7 +66,6 @@ void OS::Print(const char* format, ...) {
   va_end(args);
 }
 
-
 void OS::PrintErr(const char* format, ...) {
   va_list args;
   va_start(args, format);
@@ -82,13 +73,12 @@ void OS::PrintErr(const char* format, ...) {
   va_end(args);
 }
 
-
 char* OS::PrintStr(const char* format, ...) {
   va_list args;
   va_start(args, format);
   va_list measure_args;
   va_copy(measure_args, args);
-  intptr_t len = vsnprintf(NULL, 0, format, measure_args);
+  intptr_t len = vsnprintf(nullptr, 0, format, measure_args);
   va_end(measure_args);
 
   char* buffer = reinterpret_cast<char*>(malloc(len + 1));
@@ -102,11 +92,9 @@ char* OS::PrintStr(const char* format, ...) {
   return buffer;
 }
 
-
 void OS::Abort() {
   abort();
 }
-
 
 void OS::Exit(int code) {
   exit(code);

@@ -17,6 +17,9 @@ namespace psoup {
 typedef intptr_t ThreadId;
 typedef intptr_t ThreadJoinId;
 
+constexpr ThreadId kInvalidThreadId = 0;
+constexpr ThreadJoinId kInvalidThreadJoinId = 0;
+
 class MutexData {
  private:
   MutexData() {}
@@ -27,7 +30,6 @@ class MutexData {
   DISALLOW_ALLOCATION();
   DISALLOW_COPY_AND_ASSIGN(MutexData);
 };
-
 
 class MonitorData {
  private:

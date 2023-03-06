@@ -51,9 +51,6 @@ class Thread : public AllStatic {
   static void DisableThreadCreation();
   static void EnableThreadCreation();
 
-  static const ThreadId kInvalidThreadId;
-  static const ThreadJoinId kInvalidThreadJoinId;
-
   static ThreadId GetCurrentThreadTraceId();
 };
 
@@ -76,12 +73,12 @@ class Mutex {
   void CheckHeldAndUnmark() {
 #if defined(DEBUG)
     ASSERT(owner_ == Thread::GetCurrentThreadId());
-    owner_ = Thread::kInvalidThreadId;
+    owner_ = kInvalidThreadId;
 #endif
   }
   void CheckUnheldAndMark() {
 #if defined(DEBUG)
-    ASSERT(owner_ == Thread::kInvalidThreadId);
+    ASSERT(owner_ == kInvalidThreadId);
     owner_ = Thread::GetCurrentThreadId();
 #endif
   }
@@ -94,7 +91,6 @@ class Mutex {
   friend class MutexLocker;
   DISALLOW_COPY_AND_ASSIGN(Mutex);
 };
-
 
 class Monitor {
  public:
@@ -125,12 +121,12 @@ class Monitor {
   void CheckHeldAndUnmark() {
 #if defined(DEBUG)
     ASSERT(owner_ == Thread::GetCurrentThreadId());
-    owner_ = Thread::kInvalidThreadId;
+    owner_ = kInvalidThreadId;
 #endif
   }
   void CheckUnheldAndMark() {
 #if defined(DEBUG)
-    ASSERT(owner_ == Thread::kInvalidThreadId);
+    ASSERT(owner_ == kInvalidThreadId);
     owner_ = Thread::GetCurrentThreadId();
 #endif
   }
@@ -144,8 +140,6 @@ class Monitor {
   DISALLOW_COPY_AND_ASSIGN(Monitor);
 };
 
-
 }  // namespace psoup
-
 
 #endif  // VM_THREAD_H_

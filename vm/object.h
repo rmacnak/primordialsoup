@@ -6,8 +6,8 @@
 #define VM_OBJECT_H_
 
 #include "vm/assert.h"
-#include "vm/globals.h"
 #include "vm/bitfield.h"
+#include "vm/globals.h"
 #include "vm/utils.h"
 
 namespace psoup {
@@ -120,7 +120,7 @@ class WeakArray;
   Layout* ptr() {                                                              \
     ASSERT(IsHeapObject());                                                    \
     return reinterpret_cast<Layout*>(Addr());                                  \
-  }                                                                            \
+  }
 
 class Object {
  public:
@@ -175,23 +175,21 @@ class Object {
 
   Object* operator->() { return this; }
 
-  constexpr bool operator ==(const Object& other) const {
+  constexpr bool operator==(const Object& other) const {
     return tagged_pointer_ == other.tagged_pointer_;
   }
-  constexpr bool operator !=(const Object& other) const {
+  constexpr bool operator!=(const Object& other) const {
     return tagged_pointer_ != other.tagged_pointer_;
   }
-  constexpr bool operator ==(nullptr_t other) const {
+  constexpr bool operator==(nullptr_t other) const {
     return tagged_pointer_ == 0;
   }
-  constexpr bool operator !=(nullptr_t other) const {
+  constexpr bool operator!=(nullptr_t other) const {
     return tagged_pointer_ != 0;
   }
 
   operator bool() const = delete;
-  explicit operator uword() const {
-    return tagged_pointer_;
-  }
+  explicit operator uword() const { return tagged_pointer_; }
   explicit operator intptr_t() const {
     return static_cast<intptr_t>(tagged_pointer_);
   }
@@ -225,9 +223,7 @@ class HeapObject : public Object {
   inline intptr_t header_hash() const;
   inline void set_header_hash(intptr_t value);
 
-  uword Addr() const {
-    return tagged_pointer_ - kHeapObjectTag;
-  }
+  uword Addr() const { return tagged_pointer_ - kHeapObjectTag; }
   static HeapObject FromAddr(uword addr) {
     return HeapObject(addr + kHeapObjectTag);
   }
@@ -248,12 +244,12 @@ class HeapObject : public Object {
   void Pointers(Object** from, Object** to);
 
  protected:
-  template<typename type>
+  template <typename type>
   type Load(type* addr, Barrier barrier = kBarrier) const {
     return *addr;
   }
 
-  template<typename type>
+  template <typename type>
   void Store(type* addr, type value, Barrier barrier) {
     *addr = value;
     if (barrier == kNoBarrier) {
@@ -272,10 +268,10 @@ class HeapObject : public Object {
   class MarkBit : public BitField<bool, kMarkBit, 1> {};
   class RememberedBit : public BitField<bool, kRememberedBit, 1> {};
   class CanonicalBit : public BitField<bool, kCanonicalBit, 1> {};
-  class SizeField :
-      public BitField<intptr_t, kSizeFieldOffset, kSizeFieldSize> {};
-  class ClassIdField :
-      public BitField<intptr_t, kClassIdFieldOffset, kClassIdFieldSize> {};
+  class SizeField
+      : public BitField<intptr_t, kSizeFieldOffset, kSizeFieldSize> {};
+  class ClassIdField
+      : public BitField<intptr_t, kClassIdFieldOffset, kClassIdFieldSize> {};
 };
 
 intptr_t Object::ClassId() const {
@@ -317,8 +313,8 @@ class SmallInteger : public Object {
   const SmallInteger* operator->() const { return this; }
 
   static SmallInteger New(intptr_t value) {
-    return static_cast<SmallInteger>(
-        static_cast<uintptr_t>(value) << kSmiTagShift);
+    return static_cast<SmallInteger>(static_cast<uintptr_t>(value)
+                                     << kSmiTagShift);
   }
 
   intptr_t value() const {
@@ -601,15 +597,9 @@ class Method : public HeapObject {
     ASSERT((am == 0) || (am == 1) || (am == 2));
     return am == 2;
   }
-  intptr_t Primitive() const {
-    return header()->value() >> 18;
-  }
-  intptr_t NumArgs() const {
-    return (header()->value() >> 2) & 255;
-  }
-  intptr_t NumTemps() const {
-    return (header()->value() >> 10) & 255;
-  }
+  intptr_t Primitive() const { return header()->value() >> 18; }
+  intptr_t NumArgs() const { return (header()->value() >> 2) & 255; }
+  intptr_t NumTemps() const { return (header()->value() >> 10) & 255; }
 
   const uint8_t* IP(const SmallInteger bci) {
     return bytecode()->element_addr(bci->value() - 1);
@@ -771,7 +761,7 @@ class Array::Layout : public HeapObject::Layout {
 class WeakArray::Layout : public HeapObject::Layout {
  public:
   SmallInteger size_;  // Not visited.
-  WeakArray next_;  // Not visited.
+  WeakArray next_;     // Not visited.
   Object elements_[];
 };
 
@@ -933,8 +923,8 @@ void HeapObject::set_header_hash(intptr_t value) {
 }
 
 HeapObject HeapObject::Initialize(uword addr,
-                                intptr_t cid,
-                                intptr_t heap_size) {
+                                  intptr_t cid,
+                                  intptr_t heap_size) {
   ASSERT(cid != kIllegalCid);
   ASSERT((heap_size & kObjectAlignmentMask) == 0);
   ASSERT(heap_size > 0);
@@ -1172,7 +1162,7 @@ void Closure::set_num_args(SmallInteger num) {
 Object Closure::copied(intptr_t index) const {
   return Load(&ptr()->copied_[index]);
 }
-void Closure::set_copied(intptr_t index, Object o, Barrier barrier ) {
+void Closure::set_copied(intptr_t index, Object o, Barrier barrier) {
   Store(&ptr()->copied_[index], o, barrier);
 }
 Object* Closure::from() {

@@ -5,8 +5,8 @@
 #ifndef VM_MATH_H_
 #define VM_MATH_H_
 
-#include "vm/globals.h"
 #include "vm/assert.h"
+#include "vm/globals.h"
 
 namespace psoup {
 

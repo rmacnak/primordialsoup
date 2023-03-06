@@ -14,14 +14,13 @@
 
 namespace psoup {
 
-Mutex* PortMap::mutex_ = NULL;
-PortMap::Entry* PortMap::map_ = NULL;
+Mutex* PortMap::mutex_ = nullptr;
+PortMap::Entry* PortMap::map_ = nullptr;
 MessageLoop* PortMap::deleted_entry_ = reinterpret_cast<MessageLoop*>(1);
 intptr_t PortMap::capacity_ = 0;
 intptr_t PortMap::used_ = 0;
 intptr_t PortMap::deleted_ = 0;
-Random* PortMap::prng_ = NULL;
-
+Random* PortMap::prng_ = nullptr;
 
 intptr_t PortMap::FindPort(Port port) {
   // ILLEGAL_PORT (0) is used as a sentinel value in Entry.port. The loop below
@@ -35,7 +34,7 @@ intptr_t PortMap::FindPort(Port port) {
   intptr_t index = port % capacity_;
   intptr_t start_index = index;
   Entry entry = map_[index];
-  while (entry.loop != NULL) {
+  while (entry.loop != nullptr) {
     if (entry.port == port) {
       return index;
     }
@@ -46,7 +45,6 @@ intptr_t PortMap::FindPort(Port port) {
   }
   return -1;
 }
-
 
 void PortMap::Rehash(intptr_t new_capacity) {
   Entry* new_ports = new Entry[new_capacity];
@@ -69,7 +67,6 @@ void PortMap::Rehash(intptr_t new_capacity) {
   deleted_ = 0;
 }
 
-
 Port PortMap::AllocatePort() {
   // Keep getting new values while we have an illegal port number or the port
   // number is already in use.
@@ -83,7 +80,6 @@ Port PortMap::AllocatePort() {
   return result;
 }
 
-
 void PortMap::MaintainInvariants() {
   intptr_t empty = capacity_ - used_ - deleted_;
   if (used_ > ((capacity_ / 4) * 3)) {
@@ -96,18 +92,13 @@ void PortMap::MaintainInvariants() {
   }
 }
 
-
 Port PortMap::CreatePort(MessageLoop* loop) {
-  ASSERT(loop != NULL);
+  ASSERT(loop != nullptr);
   MutexLocker ml(mutex_);
-#if defined(DEBUG)
-  /// queue->CheckAccess();
-#endif
 
   Entry entry;
   entry.port = AllocatePort();
   entry.loop = loop;
-  /// entry.state = kNewPort;
 
   // Search for the first unused slot. Make use of the knowledge that here is
   // currently no port with this id in the port map.
@@ -124,7 +115,7 @@ Port PortMap::CreatePort(MessageLoop* loop) {
   ASSERT(index >= 0);
   ASSERT(index < capacity_);
   ASSERT(map_[index].port == 0);
-  ASSERT((map_[index].loop == NULL) ||
+  ASSERT((map_[index].loop == nullptr) ||
          (map_[index].loop == deleted_entry_));
   if (map_[index].loop == deleted_entry_) {
     // Consuming a deleted entry.
@@ -139,7 +130,6 @@ Port PortMap::CreatePort(MessageLoop* loop) {
   return entry.port;
 }
 
-
 bool PortMap::PostMessage(IsolateMessage* message) {
   MutexLocker ml(mutex_);
   intptr_t index = FindPort(message->dest_port());
@@ -151,11 +141,10 @@ bool PortMap::PostMessage(IsolateMessage* message) {
   ASSERT(index < capacity_);
   MessageLoop* loop = map_[index].loop;
   ASSERT(map_[index].port != 0);
-  ASSERT((loop != NULL) && (loop != deleted_entry_));
+  ASSERT((loop != nullptr) && (loop != deleted_entry_));
   loop->PostMessage(message);
   return true;
 }
-
 
 bool PortMap::ClosePort(Port port) {
   MutexLocker ml(mutex_);
@@ -166,7 +155,7 @@ bool PortMap::ClosePort(Port port) {
   ASSERT(index < capacity_);
   ASSERT(map_[index].port != 0);
   ASSERT(map_[index].loop != deleted_entry_);
-  ASSERT(map_[index].loop != NULL);
+  ASSERT(map_[index].loop != nullptr);
 
   map_[index].port = 0;
   map_[index].loop = deleted_entry_;
@@ -176,7 +165,6 @@ bool PortMap::ClosePort(Port port) {
   MaintainInvariants();
   return true;
 }
-
 
 void PortMap::CloseAllPorts(MessageLoop* loop) {
   MutexLocker ml(mutex_);
@@ -192,7 +180,6 @@ void PortMap::CloseAllPorts(MessageLoop* loop) {
   MaintainInvariants();
 }
 
-
 void PortMap::Startup() {
   mutex_ = new Mutex();
   prng_ = new Random(OS::CurrentMonotonicNanos());
@@ -207,14 +194,13 @@ void PortMap::Startup() {
   deleted_ = 0;
 }
 
-
 void PortMap::Shutdown() {
   delete mutex_;
-  mutex_ = NULL;
+  mutex_ = nullptr;
   delete prng_;
-  prng_ = NULL;
+  prng_ = nullptr;
   delete[] map_;
-  map_ = NULL;
+  map_ = nullptr;
 }
 
 }  // namespace psoup

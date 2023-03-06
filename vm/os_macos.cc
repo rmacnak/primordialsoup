@@ -22,19 +22,15 @@ namespace psoup {
 
 void OS::Startup() {}
 
-
 void OS::Shutdown() {}
-
 
 int64_t OS::CurrentMonotonicNanos() {
   return clock_gettime_nsec_np(CLOCK_MONOTONIC);
 }
 
-
 int64_t OS::CurrentRealtimeNanos() {
   return clock_gettime_nsec_np(CLOCK_REALTIME);
 }
-
 
 intptr_t OS::GetEntropy(void* buffer, size_t size) {
   if (getentropy(buffer, size) == -1) {
@@ -43,19 +39,15 @@ intptr_t OS::GetEntropy(void* buffer, size_t size) {
   return 0;
 }
 
-
 const char* OS::Name() { return "macos"; }
-
 
 intptr_t OS::NumberOfAvailableProcessors() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
-
 void OS::DebugBreak() {
   __builtin_trap();
 }
-
 
 static void VFPrint(FILE* stream, const char* format, va_list args) {
   vfprintf(stream, format, args);
@@ -69,7 +61,6 @@ void OS::Print(const char* format, ...) {
   va_end(args);
 }
 
-
 void OS::PrintErr(const char* format, ...) {
   va_list args;
   va_start(args, format);
@@ -77,13 +68,12 @@ void OS::PrintErr(const char* format, ...) {
   va_end(args);
 }
 
-
 char* OS::PrintStr(const char* format, ...) {
   va_list args;
   va_start(args, format);
   va_list measure_args;
   va_copy(measure_args, args);
-  intptr_t len = vsnprintf(NULL, 0, format, measure_args);
+  intptr_t len = vsnprintf(nullptr, 0, format, measure_args);
   va_end(measure_args);
 
   char* buffer = reinterpret_cast<char*>(malloc(len + 1));
@@ -97,11 +87,9 @@ char* OS::PrintStr(const char* format, ...) {
   return buffer;
 }
 
-
 void OS::Abort() {
   abort();
 }
-
 
 void OS::Exit(int code) {
   exit(code);

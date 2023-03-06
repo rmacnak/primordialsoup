@@ -31,7 +31,7 @@ extern "C" void load_snapshot(void* snapshot, size_t snapshot_length) {
   uint64_t seed = psoup::OS::CurrentMonotonicNanos();
   isolate = new psoup::Isolate(snapshot, snapshot_length, seed);
   int argc = 0;
-  const char** argv = NULL;
+  const char** argv = nullptr;
   isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,
                                                          argc, argv));
 }

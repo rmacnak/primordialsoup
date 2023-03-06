@@ -5,8 +5,8 @@
 #ifndef VM_LOCKERS_H_
 #define VM_LOCKERS_H_
 
-#include "vm/assert.h"
 #include "vm/allocation.h"
+#include "vm/assert.h"
 #include "vm/globals.h"
 #include "vm/thread.h"
 
@@ -41,26 +41,18 @@ namespace psoup {
  */
 class MutexLocker : public ValueObject {
  public:
-  explicit MutexLocker(Mutex* mutex, bool no_safepoint_scope = true)
-      : mutex_(mutex), no_safepoint_scope_(no_safepoint_scope) {
-    ASSERT(mutex != NULL);
+  explicit MutexLocker(Mutex* mutex) : mutex_(mutex) {
+    ASSERT(mutex != nullptr);
     mutex_->Lock();
   }
 
-  virtual ~MutexLocker() {
-    mutex_->Unlock();
-  }
+  virtual ~MutexLocker() { mutex_->Unlock(); }
 
-  void Lock() const {
-    mutex_->Lock();
-  }
-  void Unlock() const {
-    mutex_->Unlock();
-  }
+  void Lock() const { mutex_->Lock(); }
+  void Unlock() const { mutex_->Unlock(); }
 
  private:
   Mutex* const mutex_;
-  bool no_safepoint_scope_;
 
   DISALLOW_COPY_AND_ASSIGN(MutexLocker);
 };
@@ -94,47 +86,32 @@ class MutexLocker : public ValueObject {
  */
 class MonitorLocker : public ValueObject {
  public:
-  explicit MonitorLocker(Monitor* monitor, bool no_safepoint_scope = true)
-      : monitor_(monitor), no_safepoint_scope_(no_safepoint_scope) {
-    ASSERT(monitor != NULL);
+  explicit MonitorLocker(Monitor* monitor) : monitor_(monitor) {
+    ASSERT(monitor != nullptr);
     monitor_->Enter();
   }
 
-  virtual ~MonitorLocker() {
-    monitor_->Exit();
-  }
+  virtual ~MonitorLocker() { monitor_->Exit(); }
 
-  void Enter() const {
-    monitor_->Enter();
-  }
-  void Exit() const {
-    monitor_->Exit();
-  }
+  void Enter() const { monitor_->Enter(); }
+  void Exit() const { monitor_->Exit(); }
 
-  void Wait() {
-    monitor_->Wait();
-  }
+  void Wait() { monitor_->Wait(); }
 
   Monitor::WaitResult WaitUntilNanos(int64_t deadline) {
     return monitor_->WaitUntilNanos(deadline);
   }
 
-  void Notify() {
-    monitor_->Notify();
-  }
+  void Notify() { monitor_->Notify(); }
 
-  void NotifyAll() {
-    monitor_->NotifyAll();
-  }
+  void NotifyAll() { monitor_->NotifyAll(); }
 
  private:
   Monitor* const monitor_;
-  bool no_safepoint_scope_;
 
   DISALLOW_COPY_AND_ASSIGN(MonitorLocker);
 };
 
 }  // namespace psoup
-
 
 #endif  // VM_LOCKERS_H_

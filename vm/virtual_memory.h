@@ -28,11 +28,10 @@ class VirtualMemory {
   uword limit() const { return base() + size(); }
   size_t size() const { return size_; }
 
-  VirtualMemory() : address_(0), size_(0) { }
+  VirtualMemory() : address_(nullptr), size_(0) {}
 
  private:
-  VirtualMemory(void* address, size_t size)
-      : address_(address), size_(size) { }
+  VirtualMemory(void* address, size_t size) : address_(address), size_(size) {}
 
   void* address_;
   size_t size_;

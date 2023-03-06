@@ -17,9 +17,7 @@
 
 namespace psoup {
 
-
 static int64_t qpc_ticks_per_second = 0;
-
 
 static int64_t GetCurrentMonotonicTicks() {
   if (qpc_ticks_per_second == 0) {
@@ -31,7 +29,6 @@ static int64_t GetCurrentMonotonicTicks() {
   return static_cast<int64_t>(now.QuadPart);
 }
 
-
 static int64_t GetCurrentMonotonicFrequency() {
   if (qpc_ticks_per_second == 0) {
     FATAL("QueryPerformanceCounter not supported");
@@ -39,18 +36,16 @@ static int64_t GetCurrentMonotonicFrequency() {
   return qpc_ticks_per_second;
 }
 
-
 intptr_t OS::GetEntropy(void* buffer, size_t size) {
   if (size <= 0) {
     return 0;
   }
-  NTSTATUS status = BCryptGenRandom(NULL,
+  NTSTATUS status = BCryptGenRandom(nullptr,
                                     reinterpret_cast<PUCHAR>(buffer),
                                     static_cast<ULONG>(size),
                                     BCRYPT_USE_SYSTEM_PREFERRED_RNG);
   return status >= 0 ? 0 : 1;
 }
-
 
 int64_t OS::CurrentMonotonicNanos() {
   int64_t ticks = GetCurrentMonotonicTicks();
@@ -63,7 +58,6 @@ int64_t OS::CurrentMonotonicNanos() {
   result += ((leftover_ticks * kNanosecondsPerSecond) / frequency);
   return result;
 }
-
 
 int64_t OS::CurrentRealtimeNanos() {
   static const int64_t kTimeEpoc = 116444736000000000LL;
@@ -83,16 +77,13 @@ int64_t OS::CurrentRealtimeNanos() {
   return (time.t_ - kTimeEpoc) * kTimeScaler;
 }
 
-
 const char* OS::Name() { return "windows"; }
-
 
 intptr_t OS::NumberOfAvailableProcessors() {
   SYSTEM_INFO info;
   GetSystemInfo(&info);
   return info.dwNumberOfProcessors;
 }
-
 
 void OS::DebugBreak() {
 #if defined(_MSC_VER)
@@ -108,12 +99,10 @@ void OS::DebugBreak() {
 #endif
 }
 
-
 static void VFPrint(FILE* stream, const char* format, va_list args) {
   vfprintf(stream, format, args);
   fflush(stream);
 }
-
 
 void OS::Print(const char* format, ...) {
   va_list args;
@@ -122,7 +111,6 @@ void OS::Print(const char* format, ...) {
   va_end(args);
 }
 
-
 void OS::PrintErr(const char* format, ...) {
   va_list args;
   va_start(args, format);
@@ -130,9 +118,8 @@ void OS::PrintErr(const char* format, ...) {
   va_end(args);
 }
 
-
 static int VSNPrint(char* str, size_t size, const char* format, va_list args) {
-  if (str == NULL || size == 0) {
+  if (str == nullptr || size == 0) {
     int retval = _vscprintf(format, args);
     if (retval < 0) {
       FATAL("Fatal error in OS::VSNPrint with format '%s'", format);
@@ -165,13 +152,12 @@ static int VSNPrint(char* str, size_t size, const char* format, va_list args) {
   return written;
 }
 
-
 char* OS::PrintStr(const char* format, ...) {
   va_list args;
   va_start(args, format);
   va_list measure_args;
   va_copy(measure_args, args);
-  intptr_t len = VSNPrint(NULL, 0, format, measure_args);
+  intptr_t len = VSNPrint(nullptr, 0, format, measure_args);
   va_end(measure_args);
 
   char* buffer = reinterpret_cast<char*>(malloc(len + 1));
@@ -185,7 +171,6 @@ char* OS::PrintStr(const char* format, ...) {
   return buffer;
 }
 
-
 void OS::Startup() {
   // Do not pop up a message box when abort is called.
   _set_abort_behavior(0, _WRITE_ABORT_MSG);
@@ -197,14 +182,11 @@ void OS::Startup() {
   }
 }
 
-
 void OS::Shutdown() {}
-
 
 void OS::Abort() {
   abort();
 }
-
 
 void OS::Exit(int code) {
   // On Windows we use ExitProcess so that threads can't clobber the exit_code.

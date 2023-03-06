@@ -78,30 +78,30 @@ class MarkStack {
   HeapObject stack_[];
 };
 
-Heap::Heap() :
-    top_(0),
-    end_(0),
-    survivor_end_(0),
-    to_(),
-    from_(),
-    next_semispace_capacity_(kInitialSemispaceCapacity),
-    regions_(nullptr),
-    freelist_(),
-    old_size_(0),
-    old_capacity_(0),
-    old_limit_(0),
-    remembered_set_(nullptr),
-    remembered_set_size_(0),
-    remembered_set_capacity_(0),
-    class_table_(nullptr),
-    class_table_size_(0),
-    class_table_capacity_(0),
-    class_table_free_(0),
-    interpreter_(nullptr),
-    handles_(),
-    handles_size_(0),
-    ephemeron_list_(nullptr),
-    weak_list_(nullptr) {
+Heap::Heap()
+    : top_(0),
+      end_(0),
+      survivor_end_(0),
+      to_(),
+      from_(),
+      next_semispace_capacity_(kInitialSemispaceCapacity),
+      regions_(nullptr),
+      freelist_(),
+      old_size_(0),
+      old_capacity_(0),
+      old_limit_(0),
+      remembered_set_(nullptr),
+      remembered_set_size_(0),
+      remembered_set_capacity_(0),
+      class_table_(nullptr),
+      class_table_size_(0),
+      class_table_capacity_(0),
+      class_table_free_(0),
+      interpreter_(nullptr),
+      handles_(),
+      handles_size_(0),
+      ephemeron_list_(nullptr),
+      weak_list_(nullptr) {
   to_.Allocate(kInitialSemispaceCapacity);
   from_.Allocate(kInitialSemispaceCapacity);
 
@@ -150,8 +150,7 @@ Message Heap::AllocateMessage() {
   ASSERT(format->IsSmallInteger());
   intptr_t num_slots = format->value();
   ASSERT(num_slots == 2);
-  Object new_instance = AllocateRegularObject(id->value(),
-                                               num_slots);
+  Object new_instance = AllocateRegularObject(id->value(), num_slots);
   return static_cast<Message>(new_instance);
 }
 
@@ -845,7 +844,7 @@ void Heap::AddToEphemeronList(Ephemeron survivor) {
 
 static bool IsScavengeSurvivor(Object obj) {
   return obj->IsImmediateOrOldObject() ||
-      IsForwarded(static_cast<HeapObject>(obj));
+         IsForwarded(static_cast<HeapObject>(obj));
 }
 
 void Heap::ScavengeEphemeronList() {
@@ -984,7 +983,6 @@ void Heap::MournWeakListMarkSweep() {
   }
   ASSERT(weak_list_ == nullptr);
 }
-
 
 bool Heap::MournWeakPointerScavenge(Object* ptr) {
   HeapObject old_target = static_cast<HeapObject>(*ptr);
@@ -1225,8 +1223,7 @@ intptr_t Heap::AllocateClassId() {
   intptr_t cid;
   if (class_table_free_ != 0) {
     cid = class_table_free_;
-    class_table_free_ =
-        static_cast<SmallInteger>(class_table_[cid])->value();
+    class_table_free_ = static_cast<SmallInteger>(class_table_[cid])->value();
   } else if (class_table_size_ == class_table_capacity_) {
     if (TRACE_GROWTH) {
       OS::PrintErr("Scavenging to free class table entries\n");
@@ -1234,13 +1231,11 @@ intptr_t Heap::AllocateClassId() {
     CollectAll(kClassTable);
     if (class_table_free_ != 0) {
       cid = class_table_free_;
-      class_table_free_ =
-          static_cast<SmallInteger>(class_table_[cid])->value();
+      class_table_free_ = static_cast<SmallInteger>(class_table_[cid])->value();
     } else {
       class_table_capacity_ += (class_table_capacity_ >> 1);
       if (TRACE_GROWTH) {
-        OS::PrintErr("Growing class table to %" Pd "\n",
-                     class_table_capacity_);
+        OS::PrintErr("Growing class table to %" Pd "\n", class_table_capacity_);
       }
       Object* old_class_table = class_table_;
       class_table_ = new Object[class_table_capacity_];

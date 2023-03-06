@@ -13,9 +13,9 @@ namespace psoup {
 class Heap;
 class Interpreter;
 
-typedef bool (PrimitiveFunction)(intptr_t num_args,
-                                 Heap* heap,
-                                 Interpreter* interpreter);
+typedef bool(PrimitiveFunction)(intptr_t num_args,
+                                Heap* heap,
+                                Interpreter* interpreter);
 
 class Primitives {
  public:

@@ -21,7 +21,7 @@ namespace psoup {
 
 VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   FILE* file = fopen(filename, "r");
-  if (file == NULL) {
+  if (file == nullptr) {
     FATAL("Failed to open '%s'\n", filename);
   }
   struct stat st;
@@ -29,8 +29,7 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
     FATAL("Failed to stat '%s'\n", filename);
   }
   intptr_t size = st.st_size;
-  void* address = mmap(0, size, PROT_READ,
-                       MAP_FILE | MAP_PRIVATE,
+  void* address = mmap(nullptr, size, PROT_READ, MAP_FILE | MAP_PRIVATE,
                        fileno(file), 0);
   if (address == MAP_FAILED) {
     FATAL("Failed to mmap '%s'\n", filename);
@@ -41,7 +40,6 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   return VirtualMemory(address, size);
 }
 
-
 VirtualMemory VirtualMemory::Allocate(size_t size,
                                       Protection protection,
                                       const char* name) {
@@ -51,13 +49,11 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
     case kReadOnly: prot = PROT_READ; break;
     case kReadWrite: prot = PROT_READ | PROT_WRITE; break;
     default:
-     UNREACHABLE();
-     prot = 0;
+      UNREACHABLE();
+      prot = 0;
   }
 
-  void* address = mmap(0, size, prot,
-                       MAP_PRIVATE | MAP_ANON,
-                       0, 0);
+  void* address = mmap(nullptr, size, prot, MAP_PRIVATE | MAP_ANON, 0, 0);
   if (address == MAP_FAILED) {
     FATAL("Failed to mmap %" Pd " bytes\n", size);
   }
@@ -77,14 +73,12 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
   return VirtualMemory(address, size);
 }
 
-
 void VirtualMemory::Free() {
   int result = munmap(address_, size_);
   if (result != 0) {
     FATAL("Failed to munmap %" Pd " bytes\n", size_);
   }
 }
-
 
 bool VirtualMemory::Protect(Protection protection) {
   int prot;
@@ -93,8 +87,8 @@ bool VirtualMemory::Protect(Protection protection) {
     case kReadOnly: prot = PROT_READ; break;
     case kReadWrite: prot = PROT_READ | PROT_WRITE; break;
     default:
-     UNREACHABLE();
-     prot = 0;
+      UNREACHABLE();
+      prot = 0;
   }
 
   int result = mprotect(address_, size_, prot);

@@ -11,7 +11,7 @@ static constexpr uword kUwordOne = 1U;
 
 // BitField is a template for encoding and decoding a bit field inside
 // an unsigned machine word.
-template<typename T, int position, int size>
+template <typename T, int position, int size>
 class BitField {
  public:
   static constexpr intptr_t kNextBit = position + size;
@@ -22,26 +22,18 @@ class BitField {
   }
 
   // Returns a uword mask of the bit field.
-  static uword mask() {
-    return (kUwordOne << size) - 1;
-  }
+  static uword mask() { return (kUwordOne << size) - 1; }
 
   // Returns a uword mask of the bit field which can be applied directly to
   // to the raw unshifted bits.
-  static uword mask_in_place() {
-    return ((kUwordOne << size) - 1) << position;
-  }
+  static uword mask_in_place() { return ((kUwordOne << size) - 1) << position; }
 
   // Returns the shift count needed to right-shift the bit field to
   // the least-significant bits.
-  static int shift() {
-    return position;
-  }
+  static int shift() { return position; }
 
   // Returns the size of the bit field.
-  static int bitsize() {
-    return size;
-  }
+  static int bitsize() { return size; }
 
   // Returns a uword with the bit field value encoded.
   static uword encode(T value) {
@@ -60,7 +52,7 @@ class BitField {
   static uword update(T value, uword original) {
     ASSERT(is_valid(value));
     return (static_cast<uword>(value) << position) |
-        (~mask_in_place() & original);
+           (~mask_in_place() & original);
   }
 };
 

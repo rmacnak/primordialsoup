@@ -23,7 +23,6 @@ void LookupCache::InsertOrdinary(intptr_t cid,
   entries_[probe2].ordinary_target = target;
 }
 
-
 void LookupCache::InsertNS(intptr_t cid,
                            String selector,
                            Method caller,
@@ -49,7 +48,6 @@ void LookupCache::InsertNS(intptr_t cid,
   entries_[probe2].ns_target = target;
   entries_[probe2].ns_absent_receiver = absent_receiver;
 }
-
 
 void LookupCache::Clear() {
   for (intptr_t i = 0; i < kSize; i++) {

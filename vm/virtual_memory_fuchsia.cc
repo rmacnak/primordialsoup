@@ -44,7 +44,6 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   return VirtualMemory(reinterpret_cast<void*>(addr), size);
 }
 
-
 VirtualMemory VirtualMemory::Allocate(size_t size,
                                       Protection protection,
                                       const char* name) {
@@ -72,7 +71,7 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
           zx_status_get_string(status));
   }
 
-  ASSERT(name != NULL);
+  ASSERT(name != nullptr);
   zx_object_set_property(vmo, ZX_PROP_NAME, name, strlen(name));
 
   uintptr_t addr;
@@ -86,7 +85,6 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
   return VirtualMemory(reinterpret_cast<void*>(addr), size);
 }
 
-
 void VirtualMemory::Free() {
   zx_handle_t vmar = zx_vmar_root_self();
   zx_status_t status = zx_vmar_unmap(vmar,
@@ -96,7 +94,6 @@ void VirtualMemory::Free() {
     FATAL("zx_vmar_unmap failed: %s\n", zx_status_get_string(status));
   }
 }
-
 
 bool VirtualMemory::Protect(Protection protection) {
   uint32_t prot;

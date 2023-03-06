@@ -5,12 +5,13 @@
 #include "vm/globals.h"  // NOLINT
 #if defined(OS_WINDOWS)
 
+#include "vm/thread.h"
+
+#include <process.h>
+
 #include "vm/assert.h"
 #include "vm/lockers.h"
 #include "vm/os.h"
-#include "vm/thread.h"
-
-#include <process.h>  // NOLINT
 
 namespace psoup {
 
@@ -33,7 +34,6 @@ class ThreadStartData {
   DISALLOW_COPY_AND_ASSIGN(ThreadStartData);
 };
 
-
 // Dispatch to the thread start function provided by the caller. This trampoline
 // is used to ensure that the thread is properly destroyed if the thread just
 // exits.
@@ -51,13 +51,12 @@ static unsigned int __stdcall ThreadEntry(void* data_ptr) {
   return 0;
 }
 
-
 int Thread::Start(const char* name,
                   ThreadStartFunction function,
                   uword parameter) {
   ThreadStartData* start_data = new ThreadStartData(name, function, parameter);
   uint32_t tid;
-  uintptr_t thread = _beginthreadex(NULL, 0,
+  uintptr_t thread = _beginthreadex(nullptr, 0,
                                     ThreadEntry, start_data, 0, &tid);
   if (thread == -1L || thread == 0) {
 #ifdef DEBUG
@@ -72,76 +71,61 @@ int Thread::Start(const char* name,
   return 0;
 }
 
-
-const ThreadId Thread::kInvalidThreadId = 0;
-const ThreadJoinId Thread::kInvalidThreadJoinId = NULL;
-
-
 ThreadId Thread::GetCurrentThreadId() {
   return ::GetCurrentThreadId();
 }
-
 
 ThreadId Thread::GetCurrentThreadTraceId() {
   return ::GetCurrentThreadId();
 }
 
-
 ThreadJoinId Thread::GetCurrentThreadJoinId() {
   ThreadId id = GetCurrentThreadId();
   HANDLE handle = OpenThread(SYNCHRONIZE, false, id);
-  ASSERT(handle != NULL);
+  ASSERT(handle != nullptr);
   return handle;
 }
 
-
 void Thread::Join(ThreadJoinId id) {
   HANDLE handle = static_cast<HANDLE>(id);
-  ASSERT(handle != NULL);
+  ASSERT(handle != nullptr);
   DWORD res = WaitForSingleObject(handle, INFINITE);
   CloseHandle(handle);
   ASSERT(res == WAIT_OBJECT_0);
 }
-
 
 intptr_t Thread::ThreadIdToIntPtr(ThreadId id) {
   ASSERT(sizeof(id) <= sizeof(intptr_t));
   return static_cast<intptr_t>(id);
 }
 
-
 ThreadId Thread::ThreadIdFromIntPtr(intptr_t id) {
   return static_cast<ThreadId>(id);
 }
-
 
 bool Thread::Compare(ThreadId a, ThreadId b) {
   return a == b;
 }
 
-
 Mutex::Mutex() {
   InitializeSRWLock(&data_.lock_);
 #if defined(DEBUG)
   // When running with assertions enabled we do track the owner.
-  owner_ = Thread::kInvalidThreadId;
+  owner_ = kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
-
 
 Mutex::~Mutex() {
 #if defined(DEBUG)
   // When running with assertions enabled we do track the owner.
-  ASSERT(owner_ == Thread::kInvalidThreadId);
+  ASSERT(owner_ == kInvalidThreadId);
 #endif  // defined(DEBUG)
 }
-
 
 void Mutex::Lock() {
   AcquireSRWLockExclusive(&data_.lock_);
   CheckUnheldAndMark();
 }
-
 
 bool Mutex::TryLock() {
   if (TryAcquireSRWLockExclusive(&data_.lock_)) {
@@ -151,12 +135,10 @@ bool Mutex::TryLock() {
   return false;
 }
 
-
 void Mutex::Unlock() {
   CheckHeldAndUnmark();
   ReleaseSRWLockExclusive(&data_.lock_);
 }
-
 
 Monitor::Monitor() {
   InitializeSRWLock(&data_.lock_);
@@ -164,18 +146,16 @@ Monitor::Monitor() {
 
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  owner_ = Thread::kInvalidThreadId;
+  owner_ = kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
-
 
 Monitor::~Monitor() {
 #if defined(DEBUG)
   // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == Thread::kInvalidThreadId);
+  ASSERT(owner_ == kInvalidThreadId);
 #endif  // defined(DEBUG)
 }
-
 
 bool Monitor::TryEnter() {
   if (TryAcquireSRWLockExclusive(&data_.lock_)) {
@@ -185,25 +165,21 @@ bool Monitor::TryEnter() {
   return false;
 }
 
-
 void Monitor::Enter() {
   AcquireSRWLockExclusive(&data_.lock_);
   CheckUnheldAndMark();
 }
-
 
 void Monitor::Exit() {
   CheckHeldAndUnmark();
   ReleaseSRWLockExclusive(&data_.lock_);
 }
 
-
 void Monitor::Wait() {
   CheckHeldAndUnmark();
   SleepConditionVariableSRW(&data_.cond_, &data_.lock_, INFINITE, 0);
   CheckUnheldAndMark();
 }
-
 
 Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
   int64_t now = OS::CurrentMonotonicNanos();
@@ -227,13 +203,11 @@ Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
   return retval;
 }
 
-
 void Monitor::Notify() {
   // When running with assertions enabled we track the owner.
   DEBUG_ASSERT(IsOwnedByCurrentThread());
   WakeConditionVariable(&data_.cond_);
 }
-
 
 void Monitor::NotifyAll() {
   // When running with assertions enabled we track the owner.

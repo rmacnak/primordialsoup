@@ -16,7 +16,7 @@ MessageLoop::MessageLoop(Isolate* isolate)
 MessageLoop::~MessageLoop() {}
 
 void MessageLoop::DispatchMessage(IsolateMessage* message) {
-  if (isolate_ == NULL) {
+  if (isolate_ == nullptr) {
     delete message;
     return;
   }
@@ -27,7 +27,7 @@ void MessageLoop::DispatchMessage(IsolateMessage* message) {
 }
 
 void MessageLoop::DispatchWakeup() {
-  if (isolate_ == NULL) {
+  if (isolate_ == nullptr) {
     return;
   }
 
@@ -44,7 +44,7 @@ void MessageLoop::DispatchSignal(intptr_t handle,
                  handle, status, strerror(status), signals);
   }
 
-  if (isolate_ == NULL) {
+  if (isolate_ == nullptr) {
     return;
   }
 

@@ -16,51 +16,47 @@
 namespace psoup {
 
 #if defined(OS_EMSCRIPTEN)
-Isolate* Isolate::current_ = NULL;
+Isolate* Isolate::current_ = nullptr;
 #else
-thread_local Isolate* Isolate::current_ = NULL;
+thread_local Isolate* Isolate::current_ = nullptr;
 #endif
-Monitor* Isolate::isolates_list_monitor_ = NULL;
-Isolate* Isolate::isolates_list_head_ = NULL;
-ThreadPool* Isolate::thread_pool_ = NULL;
-
+Monitor* Isolate::isolates_list_monitor_ = nullptr;
+Isolate* Isolate::isolates_list_head_ = nullptr;
+ThreadPool* Isolate::thread_pool_ = nullptr;
 
 void Isolate::Startup() {
   isolates_list_monitor_ = new Monitor();
   thread_pool_ = new ThreadPool();
 }
 
-
 void Isolate::Shutdown() {
   delete thread_pool_;  // Waits for all tasks to complete.
-  thread_pool_ = NULL;
-  ASSERT(isolates_list_head_ == NULL);
+  thread_pool_ = nullptr;
+  ASSERT(isolates_list_head_ == nullptr);
   delete isolates_list_monitor_;
-  isolates_list_monitor_ = NULL;
+  isolates_list_monitor_ = nullptr;
 }
-
 
 void Isolate::AddIsolateToList(Isolate* isolate) {
   MonitorLocker ml(isolates_list_monitor_);
-  ASSERT(isolate != NULL);
-  ASSERT(isolate->next_ == NULL);
+  ASSERT(isolate != nullptr);
+  ASSERT(isolate->next_ == nullptr);
   isolate->next_ = isolates_list_head_;
   isolates_list_head_ = isolate;
 }
 
-
 void Isolate::RemoveIsolateFromList(Isolate* isolate) {
   MonitorLocker ml(isolates_list_monitor_);
-  ASSERT(isolate != NULL);
+  ASSERT(isolate != nullptr);
   if (isolate == isolates_list_head_) {
     isolates_list_head_ = isolate->next_;
     return;
   }
-  Isolate* previous = NULL;
+  Isolate* previous = nullptr;
   Isolate* current = isolates_list_head_;
-  while (current != NULL) {
+  while (current != nullptr) {
     if (current == isolate) {
-      ASSERT(previous != NULL);
+      ASSERT(previous != nullptr);
       previous->next_ = current->next_;
       return;
     }
@@ -70,24 +66,21 @@ void Isolate::RemoveIsolateFromList(Isolate* isolate) {
   UNREACHABLE();
 }
 
-
 void Isolate::InterruptAll() {
   MonitorLocker ml(isolates_list_monitor_);
   OS::PrintErr("Got SIGINT\n");
   Isolate* current = isolates_list_head_;
-  while (current != NULL) {
+  while (current != nullptr) {
     OS::PrintErr("Interrupting %" Px "\n", reinterpret_cast<uword>(current));
     current->Interrupt();
     current = current->next_;
   }
 }
 
-
 void Isolate::Interrupt() {
   interpreter_->Interrupt();
   loop_->Interrupt();
 }
-
 
 void Isolate::PrintStack() {
   MonitorLocker ml(isolates_list_monitor_);
@@ -95,16 +88,15 @@ void Isolate::PrintStack() {
   interpreter_->PrintStack();
 }
 
-
-Isolate::Isolate(void* snapshot, size_t snapshot_length, uint64_t seed) :
-    heap_(NULL),
-    interpreter_(NULL),
-    loop_(NULL),
-    snapshot_(snapshot),
-    snapshot_length_(snapshot_length),
-    salt_(static_cast<uintptr_t>(seed)),
-    random_(seed),
-    next_(NULL) {
+Isolate::Isolate(void* snapshot, size_t snapshot_length, uint64_t seed)
+    : heap_(nullptr),
+      interpreter_(nullptr),
+      loop_(nullptr),
+      snapshot_(snapshot),
+      snapshot_length_(snapshot_length),
+      salt_(static_cast<uintptr_t>(seed)),
+      random_(seed),
+      next_(nullptr) {
   heap_ = new Heap();
   interpreter_ = new Interpreter(heap_, this);
   loop_ = new PlatformMessageLoop(this);
@@ -115,14 +107,13 @@ Isolate::Isolate(void* snapshot, size_t snapshot_length, uint64_t seed) :
 
   AddIsolateToList(this);
 
-  ASSERT(current_ == NULL);
+  ASSERT(current_ == nullptr);
   current_ = this;
 }
 
-
 Isolate::~Isolate() {
   ASSERT(current_ == this);
-  current_ = NULL;
+  current_ = nullptr;
 
   RemoveIsolateFromList(this);
   delete heap_;
@@ -130,10 +121,9 @@ Isolate::~Isolate() {
   delete loop_;
 }
 
-
 void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
   Object message;
-  if (isolate_message->data() != NULL) {
+  if (isolate_message->data() != nullptr) {
     intptr_t length = isolate_message->length();
     ByteArray bytes = heap_->AllocateByteArray(length);  // SAFEPOINT
     memcpy(bytes->element_addr(0), isolate_message->data(), length);
@@ -172,12 +162,10 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
   Activate(message, port);
 }
 
-
 void Isolate::ActivateWakeup() {
   Object nil = interpreter_->nil_obj();
   Activate(nil, nil);
 }
-
 
 void Isolate::Activate(Object message, Object port) {
   Object message_loop = interpreter_->object_store()->message_loop();
@@ -191,7 +179,6 @@ void Isolate::Activate(Object message, Object port) {
   interpreter_->Push(port);
   interpreter_->ActivateDispatch(method, 2);  // SAFEPOINT
 }
-
 
 void Isolate::ActivateSignal(intptr_t handle,
                              intptr_t status,
@@ -211,27 +198,24 @@ void Isolate::ActivateSignal(intptr_t handle,
   interpreter_->ActivateDispatch(method, 4);  // SAFEPOINT
 }
 
-
 void Isolate::Interpret() {
   interpreter_->Enter();
 }
-
 
 class SpawnIsolateTask : public ThreadPool::Task {
  public:
   SpawnIsolateTask(void* snapshot,
                    size_t snapshot_length,
-                   IsolateMessage* initial_message) :
-    snapshot_(snapshot),
-    snapshot_length_(snapshot_length),
-    initial_message_(initial_message) {
-  }
+                   IsolateMessage* initial_message)
+      : snapshot_(snapshot),
+        snapshot_length_(snapshot_length),
+        initial_message_(initial_message) {}
 
   virtual void Run() {
     uint64_t seed = OS::CurrentMonotonicNanos();
     Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_, seed);
     child_isolate->loop()->PostMessage(initial_message_);
-    initial_message_ = NULL;
+    initial_message_ = nullptr;
     intptr_t exit_code = child_isolate->loop()->Run();
     delete child_isolate;
     if (exit_code != 0) {
@@ -246,7 +230,6 @@ class SpawnIsolateTask : public ThreadPool::Task {
 
   DISALLOW_COPY_AND_ASSIGN(SpawnIsolateTask);
 };
-
 
 void Isolate::Spawn(IsolateMessage* initial_message) {
   thread_pool_->Run(new SpawnIsolateTask(snapshot_, snapshot_length_,

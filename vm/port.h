@@ -5,8 +5,8 @@
 #ifndef VM_PORT_H_
 #define VM_PORT_H_
 
-#include "vm/globals.h"
 #include "vm/allocation.h"
+#include "vm/globals.h"
 
 namespace psoup {
 

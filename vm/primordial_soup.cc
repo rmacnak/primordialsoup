@@ -21,14 +21,12 @@ PSOUP_EXTERN_C void PrimordialSoup_Startup() {
   psoup::Isolate::Startup();
 }
 
-
 PSOUP_EXTERN_C void PrimordialSoup_Shutdown() {
   psoup::Isolate::Shutdown();
   psoup::PortMap::Shutdown();
   psoup::Primitives::Shutdown();
   psoup::OS::Shutdown();
 }
-
 
 PSOUP_EXTERN_C intptr_t PrimordialSoup_RunIsolate(void* snapshot,
                                                   size_t snapshot_length,
@@ -42,7 +40,6 @@ PSOUP_EXTERN_C intptr_t PrimordialSoup_RunIsolate(void* snapshot,
   delete isolate;
   return exit_code;
 }
-
 
 PSOUP_EXTERN_C void PrimordialSoup_InterruptAll() {
   psoup::Isolate::InterruptAll();

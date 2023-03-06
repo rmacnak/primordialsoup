@@ -16,11 +16,11 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   HANDLE file = CreateFile(filename,
                            GENERIC_READ,
                            FILE_SHARE_READ,
-                           NULL,
+                           nullptr,
                            OPEN_EXISTING,
                            0,
-                           NULL);
-  if (file == NULL) {
+                           nullptr);
+  if (file == nullptr) {
     FATAL("Failed to open '%s'\n", filename);
   }
   BY_HANDLE_FILE_INFORMATION stat;
@@ -28,8 +28,9 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   ASSERT(r);
   int64_t size = (static_cast<int64_t>(stat.nFileSizeHigh) << 32) |
       stat.nFileSizeLow;
-  HANDLE mapping = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
-  if (mapping == NULL) {
+  HANDLE mapping = CreateFileMapping(file, nullptr, PAGE_READONLY, 0, 0,
+                                     nullptr);
+  if (mapping == nullptr) {
     FATAL("Failed CreateFileMapping\n");
   }
   void* address = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, size);
@@ -42,7 +43,6 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   return VirtualMemory(address, size);
 }
 
-
 VirtualMemory VirtualMemory::Allocate(size_t size,
                                       Protection protection,
                                       const char* name) {
@@ -52,25 +52,23 @@ VirtualMemory VirtualMemory::Allocate(size_t size,
     case kReadOnly: prot = PAGE_READONLY; break;
     case kReadWrite: prot = PAGE_READWRITE; break;
     default:
-     UNREACHABLE();
-     prot = 0;
+      UNREACHABLE();
+      prot = 0;
   }
 
-  void* address = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, prot);
-  if (address == NULL) {
+  void* address = VirtualAlloc(nullptr, size, MEM_COMMIT | MEM_RESERVE, prot);
+  if (address == nullptr) {
     FATAL("Failed to VirtualAlloc %" Pd " bytes\n", size);
   }
 
   return VirtualMemory(address, size);
 }
 
-
 void VirtualMemory::Free() {
   if (VirtualFree(address_, 0, MEM_RELEASE) == 0) {
     FATAL("VirtualFree failed %d", GetLastError());
   }
 }
-
 
 bool VirtualMemory::Protect(Protection protection) {
   DWORD prot;
@@ -79,8 +77,8 @@ bool VirtualMemory::Protect(Protection protection) {
     case kReadOnly: prot = PAGE_READONLY; break;
     case kReadWrite: prot = PAGE_READWRITE; break;
     default:
-     UNREACHABLE();
-     prot = 0;
+      UNREACHABLE();
+      prot = 0;
   }
   DWORD old_prot = 0;
   bool result = VirtualProtect(address_, size_, prot, &old_prot);

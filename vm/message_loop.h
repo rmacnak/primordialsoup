@@ -14,13 +14,19 @@ class Isolate;
 class IsolateMessage {
  public:
   IsolateMessage(Port dest, uint8_t* data, intptr_t length)
-      : next_(NULL), dest_(dest),
-        data_(data), length_(length),
-        argv_(NULL), argc_(0) {}
+      : next_(nullptr),
+        dest_(dest),
+        data_(data),
+        length_(length),
+        argv_(nullptr),
+        argc_(0) {}
   IsolateMessage(Port dest, int argc, const char** argv)
-      : next_(NULL), dest_(dest),
-        data_(NULL), length_(0),
-        argv_(argv), argc_(argc) {}
+      : next_(nullptr),
+        dest_(dest),
+        data_(nullptr),
+        length_(0),
+        argv_(argv),
+        argc_(argc) {}
 
   ~IsolateMessage() { free(data_); }
 

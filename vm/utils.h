@@ -5,20 +5,20 @@
 #ifndef VM_UTILS_H_
 #define VM_UTILS_H_
 
-#include "vm/globals.h"
 #include "vm/assert.h"
+#include "vm/globals.h"
 
 namespace psoup {
 
 class Utils {
  public:
-  template<typename T>
+  template <typename T>
   static inline T RoundDown(T x, intptr_t n) {
     ASSERT(IsPowerOfTwo(n));
     return (x & -n);
   }
 
-  template<typename T>
+  template <typename T>
   static inline T RoundUp(T x, intptr_t n) {
     return RoundDown(x + n - 1, n);
   }
@@ -48,12 +48,12 @@ class Utils {
     return (value == 0) ? 0 : (Utils::HighestBit(value) + 1);
   }
 
-  template<typename T>
+  template <typename T>
   static inline bool IsPowerOfTwo(T x) {
     return ((x & (x - 1)) == 0) && (x != 0);
   }
 
-  template<typename T>
+  template <typename T>
   static inline bool IsAligned(T x, intptr_t n) {
     ASSERT(IsPowerOfTwo(n));
     return (x & (n - 1)) == 0;

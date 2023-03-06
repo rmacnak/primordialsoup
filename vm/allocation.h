@@ -16,14 +16,13 @@ namespace psoup {
 // program control flow.
 class ValueObject {
  public:
-  ValueObject() { }
-  ~ValueObject() { }
+  ValueObject() {}
+  ~ValueObject() {}
 
  private:
   DISALLOW_ALLOCATION();
   DISALLOW_COPY_AND_ASSIGN(ValueObject);
 };
-
 
 // Static allocated classes only contain static members and can never
 // be instantiated in the heap or on the stack.
@@ -32,7 +31,6 @@ class AllStatic {
   DISALLOW_ALLOCATION();
   DISALLOW_IMPLICIT_CONSTRUCTORS(AllStatic);
 };
-
 
 }  // namespace psoup
 

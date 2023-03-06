@@ -118,23 +118,23 @@ static intptr_t FrameNumLocals(Object* fp, Object* sp) {
 }
 
 static Activation FrameBaseSender(Object* fp) {
-  ASSERT(FrameSavedFP(fp) == 0);
+  ASSERT(FrameSavedFP(fp) == nullptr);
   return static_cast<Activation>(fp[1]);
 }
 
-Interpreter::Interpreter(Heap* heap, Isolate* isolate) :
-    ip_(nullptr),
-    sp_(nullptr),
-    fp_(nullptr),
-    stack_base_(nullptr),
-    stack_limit_(nullptr),
-    nil_(nullptr),
-    false_(nullptr),
-    true_(nullptr),
-    object_store_(nullptr),
-    heap_(heap),
-    isolate_(isolate),
-    environment_(nullptr) {
+Interpreter::Interpreter(Heap* heap, Isolate* isolate)
+    : ip_(nullptr),
+      sp_(nullptr),
+      fp_(nullptr),
+      stack_base_(nullptr),
+      stack_limit_(nullptr),
+      nil_(nullptr),
+      false_(nullptr),
+      true_(nullptr),
+      object_store_(nullptr),
+      heap_(heap),
+      isolate_(isolate),
+      environment_(nullptr) {
   heap->InitializeInterpreter(this);
 
   stack_limit_ = reinterpret_cast<Object*>(malloc(kStackSize));
@@ -192,7 +192,7 @@ void Interpreter::PushEnclosingObject(intptr_t depth) {
   while (count < depth) {
     count++;
     Behavior mixin_app = FindApplicationOf(target_mixin,
-                                            enclosing_object->Klass(H));
+                                           enclosing_object->Klass(H));
     enclosing_object = mixin_app->enclosing_object();
     target_mixin = target_mixin->enclosing_mixin();
   }
@@ -277,8 +277,7 @@ void Interpreter::Perform(Object message,
 
 void Interpreter::CommonSend(intptr_t offset) {
   Array common_selectors = object_store()->common_selectors();
-  String selector =
-      static_cast<String>(common_selectors->element(offset * 2));
+  String selector = static_cast<String>(common_selectors->element(offset * 2));
   ASSERT(selector->IsString());
   ASSERT(selector->is_canonical());
   SmallInteger arity =
@@ -308,14 +307,12 @@ bool Interpreter::HasMethod(Behavior cls, String selector) {
   return MethodAt(cls, selector) != nil;
 }
 
-void Interpreter::OrdinarySend(intptr_t selector_index,
-                               intptr_t num_args) {
+void Interpreter::OrdinarySend(intptr_t selector_index, intptr_t num_args) {
   String selector = SelectorAt(selector_index);
   OrdinarySend(selector, num_args);  // SAFEPOINT
 }
 
-void Interpreter::OrdinarySend(String selector,
-                               intptr_t num_args) {
+void Interpreter::OrdinarySend(String selector, intptr_t num_args) {
 #if LOOKUP_CACHE
   Object receiver = Stack(num_args);
   Method target;
@@ -328,8 +325,7 @@ void Interpreter::OrdinarySend(String selector,
   OrdinarySendMiss(selector, num_args);  // SAFEPOINT
 }
 
-void Interpreter::OrdinarySendMiss(String selector,
-                                   intptr_t num_args) {
+void Interpreter::OrdinarySendMiss(String selector, intptr_t num_args) {
   Object receiver = Stack(num_args);
   Behavior receiver_class = receiver->Klass(H);
   Behavior lookup_class = receiver_class;
@@ -344,20 +340,19 @@ void Interpreter::OrdinarySendMiss(String selector,
         return;
       } else if (method->IsProtected()) {
         bool present_receiver = true;
-        DNUSend(selector, num_args, receiver,
-                receiver_class, present_receiver);  // SAFEPOINT
+        DNUSend(selector, num_args, receiver, receiver_class,
+                present_receiver);  // SAFEPOINT
         return;
       }
     }
     lookup_class = lookup_class->superclass();
   }
   bool present_receiver = true;
-  DNUSend(selector, num_args, receiver,
-          receiver_class, present_receiver);  // SAFEPOINT
+  DNUSend(selector, num_args, receiver, receiver_class,
+          present_receiver);  // SAFEPOINT
 }
 
-Behavior Interpreter::FindApplicationOf(AbstractMixin mixin,
-                                        Behavior klass) {
+Behavior Interpreter::FindApplicationOf(AbstractMixin mixin, Behavior klass) {
   while (klass->mixin() != mixin) {
     klass = klass->superclass();
     if (klass == nil) {
@@ -367,8 +362,7 @@ Behavior Interpreter::FindApplicationOf(AbstractMixin mixin,
   return klass;
 }
 
-void Interpreter::SuperSend(intptr_t selector_index,
-                            intptr_t num_args) {
+void Interpreter::SuperSend(intptr_t selector_index, intptr_t num_args) {
   String selector = SelectorAt(selector_index);
 
 #if LOOKUP_CACHE
@@ -391,13 +385,12 @@ void Interpreter::SuperSend(intptr_t selector_index,
   SuperSendMiss(selector, num_args);  // SAFEPOINT
 }
 
-void Interpreter::SuperSendMiss(String selector,
-                                intptr_t num_args) {
+void Interpreter::SuperSendMiss(String selector, intptr_t num_args) {
   Object receiver = FrameReceiver(fp_);
   AbstractMixin method_mixin = FrameMethod(fp_)->mixin();
   Behavior receiver_class = receiver->Klass(H);
   Behavior method_mixin_app = FindApplicationOf(method_mixin,
-                                                 receiver_class);
+                                                receiver_class);
   ProtectedSend(selector,
                 num_args,
                 receiver,
@@ -430,8 +423,7 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
   return ImplicitReceiverSendMiss(selector, num_args);  // SAFEPOINT
 }
 
-void Interpreter::ImplicitReceiverSendMiss(String selector,
-                                           intptr_t num_args) {
+void Interpreter::ImplicitReceiverSendMiss(String selector, intptr_t num_args) {
   Object method_receiver = FrameReceiver(fp_);
 
   Object candidate_receiver = method_receiver;
@@ -492,16 +484,14 @@ void Interpreter::OuterSendMiss(String selector,
   intptr_t count = 0;
   while (count < depth) {
     count++;
-    Behavior mixin_app = FindApplicationOf(target_mixin,
-                                            receiver->Klass(H));
+    Behavior mixin_app = FindApplicationOf(target_mixin, receiver->Klass(H));
     receiver = mixin_app->enclosing_object();
     target_mixin = target_mixin->enclosing_mixin();
   }
   LexicalSend(selector, num_args, receiver, target_mixin, depth);  // SAFEPOINT
 }
 
-void Interpreter::SelfSend(intptr_t selector_index,
-                           intptr_t num_args) {
+void Interpreter::SelfSend(intptr_t selector_index, intptr_t num_args) {
   String selector = SelectorAt(selector_index);
 
 #if LOOKUP_CACHE
@@ -523,8 +513,7 @@ void Interpreter::SelfSend(intptr_t selector_index,
   SelfSendMiss(selector, num_args);  // SAFEPOINT
 }
 
-void Interpreter::SelfSendMiss(String selector,
-                               intptr_t num_args) {
+void Interpreter::SelfSendMiss(String selector, intptr_t num_args) {
   Object receiver = FrameReceiver(fp_);
   AbstractMixin method_mixin = FrameMethod(fp_)->mixin();
   LexicalSend(selector, num_args, receiver, method_mixin, kSelf);  // SAFEPOINT
@@ -551,8 +540,8 @@ void Interpreter::LexicalSend(String selector,
     ActivateAbsent(method, receiver, num_args);  // SAFEPOINT
     return;
   }
-  ProtectedSend(selector, num_args, receiver,
-                receiver_class, rule);  // SAFEPOINT
+  ProtectedSend(selector, num_args, receiver, receiver_class,
+                rule);  // SAFEPOINT
 }
 
 void Interpreter::ProtectedSend(String selector,
@@ -674,8 +663,7 @@ void Interpreter::SendCannotReturn(Object result) {
   Activate(method, 1);  // SAFEPOINT
 }
 
-void Interpreter::SendAboutToReturnThrough(Object result,
-                                           Activation unwind) {
+void Interpreter::SendAboutToReturnThrough(Object result, Activation unwind) {
   if (TRACE_SPECIAL_CONTROL) {
     OS::PrintErr("#aboutToReturn:through:\n");
   }
@@ -740,9 +728,7 @@ void Interpreter::SendNonBooleanReceiver(Object non_boolean) {
   Activate(method, 1);  // SAFEPOINT
 }
 
-
-void Interpreter::EventualSend(intptr_t selector_index,
-                               intptr_t num_args) {
+void Interpreter::EventualSend(intptr_t selector_index, intptr_t num_args) {
   PushNewArrayWithElements(num_args);  // SAFEPOINT
   Object eventual_arguments = Pop();
   String eventual_selector = SelectorAt(selector_index);
@@ -770,7 +756,6 @@ void Interpreter::EventualSend(intptr_t selector_index,
 
   Activate(method, 3);  // SAFEPOINT
 }
-
 
 void Interpreter::InsertAbsentReceiver(Object receiver, intptr_t num_args) {
   ASSERT(num_args >= 0);
@@ -882,9 +867,9 @@ void Interpreter::CreateBaseFrame(Activation activation) {
   ASSERT(activation->IsActivation());
   ASSERT(activation->bci()->IsSmallInteger());
 
-  ASSERT(ip_ == 0);
+  ASSERT(ip_ == nullptr);
   ASSERT(sp_ == stack_base_);
-  ASSERT(fp_ == 0);
+  ASSERT(fp_ == nullptr);
 
   bool is_closure;
   intptr_t num_args;
@@ -897,7 +882,7 @@ void Interpreter::CreateBaseFrame(Activation activation) {
     ASSERT(closure->IsClosure());
     is_closure = true;
     num_args = closure->num_args()->value();
-    Push(closure);                // Message receiver.
+    Push(closure);  // Message receiver.
   }
   for (intptr_t i = 0; i < num_args; i++) {
     Push(activation->temp(i));
@@ -926,7 +911,7 @@ void Interpreter::CreateBaseFrame(Activation activation) {
 
   ASSERT(FrameBaseSender(fp_) == activation->sender());
   activation->set_sender_fp(fp_);
-  ASSERT(FrameSavedFP(fp_) == 0);
+  ASSERT(FrameSavedFP(fp_) == nullptr);
   ASSERT(FrameMethod(fp_) == activation->method());
   ASSERT(FrameActivation(fp_) == activation);
   ASSERT(FrameReceiver(fp_) == activation->receiver());
@@ -955,7 +940,7 @@ String Interpreter::SelectorAt(intptr_t index) {
 
 void Interpreter::LocalReturn(Object result) {
   Object* saved_fp = FrameSavedFP(fp_);
-  if (saved_fp == 0) {
+  if (saved_fp == nullptr) {
     LocalBaseReturn(result);  // SAFEPOINT
     return;
   }
@@ -1003,9 +988,9 @@ void Interpreter::NonLocalReturn(Object result) {
     c = home->closure();
   }
 
-  for (Object* fp = FrameSavedFP(fp_); fp != 0; fp = FrameSavedFP(fp)) {
+  for (Object* fp = FrameSavedFP(fp_); fp != nullptr; fp = FrameSavedFP(fp)) {
     if (FrameActivation(fp) == home) {
-      if (FrameSavedFP(fp) == 0) {
+      if (FrameSavedFP(fp) == nullptr) {
         break;  // Return crosses base frame.
       }
 
@@ -1102,7 +1087,7 @@ void Interpreter::Enter() {
 }
 
 void Interpreter::Exit() {
-  ASSERT(environment_ != NULL);
+  ASSERT(environment_ != nullptr);
   longjmp(*environment_, 1);
 }
 
@@ -1113,11 +1098,11 @@ void Interpreter::ActivateDispatch(Method method, intptr_t num_args) {
 
 void Interpreter::ReturnFromDispatch() {
   Object* saved_fp = FrameSavedFP(fp_);
-  if (saved_fp == 0) {
+  if (saved_fp == nullptr) {
     // Base frame.
     Activation sender = FrameBaseSender(fp_);
     if (sender != nil) {
-      ip_ = 0;
+      ip_ = nullptr;
       sp_ = FrameSavedSP(fp_);
       fp_ = saved_fp;
       CreateBaseFrame(sender);
@@ -1138,9 +1123,9 @@ void Interpreter::PrintStack() {
 
 void Interpreter::Interpret() {
   for (;;) {
-    ASSERT(ip_ != 0);
-    ASSERT(sp_ != 0);
-    ASSERT(fp_ != 0);
+    ASSERT(ip_ != nullptr);
+    ASSERT(sp_ != nullptr);
+    ASSERT(fp_ != nullptr);
 
     uint8_t byte1 = *ip_++;
     switch (byte1) {
@@ -1675,17 +1660,16 @@ Activation Interpreter::EnsureActivation(Object* fp) {
   return activation;
 }
 
-
 Activation Interpreter::FlushAllFrames() {
   Activation top = EnsureActivation(fp_);  // SAFEPOINT
   HandleScope h1(H, reinterpret_cast<Object*>(&top));
 
-  while (fp_ != 0) {
+  while (fp_ != nullptr) {
     EnsureActivation(fp_);  // SAFEPOINT
 
     Object* saved_fp = FrameSavedFP(fp_);
     Activation sender;
-    if (saved_fp != 0) {
+    if (saved_fp != nullptr) {
       sender = EnsureActivation(saved_fp);  // SAFEPOINT
     } else {
       sender = FrameBaseSender(fp_);
@@ -1709,9 +1693,9 @@ Activation Interpreter::FlushAllFrames() {
     fp_ = saved_fp;
   }
 
-  ip_ = 0;  // Was base sender.
+  ip_ = nullptr;  // Was base sender.
   ASSERT(sp_ == stack_base_);
-  ASSERT(fp_ == 0);
+  ASSERT(fp_ == nullptr);
 #if defined(DEBUG)
   for (intptr_t i = 0; i < kStackSlots; i++) {
     stack_limit_[i] = static_cast<Object>(kUninitializedWord);
@@ -1728,7 +1712,7 @@ bool Interpreter::HasLivingFrame(Activation activation) {
 
   Object* activation_fp = activation->sender_fp();
   Object* fp = fp_;
-  while (fp != 0) {
+  while (fp != nullptr) {
     if (fp == activation_fp) {
       if (FrameActivation(fp) == activation) {
         return true;
@@ -1751,7 +1735,7 @@ Activation Interpreter::CurrentActivation() {
 void Interpreter::SetCurrentActivation(Activation new_activation) {
   ASSERT(new_activation->IsActivation());
 
-  if (fp_ != 0) {
+  if (fp_ != nullptr) {
     HandleScope h1(H, reinterpret_cast<Object*>(&new_activation));
     FlushAllFrames();  // SAFEPOINT
   }
@@ -1763,7 +1747,7 @@ Object Interpreter::ActivationSender(Activation activation) {
   if (HasLivingFrame(activation)) {
     Object* fp = activation->sender_fp();
     Object* sender_fp = FrameSavedFP(fp);
-    if (sender_fp == 0) {
+    if (sender_fp == nullptr) {
       return FrameBaseSender(fp);
     }
     return EnsureActivation(sender_fp);  // SAFEPOINT
@@ -1795,7 +1779,7 @@ Object Interpreter::ActivationBCI(Activation activation) {
     Object* activation_fp = activation->sender_fp();
     Object* fp = fp_;
     const uint8_t* ip = ip_;
-    while (fp != 0) {
+    while (fp != nullptr) {
       if (fp == activation_fp) {
         if (FrameActivation(fp) == activation) {
           return FrameMethod(fp)->BCI(ip);
@@ -1861,7 +1845,6 @@ void Interpreter::ActivationClosurePut(Activation activation,
   }
 }
 
-
 void Interpreter::ActivationReceiverPut(Activation activation,
                                         Object new_receiver) {
   if (HasLivingFrame(activation)) {
@@ -1903,7 +1886,7 @@ intptr_t Interpreter::ActivationTempSize(Activation activation) {
     Object* activation_fp = activation->sender_fp();
     Object* sp = sp_;
     Object* fp = fp_;
-    while (fp != 0) {
+    while (fp != nullptr) {
       if (fp == activation_fp) {
         if (FrameActivation(fp) == activation) {
           return FlagsNumArgs(FrameFlags(fp)) + FrameNumLocals(fp, sp);
@@ -1953,7 +1936,7 @@ void Interpreter::GCPrologue() {
   Object* fp = fp_;
   const uint8_t** ip_slot = &ip_;
 
-  while (fp != 0) {
+  while (fp != nullptr) {
     SmallInteger bci = FrameMethod(fp)->BCI(*ip_slot);
     *ip_slot = reinterpret_cast<const uint8_t*>(static_cast<uword>(bci));
 
@@ -1968,7 +1951,7 @@ void Interpreter::GCEpilogue() {
   Object* fp = fp_;
   const uint8_t** ip_slot = &ip_;
 
-  while (fp != 0) {
+  while (fp != nullptr) {
     const SmallInteger bci =
         static_cast<const SmallInteger>(reinterpret_cast<uword>(*ip_slot));
     *ip_slot = FrameMethod(fp)->IP(bci);

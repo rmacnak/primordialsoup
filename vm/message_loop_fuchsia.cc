@@ -90,7 +90,7 @@ void FuchsiaMessageLoop::MessageEpilogue(int64_t new_wakeup) {
 
 void FuchsiaMessageLoop::Exit(intptr_t exit_code) {
   exit_code_ = exit_code;
-  isolate_ = NULL;
+  isolate_ = nullptr;
   async_loop_quit(loop_);
 }
 

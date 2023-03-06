@@ -14,25 +14,22 @@ namespace psoup {
 
 VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   UNREACHABLE();
-  return VirtualMemory(NULL, 0);
+  return VirtualMemory(nullptr, 0);
 }
-
 
 VirtualMemory VirtualMemory::Allocate(size_t size,
                                       Protection protection,
                                       const char* name) {
   void* address = malloc(size);
-  if (address == NULL) {
+  if (address == nullptr) {
     FATAL("Failed to malloc %" Pd " bytes\n", size);
   }
   return VirtualMemory(address, size);
 }
 
-
 void VirtualMemory::Free() {
   free(address_);
 }
-
 
 bool VirtualMemory::Protect(Protection protection) {
   return true;

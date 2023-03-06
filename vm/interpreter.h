@@ -7,9 +7,9 @@
 
 #include <setjmp.h>
 
-#include "vm/globals.h"
 #include "vm/assert.h"
 #include "vm/flags.h"
+#include "vm/globals.h"
 #include "vm/lookup_cache.h"
 #include "vm/object.h"
 
@@ -53,8 +53,7 @@ class Interpreter {
   void ActivationClosurePut(Activation activation, Closure new_closure);
   void ActivationReceiverPut(Activation activation, Object value);
   Object ActivationTempAt(Activation activation, intptr_t index);
-  void ActivationTempAtPut(Activation activation, intptr_t index,
-                           Object value);
+  void ActivationTempAtPut(Activation activation, intptr_t index, Object value);
   intptr_t ActivationTempSize(Activation activation);
   void ActivationTempSizePut(Activation activation, intptr_t new_size);
 
@@ -84,7 +83,7 @@ class Interpreter {
     *sp_ = value;
   }
   Object Stack(intptr_t depth) {
-    ASSERT((fp_ == 0) || (StackDepth() >= depth));
+    ASSERT((fp_ == nullptr) || (StackDepth() >= depth));
     return sp_[depth];
   }
   void StackPut(intptr_t depth, Object value) {
@@ -167,8 +166,7 @@ class Interpreter {
   NOINLINE void EventualSend(intptr_t selector_index, intptr_t num_args);
 
   INLINE void InsertAbsentReceiver(Object receiver, intptr_t num_args);
-  INLINE void ActivateAbsent(Method method, Object receiver,
-                             intptr_t num_args);
+  INLINE void ActivateAbsent(Method method, Object receiver, intptr_t num_args);
   NOINLINE void Activate(Method method, intptr_t num_args);
   NOINLINE void StackOverflow();
 
