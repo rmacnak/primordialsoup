@@ -1,0 +1,71 @@
+(* Currently just sorts members. *)
+class Formatter packageUsing: manifest = (
+) (
+compare: a to: b = (
+	1 to: (a size min: b size) do:
+		[:index |
+		 (a at: index) < (b at: index) ifTrue: [^true].
+		 (a at: index) > (b at: index) ifTrue: [^false]].
+	^a size < b size
+)
+describeError: ex path: path source: source = (
+	ex isKindOfParseError
+		ifTrue:
+			[ | line ::= 1. lastLine ::= 0. column |
+			 1 to: ex position do:
+				[:index | (source at: index) = 10 (* LF *) ifTrue:
+					[line:: line + 1. lastLine:: index]].
+			 column:: ex position - lastLine.
+			 (* This matches GCC's format, which lets various tools automatically jump to the position. *)
+			 (path, ':', line asString, ':', column asString, ': error: ', ex message) out]
+		ifFalse:
+			[(path, ':0: error: ', ex printString) out].
+)
+public main: platform args: args = (
+	|
+	ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
+	StringBuilder = platform kernel StringBuilder.
+	|
+	args do: [:path | | source mirror stream |
+		source:: String withAll: (readFileAsBytes: path).
+		[mirror:: ClassDeclarationBuilder fromSource: source]
+			on: Exception
+			do: [:ex | describeError: ex path: path source: source. ex pass].
+		stream:: StringBuilder new.
+		sort: mirror to: stream.
+		writeBytes: stream asByteArray toFileNamed: path].
+)
+readFileAsBytes: filename = (
+	(* :pragma: primitive: 510 *)
+	halt.
+)
+sort: classDecl to: sb = (
+	| classes slots methods |
+	sb add: classDecl header source.
+	sb writeln: ' ('.
+
+	classes:: Array withAll: classDecl instanceSide nestedClasses.
+	classes sort: [:a :b | compare: a name to: b name].
+	classes do: [:nestedClassDecl | sort: nestedClassDecl to: sb].
+
+	slots:: Array withAll: classDecl instanceSide transientSlots.
+	slots sort: [:a :b | compare: a name to: b name].
+	slots do: [:transientSlot | sb writeln: transientSlot source].
+
+	methods:: Array withAll: classDecl instanceSide methods.
+	methods sort: [:a :b | compare: a name to: b name].
+	methods do: [:method | sb writeln: method source].
+	sb writeln: ') : ('.
+
+	methods:: Array withAll:  classDecl classSide methods.
+	methods sort: [:a :b | compare: a name to: b name].
+	methods do: [:method | sb writeln: method source].
+
+	sb writeln: ')'.
+)
+writeBytes: bytes toFileNamed: filename = (
+	(* :pragma: primitive: 511 *)
+	halt.
+)
+) : (
+)

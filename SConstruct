@@ -283,6 +283,10 @@ def BuildSnapshots(outdir, host_vm):
   snapshots += [compilerout]
   cmd += ' RuntimeWithMirrors CompilerApp ' + compilerout
 
+  formatterout = os.path.join(outdir, 'Formatter.vfuel')
+  snapshots += [formatterout]
+  cmd += ' RuntimeWithMirrors Formatter ' + formatterout
+
   Command(target=snapshots, source=nssources, action=cmd)
   Requires(snapshots, host_vm)
   Depends(snapshots, compilersnapshot)

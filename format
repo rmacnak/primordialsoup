@@ -1,0 +1,2 @@
+#!/bin/sh -ex
+./out/ReleaseHost/primordialsoup out/snapshots/Formatter.vfuel newspeak/*.ns

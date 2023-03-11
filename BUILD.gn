@@ -150,6 +150,7 @@ action("snapshots") {
     "newspeak/CollectionsTestingConfiguration.ns",
     "newspeak/CompilerApp.ns",
     "newspeak/DeltaBlue.ns",
+    "newspeak/Formatter.ns",
     "newspeak/HelloApp.ns",
     "newspeak/InImageNSCompilerTestingStrategy.ns",
     "newspeak/Intermediates.ns",
