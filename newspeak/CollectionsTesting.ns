@@ -544,6 +544,42 @@ public testListRemove = (
 	assert: (list remove: 'strawberry') equals: 'strawberry'.
 	assert: list size equals: 0.
 )
+public testListRemoveAll = (
+	| list = List new: 0. |
+	list add: 'apple'.
+	list add: 'banana'.
+	list add: 'orange'.
+	list add: 'strawberry'.
+	list add: 'watermelon'.
+	assert: list size equals: 5.
+
+	list removeAll.
+	assert: list size equals: 0.
+	should: [list at: 1] signal: rangeError.
+	list removeAll.
+	assert: list size equals: 0.
+
+	list add: 'apricot'.
+	list add: 'cherry'.
+	list add: 'mango'.
+	list add: 'nectarine'.
+	list add: 'lemon'.
+	list add: 'lime'.
+	list add: 'peach'.
+	list add: 'plum'.
+	assert: list size equals: 8.
+	assert: (list at: 1) equals: 'apricot'.
+	assert: (list at: 2) equals: 'cherry'.
+	assert: (list at: 3) equals: 'mango'.
+	assert: (list at: 4) equals: 'nectarine'.
+	assert: (list at: 5) equals: 'lemon'.
+	assert: (list at: 6) equals: 'lime'.
+	assert: (list at: 7) equals: 'peach'.
+	assert: (list at: 8) equals: 'plum'.
+
+	list removeAll.
+	assert: list size equals: 0.
+)
 public testListRemoveAllSuchThat = (
 	| list = List new: 0. |
 	list add: 'apple'.
@@ -881,6 +917,41 @@ public testMapReject = (
 	assert: (result at: 'gray') equals: 'gris'.
 	assert: (result at: 'black') equals: 'noir'.
 )
+public testMapRemoveAll = (
+	| map = Map new: 0. |
+	map at: 'apple' put: 'elppa'.
+	map at: 'banana' put: 'ananab'.
+	map at: 'orange' put: 'egnaro'.
+	map at: 'strawberry' put: 'yrrebwarts'.
+	map at: 'watermelon' put: 'nolemretaw'.
+	assert: map size equals: 5.
+
+	map removeAll.
+	assert: map size equals: 0.
+	map removeAll.
+	assert: map size equals: 0.
+
+	map at: 'apricot' put: 'tocirpa'.
+	map at: 'cherry' put: 'yrrehc'.
+	map at: 'mango' put: 'ognam'.
+	map at: 'nectarine' put: 'eniratcen'.
+	map at: 'lemon' put: 'nomel'.
+	map at: 'lime' put: 'emil'.
+	map at: 'peach' put: 'hcaep'.
+	map at: 'plum' put: 'mulp'.
+	assert: map size equals: 8.
+	assert: (map at: 'apricot') equals: 'tocirpa'.
+	assert: (map at: 'cherry') equals: 'yrrehc'.
+	assert: (map at: 'mango') equals: 'ognam'.
+	assert: (map at: 'nectarine') equals: 'eniratcen'.
+	assert: (map at: 'lemon') equals: 'nomel'.
+	assert: (map at: 'lime') equals: 'emil'.
+	assert: (map at: 'peach') equals: 'hcaep'.
+	assert: (map at: 'plum') equals: 'mulp'.
+
+	map removeAll.
+	assert: map size equals: 0.
+)
 public testMapScalingContiguousHashes = (
 	(* Test will be noticeably slow if implementation is quadratic *)
 	| n map |
@@ -1139,6 +1210,41 @@ public testOrderedMapReject = (
 	assert: (values at: 3) equals: 'gris'.
 	assert: (values at: 4) equals: 'noir'.
 )
+public testOrderedMapRemoveAll = (
+	| map = OrderedMap new: 0. |
+	map at: 'apple' put: 'elppa'.
+	map at: 'banana' put: 'ananab'.
+	map at: 'orange' put: 'egnaro'.
+	map at: 'strawberry' put: 'yrrebwarts'.
+	map at: 'watermelon' put: 'nolemretaw'.
+	assert: map size equals: 5.
+
+	map removeAll.
+	assert: map size equals: 0.
+	map removeAll.
+	assert: map size equals: 0.
+
+	map at: 'apricot' put: 'tocirpa'.
+	map at: 'cherry' put: 'yrrehc'.
+	map at: 'mango' put: 'ognam'.
+	map at: 'nectarine' put: 'eniratcen'.
+	map at: 'lemon' put: 'nomel'.
+	map at: 'lime' put: 'emil'.
+	map at: 'peach' put: 'hcaep'.
+	map at: 'plum' put: 'mulp'.
+	assert: map size equals: 8.
+	assert: (map at: 'apricot') equals: 'tocirpa'.
+	assert: (map at: 'cherry') equals: 'yrrehc'.
+	assert: (map at: 'mango') equals: 'ognam'.
+	assert: (map at: 'nectarine') equals: 'eniratcen'.
+	assert: (map at: 'lemon') equals: 'nomel'.
+	assert: (map at: 'lime') equals: 'emil'.
+	assert: (map at: 'peach') equals: 'hcaep'.
+	assert: (map at: 'plum') equals: 'mulp'.
+
+	map removeAll.
+	assert: map size equals: 0.
+)
 public testOrderedMapScalingContiguousHashes = (
 	(* Test will be noticeably slow if implementation is quadratic *)
 	| n map |
@@ -1392,6 +1498,41 @@ public testOrderedSetReject = (
 	assert: (array at: 1) equals: 'red'.
 	assert: (array at: 2) equals: 'blue'.
 	assert: (array at: 3) equals: 'gray'.
+)
+public testOrderedSetRemoveAll = (
+	| set = OrderedSet new: 0. |
+	set add: 'apple'.
+	set add: 'banana'.
+	set add: 'orange'.
+	set add: 'strawberry'.
+	set add: 'watermelon'.
+	assert: set size equals: 5.
+
+	set removeAll.
+	assert: set size equals: 0.
+	set removeAll.
+	assert: set size equals: 0.
+
+	set add: 'apricot'.
+	set add: 'cherry'.
+	set add: 'mango'.
+	set add: 'nectarine'.
+	set add: 'lemon'.
+	set add: 'lime'.
+	set add: 'peach'.
+	set add: 'plum'.
+	assert: set size equals: 8.
+	assert: (set includes: 'apricot').
+	assert: (set includes: 'cherry').
+	assert: (set includes: 'mango').
+	assert: (set includes: 'nectarine').
+	assert: (set includes: 'lemon').
+	assert: (set includes: 'lime').
+	assert: (set includes: 'peach').
+	assert: (set includes: 'plum').
+
+	set removeAll.
+	assert: set size equals: 0.
 )
 public testOrderedSetScalingContiguousHashes = (
 	(* Test will be noticeably slow if implementation is quadratic *)
@@ -1647,6 +1788,41 @@ public testSetNilElement = (
 	assert: (set add: nil) equals: nil.
 	assert: set size equals: 9.
 	assert: (set includes: nil).
+)
+public testSetRemoveAll = (
+	| set = Set new: 0. |
+	set add: 'apple'.
+	set add: 'banana'.
+	set add: 'orange'.
+	set add: 'strawberry'.
+	set add: 'watermelon'.
+	assert: set size equals: 5.
+
+	set removeAll.
+	assert: set size equals: 0.
+	set removeAll.
+	assert: set size equals: 0.
+
+	set add: 'apricot'.
+	set add: 'cherry'.
+	set add: 'mango'.
+	set add: 'nectarine'.
+	set add: 'lemon'.
+	set add: 'lime'.
+	set add: 'peach'.
+	set add: 'plum'.
+	assert: set size equals: 8.
+	assert: (set includes: 'apricot').
+	assert: (set includes: 'cherry').
+	assert: (set includes: 'mango').
+	assert: (set includes: 'nectarine').
+	assert: (set includes: 'lemon').
+	assert: (set includes: 'lime').
+	assert: (set includes: 'peach').
+	assert: (set includes: 'plum').
+
+	set removeAll.
+	assert: set size equals: 0.
 )
 public testSetScalingContiguousHashes = (
 	(* Test will be noticeably slow if implementation is quadratic *)

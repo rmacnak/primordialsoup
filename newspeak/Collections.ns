@@ -114,6 +114,10 @@ public remove: element <E> ifAbsent: onAbsent <X def> ^<E | X> = (
 			^element]].
 	^onAbsent value.
 )
+public removeAll = (
+	data:: Array new: 3.
+	size_:: 0.
+)
 public removeAllSuchThat: predicate <[:E | Boolean]> = (
 	| writeBackIndex ::= 1. |
 	1 to: size_ do:
@@ -282,6 +286,11 @@ public reject: predicate <[:V | Boolean]> ^<Map[K, V]> = (
 			(predicate value: value) ifFalse:
 				[result at: key put: value]]].
 	^result
+)
+public removeAll = (
+	table:: Array new: (capacityFor: 3).
+	1 to: table size by: 2 do: [:index | table at: index put: table].
+	size_:: 0.
 )
 public removeKey: key <K> ^<V> = (
 	^self removeKey: key ifAbsent: [(NotFound element: key) signal]
@@ -497,6 +506,9 @@ public reject: predicate <[:V | Boolean]> ^<Map[K, V]> = (
 				[result at: key put: value]]].
 	^result
 )
+public removeAll = (
+	createTable: 3.
+)
 public removeKey: key <K> ^<V> = (
 	^self removeKey: key ifAbsent: [(NotFound element: key) signal]
 )
@@ -699,6 +711,9 @@ public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
 	deleted_ > size ifTrue: [rehash].
 	^oldElement
 )
+public removeAll = (
+	createTable: 3.
+)
 public removeAll: collection <Collection[E]> = (
 	collection do: [:element | self remove: element].
 )
@@ -736,7 +751,7 @@ public size ^<Integer> = (
 )
 ) : (
 public new ^<OrderedSet[E]> = (
-	^self new: 2
+	^self new: 3
 )
 public withAll: collection <Collection[E]> ^<OrderedSet[E]> = (
 	^(self new: collection size) addAll: collection; yourself
@@ -849,6 +864,11 @@ public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
 	size_:: size_ - 1.
 	^element
 )
+public removeAll = (
+	table:: Array new: (capacityFor: 3).
+	1 to: table size do: [:index | table at: index put: table].
+	size_:: 0.
+)
 public removeAll: collection <Collection[E]> = (
 	collection do: [:element | self remove: element].
 )
@@ -880,7 +900,7 @@ public size ^<Integer> = (
 )
 ) : (
 public new ^<Set[E]> = (
-	^self new: 2
+	^self new: 3
 )
 public withAll: collection <Collection[E]> ^<Set[E]> = (
 	^(self new: collection size) addAll: collection; yourself
