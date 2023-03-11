@@ -11,7 +11,7 @@ namespace psoup {
 
 class Region {
  public:
-  static Region* Allocate(intptr_t size) {
+  static Region* Allocate(size_t size) {
     VirtualMemory memory = VirtualMemory::Allocate(size,
                                                    VirtualMemory::kReadWrite,
                                                    "primordialsoup-heap");
@@ -26,10 +26,10 @@ class Region {
 
   void Free() { memory_.Free(); }
 
-  uword TryAllocate(intptr_t size) {
+  uword TryAllocate(size_t size) {
     ASSERT(Utils::IsAligned(size, kObjectAlignment));
     uword result = object_end_;
-    intptr_t remaining = memory_.limit() - object_end_;
+    size_t remaining = memory_.limit() - object_end_;
     if (remaining < size) {
       return 0;
     }
@@ -154,7 +154,7 @@ Message Heap::AllocateMessage() {
   return static_cast<Message>(new_instance);
 }
 
-uword Heap::AllocateNormal(intptr_t size) {
+uword Heap::AllocateNormal(size_t size) {
   if (size >= kLargeAllocation) {
     return AllocateOldLarge(size, kControlGrowth);
   }
@@ -177,28 +177,28 @@ uword Heap::AllocateNormal(intptr_t size) {
   return addr;
 }
 
-uword Heap::AllocateCopy(intptr_t size) {
+uword Heap::AllocateCopy(size_t size) {
   uword result = top_;
-  intptr_t remaining = end_ - top_;
+  size_t remaining = end_ - top_;
   ASSERT(size <= remaining);
   ASSERT((result & kObjectAlignmentMask) == kNewObjectAlignmentOffset);
   top_ = result + size;
   return result;
 }
 
-uword Heap::AllocateTenure(intptr_t size) {
+uword Heap::AllocateTenure(size_t size) {
   uword result = AllocateOldSmall(size, kForceGrowth);
   PushTenureStack(result);
   return result;
 }
 
-uword Heap::AllocateOldSmall(intptr_t size, GrowthPolicy growth) {
+uword Heap::AllocateOldSmall(size_t size, GrowthPolicy growth) {
   ASSERT(size < kLargeAllocation);
   uword addr = freelist_.TryAllocate(size);
   if (addr == 0) {
     Region* region = AllocateRegion(kRegionSize, growth);
     addr = region->TryAllocate(size);
-    intptr_t remaining = region->limit() - region->object_end();
+    size_t remaining = region->limit() - region->object_end();
     if (remaining > 0) {
       freelist_.EnqueueRange(region->object_end(), remaining);
       region->set_object_end(region->limit());
@@ -212,7 +212,7 @@ uword Heap::AllocateOldSmall(intptr_t size, GrowthPolicy growth) {
   return addr;
 }
 
-uword Heap::AllocateOldLarge(intptr_t size, GrowthPolicy growth) {
+uword Heap::AllocateOldLarge(size_t size, GrowthPolicy growth) {
   ASSERT(size >= kLargeAllocation);
   Region* region = AllocateRegion(size + AllocationSize(sizeof(Region)),
                                   growth);
@@ -225,14 +225,14 @@ uword Heap::AllocateOldLarge(intptr_t size, GrowthPolicy growth) {
   return addr;
 }
 
-uword Heap::AllocateSnapshot(intptr_t size) {
+uword Heap::AllocateSnapshot(size_t size) {
   if (size >= kLargeAllocation) {
     return AllocateOldLarge(size, kForceGrowth);
   }
 
   uword addr = top_;
   if (addr + size > end_) {
-    intptr_t remaining = end_ - top_;
+    size_t remaining = end_ - top_;
     if (remaining > 0) {
       freelist_.EnqueueRange(top_, remaining);
       old_size_ -= remaining;
@@ -253,7 +253,7 @@ uword Heap::AllocateSnapshot(intptr_t size) {
   return addr;
 }
 
-Region* Heap::AllocateRegion(intptr_t region_size, GrowthPolicy growth) {
+Region* Heap::AllocateRegion(size_t region_size, GrowthPolicy growth) {
   if ((growth == kControlGrowth) && ((old_size_ + region_size) > old_limit_)) {
     MarkSweep(kOldSpace);
   }
@@ -758,7 +758,7 @@ void Heap::Sweep() {
         free_scan += next->HeapSize();
       }
 
-      intptr_t size = free_scan - scan;
+      size_t size = free_scan - scan;
       HeapObject object =
           HeapObject::Initialize(scan, kFreeListElementCid, size);
       FreeListElement element = static_cast<FreeListElement>(object);
@@ -1098,7 +1098,7 @@ bool Heap::BecomeForward(Array old, Array neu) {
 
     forwardee->set_header_hash(forwarder->header_hash());
 
-    intptr_t heap_size = forwarder->HeapSize();
+    size_t heap_size = forwarder->HeapSize();
 
     HeapObject::Initialize(forwarder->Addr(), kForwardingCorpseCid, heap_size);
     ASSERT(forwarder->IsForwardingCorpse());
@@ -1278,7 +1278,7 @@ void Heap::InitializeAfterSnapshot() {
   }
 
   // Switch bump pointer allocation from old-space to new-space.
-  intptr_t remaining = end_ - top_;
+  size_t remaining = end_ - top_;
   if (remaining > 0) {
     freelist_.EnqueueRange(top_, remaining);
     old_size_ -= remaining;
@@ -1293,10 +1293,10 @@ static void Truncate(Array array, intptr_t new_size) {
   ASSERT(new_size >= 0);
   ASSERT(new_size <= array->Size());
 
-  intptr_t old_heap_size = AllocationSize(array->Size() * sizeof(Object) +
-                                          sizeof(Array::Layout));
-  intptr_t new_heap_size = AllocationSize(new_size * sizeof(Object) +
-                                          sizeof(Array::Layout));
+  size_t old_heap_size = AllocationSize(sizeof(Array::Layout) +
+                                        array->Size() * sizeof(Object));
+  size_t new_heap_size = AllocationSize(sizeof(Array::Layout) +
+                                        new_size * sizeof(Object));
 
   ASSERT(array->HeapSize() == old_heap_size);
   ASSERT(array->HeapSizeFromClass() == old_heap_size);
@@ -1305,7 +1305,7 @@ static void Truncate(Array array, intptr_t new_size) {
   ASSERT(array->HeapSize() == new_heap_size);
   ASSERT(array->HeapSizeFromClass() == new_heap_size);
 
-  intptr_t free_size = old_heap_size - new_heap_size;
+  size_t free_size = old_heap_size - new_heap_size;
   if (free_size != 0) {
     uword free_start = array->Addr() + new_heap_size;
     HeapObject object =
@@ -1465,7 +1465,7 @@ Array Heap::ReferencesTo(Object target) {
   return result;
 }
 
-uword FreeList::TryAllocate(intptr_t size) {
+uword FreeList::TryAllocate(size_t size) {
   intptr_t index = IndexForSize(size);
   while (index < kSizeClasses) {
     if (free_lists_[index] != nullptr) {
@@ -1494,12 +1494,11 @@ uword FreeList::TryAllocate(intptr_t size) {
   return 0;
 }
 
-void FreeList::SplitAndRequeue(FreeListElement element, intptr_t size) {
+void FreeList::SplitAndRequeue(FreeListElement element, size_t size) {
   ASSERT(size > 0);
   ASSERT((size & kObjectAlignmentMask) == 0);
   ASSERT(element->HeapSize() >= size);
-  intptr_t remaining_size = element->HeapSize() - size;
-  ASSERT(remaining_size >= 0);
+  size_t remaining_size = element->HeapSize() - size;
   if (remaining_size > 0) {
     uword remaining_addr = element->Addr() + size;
     EnqueueRange(remaining_addr, remaining_size);
@@ -1523,7 +1522,7 @@ void FreeList::Enqueue(FreeListElement element) {
   free_lists_[index] = element;
 }
 
-void FreeList::EnqueueRange(uword addr, intptr_t size) {
+void FreeList::EnqueueRange(uword addr, size_t size) {
 #if defined(DEBUG)
   memset(reinterpret_cast<void*>(addr), kUnallocatedByte, size);
 #endif

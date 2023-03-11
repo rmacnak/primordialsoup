@@ -28,7 +28,7 @@ static constexpr uword kUninitializedWord = 0xcbcbcbcbcbcbcbcb;
 static constexpr uint8_t kUnallocatedByte = 0xab;
 static constexpr uint8_t kUninitializedByte = 0xcb;
 
-static intptr_t AllocationSize(intptr_t size) {
+static size_t AllocationSize(size_t size) {
   return Utils::RoundUp(size, kObjectAlignment);
 }
 
@@ -73,9 +73,9 @@ class FreeList {
 
   FreeList() { Reset(); }
 
-  uword TryAllocate(intptr_t size);
+  uword TryAllocate(size_t size);
 
-  intptr_t IndexForSize(intptr_t size) {
+  intptr_t IndexForSize(size_t size) {
     intptr_t index = size >> kObjectAlignmentLog2;
     if (index > kSizeClasses) {
       return kSizeClasses;
@@ -83,10 +83,10 @@ class FreeList {
     return index;
   }
 
-  void SplitAndRequeue(FreeListElement element, intptr_t size);
+  void SplitAndRequeue(FreeListElement element, size_t size);
   FreeListElement Dequeue(intptr_t index);
   void Enqueue(FreeListElement element);
-  void EnqueueRange(uword address, intptr_t size);
+  void EnqueueRange(uword address, size_t size);
   void Reset() {
     for (intptr_t i = 0; i <= kSizeClasses; i++) {
       free_lists_[i] = nullptr;
@@ -152,15 +152,15 @@ class Heap {
   RegularObject AllocateRegularObject(intptr_t cid, intptr_t num_slots,
                                       Allocator allocator = kNormal) {
     ASSERT(cid == kEphemeronCid || cid >= kFirstRegularObjectCid);
-    const intptr_t heap_size =
-        AllocationSize(num_slots * sizeof(Object) + sizeof(HeapObject::Layout));
+    size_t heap_size = AllocationSize(sizeof(HeapObject::Layout) +
+                                      num_slots * sizeof(Object));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, cid, heap_size);
     RegularObject result = static_cast<RegularObject>(obj);
     ASSERT(result->IsRegularObject() || result->IsEphemeron());
     ASSERT(result->HeapSize() == heap_size);
 
-    const intptr_t header_slots = sizeof(HeapObject::Layout) / sizeof(uword);
+    intptr_t header_slots = sizeof(HeapObject::Layout) / sizeof(uword);
     if (((header_slots + num_slots) & 1) == 1) {
       // The leftover slot will be visited by the GC. Make it a valid oop.
       result->set_slot(num_slots, SmallInteger::New(0), kNoBarrier);
@@ -171,8 +171,8 @@ class Heap {
 
   ByteArray AllocateByteArray(intptr_t num_bytes,
                               Allocator allocator = kNormal) {
-    const intptr_t heap_size =
-        AllocationSize(num_bytes * sizeof(uint8_t) + sizeof(ByteArray::Layout));
+    size_t heap_size = AllocationSize(sizeof(ByteArray::Layout) +
+                                      num_bytes * sizeof(uint8_t));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kByteArrayCid, heap_size);
     ByteArray result = static_cast<ByteArray>(obj);
@@ -183,8 +183,8 @@ class Heap {
   }
 
   String AllocateString(intptr_t num_bytes, Allocator allocator = kNormal) {
-    const intptr_t heap_size =
-        AllocationSize(num_bytes * sizeof(uint8_t) + sizeof(String::Layout));
+    size_t heap_size = AllocationSize(sizeof(String::Layout) +
+                                      num_bytes * sizeof(uint8_t));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kStringCid, heap_size);
     String result = static_cast<String>(obj);
@@ -195,8 +195,8 @@ class Heap {
   }
 
   Array AllocateArray(intptr_t num_slots, Allocator allocator = kNormal) {
-    const intptr_t heap_size =
-        AllocationSize(num_slots * sizeof(Object) + sizeof(Array::Layout));
+    size_t heap_size = AllocationSize(sizeof(Array::Layout) +
+                                      num_slots * sizeof(Object));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kArrayCid, heap_size);
     Array result = static_cast<Array>(obj);
@@ -208,8 +208,8 @@ class Heap {
 
   WeakArray AllocateWeakArray(intptr_t num_slots,
                               Allocator allocator = kNormal) {
-    const intptr_t heap_size =
-        AllocationSize(num_slots * sizeof(Object) + sizeof(WeakArray::Layout));
+    size_t heap_size = AllocationSize(sizeof(WeakArray::Layout) +
+                                      num_slots * sizeof(Object));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kWeakArrayCid, heap_size);
     WeakArray result = static_cast<WeakArray>(obj);
@@ -220,8 +220,8 @@ class Heap {
   }
 
   Closure AllocateClosure(intptr_t num_copied, Allocator allocator = kNormal) {
-    const intptr_t heap_size =
-        AllocationSize(num_copied * sizeof(Object) + sizeof(Closure::Layout));
+    size_t heap_size = AllocationSize(sizeof(Closure::Layout) +
+                                      num_copied * sizeof(Object));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kClosureCid, heap_size);
     Closure result = static_cast<Closure>(obj);
@@ -232,7 +232,7 @@ class Heap {
   }
 
   Activation AllocateActivation(Allocator allocator = kNormal) {
-    const intptr_t heap_size = AllocationSize(sizeof(Activation::Layout));
+    size_t heap_size = AllocationSize(sizeof(Activation::Layout));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kActivationCid, heap_size);
     Activation result = static_cast<Activation>(obj);
@@ -242,7 +242,7 @@ class Heap {
   }
 
   MediumInteger AllocateMediumInteger(Allocator allocator = kNormal) {
-    const intptr_t heap_size = AllocationSize(sizeof(MediumInteger::Layout));
+    size_t heap_size = AllocationSize(sizeof(MediumInteger::Layout));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kMediumIntegerCid, heap_size);
     MediumInteger result = static_cast<MediumInteger>(obj);
@@ -253,8 +253,8 @@ class Heap {
 
   LargeInteger AllocateLargeInteger(intptr_t capacity,
                                     Allocator allocator = kNormal) {
-    const intptr_t heap_size = AllocationSize(capacity * sizeof(digit_t) +
-                                              sizeof(LargeInteger::Layout));
+    size_t heap_size = AllocationSize(sizeof(LargeInteger::Layout) +
+                                      capacity * sizeof(digit_t));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kLargeIntegerCid, heap_size);
     LargeInteger result = static_cast<LargeInteger>(obj);
@@ -265,7 +265,7 @@ class Heap {
   }
 
   Float AllocateFloat(Allocator allocator = kNormal) {
-    const intptr_t heap_size = AllocationSize(sizeof(Float::Layout));
+    size_t heap_size = AllocationSize(sizeof(Float::Layout));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kFloatCid, heap_size);
     Float result = static_cast<Float>(obj);
@@ -363,7 +363,7 @@ class Heap {
   void ForwardRoots();
   void ForwardHeap();
 
-  uword Allocate(intptr_t size, Allocator allocator) {
+  uword Allocate(size_t size, Allocator allocator) {
     ASSERT(Utils::IsAligned(size, kObjectAlignment));
     if (size < kLargeAllocation) {
       uword result = top_;
@@ -379,14 +379,14 @@ class Heap {
                                   : AllocateNormal(size);
   }
 
-  uword AllocateNormal(intptr_t size);
-  uword AllocateSnapshot(intptr_t size);
-  uword AllocateCopy(intptr_t size);
-  uword AllocateTenure(intptr_t size);
-  uword AllocateOldSmall(intptr_t size, GrowthPolicy growth);
-  uword AllocateOldLarge(intptr_t size, GrowthPolicy growth);
+  uword AllocateNormal(size_t size);
+  uword AllocateSnapshot(size_t size);
+  uword AllocateCopy(size_t size);
+  uword AllocateTenure(size_t size);
+  uword AllocateOldSmall(size_t size, GrowthPolicy growth);
+  uword AllocateOldLarge(size_t size, GrowthPolicy growth);
 
-  Region* AllocateRegion(intptr_t region_size, GrowthPolicy growth);
+  Region* AllocateRegion(size_t region_size, GrowthPolicy growth);
 
 #if defined(DEBUG)
   bool InFromSpace(HeapObject obj) {

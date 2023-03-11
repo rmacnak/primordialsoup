@@ -15,7 +15,7 @@ Behavior Object::Klass(Heap* heap) const {
   return heap->ClassAt(ClassId());
 }
 
-intptr_t HeapObject::HeapSizeFromClass() const {
+size_t HeapObject::HeapSizeFromClass() const {
   ASSERT(IsHeapObject());
 
   switch (cid()) {

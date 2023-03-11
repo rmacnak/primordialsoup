@@ -206,7 +206,7 @@ class HeapObject : public Object {
     ASSERT(IsHeapObject());
     ASSERT(IsRegularObject());
     // 8 slots for a class, 7 slots for a metaclass, plus 1 header.
-    intptr_t heap_slots = heap_size() / sizeof(uword);
+    size_t heap_slots = heap_size() / sizeof(uword);
     ASSERT((heap_slots == 8) || (heap_slots == 10));
   }
 
@@ -216,8 +216,8 @@ class HeapObject : public Object {
   inline void set_is_remembered(bool value);
   inline bool is_canonical() const;
   inline void set_is_canonical(bool value);
-  inline intptr_t heap_size() const;
-  inline void set_heap_size(intptr_t value);
+  inline size_t heap_size() const;
+  inline void set_heap_size(size_t value);
   inline intptr_t cid() const;
   inline void set_cid(intptr_t value);
   inline intptr_t header_hash() const;
@@ -230,17 +230,17 @@ class HeapObject : public Object {
 
   inline static HeapObject Initialize(uword addr,
                                       intptr_t cid,
-                                      intptr_t heap_size);
+                                      size_t heap_size);
 
-  intptr_t HeapSize() const {
+  size_t HeapSize() const {
     ASSERT(IsHeapObject());
-    intptr_t heap_size_from_tag = heap_size();
+    size_t heap_size_from_tag = heap_size();
     if (heap_size_from_tag != 0) {
       return heap_size_from_tag;
     }
     return HeapSizeFromClass();
   }
-  intptr_t HeapSizeFromClass() const;
+  size_t HeapSizeFromClass() const;
   void Pointers(Object** from, Object** to);
 
  protected:
@@ -269,7 +269,7 @@ class HeapObject : public Object {
   class RememberedBit : public BitField<bool, kRememberedBit, 1> {};
   class CanonicalBit : public BitField<bool, kCanonicalBit, 1> {};
   class SizeField
-      : public BitField<intptr_t, kSizeFieldOffset, kSizeFieldSize> {};
+      : public BitField<size_t, kSizeFieldOffset, kSizeFieldSize> {};
   class ClassIdField
       : public BitField<intptr_t, kClassIdFieldOffset, kClassIdFieldSize> {};
 };
@@ -899,10 +899,10 @@ bool HeapObject::is_canonical() const {
 void HeapObject::set_is_canonical(bool value) {
   ptr()->header_ = CanonicalBit::update(value, ptr()->header_);
 }
-intptr_t HeapObject::heap_size() const {
+size_t HeapObject::heap_size() const {
   return SizeField::decode(ptr()->header_) << kObjectAlignmentLog2;
 }
-void HeapObject::set_heap_size(intptr_t value) {
+void HeapObject::set_heap_size(size_t value) {
   value >>= kObjectAlignmentLog2;
   if (!SizeField::is_valid(value)) {
     value = 0;
@@ -924,11 +924,11 @@ void HeapObject::set_header_hash(intptr_t value) {
 
 HeapObject HeapObject::Initialize(uword addr,
                                   intptr_t cid,
-                                  intptr_t heap_size) {
+                                  size_t heap_size) {
   ASSERT(cid != kIllegalCid);
   ASSERT((heap_size & kObjectAlignmentMask) == 0);
   ASSERT(heap_size > 0);
-  intptr_t size_tag = heap_size >> kObjectAlignmentLog2;
+  size_t size_tag = heap_size >> kObjectAlignmentLog2;
   if (!SizeField::is_valid(size_tag)) {
     size_tag = 0;
     ASSERT(cid < kFirstRegularObjectCid);
