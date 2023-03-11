@@ -1662,12 +1662,13 @@ private object: receiver perform: selector withAgain: arguments = (
 	(* :pragma: primitive: 134 *)
 	panic.
 )
-(* Send a message to the argument according as an ordinary send. *)
-public sendEventualTo: receiver = (
-	panic.
-)
+(* Immediate, ordinary send. *)
 public sendTo: receiver = (
 	^object: receiver perform: selector with: arguments
+)
+(* Eventual, ordinary send. *)
+public sendToEventual: receiver = (
+	^messageLoop eventualSendTo: receiver selector: selector arguments: arguments
 )
 ) : (
 )

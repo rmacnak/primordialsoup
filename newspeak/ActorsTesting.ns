@@ -1,6 +1,7 @@
 class ActorsTesting usingPlatform: p actors: a testActor: ta minitest: m = (|
 	private TestActor = ta.
 	private TestContext = m TestContext.
+	private Message = p kernel Message.
 	private MessageNotUnderstood = p kernel MessageNotUnderstood.
 	private List = p collections List.
 	private Resolver = a Resolver.
@@ -129,6 +130,52 @@ public check: event happensAfter: predecessor = (
 	events size = eventCount ifTrue: [resolver fulfill: events size].
 )
 ) : (
+)
+public class MessageTests = TestBase () (
+public testPerformEventual = (
+	| receiver message |
+	receiver:: 'hello'.
+
+	(* Unary *)
+	message:: Message selector: #size arguments: {}.
+	await:: assert: (message sendToEventual: receiver) resolvesTo: 5.
+
+	(* Binary *)
+	message:: Message selector: #, arguments: {'world'}.
+	await:: assert: (message sendToEventual: receiver) resolvesTo: 'helloworld'.
+
+	(* Keyword *)
+	message:: Message selector: #startsWith: arguments: {'he'}.
+	await:: assert: (message sendToEventual: receiver) resolvesTo: true.
+
+	(* MNU - no method *)
+	message:: Message selector: #doesNotExist arguments: {}.
+	await:: assert: (message sendToEventual: receiver) smashedWith: MessageNotUnderstood.
+
+	(* MNU - protected method *)
+	message:: Message selector: #Array arguments: {}.
+	await:: assert: (message sendToEventual: receiver) smashedWith: MessageNotUnderstood.
+)
+public testPerformEventualNonArray = (
+	| receiver message |
+	receiver:: 'string'.
+	message:: Message selector: #size arguments: List new.
+	^assert: (message sendToEventual: receiver) resolvesTo: 6.
+)
+public testPerformEventualNonSymbol = (
+	| receiver message |
+	receiver:: 'string'.
+	message:: Message selector: 'si', 'ze' arguments: {}.
+	^assert: (message sendToEventual: receiver) resolvesTo: 6.
+)
+public testPerformEventualWrongArity = (
+	| receiver message |
+	receiver:: 'string'.
+	message:: Message selector: #size arguments: {1. 2. 3. 4}.
+	^assert: (message sendToEventual: receiver) smashedWith: MessageNotUnderstood.
+)
+) : (
+TEST_CONTEXT = ()
 )
 public class MultiActorTests = TestBase () (
 public testPipeliningImmediateLocalResolution1 = (
