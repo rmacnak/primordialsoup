@@ -15,11 +15,6 @@
 
 namespace psoup {
 
-#if defined(OS_EMSCRIPTEN)
-Isolate* Isolate::current_ = nullptr;
-#else
-thread_local Isolate* Isolate::current_ = nullptr;
-#endif
 Monitor* Isolate::isolates_list_monitor_ = nullptr;
 Isolate* Isolate::isolates_list_head_ = nullptr;
 ThreadPool* Isolate::thread_pool_ = nullptr;

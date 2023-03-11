@@ -64,9 +64,9 @@ class Isolate {
   void RemoveIsolateFromList(Isolate* isolate);
 
 #if defined(OS_EMSCRIPTEN)
-  static Isolate* current_;
+  static inline Isolate* current_ = nullptr;
 #else
-  static thread_local Isolate* current_;
+  static inline thread_local Isolate* current_ = nullptr;
 #endif
   static Monitor* isolates_list_monitor_;
   static Isolate* isolates_list_head_;
