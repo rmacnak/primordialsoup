@@ -8,7 +8,6 @@
 #include "vm/thread.h"
 
 #include "vm/assert.h"
-#include "vm/utils.h"
 
 namespace psoup {
 

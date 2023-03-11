@@ -13,6 +13,7 @@
 #include <zircon/types.h>
 
 #include "vm/assert.h"
+#include "vm/os.h"
 
 namespace psoup {
 
@@ -31,7 +32,7 @@ namespace psoup {
 #ifdef DEBUG
 #define RETURN_ON_PTHREAD_FAILURE(result)                                      \
   if (result != 0) {                                                           \
-    fprintf(stderr, "%s:%d: pthread error: %d\n", __FILE__, __LINE__, result); \
+    OS::PrintErr("%s:%d: pthread error: %d\n", __FILE__, __LINE__, result);    \
     return result;                                                             \
   }
 #else

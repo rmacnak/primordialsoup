@@ -10,7 +10,6 @@
 #include <process.h>
 
 #include "vm/assert.h"
-#include "vm/lockers.h"
 #include "vm/os.h"
 
 namespace psoup {
@@ -60,7 +59,7 @@ int Thread::Start(const char* name,
                                     ThreadEntry, start_data, 0, &tid);
   if (thread == -1L || thread == 0) {
 #ifdef DEBUG
-    fprintf(stderr, "_beginthreadex error: %d (%s)\n", errno, strerror(errno));
+    OS::PrintErr("_beginthreadex error: %d (%s)\n", errno, strerror(errno));
 #endif
     return errno;
   }

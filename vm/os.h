@@ -22,13 +22,11 @@ class OS {
   static const char* Name();
   static intptr_t NumberOfAvailableProcessors();
 
-  static void DebugBreak();
-
   static void Print(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);
   static void PrintErr(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);
   static char* PrintStr(const char* format, ...) PRINTF_ATTRIBUTE(1, 2);
 
-  NORETURN static void Abort();
+  static char* StrError(int err, char* buffer, size_t bufsize);
 
   NORETURN static void Exit(int code);
 };

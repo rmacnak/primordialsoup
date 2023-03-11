@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 #include "vm/assert.h"
-#include "vm/utils.h"
+#include "vm/os.h"
 
 namespace psoup {
 
@@ -22,7 +22,7 @@ namespace psoup {
   if (result != 0) {                                                           \
     const int kBufferSize = 1024;                                              \
     char error_message[kBufferSize];                                           \
-    Utils::StrError(result, error_message, kBufferSize);                       \
+    OS::StrError(result, error_message, kBufferSize);                          \
     FATAL("pthread error: %d (%s)", result, error_message);                    \
   }
 
@@ -38,8 +38,8 @@ namespace psoup {
   if (result != 0) {                                                           \
     const int kBufferSize = 1024;                                              \
     char error_buf[kBufferSize];                                               \
-    fprintf(stderr, "%s:%d: pthread error: %d (%s)\n", __FILE__, __LINE__,     \
-            result, Utils::StrError(result, error_buf, kBufferSize));          \
+    OS::PrintErr("%s:%d: pthread error: %d (%s)\n", __FILE__, __LINE__,        \
+                 result, OS::StrError(result, error_buf, kBufferSize));        \
     return result;                                                             \
   }
 #else

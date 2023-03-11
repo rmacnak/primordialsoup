@@ -85,20 +85,6 @@ intptr_t OS::NumberOfAvailableProcessors() {
   return info.dwNumberOfProcessors;
 }
 
-void OS::DebugBreak() {
-#if defined(_MSC_VER)
-  // Microsoft Visual C/C++ or drop-in replacement.
-  __debugbreak();
-#elif defined(__GCC__)
-  __builtin_trap();
-#else
-  // Microsoft style assembly.
-  __asm {
-    int 3
-  }
-#endif
-}
-
 static void VFPrint(FILE* stream, const char* format, va_list args) {
   vfprintf(stream, format, args);
   fflush(stream);
@@ -171,6 +157,24 @@ char* OS::PrintStr(const char* format, ...) {
   return buffer;
 }
 
+char* OS::StrError(int err, char* buffer, size_t bufsize) {
+  DWORD message_size =
+      FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                    nullptr, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                    buffer, static_cast<DWORD>(bufsize), nullptr);
+  if (message_size == 0) {
+    if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+      snprintf(buffer, bufsize,
+               "FormatMessage failed for error code %d (error %d)\n", err,
+               GetLastError());
+    }
+    snprintf(buffer, bufsize, "OS Error %d", err);
+  }
+  // Ensure string termination.
+  buffer[bufsize - 1] = 0;
+  return buffer;
+}
+
 void OS::Startup() {
   // Do not pop up a message box when abort is called.
   _set_abort_behavior(0, _WRITE_ABORT_MSG);
@@ -183,10 +187,6 @@ void OS::Startup() {
 }
 
 void OS::Shutdown() {}
-
-void OS::Abort() {
-  abort();
-}
 
 void OS::Exit(int code) {
   // On Windows we use ExitProcess so that threads can't clobber the exit_code.

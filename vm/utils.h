@@ -58,26 +58,8 @@ class Utils {
     ASSERT(IsPowerOfTwo(n));
     return (x & (n - 1)) == 0;
   }
-
-  static char* StrError(int err, char* buffer, size_t bufsize);
 };
 
 }  // namespace psoup
-
-#if defined(OS_ANDROID)
-#include "vm/utils_android.h"
-#elif defined(OS_EMSCRIPTEN)
-#include "vm/utils_emscripten.h"
-#elif defined(OS_FUCHSIA)
-#include "vm/utils_fuchsia.h"
-#elif defined(OS_LINUX)
-#include "vm/utils_linux.h"
-#elif defined(OS_MACOS)
-#include "vm/utils_macos.h"
-#elif defined(OS_WINDOWS)
-#include "vm/utils_win.h"
-#else
-#error Unknown OS.
-#endif
 
 #endif  // VM_UTILS_H_

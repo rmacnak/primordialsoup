@@ -63,10 +63,6 @@ intptr_t OS::NumberOfAvailableProcessors() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
-void OS::DebugBreak() {
-  __builtin_trap();
-}
-
 static void VFPrint(FILE* stream, const char* format, va_list args) {
   vfprintf(stream, format, args);
   fflush(stream);
@@ -105,8 +101,8 @@ char* OS::PrintStr(const char* format, ...) {
   return buffer;
 }
 
-void OS::Abort() {
-  abort();
+char* OS::StrError(int err, char* buffer, size_t bufsize) {
+  return strerror_r(err, buffer, bufsize);
 }
 
 void OS::Exit(int code) {
