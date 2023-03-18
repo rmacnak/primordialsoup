@@ -1,6 +1,8 @@
 class PrimordialFuelTesting usingPlatform: p minitest: m testApp: a testStruct: s = (|
 private WeakArray = p kernel WeakArray.
 private Ephemeron = p kernel Ephemeron.
+private Map = p collections OrderedMap.
+private Set = p collections OrderedSet.
 private Serializer = p victoryFuel Serializer.
 private Deserializer = p victoryFuel Deserializer.
 private TestContext = m TestContext.
@@ -144,6 +146,26 @@ public testLargeIntegers = (
 	assert: (roundTrip: 0 - 16rABABABABABABABAB) equals: 0 - 16rABABABABABABABAB.
 	assert: (roundTrip: 0 - 16r7373737373737373) equals: 0 -16r7373737373737373.
 )
+public testMaps = (
+	| beforeKeys beforeValues beforeMap before afterKeys afterValues afterMap after |
+
+	beforeKeys:: {Object new. Object new. Object new}.
+	beforeValues:: {Object new. Object new. Object new}.
+	beforeMap:: Map new.
+	1 to: 3 do:
+		[:i | beforeMap at: (beforeKeys at: i) put: (beforeValues at: i)].
+	before:: {beforeKeys. beforeValues. beforeMap}.
+
+	after:: roundTrip: before.
+	afterKeys:: after at: 1.
+	afterValues:: after at: 2.
+	afterMap:: after at: 3.
+	assert: afterMap isKindOfMap.
+	assert: afterMap size equals: 3.
+	1 to: 3 do:
+		[:i | assert: (afterMap at: (afterKeys at: i)) equals: (afterValues at: i)].
+	deny: afterMap equals: beforeMap.
+)
 public testMediumIntegers = (
 	assert: (roundTrip: -1 << 31) equals: -1 << 31. (* minInt32 *)
 	assert: (roundTrip: -1 << 62) equals: -1 << 62. (* minInt63 *)
@@ -159,6 +181,24 @@ public testOddballs = (
 	assert: (roundTrip: nil) equals: nil.
 	assert: (roundTrip: false) equals: false.
 	assert: (roundTrip: true) equals: true.
+)
+public testSets = (
+	| beforeElements beforeSet before afterElements afterSet after |
+
+	beforeElements:: {Object new. Object new. Object new}.
+	beforeSet:: Set new.
+	1 to: 3 do:
+		[:i | beforeSet add: (beforeElements at: i)].
+	before:: {beforeElements. beforeSet}.
+
+	after:: roundTrip: before.
+	afterElements:: after at: 1.
+	afterSet:: after at: 2.
+	assert: afterSet isKindOfSet.
+	assert: afterSet size equals: 3.
+	1 to: 3 do:
+		[:i | assert: (afterSet includes: (afterElements at: i))].
+	deny: afterSet equals: beforeSet.
 )
 public testSmallIntegers = (
 	assert: (roundTrip: 0) equals: 0.

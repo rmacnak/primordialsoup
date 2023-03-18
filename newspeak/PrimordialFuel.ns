@@ -972,7 +972,7 @@ ensureCapacity: availableNeeded = (
 )
 public float32: value <Float> = (
 	ensureCapacity: 4.
-	data float64At: position put: value.
+	data float32At: position put: value.
 	position:: 4 + position.
 )
 public float64: value <Float> = (

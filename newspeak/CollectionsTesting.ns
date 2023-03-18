@@ -752,6 +752,14 @@ public testIsKindOfMap = (
 	deny: true isKindOfMap.
 	deny: 0 isKindOfMap.
 )
+public testMapAtIfAbsentPut = (
+	| map |
+	map:: Map new.
+	map at: 'red' ifAbsentPut: ['rouge'].
+	map at: 'red' ifAbsentPut: ['bleu'].
+	assert: map size equals: 1.
+	assert: (map at: 'red') equals: 'rouge'.
+)
 public testMapCollect = (
 	| map result |
 	map:: Map new.
@@ -1025,6 +1033,40 @@ public testMapSelfKey = (
 	assert: (map includesKey: map).
 	assert: (map at: map) equals: 'pineapple'.
 )
+public testMapUpdates = (
+	| map result |
+	map:: Map new.
+	map at: 'red' put: 'red'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'yellow'.
+	map at: 'green' put: 'green'.
+	map at: 'blue' put: 'blue'.
+	map at: 'purple' put: 'purple'.
+	map at: 'white' put: 'white'.
+	map at: 'gray' put: 'gray'.
+	map at: 'black' put: 'black'.
+
+	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
+	map at: 'green' put: 'vert'.
+	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
+
+	assert: map size equals: 9.
+	assert: (map at: 'red') equals: 'rouge'.
+	assert: (map at: 'orange') equals: 'orange'.
+	assert: (map at: 'yellow') equals: 'jaune'.
+	assert: (map at: 'green') equals: 'vert'.
+	assert: (map at: 'blue') equals: 'bleu'.
+	assert: (map at: 'purple') equals: 'violet'.
+	assert: (map at: 'white') equals: 'blanc'.
+	assert: (map at: 'gray') equals: 'gris'.
+	assert: (map at: 'black') equals: 'noir'.
+)
 ) : (
 TEST_CONTEXT = ()
 )
@@ -1041,6 +1083,14 @@ public testIsKindOfOrderedMap = (
 	deny: false isKindOfOrderedMap.
 	deny: true isKindOfOrderedMap.
 	deny: 0 isKindOfOrderedMap.
+)
+public testOrderedMapAtIfAbsentPut = (
+	| map |
+	map:: OrderedMap new.
+	map at: 'red' ifAbsentPut: ['rouge'].
+	map at: 'red' ifAbsentPut: ['bleu'].
+	assert: map size equals: 1.
+	assert: (map at: 'red') equals: 'rouge'.
 )
 public testOrderedMapCollect = (
 	| map result |
@@ -1338,6 +1388,40 @@ public testOrderedMapSelfKey = (
 	assert: (map includesKey: map).
 	assert: (map at: map) equals: 'pineapple'.
 )
+public testOrderedMapUpdates = (
+	| map result |
+	map:: OrderedMap new.
+	map at: 'red' put: 'red'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'yellow'.
+	map at: 'green' put: 'green'.
+	map at: 'blue' put: 'blue'.
+	map at: 'purple' put: 'purple'.
+	map at: 'white' put: 'white'.
+	map at: 'gray' put: 'gray'.
+	map at: 'black' put: 'black'.
+
+	map at: 'red' put: 'rouge'.
+	map at: 'orange' put: 'orange'.
+	map at: 'yellow' put: 'jaune'.
+	map at: 'green' put: 'vert'.
+	map at: 'blue' put: 'bleu'.
+	map at: 'purple' put: 'violet'.
+	map at: 'white' put: 'blanc'.
+	map at: 'gray' put: 'gris'.
+	map at: 'black' put: 'noir'.
+
+	assert: map size equals: 9.
+	assert: (map at: 'red') equals: 'rouge'.
+	assert: (map at: 'orange') equals: 'orange'.
+	assert: (map at: 'yellow') equals: 'jaune'.
+	assert: (map at: 'green') equals: 'vert'.
+	assert: (map at: 'blue') equals: 'bleu'.
+	assert: (map at: 'purple') equals: 'violet'.
+	assert: (map at: 'white') equals: 'blanc'.
+	assert: (map at: 'gray') equals: 'gris'.
+	assert: (map at: 'black') equals: 'noir'.
+)
 ) : (
 TEST_CONTEXT = ()
 )
@@ -1379,6 +1463,16 @@ public testOrderedSetAsArray = (
 	assert: (array at: 1) equals: 30.
 	assert: (array at: 2) equals: 40.
 	assert: (array at: 3) equals: 50.
+)
+public testOrderedSetDuplicates = (
+	| set = OrderedSet new. |
+	set add: 'apple'.
+	set add: 'banana'.
+	set add: 'cherry'.
+	set add: 'cherry'.
+	set add: 'banana'.
+	set add: 'apple'.
+	assert: set size equals: 3.
 )
 public testOrderedSetEnumeration = (
 	| set evens odds sum |
@@ -1693,6 +1787,16 @@ public testSetAsArray = (
 	assert: (array at: 1) equals: 30.
 	assert: (array at: 2) equals: 40.
 	assert: (array at: 3) equals: 50.
+)
+public testSetDuplicates = (
+	| set = Set new. |
+	set add: 'apple'.
+	set add: 'banana'.
+	set add: 'cherry'.
+	set add: 'cherry'.
+	set add: 'banana'.
+	set add: 'apple'.
+	assert: set size equals: 3.
 )
 public testSetEnumeration = (
 	| set evens odds sum |
