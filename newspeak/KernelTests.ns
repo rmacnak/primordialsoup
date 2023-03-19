@@ -987,6 +987,7 @@ public testByteArrayWithAll = (
 	| array bytearray list result |
 	array:: Array new: 0.
 	result:: ByteArray withAll: array.
+	assert: result isKindOfByteArray.
 	assert: result size equals: 0.
 
 	array:: Array new: 3.
@@ -994,6 +995,7 @@ public testByteArrayWithAll = (
 	array at: 2 put: 20.
 	array at: 3 put: 30.
 	result:: ByteArray withAll: array.
+	assert: result isKindOfByteArray.
 	assert: result size equals: 3.
 	assert: (result at: 1) equals: 10.
 	assert: (result at: 2) equals: 20.
@@ -1001,6 +1003,7 @@ public testByteArrayWithAll = (
 
 	bytearray:: ByteArray new: 0.
 	result:: ByteArray withAll: bytearray.
+	assert: result isKindOfByteArray.
 	assert: result size equals: 0.
 
 	bytearray:: ByteArray new: 3.
@@ -1008,15 +1011,27 @@ public testByteArrayWithAll = (
 	bytearray at: 2 put: 120.
 	bytearray at: 3 put: 130.
 	result:: ByteArray withAll: bytearray.
+	assert: result isKindOfByteArray.
 	assert: result size equals: 3.
 	assert: (result at: 1) equals: 110.
 	assert: (result at: 2) equals: 120.
 	assert: (result at: 3) equals: 130.
+	result at: 1 put: 210.
+	result at: 2 put: 220.
+	result at: 3 put: 230.
+	assert: (bytearray at: 1) equals: 110.
+	assert: (bytearray at: 2) equals: 120.
+	assert: (bytearray at: 3) equals: 130.
+	assert: (result at: 1) equals: 210.
+	assert: (result at: 2) equals: 220.
+	assert: (result at: 3) equals: 230.
 
 	result:: ByteArray withAll: ''.
+	assert: result isKindOfByteArray.
 	assert: result size equals: 0.
 
 	result:: ByteArray withAll: 'soup'.
+	assert: result isKindOfByteArray.
 	assert: result size equals: 4.
 	assert: (result at: 1) equals: 115.
 	assert: (result at: 2) equals: 111.
@@ -1028,6 +1043,7 @@ public testByteArrayWithAll = (
 	list add: 111.
 	list add: 120.
 	result:: ByteArray withAll: list.
+	assert: result isKindOfByteArray.
 	assert: result size equals: 3.
 	assert: (result at: 1) equals: 102.
 	assert: (result at: 2) equals: 111.
@@ -1047,7 +1063,7 @@ public testByteArrayWithAll = (
 
 	list:: List new.
 	list add: 256.
-	should: [String withAll: list] signal: Error.
+	should: [ByteArray withAll: list] signal: Error.
 )
 public testIsKindOfByteArray = (
 	assert: (ByteArray new: 0) isKindOfByteArray.
@@ -6188,10 +6204,12 @@ public testStringWith = (
 public testStringWithAll = (
 	| bytearray list result |
 	result:: String withAll: {122}.
+	assert: result isKindOfString.
 	assert: result size equals: 1.
 	assert: result equals: 'z'.
 
 	result:: String withAll: {122. 101. 98. 114. 97}.
+	assert: result isKindOfString.
 	assert: result size equals: 5.
 	assert: result equals: 'zebra'.
 	assert: (result at: 1) equals: 122.
@@ -6202,12 +6220,14 @@ public testStringWithAll = (
 
 	bytearray:: ByteArray new: 0.
 	result:: String withAll: bytearray.
+	assert: result isKindOfString.
 	assert: result size equals: 0.
 	assert: result equals: ''.
 
 	bytearray:: ByteArray new: 1.
 	bytearray at: 1 put: 122.
 	result:: String withAll: bytearray.
+	assert: result isKindOfString.
 	assert: result size equals: 1.
 	assert: result equals: 'z'.
 
@@ -6218,6 +6238,7 @@ public testStringWithAll = (
 	bytearray at: 4 put: 114.
 	bytearray at: 5 put: 97.
 	result:: String withAll: bytearray.
+	assert: result isKindOfString.
 	assert: result size equals: 5.
 	assert: result equals: 'zebra'.
 	assert: (result at: 1) equals: 122.
@@ -6227,10 +6248,12 @@ public testStringWithAll = (
 	assert: (result at: 5) equals: 97.
 
 	result:: String withAll: ''.
+	assert: result isKindOfString.
 	assert: result size equals: 0.
 	assert: result equals: ''.
 
 	result:: String withAll: 'soup'.
+	assert: result isKindOfString.
 	assert: result size equals: 4.
 	assert: result equals: 'soup'.
 	assert: (result at: 1) equals: 115.
@@ -6243,6 +6266,7 @@ public testStringWithAll = (
 	list add: 111.
 	list add: 120.
 	result:: String withAll: list.
+	assert: result isKindOfString.
 	assert: result size equals: 3.
 	assert: result equals: 'fox'.
 	assert: (result at: 1) equals: 102.

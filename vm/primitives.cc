@@ -2751,7 +2751,7 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
 
   if (I->Stack(0)->IsBytes()) {
     intptr_t length = static_cast<Bytes>(I->Stack(0))->Size();
-    String result = H->AllocateString(length);  // SAFEPOINT
+    ByteArray result = H->AllocateByteArray(length);  // SAFEPOINT
     Bytes bytes = static_cast<Bytes>(I->Stack(0));
     memcpy(result->element_addr(0), bytes->element_addr(0), length);
     RETURN(result);
@@ -2773,7 +2773,7 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
       }
     }
 
-    String result = H->AllocateString(length);  // SAFEPOINT
+    ByteArray result = H->AllocateByteArray(length);  // SAFEPOINT
     bytes = static_cast<Array>(I->Stack(0));
 
     for (intptr_t i = 0; i < length; i++) {
@@ -2813,9 +2813,9 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
   return kFailure;
 #else
   ASSERT(num_args == 2);
-  ByteArray content = static_cast<ByteArray>(I->Stack(1));
-  String filename = static_cast<String>(I->Stack(0));
-  if (!content->IsByteArray() || !filename->IsString()) {
+  Bytes content = static_cast<Bytes>(I->Stack(1));
+  Bytes filename = static_cast<Bytes>(I->Stack(0));
+  if (!content->IsBytes() || !filename->IsBytes()) {
     return kFailure;
   }
 
@@ -2850,8 +2850,8 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
   return kFailure;
 #else
   ASSERT(num_args == 1);
-  String filename = static_cast<String>(I->Stack(0));
-  if (!filename->IsString()) {
+  Bytes filename = static_cast<String>(I->Stack(0));
+  if (!filename->IsBytes()) {
     return kFailure;
   }
 
