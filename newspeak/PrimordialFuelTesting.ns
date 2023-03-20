@@ -1,4 +1,4 @@
-class PrimordialFuelTesting usingPlatform: p minitest: m testApp: a testStruct: s = (|
+class PrimordialFuelTesting usingPlatform: p minitest: m resources: r = (|
 private WeakArray = p kernel WeakArray.
 private Ephemeron = p kernel Ephemeron.
 private Map = p collections OrderedMap.
@@ -6,8 +6,11 @@ private Set = p collections OrderedSet.
 private Serializer = p victoryFuel Serializer.
 private Deserializer = p victoryFuel Deserializer.
 private TestContext = m TestContext.
-private PrimordialFuelTestApp = a.
-private PrimordialFuelTestStruct = s.
+private PrimordialFuelTestApp = r PrimordialFuelTestApp.
+private PrimordialFuelTestStruct = r PrimordialFuelTestStruct.
+private testClosureAdd = r testClosureAdd.
+private testClosureNLR = r testClosureNLR.
+private testFloat = r testFloat.
 |) (
 public class SerializationTests = TestContext () (
 roundTrip: object = (
@@ -55,6 +58,14 @@ public testByteArrays = (
 	assert: (after at: 3) equals: 0.
 	assert: (after at: 4) equals: 16rB.
 )
+public testClosureLoadedByVM = (
+	(* Most of the cluster types are used by every program, but the VM's deserializer won't see closures or activations unless one is saved during packageUsing:. *)
+	assert: testClosureAdd isKindOfClosure.
+	assert: (testClosureAdd value: 3 value: 4) equals: 7.
+
+	assert: testClosureNLR isKindOfClosure.
+	should: [testClosureNLR value] signal: Error.
+)
 public testClosures = (
 	| before after |
 	before:: self class additionClosure.
@@ -83,6 +94,11 @@ public testEphemerons = (
 	after:: roundTrip: before.
 	assert: ((after at: 1) key) equals: (after at: 2).
 	assert: ((after at: 1) value) equals: 'survives!'.
+)
+public testFloatLoadedByVM = (
+	(* Most of the cluster types are used by every program, but the VM's deserializer won't see floats unless one is saved during packageUsing:. *)
+	assert: testFloat isKindOfFloat.
+	assert: testFloat equals: 0.5 asFloat.
 )
 public testFloats = (
 	| before after |

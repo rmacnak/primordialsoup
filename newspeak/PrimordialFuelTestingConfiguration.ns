@@ -1,14 +1,16 @@
 class PrimordialFuelTestingConfiguration packageTestsUsing: manifest = (|
 private PrimordialFuelTesting = manifest PrimordialFuelTesting.
-private PrimordialFuelTestApp = manifest PrimordialFuelTestApp.
-private PrimordialFuelTestStruct = manifest PrimordialFuelTestStruct.
+public PrimordialFuelTestApp = manifest PrimordialFuelTestApp.
+public PrimordialFuelTestStruct = manifest PrimordialFuelTestStruct.
+public testClosureAdd = [:a :b | a + b].
+public testClosureNLR = [^42].
+public testFloat = 0.5 asFloat.
 |) (
 public testModulesUsingPlatform: p minitest: m = (
 	^{PrimordialFuelTesting
 		usingPlatform: p
 		minitest: m
-		testApp: PrimordialFuelTestApp
-		testStruct: PrimordialFuelTestStruct}
+		resources: self}
 )
 ) : (
 )
