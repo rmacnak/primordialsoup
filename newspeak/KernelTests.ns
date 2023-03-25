@@ -3,7 +3,7 @@ private TestContext = m TestContext.
 private Message = p kernel Message.
 private MessageNotUnderstood = p kernel MessageNotUnderstood.
 private Exception = p kernel Exception.
-private Stopwatch = p time Stopwatch.
+private Proxy = p kernel Proxy.
 private StringBuilder = p kernel StringBuilder.
 private List = p collections List.
 |) (
@@ -5740,6 +5740,18 @@ public testPrintString = (
 	assert: o printString isKindOfString.
 	assert: o printString size > 0.
 )
+public testProxy = (
+	| proxy = TestProxy new. |
+	assert: proxy = nil equals: #=.
+	assert: (proxy await: nil) equals: #await:.
+	assert: proxy class equals: #class.
+	assert: (proxy doesNotUnderstand: nil) equals: #doesNotUnderstand:.
+	assert: proxy hash equals: #hash.
+	assert: proxy isNil equals: #isNil.
+	assert: proxy out equals: #out.
+	assert: proxy printString equals: #printString.
+	assert: proxy yourself equals: #yourself.
+)
 public testYourself = (
 	| o = Object new. |
 	assert: o yourself equals: o.
@@ -6395,6 +6407,12 @@ public testWideStringStartsWith = (
 TEST_CONTEXT = ()
 )
 class TestException = Exception () (
+) : (
+)
+class TestProxy = Proxy () (
+protected doesNotUnderstand: message = (
+	^message selector
+)
 ) : (
 )
 (* Note these tests assert typed data access is little-endian and 0-origin. *)

@@ -16,8 +16,8 @@ public Message = (
 public MessageNotUnderstood = (
 	^internalKernel MessageNotUnderstood
 )
-public Stopwatch = (
-	^internalKernel Stopwatch
+public Proxy = (
+	^internalKernel Proxy
 )
 public StringBuilder = (
 	^internalKernel StringBuilder

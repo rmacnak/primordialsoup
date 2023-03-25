@@ -2091,6 +2091,9 @@ protected hash = (
 protected isNil = (
 	^super isNil
 )
+protected out = (
+	^super out
+)
 protected printString = (
 	^super printString
 )
