@@ -1,0 +1,661 @@
+(* Converts VictoryFuel to V8 Heap Snapshot format for size analysis.
+
+The result can be visualized by Graph Explorer or Chromium DevTools. *)
+class PrimordialFuelToV8Profile packageUsing: manifest = (
+	|
+	private JSON = manifest JSON.
+	|
+) (
+class Conversion usingPlatform: p = (
+	|
+	private Map = p collections Map.
+	private List = p collections List.
+	private StringBuilder = p kernel StringBuilder.
+	private json = JSON usingPlatform: p.
+
+	private empty = {}.
+	|
+) (
+class Deserializer = (
+	|
+	stream <ReadStream>
+	clusters <Array>
+	refs <Array>
+	nextRefIndex <Integer>
+
+	root
+	snapshotNil
+	Metaclass
+	InstanceMixin
+	ClassMixin
+	Method
+
+	leftoverSize
+	|
+) (
+class ActivationCluster = Cluster () (
+public className = ( ^'Activation' )
+public edgeNameFor: index = (
+	1 = index ifTrue: [^'sender'].
+	2 = index ifTrue: [^'bci'].
+	3 = index ifTrue: [^'method'].
+	4 = index ifTrue: [^'closure'].
+	5 = index ifTrue: [^'receiver'].
+	^'<temp>'
+)
+public nameFor: v = (
+	^'an Activation'
+)
+public readEdges = (
+	firstRefIndex to: lastRefIndex do:
+		[:refIndex | | p object slots numElements |
+		 p:: stream position.
+		 object:: refs at: refIndex.
+
+		 slots:: List new.
+		 slots add: readRef. (* sender *)
+		 slots add: readRef. (* bci *)
+		 slots add: readRef. (* method *)
+		 slots add: readRef. (* closure *)
+		 slots add: readRef. (* receiver *)
+		 stream leb128 timesRepeat: [slots add: readRef].
+		 object slots: slots.
+
+		 object size: stream position - p].
+)
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat:
+		[registerRef: (SnapshotObject in: self)].
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class ArrayCluster = Cluster () (
+public className = ( ^'Array' )
+public edgeNameFor: index = (
+	^'<element>'
+)
+public nameFor: v = (
+	^'Array(', v data printString, ')'
+)
+public readEdges = (
+	firstRefIndex to: lastRefIndex do:
+		[:refIndex | | p object slots numElements |
+		 p:: stream position.
+		 object:: refs at: refIndex.
+		 numElements:: object data.
+
+		 slots:: Array new: numElements.
+		 1 to: numElements do: [:i | slots at: i put: readRef].
+		 object slots: slots.
+
+		 object size: object size + stream position - p].
+)
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat:
+		[ | p object |
+		 p:: stream position.
+		 object:: SnapshotObject in: self.
+		 object data: stream leb128.
+		 registerRef: object.
+		 object size: object size + stream position - p].
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class ByteArrayCluster = Cluster () (
+public className = ( ^'ByteArray' )
+public nameFor: v = (
+	^'ByteArray(', v data printString, ')'
+)
+public readEdges = ()
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat:
+		[ | p size object |
+		 p:: stream position.
+		 size:: stream leb128.
+		 object:: SnapshotObject in: self.
+		 object data: size.
+		 1 to: size do: [:index | stream uint8].
+		 registerRef: object.
+		 object size: object size + stream position - p].
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class ClosureCluster = Cluster () (
+public className = ( ^'Closure' )
+public edgeNameFor: index = (
+	1 = index ifTrue: [^'definingActivation'].
+	2 = index ifTrue: [^'initialBCI'].
+	3 = index ifTrue: [^'numArgs'].
+	^'<copied>'
+)
+public nameFor: v = (
+	^'a Closure'
+)
+public readEdges = (
+	firstRefIndex to: lastRefIndex do:
+		[:refIndex | | p object slots numElements |
+		 p:: stream position.
+		 object:: refs at: refIndex.
+
+		 slots:: List new.
+		 slots add: readRef. (* definingActivation *)
+		 slots add: readRef. (* initialBCI *)
+		 slots add: readRef. (* numArgs *)
+		 object data timesRepeat: [slots add: readRef].
+		 object slots: slots.
+
+		 object size: object size + stream position - p].
+)
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat:
+		[ | p object |
+		 p:: stream position.
+		 object:: SnapshotObject in: self.
+		 object data: stream leb128.
+		 registerRef: object.
+		 object size: object size + stream position - p].
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class Cluster = (
+	|
+	firstRefIndex <Integer>
+	lastRefIndex <Integer>
+	|
+) (
+public computeNames = ()
+public edgeNameFor: index = (
+	^'Unknown'
+)
+) : (
+)
+class FloatCluster = Cluster () (
+public className = ( ^'Float' )
+public nameFor: v = (
+	^v data printString
+)
+public readEdges = ()
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat:
+		[| p object |
+		 p:: stream position.
+		 object:: SnapshotObject in: self.
+		 object data: stream float64.
+		 registerRef: object.
+		 object size: object size + stream position - p].
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class IntegerCluster = Cluster () (
+public className = ( ^'Integer' )
+public nameFor: v = (
+	^v data printString
+)
+public readEdges = ()
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat:
+		[| p object |
+		p:: stream position.
+		object:: SnapshotObject in: self.
+		object data: stream sleb128.
+		registerRef: object.
+		object size: object size + stream position - p].
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class LargeIntegerCluster = Cluster () (
+public className = ( ^'LargeInteger' )
+public nameFor: v = (
+	^v data printString
+)
+public readEdges = ()
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat:
+		[ | p object negative digitLength integer |
+		p:: stream position.
+		negative:: stream uint8 = 1.
+		digitLength:: stream leb128.
+		integer:: 0.
+		0 to: digitLength - 1 << 3 by: 8 do:
+			[:shift | integer:: integer bitOr: (stream uint8 << shift)].
+		negative ifTrue: [integer:: 0 - integer].
+
+		object:: SnapshotObject in: self.
+		object data: integer.
+		registerRef: object.
+		object size: object size + stream position - p].
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class RegularObjectCluster for: format = Cluster (
+	|
+	numSlots <Integer> = format.
+	klass
+	public className
+	public slotNames ::= List new.
+	|
+) (
+public computeNames = (
+	klass _klass = Metaclass ifTrue:
+		[className:: ((klass at: 8) at: 8) data, ' class'.
+		 slotNames:: {'superclass'. 'methods'. 'enclosingObject'. 'mixin'. 'classIndex'. 'format'. 'name'. 'subclasses'}.
+		 ^self].
+
+	klass _klass _klass = Metaclass ifTrue:
+		[ | c |
+		 className:: (klass at: 8) data.
+		 c:: klass.
+		 [c = snapshotNil] whileFalse:
+			[c _isNonMetaclass ifTrue:
+				[c _mixin _slots _elementsReverseDo:
+					[:slot | slotNames addFirst: (slot at: 3) data]].
+			 c:: c _superclass].
+		 ^self].
+
+	failure.
+)
+public edgeNameFor: index = (
+	index = 1 ifTrue: [^'<class>'].
+	index - 1 > slotNames size ifTrue: [^'Unknown'].
+	^slotNames at: index - 1
+)
+public nameFor: v = (
+	klass = InstanceMixin ifTrue:
+		[^(v at: 2) data, ' mixin'].
+
+	klass = ClassMixin ifTrue:
+		[^((v at: 2) at: 2) data, ' class mixin'].
+
+	klass = Method ifTrue:
+		[^'Method(', (v at: 6) data, ')'].
+
+	klass = Metaclass ifTrue:
+		[^((v at: 8) at: 8) data, ' class'].
+
+	klass _klass = Metaclass ifTrue:
+		[^(v at: 8) data].
+
+	^'a ', className
+)
+public readEdges = (
+	klass:: readRef.
+
+	firstRefIndex to: lastRefIndex do:
+		[:refIndex | | p object slots |
+		p:: stream position.
+		object:: refs at: refIndex.
+		slots:: Array new: numSlots + 1.
+		slots at: 1 put: klass.
+		1 to: numSlots do: [:i | slots at: i + 1 put: readRef].
+		object slots: slots.
+		object size: object size + stream position - p].
+)
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat:
+		[ | p object |
+		p:: stream position.
+		object:: SnapshotObject in: self.
+		registerRef: object.
+		object size: object size + stream position - p].
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class SnapshotObject in: c = (
+	|
+	public id
+	public size ::= 0.
+	public data
+	public slots ::= empty.
+	public cluster = c.
+	|
+) (
+public _elementsReverseDo: action = (
+	slots size to: 1 by: -1 do: [:index | action value: (self at: index)].
+)
+public _isNonMetaclass = (
+	^((self at: 1) at: 1) = Metaclass
+)
+public _klass = (
+	^slots at: 1
+)
+public _mixin = (
+	^slots at: 5
+)
+public _slots = (
+	^slots at: 5
+)
+public _superclass = (
+	^slots at: 2
+)
+public at: index = (
+	^slots at: index
+)
+public slotsAndNamesDo: action = (
+	1 to: slots size do:
+		[:index | action
+			value: (slots at: index)
+			value: (cluster edgeNameFor: index)].
+)
+) : (
+)
+class StringCluster = Cluster () (
+public className = ( ^'String' )
+public nameFor: v = (
+	| d = v data. |
+	^(d size > 100)
+		ifTrue: ['String(', d size asString, ')']
+		ifFalse: [d]
+)
+public readEdges = ()
+readNode = (
+	| p object size acc |
+	p:: stream position.
+	size:: stream leb128.
+	acc:: ByteArray new: size.
+	1 to: size do: [:index | acc at: index put: stream uint8].
+	object:: SnapshotObject in: self.
+	object data: (String withAll: acc).
+	registerRef: object.
+	object size: object size + stream position - p
+)
+public readNodes = (
+	firstRefIndex:: nextRefIndex.
+	stream leb128 timesRepeat: [readNode]. (* Non-canonical *)
+	stream leb128 timesRepeat: [readNode]. (* Canonical *)
+	lastRefIndex:: nextRefIndex - 1.
+)
+) : (
+)
+class WeakArrayCluster = ArrayCluster () (
+public className = ( ^'WeakArray' )
+public nameFor: v = (
+	^'WeakArray(', v data printString, ')'
+)
+) : (
+)
+computeNames = (
+	| Array Array_class Array_mixin Array_class_mixin |
+
+	snapshotNil:: root at: 1.
+	Array:: root at: 13.
+	Array_class:: Array at: 1.
+	Metaclass:: Array_class at: 1.
+	Array_mixin:: Array at: 5.
+	Array_class_mixin:: Array_class at: 5.
+	InstanceMixin:: Array_mixin at: 1.
+	ClassMixin:: Array_class_mixin at: 1.
+	Method:: root at: 25.
+
+	clusters do: [:c | c computeNames].
+)
+public deserialize: bytes = (
+	| numClusters |
+	stream:: ReadStream over: bytes.
+	assert: [stream uint16 = 16r1984] message: 'Not VictoryFuel'.
+	assert: [stream leb128 = 0] message: 'Version mismatch'.
+	numClusters:: stream leb128.
+	clusters:: Array new: numClusters.
+	refs:: Array new: stream leb128.
+	nextRefIndex:: 1.
+
+	1 to: numClusters do: [:i | clusters at: i put: readCluster readNodes].
+	1 to: numClusters do: [:i | (clusters at: i) readEdges].
+
+	root:: readRef.
+
+	computeNames.
+
+	(* Size not attributed to individual objects: the header/footer, cluster formats and cluster sizes *)
+	leftoverSize:: bytes size.
+	refs do: [:v | leftoverSize:: leftoverSize - v size].
+)
+private kActivationCluster = ( ^-9 )
+private kArrayCluster = ( ^-6 )
+private kByteArrayCluster = ( ^-5 )
+private kClosureCluster = ( ^-8 )
+private kEphemeronCluster = ( ^-10 )
+private kFloatCluster = ( ^-3 )
+private kIntegerCluster = ( ^-1 )
+private kLargeIntegerCluster = ( ^-2 )
+private kStringCluster = ( ^-4 )
+private kWeakArrayCluster = ( ^-7 )
+readCluster = (
+	| format = stream sleb128. |
+
+	format >= 0 ifTrue: [^RegularObjectCluster for: format].
+
+	format = kIntegerCluster ifTrue:
+		[^IntegerCluster new].
+	format = kLargeIntegerCluster ifTrue:
+		[^LargeIntegerCluster new].
+	format = kFloatCluster ifTrue:
+		[^FloatCluster new].
+	format = kByteArrayCluster ifTrue:
+		[^ByteArrayCluster new].
+	format = kStringCluster ifTrue:
+		[^StringCluster new].
+	format = kArrayCluster ifTrue:
+		[^ArrayCluster new].
+	format = kWeakArrayCluster ifTrue:
+		[^WeakArrayCluster new].
+	format = kEphemeronCluster ifTrue:
+		[^RegularObjectCluster for: 3].
+	format = kActivationCluster ifTrue:
+		[^ActivationCluster new].
+	format = kClosureCluster ifTrue:
+		[^ClosureCluster new].
+
+	unknownFormat.
+)
+readRef = (
+	^refs at: stream leb128
+)
+registerRef: object = (
+	refs at: nextRefIndex put: object.
+	object id: nextRefIndex.
+	nextRefIndex:: nextRefIndex + 1.
+)
+public writeV8Snapshot = (
+	|
+	types = Strings new.
+	strings = Strings new.
+	nodeCount ::= 0.
+	edgeCount ::= 0.
+	nodes = List new.
+	edges = List new.
+	meta = Map new.
+	snapshot = Map new.
+	top = Map new.
+	|
+
+	nodes add: (types include: 'Root'). (* type *)
+	nodes add: (strings include: 'Root'). (* name *)
+	nodes add: 0. (* id *)
+	nodes add: leftoverSize. (* self_size *)
+	nodes add: 1. (* edge_count *)
+	nodeCount:: nodeCount + 1.
+
+	refs do:
+		[:v |
+		 nodes add: (types include: v cluster className). (* type *)
+		 nodes add: (strings include: (v cluster nameFor: v)). (* name *)
+		 nodes add: v id. (* id *)
+		 nodes add: v size. (* self_size *)
+		 nodes add: v slots size. (* edge_count *)
+		 nodeCount:: nodeCount + 1].
+
+	edges add: 2. (* type = "property" *)
+	edges add: (strings include: 'object_store'). (* name_or_index *)
+	edges add: root id * 5. (* to_node *)
+	edgeCount:: edgeCount + 1.
+
+	refs do:
+		[:v | v slotsAndNamesDo:
+			[:target :edgeName |
+			 edges add: 2. (* type = "property" *)
+			 edges add: (strings include: edgeName). (* name_or_index *)
+			 edges add: target id * 5. (* to_node *)
+			 edgeCount:: edgeCount + 1]].
+
+	meta at: 'node_fields' put: {'type'. 'name'. 'id'. 'self_size'. 'edge_count'}.
+	meta at: 'node_types' put: {types values}.
+	meta at: 'edge_fields' put: {'type'. 'name_or_index'. 'to_node'}.
+	meta at: 'edge_types' put: {{'context'. 'element'. 'property'. 'internal'. 'hidden'. 'shortcut'. 'weak'. 'extra'}}.
+
+	snapshot at: 'meta' put: meta.
+	snapshot at: 'node_count' put: nodeCount.
+	snapshot at: 'edge_count' put: edgeCount.
+
+	top at: 'nodes' put: nodes.
+	top at: 'edges' put: edges.
+	top at: 'strings' put: strings values.
+	top at: 'snapshot' put: snapshot.
+
+	^json encode: top
+)
+) : (
+)
+class ReadStream over: bytes <ByteArray> = (
+	|
+	data <ByteArray> = bytes.
+	public position <Integer> ::= 0.
+	|
+) (
+public float32 ^<Float> = (
+	| result |
+	result:: data float32At: position.
+	position:: 4 + position.
+	^result
+)
+public float64 ^<Float> = (
+	| result |
+	result:: data float64At: position.
+	position:: 8 + position.
+	^result
+)
+public int16 ^<Integer> = (
+	| result |
+	result:: data int16At: position.
+	position:: 2 + position.
+	^result
+)
+public int32 ^<Integer> = (
+	| result |
+	result:: data int32At: position.
+	position:: 4 + position.
+	^result
+)
+public int64 ^<Integer> = (
+	| result |
+	result:: data int64At: position.
+	position:: 8 + position.
+	^result
+)
+public int8 ^<Integer> = (
+	| result |
+	result:: data int8At: position.
+	position:: 1 + position.
+	^result
+)
+public leb128 ^<Integer> = (
+	| d p shift byte result |
+	result:: (byte:: (d:: data) at: (p:: 1 + position)) & 127.
+	shift:: 7.
+	[byte > 127] whileTrue:
+		[byte:: d at: (p:: 1 + p).
+		 result:: 127 & byte << shift | result.
+		 shift:: 7 + shift].
+	position:: p.
+	^result
+)
+public sleb128 ^<Integer> = (
+	| d p shift byte result |
+	d:: data.
+	p:: position.
+	shift:: 0.
+	result:: 0.
+	[byte:: d at: (p:: 1 + p).
+	 result:: 127 & byte << shift | result.
+	 shift:: 7 + shift.
+	 byte > 127] whileTrue.
+	position:: p.
+	byte >= 64 ifTrue:
+		[^-1 << shift | result].
+	^result
+)
+public uint16 ^<Integer> = (
+	| result |
+	result:: data uint16At: position.
+	position:: 2 + position.
+	^result
+)
+public uint32 ^<Integer> = (
+	| result |
+	result:: data uint32At: position.
+	position:: 4 + position.
+	^result
+)
+public uint64 ^<Integer> = (
+	| result |
+	result:: data uint64At: position.
+	position:: 8 + position.
+	^result
+)
+public uint8 ^<Integer> = (
+	| result |
+	result:: data uint8At: position.
+	position:: 1 + position.
+	^result
+)
+) : (
+)
+class Strings = (
+	|
+	map = Map new.
+	public values = List new.
+	|
+) (
+public include: string = (
+	^map at: string ifAbsentPut: [values add: string. values size - 1]
+)
+) : (
+)
+public convert: bytes = (
+	^(Deserializer new) deserialize: bytes; writeV8Snapshot
+)
+) : (
+)
+public main: platform args: args = (
+	| conversion = Conversion usingPlatform: platform. |
+	args do:
+		[:arg | | bytes |
+		 bytes:: readFileAsBytes: arg.
+		 bytes:: conversion convert: bytes.
+		 writeBytes: bytes toFileNamed: arg, '.json'].
+)
+readFileAsBytes: filename = (
+	(* :pragma: primitive: 510 *)
+	halt.
+)
+writeBytes: bytes toFileNamed: filename = (
+	(* :pragma: primitive: 511 *)
+	halt.
+)
+) : (
+)

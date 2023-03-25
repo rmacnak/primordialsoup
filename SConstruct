@@ -287,9 +287,20 @@ def BuildSnapshots(outdir, host_vm):
   snapshots += [formatterout]
   cmd += ' RuntimeWithMirrors Formatter ' + formatterout
 
+  profilerout = os.path.join(outdir, 'PrimordialFuelToV8Profile.vfuel')
+  snapshots += [profilerout]
+  cmd += ' Runtime PrimordialFuelToV8Profile ' + profilerout
+
   Command(target=snapshots, source=nssources, action=cmd)
   Requires(snapshots, host_vm)
   Depends(snapshots, compilersnapshot)
+
+  for snapshot in snapshots:
+    cmd = host_vm + ' ' + profilerout + ' ' + snapshot
+    profiles = [snapshot + '.json']
+    Command(target=profiles, source=[], action=cmd)
+    Requires(profiles, host_vm)
+    Depends(profiles, [profilerout, snapshot])
 
 
 def Main():
