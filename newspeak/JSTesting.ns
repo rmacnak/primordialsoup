@@ -40,35 +40,35 @@ public testJSInstanceOf = (
 	should: [function instanceOf: 0] signal: Exception.
 )
 public testJSInteger = (
-	assert: (js global parseInt: '0') equals: 0.
-	assert: (js global parseInt: '1') equals: 1.
-	assert: (js global parseInt: '-1') equals: -1.
+	assert: (js global Number: 0) equals: 0.
+	assert: (js global Number: 1) equals: 1.
+	assert: (js global Number: -1) equals: -1.
 
-	assert: (js global parseInt: '0x7F') equals: 16r7F.
-	assert: (js global parseInt: '0xEF') equals: 16rEF.
-	assert: (js global parseInt: '0xFF') equals: 16rFF.
-	assert: (js global parseInt: '0x7FFF') equals: 16r7FFF.
-	assert: (js global parseInt: '0xEFFF') equals: 16rEFFF.
-	assert: (js global parseInt: '0xFFFF') equals: 16rFFFF.
-	assert: (js global parseInt: '0x7FFFFFFF') equals: 16r7FFFFFFF.
-	assert: (js global parseInt: '0xEFFFFFFF') equals: 16rEFFFFFFF.
-	assert: (js global parseInt: '0xFFFFFFFF') equals: 16rFFFFFFFF.
-	assert: (js global parseInt: '0x7FFFFFFFFFFF') equals: 16r7FFFFFFFFFFF.
-	assert: (js global parseInt: '0xEFFFFFFFFFFF') equals: 16rEFFFFFFFFFFF.
-	assert: (js global parseInt: '0xFFFFFFFFFFFF') equals: 16rFFFFFFFFFFFF.
+	assert: (js global Number: 16r7F) equals: 16r7F.
+	assert: (js global Number: 16rEF) equals: 16rEF.
+	assert: (js global Number: 16rFF) equals: 16rFF.
+	assert: (js global Number: 16r7FFF) equals: 16r7FFF.
+	assert: (js global Number: 16rEFFF) equals: 16rEFFF.
+	assert: (js global Number: 16rFFFF) equals: 16rFFFF.
+	assert: (js global Number: 16r7FFFFFFF) equals: 16r7FFFFFFF.
+	assert: (js global Number: 16rEFFFFFFF) equals: 16rEFFFFFFF.
+	assert: (js global Number: 16rFFFFFFFF) equals: 16rFFFFFFFF.
+	assert: (js global Number: 16r7FFFFFFFFFFF) equals: 16r7FFFFFFFFFFF.
+	assert: (js global Number: 16rEFFFFFFFFFFF) equals: 16rEFFFFFFFFFFF.
+	assert: (js global Number: 16rFFFFFFFFFFFF) equals: 16rFFFFFFFFFFFF.
 
-	assert: (js global parseInt: '-0x7F') equals: -16r7F.
-	assert: (js global parseInt: '-0xEF') equals: -16rEF.
-	assert: (js global parseInt: '-0xFF') equals: -16rFF.
-	assert: (js global parseInt: '-0x7FFF') equals: -16r7FFF.
-	assert: (js global parseInt: '-0xEFFF') equals: -16rEFFF.
-	assert: (js global parseInt: '-0xFFFF') equals: -16rFFFF.
-	assert: (js global parseInt: '-0x7FFFFFFF') equals: -16r7FFFFFFF.
-	assert: (js global parseInt: '-0xEFFFFFFF') equals: -16rEFFFFFFF.
-	assert: (js global parseInt: '-0xFFFFFFFF') equals: -16rFFFFFFFF.
-	assert: (js global parseInt: '-0x7FFFFFFFFFFF') equals: -16r7FFFFFFFFFFF.
-	assert: (js global parseInt: '-0xEFFFFFFFFFFF') equals: -16rEFFFFFFFFFFF.
-	assert: (js global parseInt: '-0xFFFFFFFFFFFF') equals: -16rFFFFFFFFFFFF.
+	assert: (js global Number: -16r7F) equals: -16r7F.
+	assert: (js global Number: -16rEF) equals: -16rEF.
+	assert: (js global Number: -16rFF) equals: -16rFF.
+	assert: (js global Number: -16r7FFF) equals: -16r7FFF.
+	assert: (js global Number: -16rEFFF) equals: -16rEFFF.
+	assert: (js global Number: -16rFFFF) equals: -16rFFFF.
+	assert: (js global Number: -16r7FFFFFFF) equals: -16r7FFFFFFF.
+	assert: (js global Number: -16rEFFFFFFF) equals: -16rEFFFFFFF.
+	assert: (js global Number: -16rFFFFFFFF) equals: -16rFFFFFFFF.
+	assert: (js global Number: -16r7FFFFFFFFFFF) equals: -16r7FFFFFFFFFFF.
+	assert: (js global Number: -16rEFFFFFFFFFFF) equals: -16rEFFFFFFFFFFF.
+	assert: (js global Number: -16rFFFFFFFFFFFF) equals: -16rFFFFFFFFFFFF.
 )
 public testJSMath = (
 	| Math n |

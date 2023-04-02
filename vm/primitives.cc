@@ -3352,7 +3352,7 @@ DEFINE_PRIMITIVE(ZXVmo_write) {
 }
 
 #if defined(OS_EMSCRIPTEN)
-EM_JS(void, _JS_pushInteger, (int64_t value), {
+EM_JS(void, _JS_pushInteger, (int32_t value), {
   var aliens = Module.aliens;
   aliens.push(value);
 });
@@ -3548,7 +3548,11 @@ DEFINE_PRIMITIVE(JS_pushValue) {
   }
   if (object->IsMediumInteger()) {
     int64_t value = static_cast<MediumInteger>(object)->value();
-    _JS_pushInteger(value);
+    if ((value >> 32 << 32) == value) {
+      _JS_pushInteger(value);
+    } else {
+      _JS_pushFloat(value);
+    }
     RETURN_SELF();
   }
   if (object->IsFloat()) {
