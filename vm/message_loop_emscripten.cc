@@ -75,6 +75,11 @@ int EmscriptenMessageLoop::HandleMessage() {
     DispatchMessage(message);
   }
 
+  if (isolate_ == NULL) {
+    OS::Exit(exit_code_);
+    UNREACHABLE();
+  }
+
   return ComputeTimeout();
 }
 

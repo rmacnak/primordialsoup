@@ -95,3 +95,15 @@ jobs:
         run: sudo apt-get install g++-multilib scons
       - name: Build
         run: ./build ndk=$ANDROID_NDK
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: sudo apt-get install g++ scons
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v11
+      - name: Build
+        run: ./build os=emscripten arch=wasm
+      - name: Test
+        run: ./.github/workflows/test-web-xvfb

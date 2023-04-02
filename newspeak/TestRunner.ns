@@ -47,7 +47,8 @@ public main: platform args: args = (
 		 '' out.
 
 		 tester haveAllTestsSucceeded ifFalse: [exit: -1].
-		 keepAlive close]
+		 keepAlive close.
+		 exit: 0].
 )
 runTests: tester = (
 	tester atEnd ifTrue: [^self].

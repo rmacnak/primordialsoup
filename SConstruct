@@ -187,6 +187,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-s', 'FILESYSTEM=0',
       '-s', 'MALLOC=emmalloc',
       '-s', 'TOTAL_STACK=131072',
+      '--emrun',
       '--shell-file', 'meta/shell.html',
     ]
   else:

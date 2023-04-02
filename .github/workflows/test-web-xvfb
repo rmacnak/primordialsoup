@@ -1,0 +1,2 @@
+#!/bin/bash -ex
+xvfb-run emrun --browser=firefox --serve_root=out "out/ReleaseEmscriptenWASM/primordialsoup.html?snapshot=../snapshots/TestRunner.vfuel"

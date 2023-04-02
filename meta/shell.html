@@ -17,7 +17,6 @@
 
       var Module = {
         noInitialRun: true,
-        noExitRuntime: true,
         onRuntimeInitialized: function() {
           var url = new URLSearchParams(window.location.search);
           var path = url.get("snapshot");
