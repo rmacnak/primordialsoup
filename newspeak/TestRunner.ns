@@ -9,7 +9,7 @@ testConfigs = {
 	manifest AccessModifierTestingConfiguration packageTestsUsing: manifest.
 	manifest ActorsTestingConfiguration packageTestsUsing: manifest.
 	manifest CollectionsTestingConfiguration packageTestsUsing: manifest.
-	manifest PrimordialFuelTestingConfiguration packageTestsUsing: manifest.
+	manifest SerializationTestingConfiguration packageTestsUsing: manifest.
 	manifest MirrorTestingConfiguration packageTestsUsing: manifest.
 	manifest MirrorBuilderTestingConfiguration packageTestsUsing: manifest.
 	manifest ActivationMirrorTestingConfiguration packageTestsUsing: manifest.

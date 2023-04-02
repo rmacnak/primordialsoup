@@ -1,0 +1,6 @@
+class SerializationTestApp = () (
+public main = (
+	^42
+)
+) : (
+)

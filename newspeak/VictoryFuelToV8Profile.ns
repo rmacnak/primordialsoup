@@ -1,7 +1,7 @@
 (* Converts VictoryFuel to V8 Heap Snapshot format for size analysis.
 
 The result can be visualized by Graph Explorer or Chromium DevTools. *)
-class PrimordialFuelToV8Profile packageUsing: manifest = (
+class VictoryFuelToV8Profile packageUsing: manifest = (
 	|
 	private JSON = manifest JSON.
 	|

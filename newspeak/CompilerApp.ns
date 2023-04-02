@@ -6,7 +6,7 @@ class CommandLineCompiler usingPlatform: platform = (
 	private Map = platform collections Map.
 	private ClassDeclarationBuilder = platform mirrors ClassDeclarationBuilder.
 	private Port = platform actors Port.
-	private Snapshotter = platform victoryFuel Snapshotter.
+	private Snapshotter = platform serialization Snapshotter.
 	private numberOfProcessors = platform numberOfProcessors.
 |
 ) (

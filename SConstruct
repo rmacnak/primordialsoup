@@ -288,9 +288,9 @@ def BuildSnapshots(outdir, host_vm):
   snapshots += [formatterout]
   cmd += ' RuntimeWithMirrors Formatter ' + formatterout
 
-  profilerout = os.path.join(outdir, 'PrimordialFuelToV8Profile.vfuel')
+  profilerout = os.path.join(outdir, 'VictoryFuelToV8Profile.vfuel')
   snapshots += [profilerout]
-  cmd += ' Runtime PrimordialFuelToV8Profile ' + profilerout
+  cmd += ' Runtime VictoryFuelToV8Profile ' + profilerout
 
   Command(target=snapshots, source=nssources, action=cmd)
   Requires(snapshots, host_vm)

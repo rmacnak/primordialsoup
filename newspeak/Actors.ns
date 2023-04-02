@@ -15,8 +15,8 @@ private pendingActors = List new.
 private timerHeap = TimerHeap new.
 private portMap = Map new.
 
-private Serializer = p victoryFuel Serializer.
-private Deserializer = p victoryFuel Deserializer.
+private Serializer = p serialization Serializer.
+private Deserializer = p serialization Deserializer.
 |
 k messageLoop: messageLoop.
 ) (

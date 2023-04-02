@@ -1,6 +1,0 @@
-class PrimordialFuelTestApp = () (
-public main = (
-	^42
-)
-) : (
-)

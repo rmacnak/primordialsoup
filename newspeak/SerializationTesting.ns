@@ -1,13 +1,13 @@
-class PrimordialFuelTesting usingPlatform: p minitest: m resources: r = (|
+class SerializationTesting usingPlatform: p minitest: m resources: r = (|
 private WeakArray = p kernel WeakArray.
 private Ephemeron = p kernel Ephemeron.
 private Map = p collections OrderedMap.
 private Set = p collections OrderedSet.
-private Serializer = p victoryFuel Serializer.
-private Deserializer = p victoryFuel Deserializer.
+private Serializer = p serialization Serializer.
+private Deserializer = p serialization Deserializer.
 private TestContext = m TestContext.
-private PrimordialFuelTestApp = r PrimordialFuelTestApp.
-private PrimordialFuelTestStruct = r PrimordialFuelTestStruct.
+private SerializationTestApp = r SerializationTestApp.
+private SerializationTestStruct = r SerializationTestStruct.
 private testClosureAdd = r testClosureAdd.
 private testClosureNLR = r testClosureNLR.
 private testFloat = r testFloat.
@@ -147,7 +147,7 @@ public testFractions = (
 )
 public testHelloApp = (
 	| before after |
-	before:: PrimordialFuelTestApp new.
+	before:: SerializationTestApp new.
 	assert: before main equals: 42.
 	after:: roundTrip: before.
 	assert: after main equals: 42.
@@ -249,7 +249,7 @@ public testStrings = (
 )
 public testTransientSlots = (
 	| before after |
-	before:: PrimordialFuelTestStruct new.
+	before:: SerializationTestStruct new.
 	assert: before counter equals: 0.
 	assert: before transientSlot equals: 1.
 	assert: before counter equals: 1.

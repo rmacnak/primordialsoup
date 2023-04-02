@@ -1,5 +1,5 @@
-(* Serialization. *)
-class PrimordialFuel usingPlatform: p internalKernel: k = (|
+(* Clustered serialization inspired by Fuel and Parcels. *)
+class Serialization usingPlatform: p internalKernel: k = (|
 private List = p collections List.
 private IdentityMap = k IdentityMap.
 
