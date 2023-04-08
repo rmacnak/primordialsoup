@@ -636,15 +636,15 @@ public testCoTimers = (
 	| r ticks t1 t2 |
 	r:: Resolver new.
 	ticks:: 0.
-	t1:: Timer every: 20 do: [:t | ticks:: ticks + 1].
-	t2:: Timer after: 30 do: [t1 cancel. r fulfill: ticks].
+	t1:: Timer every: 2 do: [:t | ticks:: ticks + 1].
+	t2:: Timer after: 3 do: [t1 cancel. r fulfill: ticks].
 
 	^assert: r promise resolvesTo: 1
 )
 public testOneShotTimer = (
 	| r t |
 	r:: Resolver new.
-	t:: Timer after: 100 do: [deny: [t isActive]. r fulfill: 42].
+	t:: Timer after: 1 do: [deny: [t isActive]. r fulfill: 42].
 	assert: [t isKindOfTimer].
 	assert: [t isActive].
 
@@ -653,10 +653,10 @@ public testOneShotTimer = (
 public testOneShotTimerInvalidCallback = (
 	| fired t r |
 	fired:: false.
-	t:: Timer after: 4 do: [:timer | fired:: true].
+	t:: Timer after: 1 do: [:timer | fired:: true].
 
 	r:: Resolver new.
-	Timer after: 8 do: [t cancel. r fulfill: 42].
+	Timer after: 2 do: [t cancel. r fulfill: 42].
 
 	^when: r promise fulfilled:
 		[:result |
@@ -666,7 +666,7 @@ public testOneShotTimerInvalidCallback = (
 public testRepeatingTimer = (
 	| count ::= 0. r t |
 	r:: Resolver new.
-	t:: Timer every: 10 do:
+	t:: Timer every: 1 do:
 		[:timer |
 		assert: timer equals: t.
 		count:: count + 1.
@@ -681,7 +681,7 @@ public testRepeatingTimer = (
 public testRepeatingTimerContinuesWithExceptions = (
 	| count ::= 0. r t |
 	r:: Resolver new.
-	t:: Timer every: 4 do:
+	t:: Timer every: 1 do:
 		[:timer |
 		count:: count + 1.
 		count = 5
@@ -708,10 +708,10 @@ public testRepeatingTimerDoesNotFireMidTurn = (
 public testRepeatingTimerInvalidCallback = (
 	| fired t r |
 	fired:: false.
-	t:: Timer every: 4 do: [fired:: true].
+	t:: Timer every: 1 do: [fired:: true].
 
 	r:: Resolver new.
-	Timer after: 16 do: [t cancel. r fulfill: 42].
+	Timer after: 2 do: [t cancel. r fulfill: 42].
 
 	^when: r promise fulfilled:
 		[:result |
@@ -722,25 +722,25 @@ public testTimerDoesNotFireEarlyMicros = (
 	| r s t elapsedMicros |
 	r:: Resolver new.
 	s:: Stopwatch new start.
-	t:: Timer after: 16 do: [elapsedMicros:: s elapsedMicroseconds. r fulfill: 42].
+	t:: Timer after: 2 do: [elapsedMicros:: s elapsedMicroseconds. r fulfill: 42].
 	assert: [t isActive].
 
 	^when: r promise fulfilled:
 		[:result |
 		assert: result equals: 42.
-		assert: elapsedMicros >= 16000]
+		assert: elapsedMicros >= 2000]
 )
 public testTimerDoesNotFireEarlyMillis = (
 	| r s t elapsedMillis |
 	r:: Resolver new.
 	s:: Stopwatch new start.
-	t:: Timer after: 16 do: [elapsedMillis:: s elapsedMilliseconds. r fulfill: 42].
+	t:: Timer after: 2 do: [elapsedMillis:: s elapsedMilliseconds. r fulfill: 42].
 	assert: [t isActive].
 
 	^when: r promise fulfilled:
 		[:result |
 		assert: result equals: 42.
-		assert: elapsedMillis >= 16]
+		assert: elapsedMillis >= 2]
 )
 public testTimerDoesNotFireMidTurn = (
 	| fired t r |

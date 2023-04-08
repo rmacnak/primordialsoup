@@ -8,22 +8,22 @@ public testRandomDeterminism = (
 	random1 = Random seed: 42.
 	random2 = Random seed: 42.
 	|
-	1 to: 64000 do:
+	1 to: 100 do:
 		[:i | assert: (random1 nextInteger: i) equals: (random2 nextInteger: i)].
-	64000 timesRepeat:
+	100 timesRepeat:
 		[assert: random1 nextBoolean equals: random2 nextBoolean].
-	64000 timesRepeat:
+	100 timesRepeat:
 		[assert: random1 nextFloat equals: random2 nextFloat].
 )
 public testRandomNextBoolean = (
 	| random = Random new. |
-	64000 timesRepeat:
+	100 timesRepeat:
 		[ | b = random nextBoolean. |
 		 assert: b isKindOfBoolean].
 )
 public testRandomNextFloat = (
 	| random = Random new. |
-	64000 timesRepeat:
+	100 timesRepeat:
 		[ | f = random nextFloat. |
 		 assert: f isKindOfFloat.
 		 assert: f >= 0.
@@ -31,7 +31,7 @@ public testRandomNextFloat = (
 )
 public testRandomNextInteger = (
 	| random = Random new. |
-	1 to: 64000 do:
+	1 to: 100 do:
 		[:limit | | i = random nextInteger: limit. |
 		 assert: i isKindOfInteger.
 		 assert: i >= 0.

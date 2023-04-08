@@ -33,30 +33,29 @@ public main: platform args: args = (
 	testModules:: platform collections List new.
 	testConfigs do:
 		[:testConfig |
-		testModules addAll:
+		 testModules addAll:
 			(testConfig testModulesUsingPlatform: platform minitest: minitest)].
-	tester:: minitest Tester testModules: testModules asArray.
+	tester:: minitest Tester testModules: testModules.
 	tester prepare.
-
 
 	Promise when: (runTests: tester) fulfilled:
 		[(tester successes size printString, ' successes, ',
 		 tester failures size printString, ' failures, ',
 		 tester errors size printString, ' errors, ',
 		 stopwatch elapsedMilliseconds asString, ' ms') out.
-		 '' out.
 
-		 tester haveAllTestsSucceeded ifFalse: [exit: -1].
-		 keepAlive close.
-		 exit: 0].
+		 exit: (tester haveAllTestsSucceeded ifTrue: [0] ifFalse: [1])].
 )
 runTests: tester = (
 	tester atEnd ifTrue: [^self].
-	tester peekSelector out.
 	^Promise when: tester stepAsync fulfilled:
 		[:result |
-		 result isError ifTrue: ['error' out. result exception out].
-		 result isFailure ifTrue: ['failure' out. result description out].
+		 result isError ifTrue:
+			[('error: ', result testCase selector) out.
+			 result exception out].
+		 result isFailure ifTrue:
+			[('failure: ', result testCase selector) out.
+			 result description out].
 		 runTests: tester]
 )
 ) : (

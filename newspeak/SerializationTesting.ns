@@ -68,7 +68,7 @@ public testClosureLoadedByVM = (
 )
 public testClosures = (
 	| before after |
-	before:: self class additionClosure.
+	before:: outer SerializationTesting class additionClosure.
 	assert: before isKindOfClosure.
 	assert: (before value: 3 value: 4) equals: 7.
 	after:: roundTrip: before.
@@ -281,10 +281,10 @@ public testWeakArrays = (
 )
 ) : (
 TEST_CONTEXT = ()
+)
+) : (
 public additionClosure = (
 	(* Putting this on the class side so serializing the receiver doesn't drag in the universe. *)
 	^[:x :y | x + y]
 )
-)
-) : (
 )
