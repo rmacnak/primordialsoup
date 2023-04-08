@@ -1583,6 +1583,59 @@ public testFloatAdd = (
 	assert: 3 asFloat + 4 asFloat equals: 7 asFloat.
 	assert: 3.5 asFloat + 4.5 asFloat equals: 8 asFloat.
 )
+public testFloatArcCosine = (
+	assert: -1 asFloat acos approximatelyEquals: pi.
+	assert: 0 asFloat acos approximatelyEquals: (1/2 * pi).
+	assert: 1 asFloat acos approximatelyEquals: 0.
+
+	assert: -2 asFloat acos isNaN.
+	assert: 2 asFloat acos isNaN.
+
+	assert: infinity acos isNaN.
+	assert: negativeInfinity acos isNaN.
+	assert: nan acos isNaN.
+)
+public testFloatArcSine = (
+	assert: -1 asFloat asin approximatelyEquals: (-1/2 * pi).
+	assert: 0 asFloat asin approximatelyEquals: 0.
+	assert: 1 asFloat asin approximatelyEquals: (1/2 * pi).
+
+	assert: -2 asFloat asin isNaN.
+	assert: 2 asFloat asin isNaN.
+
+	assert: infinity asin isNaN.
+	assert: negativeInfinity asin isNaN.
+	assert: nan asin isNaN.
+)
+public testFloatArcTargent = (
+	assert: -1 asFloat atan approximatelyEquals: (-1/4 * pi).
+	assert: 0 asFloat atan approximatelyEquals: 0.
+	assert: 1 asFloat atan approximatelyEquals: (1/4 * pi).
+
+	assert: infinity atan approximatelyEquals: (1/2 * pi).
+	assert: negativeInfinity atan approximatelyEquals: (-1/2 * pi).
+	assert: nan atan isNaN.
+)
+public testFloatArcTargent2 = (
+	assert: (-1 asFloat atan: -1) approximatelyEquals: (-3/4 * pi).
+	assert: (-1 asFloat atan: 0) approximatelyEquals: (-1/2 * pi).
+	assert: (-1 asFloat atan: 1) approximatelyEquals: (-1/4 * pi).
+	assert: (0 asFloat atan: -1) approximatelyEquals: pi.
+	assert: (0 asFloat atan: 0) approximatelyEquals: 0.
+	assert: (0 asFloat atan: 1) approximatelyEquals: 0.
+	assert: (1 asFloat atan: -1) approximatelyEquals: (3/4 * pi).
+	assert: (1 asFloat atan: 0) approximatelyEquals: (1/2 * pi).
+	assert: (1 asFloat atan: 1) approximatelyEquals: (1/4 * pi).
+
+	assert: (infinity atan: 1) approximatelyEquals: (1/2 * pi).
+	assert: (infinity atan: -1) approximatelyEquals: (1/2 * pi).
+	assert: (negativeInfinity atan: 1) approximatelyEquals: (-1/2 * pi).
+	assert: (negativeInfinity atan: -1) approximatelyEquals: (-1/2 * pi).
+	assert: (nan atan: 1) isNaN.
+	assert: (nan atan: -1) isNaN.
+	assert: (1 atan: nan) isNaN.
+	assert: (-1 atan: nan) isNaN.
+)
 public testFloatAsInteger = (
 	| nan posInfinity negInfinity |
 

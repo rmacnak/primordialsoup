@@ -965,6 +965,10 @@ public | alternative <Boolean> ^<Boolean> = (
 (* A double-precision floating point number. *)
 public class Float _cannotInstantiate = Number (
 ) (
+public acos ^<Float> = (
+	(* :pragma: primitive: 41 *)
+	panic.
+)
 public addFromFraction: left <Fraction> ^<Number> = (
 	^left asFloat + self
 )
@@ -982,6 +986,22 @@ public asStringFixed: fractionDigits <Integer> ^<String> = (
 public asStringPrecision: precision <Integer> ^<String> = (
 	(* :pragma: primitive: 57 *)
 	^(ArgumentError value: precision) signal
+)
+public asin ^<Float> = (
+	(* :pragma: primitive: 40 *)
+	panic.
+)
+public atan ^<Float> = (
+	(* :pragma: primitive: 42 *)
+	panic.
+)
+public atan: y <Number> ^<Float> = (
+	(* :pragma: primitive: 43 *)
+	^atanAgain: y asFloat
+)
+private atanAgain: y <Float> ^<Float> = (
+	(* :pragma: primitive: 43 *)
+	^(ArgumentError value: y) signal
 )
 (* Round to the smallest integer value not less than the receiver. *)
 public ceiling ^<Float> = (
@@ -1854,6 +1874,9 @@ public abs ^<Number> = (
 	self < 0 ifTrue: [^self negated].
 	^self
 )
+public acos ^<Float> = (
+	^self asFloat acos
+)
 public asFloat ^<Float> = (
 	(* :pragma: primitive: 18 *)
 	panic.
@@ -1866,6 +1889,15 @@ public asInteger ^<Integer> = (
 public asString ^<String> = (
 	(* :pragma: primitive: 19 *)
 	panic.
+)
+public asin ^<Float> = (
+	^self asFloat asin
+)
+public atan ^<Float> = (
+	^self asFloat atan
+)
+public atan: y ^<Float> = (
+	^self asFloat atan: y
 )
 public between: min <Number> and: max <Number> ^<Boolean> = (
 	^self <= max and: [self >= min]
