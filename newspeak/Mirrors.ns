@@ -407,7 +407,7 @@ private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<Inst
 	mixin _headerSource: classDecl headerSource.
 	mixin _accessModifier: classDecl accessModifier.
 	mixin _primaryFactorySelector: classDecl factoryName.
-	assert: [classDecl factoryName isNil not] message: 'Missing factory name'.
+	classDecl factoryName isNil ifTrue: [panic].
 	mixin _name: classDecl name.
 	mixin _classMixin: classMixin.
 	mixin _slots: (slotsFor: mixin from: classDecl instanceSide).
@@ -786,7 +786,7 @@ public source: newHeader <String> = (
 		within: intermediate enclosingClass.
 
 	checkForHeaderConflicts: newIR.
-	assert: [intermediate name = newIR name] message: ''.
+	intermediate name = newIR name ifFalse: [^Error signal: 'Name changed'].
 
 	intermediate headerSource: newIR headerSource.
 	intermediate factoryName: newIR factoryName.
@@ -2665,7 +2665,7 @@ private isBehavior: object = (
 	cls:: classOf: cls.
 	Metaclass = cls ifTrue: [^true (* [object] is a class *)].
 	cls:: classOf: cls.
-	assert: [Metaclass = cls] message: ''.
+	Metaclass = cls ifFalse: [panic].
 	^false
 )
 private isSubinitializerSelector: selector = (

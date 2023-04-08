@@ -22,8 +22,11 @@ public end <Integer> ::= 0.
 public apply: tool <ASTTool[T]> ^<T> = (
 	^self subclassResponsibility
 )
-assert: block = (
-	self assert: block message: 'Assert failed'
+assert: condition = (
+	condition ifFalse: [Error signal: 'Assert failed'].
+)
+assert: condition message: message = (
+	condition ifFalse: [Error signal: message].
 )
 public copyPositionFrom: other <AST> = (
 	self start: other start.
@@ -137,8 +140,8 @@ public start = (
 		ifTrue: [previousSend start]
 )
 public to: aSend <SendAST> cascade: aMessage <MessageAST> = (
-	self assert: [aSend isKindOfSendNode].
-	self assert: [aMessage isKindOfMessageNode].
+	self assert: aSend isKindOfSendNode.
+	self assert: aMessage isKindOfMessageNode.
 	self previousSend: aSend; message: aMessage.
 )
 ) : (

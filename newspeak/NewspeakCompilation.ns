@@ -156,7 +156,7 @@ public do: n <Integer> timesRepeat: b <BlockAST> = (
 
 	(* introduce counter variable *)
 	var:: (ParameterAST name: #'.i' type: nil) copyPositionFrom: b.
-	assert: [b parameters isEmpty].
+	assert: b parameters isEmpty.
 	b parameters add: var. (* BOGUS: Should not mutate AST *)
 
 	(* translate n timesRepeat: [blockBody] into 1 to: n do: [:.i | blockBody] *)
@@ -178,8 +178,8 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 	incStat			<StatementAST>
 	|
 
-	assert: [step isKindOfNumberNode] message: 'Loop with non-number step'.
-	assert: [block isKindOfBlockNode] message: 'Loop with block that is not a BlockAST'.
+	assert: step isKindOfNumberNode message: 'Loop with non-number step'.
+	assert: block isKindOfBlockNode message: 'Loop with block that is not a BlockAST'.
 
 	isWhileTrue:: true.
 	prologue:: emptyBody.
@@ -572,7 +572,7 @@ offsetOfEnclosingObjectForClass: name <Symbol> ^<Integer> = (
 	[entry isNil] whileFalse:
 		[entry name = name ifTrue: [
 			| offset = outer Compiler currentDepth - entry depth - 1. |
-			assert: [offset >= 0] message: 'Invalid enclosing object index'.
+			assert: offset >= 0 message: 'Invalid enclosing object index'.
 			^offset].
 		entry:: entry enclosingClass].
 	Error signal: 'No enclosing class named "', name, '"'
@@ -581,7 +581,7 @@ offsetOfImplicitReceiverTarget: binding <SymbolTableEntry> ^<Integer> = (
 	(* Note this calculation differs from the one used by explicit outer sends by a factor of one. This is because an explicit outer send needs the depth of the enclosing object with for a class whose name is a given selector, whereas an implicit receiver send needs the depth of the enclosing object for the class that defined a given selector. *)
 	| depth |
 	depth:: outer Compiler currentDepth - binding depth.
-	assert: [depth >= 0] message: 'Invalid enclosing object index'.
+	assert: depth >= 0 message: 'Invalid enclosing object index'.
 	^depth
 )
 popScope = (
@@ -634,14 +634,14 @@ processLocalAccess: msg <MessageAST> of: decl <SlotEntry> = (
 		ifFalse: [processLocalRead: msg from: decl]
 )
 processLocalRead: message <MessageAST> from: declaration <LocalEntry> = (
-	assert: [message arguments isEmpty] message: ''.
-	assert: [declaration isNil not] message: ''.
+	assert: message arguments isEmpty.
+	assert: declaration isNil not.
 	^(LocalReadAST of: declaration)
 		start: message start;
 		end: message end
 )
 processLocalWrite: message <MessageAST> to: declaration <LocalEntry> = (
-	assert: [message arguments size = 1] message: ''.
+	assert: message arguments size = 1.
 	^(LocalWriteAST
 		to: declaration assign: (applyForValueTo: message arguments first))
 		copyPositionFrom: message
@@ -708,7 +708,7 @@ processSetterSend: node <SetterSendAST> binding: binding ^<AST> = (
 		selector: node message selector;
 		arguments: {setterTempRead};
 		copyPositionFrom: node message.
-	assert: [isImplicitReceiverNode: node receiver] message: 'Setter send receiver should be implicit'.
+	assert: (isImplicitReceiverNode: node receiver) message: 'Setter send receiver should be implicit'.
 	depth:: binding isNil ifTrue: [0] ifFalse: [offsetOfImplicitReceiverTarget: binding].
 	send:: ImplicitReceiverSendAST new
 		depth: depth;
@@ -969,10 +969,7 @@ public variableNode: node <VariableAST> = (
 		[^(BooleanAST withValue: true) copyPositionFrom: node].
 	node name = #false ifTrue:
 		[^(BooleanAST withValue: false) copyPositionFrom: node].
-	assert: [(node name = #super) not] message: '"super" is not a valid expression'.
-	assert: [(node name = #outer) not] message: '"outer" is not a valid expression'.
-	halt.
-	^node
+	halt
 )
 ) : (
 )
@@ -1115,6 +1112,12 @@ public isKindOfMappedBinding = (
 	^false
 )
 ) : (
+)
+assert: condition = (
+	condition ifFalse: [Error signal: 'Assert failed'].
+)
+assert: condition message: message = (
+	condition ifFalse: [Error signal: message].
 )
 ) : (
 )

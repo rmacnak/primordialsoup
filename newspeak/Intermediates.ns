@@ -57,7 +57,6 @@ public bci ^<Integer> = (
 	^bytes size + 1
 )
 public byte: b <Integer> = (
-	assert: [0 <= b and: [b <= 255]] message: 'Bytecode out of range'.
 	bytes add: b
 )
 public byteAt: index <Integer> ^<Integer> = (
@@ -69,8 +68,6 @@ public byteAt: index <Integer> put: datum <Integer> = (
 public compiledMethod ^<CompiledMethod> = (
 	| bc |
 	nil = method ifFalse: [^method].
-
-	assert: [argCount <= maxLocals] message: ''.
 
 	method:: Method new.
 	method header:
@@ -88,12 +85,7 @@ public compiledMethod ^<CompiledMethod> = (
 	method mixin: methodMixin.
 	method selector: selector.
 
-	isSynthetic
-		ifTrue:
-			[method metadata: nil]
-		ifFalse:
-			[assert: [source isKindOfString] message: 'Missing source'.
-			 method metadata: source].
+	isSynthetic ifFalse: [method metadata: source].
 
 	literals:: nil.
 	bytes:: nil.
@@ -166,7 +158,7 @@ checkForTransientSlot: selector = (
 			[^Error signal: 'Class already has mutable transient slot named ', selector]].
 )
 public checkNameConflictsForFactory: selector <Symbol> = (
-	assert: [isMeta] message: ''.
+	isMeta ifFalse: [panic].
 	checkForMethod: selector.
 )
 public checkNameConflictsForMethod: selector <Symbol> = (

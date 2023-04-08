@@ -155,7 +155,7 @@ public close ^<LowLevelMethodMirror> = (
 public decrementStackDepthBy: n = (
 	(* Reduce the current height of the operand stack *)
 	currentStackDepth:: currentStackDepth - n.
-	assert: [currentStackDepth >= 0]
+	assert: currentStackDepth >= 0
 		message: 'Stack depth must not be negative'.
 )
 public incrementStackDepthBy: n = (
@@ -180,9 +180,9 @@ public methodName: n <Symbol> = (
 class CodeGeneratorV5 = CodeGenerator (
 ) (
 public createClosureOfArity: numArgs copying: numCopied length: jumpSize = (
-	assert: (jumpSize between: 0 and: 65535) message: 'Closure jump out of range'.
-	assert: (numCopied between: 0 and: 15) message: 'Too many copied values in closure'.
-	assert: (numArgs between: 0 and: 15) message: 'Too many args in closure'.
+	check: jumpSize between: 0 and: 65535.
+	check: numCopied between: 0 and: 15.
+	check: numArgs between: 0 and: 15.
 
 	decrementStackDepthBy: numCopied.
 	incrementStackDepthBy: 1.
@@ -214,10 +214,8 @@ public eventualSend: selector numArgs: numArgs = (
 	decrementStackDepthBy: numArgs + 1 (* the receiver *).
 	incrementStackDepthBy: 1.
 
-	assert: [selectorIndex between: 0 and: 4095]
-		message: 'Selector index out of range'.
-	assert: [numArgs between: 0 and: 31]
-		message: 'Message arity out of range'.
+	check: selectorIndex between: 0 and: 4095.
+	check: numArgs between: 0 and: 31.
 
 	code
 		byte: 239;
@@ -228,10 +226,8 @@ public implicitReceiverSend: selector numArgs: numArgs = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
-	assert: [selectorIndex between: 0 and: 4095]
-		message: 'Selector index out of range'.
-	assert: [numArgs between: 0 and: 31]
-		message: 'Message arity out of range'.
+	check: selectorIndex between: 0 and: 4095.
+	check: numArgs between: 0 and: 31.
 
 	decrementStackDepthBy: numArgs.
 	incrementStackDepthBy: 1.
@@ -257,8 +253,7 @@ public jumpBackTo: target <Integer> = (
 		 ^self].
 
 	distance:: distance + 3.
-	assert: [distance between: 0 and: 65535]
-		message: 'Unconditional jump out of range'.
+	check: distance between: 0 and: 65535.
 
 	code
 		byte: 240;
@@ -266,8 +261,7 @@ public jumpBackTo: target <Integer> = (
 		byte: distance >> 8.
 )
 public jumpBy: distance <Integer> = (
-	assert: [distance between: 0 and: 65535]
-		message: 'Unconditional jump out of range'.
+	check: distance between: 0 and: 65535.
 
 	code
 		byte: 241;
@@ -275,8 +269,7 @@ public jumpBy: distance <Integer> = (
 		byte: distance >> 8.
 )
 public jumpIf: bool <Boolean> by: distance <Integer> = (
-	assert: [distance between: 0 and: 65535]
-		message: 'Conditional jump out of range'.
+	check: distance between: 0 and: 65535.
 
 	decrementStackDepthBy: 1.
 
@@ -299,10 +292,8 @@ public ordinarySend: selector numArgs: numArgs = (
 
 	selectorIndex:: indexForLiteral: selector.
 
-	assert: [selectorIndex between: 0 and: 4095]
-		message: 'Selector index out of range'.
-	assert: [numArgs between: 0 and: 31]
-		message: 'Message arity out of range'.
+	check: selectorIndex between: 0 and: 4095.
+	check: numArgs between: 0 and: 31.
 
 	selectorIndex <= 7 ifTrue:
 		[numArgs <= 1 ifTrue:
@@ -318,12 +309,9 @@ public outerSend: selector numArgs: numArgs depth: depth = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
-	assert: [selectorIndex between: 0 and: 4095]
-		message: 'Selector index out of range'.
-	assert: [numArgs between: 0 and: 31]
-		message: 'Message arity out of range'.
-	assert: [depth between: 0 and: 255]
-		message: 'Lexical depth out of range'.
+	check: selectorIndex between: 0 and: 4095.
+	check: numArgs between: 0 and: 31.
+	check: depth between: 0 and: 255.
 
 	decrementStackDepthBy: numArgs.
 	incrementStackDepthBy: 1.
@@ -335,24 +323,22 @@ public outerSend: selector numArgs: numArgs depth: depth = (
 		byte: depth.
 )
 public patchClosureJumpAt: blockBci <Integer> with: distance <Integer> = (
-	assert: [distance between: 0 and: 65535] message: 'Closure jump out of range'.
-	assert: [(code byteAt: blockBci - 4) = 255] message: 'Not really a closure/extb?'.
+	check: distance between: 0 and: 65535.
+	assert: (code byteAt: blockBci - 4) = 255 message: 'Not really a closure/extb?'.
 	code byteAt: blockBci - 2 put: (distance & 255).
 	code byteAt: blockBci - 1 put: (distance >> 8).
 )
 public patchJumpAt: jumpBci <Integer> with: distance <Integer> = (
-	assert: [distance between: 0 and: 65535]
-		message: 'Unconditional jump out of range'.
+	check: distance between: 0 and: 65535.
 
-	assert: [(code byteAt: jumpBci - 3) = 241] message: 'Not really a jump?'.
+	assert: (code byteAt: jumpBci - 3) = 241 message: 'Not really a jump?'.
 	code byteAt: jumpBci - 2 put: (distance & 255).
 	code byteAt: jumpBci - 1 put: (distance >> 8).
 )
 public patchJumpIfAt: jumpBci <Integer> with: distance <Integer> = (
-	assert: [distance between: 0 and: 65535]
-		message: 'Conditional jump out of range'.
+	check: distance between: 0 and: 65535.
 
-	assert: [(code byteAt: jumpBci - 3) between: 242 and: 243] message: 'Not really a branch?'.
+	assert: ((code byteAt: jumpBci - 3) between: 242 and: 243) message: 'Not really a branch?'.
 	code byteAt: jumpBci - 2 put: (distance & 255).
 	code byteAt: jumpBci - 1 put: (distance >> 8).
 )
@@ -366,22 +352,19 @@ public popIntoLocal: offset = (
 	code byte: 230; byte: offset.
 )
 public popIntoRemoteTemporary: index inVector: vectorIndex = (
-	assert: [index between: 0 and: 255]
-		message: 'Temp index out of range'.
-	assert: [vectorIndex between: 0 and: 255]
-		message: 'Temp vector index out of range'.
+	check: index between: 0 and: 255.
+	check: vectorIndex between: 0 and: 255.
 
 	code byte: 246; byte: index; byte: vectorIndex - currentArgs.
 	decrementStackDepthBy: 1.
 )
 public popIntoTemporary: index = (
-	assert: [index between: 0 and: 63] message: 'Temp index out of range'.
+	check: index between: 0 and: 63.
 	index < currentArgs ifTrue: [halt].
 	popIntoLocal: index - currentArgs.
 )
 public pushEnclosingObject: depth = (
-	assert: [depth between: 0 and: 127]
-		message: 'Enclosing object depth out of range'.
+	check: depth between: 0 and: 127.
 
 	depth = 0 ifTrue: [^pushSelf].
 
@@ -412,8 +395,7 @@ public pushLiteral: value = (
 	^pushLiteralWithIndex: (indexForLiteral: value).
 )
 public pushLiteralWithIndex: index = (
-	assert: [index between: 0 and: 65535]
-		message: 'Literal index out of range'.
+	check: index between: 0 and: 65535.
 
 	incrementStackDepthBy: 1.
 
@@ -445,10 +427,8 @@ public pushParameter: offset = (
 	code byte: 228; byte: offset.
 )
 public pushRemoteTemporary: index inVector: vectorIndex = (
-	assert: [index between: 0 and: 255]
-		message: 'Temp index out of range'.
-	assert: [vectorIndex between: 0 and: 255]
-		message: 'Temp vector index out of range'.
+	check: index between: 0 and: 255.
+	check: vectorIndex between: 0 and: 255.
 
 	code byte: 245; byte: index; byte: vectorIndex - currentArgs.
 	incrementStackDepthBy: 1.
@@ -458,7 +438,7 @@ public pushSelf = (
 	incrementStackDepthBy: 1.
 )
 public pushTemporary: index = (
-	assert: [index between: 0 and: 63] message: 'Temp index out of range'.
+	check: index between: 0 and: 63.
 	index < currentArgs
 		ifTrue: [pushParameter: currentArgs - index]
 		ifFalse: [pushLocal: index - currentArgs].
@@ -497,10 +477,8 @@ public selfSend: selector numArgs: numArgs = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
-	assert: [selectorIndex between: 0 and: 4095]
-		message: 'Selector index out of range'.
-	assert: [numArgs between: 0 and: 31]
-		message: 'Message arity out of range'.
+	check: selectorIndex between: 0 and: 4095.
+	check: numArgs between: 0 and: 31.
 
 	decrementStackDepthBy: numArgs.
 	incrementStackDepthBy: 1.
@@ -520,15 +498,13 @@ public storeIntoLocal: offset = (
 	code byte: 231; byte: offset.
 )
 public storeIntoRemoteTemporary: index inVector: vectorIndex = (
-	assert: [index between: 0 and: 255]
-		message: 'Temp index out of range'.
-	assert: [vectorIndex between: 0 and: 255]
-		message: 'Temp vector index out of range'.
+	check: index between: 0 and: 255.
+	check: vectorIndex between: 0 and: 255.
 
 	code byte: 247; byte: index; byte: vectorIndex - currentArgs.
 )
 public storeIntoTemporary: index = (
-	assert: [index between: 0 and: 63] message: 'Temp index out of range'.
+	check: index between: 0 and: 63.
 	index < currentArgs ifTrue: [halt].
 	storeIntoLocal: index - currentArgs.
 )
@@ -536,10 +512,8 @@ public superSend: selector numArgs: numArgs = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
-	assert: [selectorIndex between: 0 and: 4095]
-		message: 'Selector index out of range'.
-	assert: [numArgs between: 0 and: 31]
-		message: 'Message arity out of range'.
+	check: selectorIndex between: 0 and: 4095.
+	check: numArgs between: 0 and: 31.
 
 	decrementStackDepthBy: numArgs.
 	incrementStackDepthBy: 1.
@@ -667,7 +641,7 @@ public getterAstFor: varName <Symbol> ^<SendAST> = (
 leastLocalGetterAstFor: varName <Symbol> ^<SendAST> = (
 	| info |
 	info:: leastLocalInfoFor: varName.
-	assert: [info remoteVector isNil].
+	assert: (info remoteVector isNil).
 	^UnresolvedSendAST new
 		receiver: (astForContextAtDepth: info contextDepth);
 		message: (MessageAST new
@@ -2035,7 +2009,7 @@ checkForDuplicateNames: node <ClassDeclarationAST> = (
 			do: [:each | s add: each asString]
 			separatedBy: [ s add: ','].
 		s add: '.'.
-		assert: [false] message: s asString].
+		Error signal: s asString].
 )
 private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration> = (
 	| headerNode <ClassHeaderAST> classDecl <IntermediateClassDeclaration> |
@@ -2678,8 +2652,15 @@ SlotEntry = (
 SymbolTableEntry = (
 	^super SymbolTableEntry
 )
-assert: c = (
-	self assert: c message: 'Assert failed'.
+assert: condition = (
+	condition ifFalse: [Error signal: 'Assert failed'].
+)
+assert: condition message: message = (
+	condition ifFalse: [Error signal: message].
+)
+check: value between: min and: max = (
+	value >= min ifTrue: [value <= max ifTrue: [^self]].
+	Error signal: 'Encoding out of range'.
 )
 namer = (
 	^super namer

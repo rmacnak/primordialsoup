@@ -2001,12 +2001,6 @@ protected Object = (
 protected String = (
 	^outer KernelForPrimordialSoup String
 )
-protected assert: blockOrBoolean message: message = (
-	#BOGUS.
-	blockOrBoolean isKindOfClosure
-		ifTrue: [blockOrBoolean value ifFalse: [Exception new signal: message]]
-		ifFalse: [blockOrBoolean ifFalse: [Exception new signal: message]].
-)
 (* Return a promise to the sender's home, and resume the sender when the argument resolves. *)
 protected await: promise <Promise[V]> ^<V> = (
 	|

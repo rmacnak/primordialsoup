@@ -1437,14 +1437,14 @@ assertSimulation: block answers: expectedResult = (
 	| thread |
 	thread:: ActivationMirror invokeSuspended: block.
 	thread resumeSlowly.
-	assert: thread isFulfilled message: 'Expected thread fulfilled'.
+	assert: thread isFulfilled description: 'Expected thread fulfilled'.
 	assert: thread result reflectee equals: expectedResult.
 )
 assertSimulation: block signals: exceptionTestBlock = (
 	| thread |
 	thread:: ActivationMirror invokeSuspended: block.
 	thread resumeSlowly.
-	assert: thread isBroken message: 'Expected thread broken'.
+	assert: thread isBroken description: 'Expected thread broken'.
 	exceptionTestBlock value: thread result reflectee.
 )
 public bar = (
@@ -1497,7 +1497,7 @@ public testSimulationEventualSend = (
 	| thread result |
 	thread:: ActivationMirror invokeSuspended: [3 <-: + 4].
 	thread resumeSlowly.
-	assert: thread isFulfilled message: 'Expected thread fulfilled'.
+	assert: thread isFulfilled description: 'Expected thread fulfilled'.
 	^assert: thread result reflectee resolvesTo: 7
 )
 public testSimulationImplicitReceiverSend = (
