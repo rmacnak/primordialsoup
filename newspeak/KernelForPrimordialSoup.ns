@@ -387,6 +387,12 @@ public isKindOfBoolean ^<Boolean> = (
 (* A mutable, fixed-length sequence of integers between 0 and 255. *)
 public class ByteArray _cannotInstantiate = Collection (
 ) (
+public asByteArray ^<ByteArray> = (
+	^self
+)
+public asString ^<String> = (
+	^self copyStringFrom: 1 to: size
+)
 public at: index <Integer> ^<Integer> = (
 	(* :pragma: primitive: 113 *)
 	^(ArgumentError value: index) signal
@@ -2148,6 +2154,9 @@ public , other <String> ^<String> = (
 public = other <Object> ^<Boolean> = (
 	(* :pragma: primitive: 120 *)
 	panic.
+)
+public asByteArray ^<ByteArray> = (
+	^self copyByteArrayFrom: 1 to: size
 )
 public asString ^<String> = (
 	^self

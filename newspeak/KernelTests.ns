@@ -553,6 +553,36 @@ public class ByteArrayTests = TestContext () (
 b: string = (
 	^ByteArray withAll: string
 )
+public testByteArrayAsByteArray = (
+	| array result |
+	array:: ByteArray new: 1.
+	array at: 1 put: 1.
+
+	result:: array asByteArray.
+	assert: result isKindOfByteArray.
+	assert: result size equals: 1.
+	assert: result equals: array.
+
+	array at: 1 put: 2.
+	assert: (result at: 1) equals: 2. (* Same array *)
+)
+public testByteArrayAsString = (
+	| array result |
+	array:: ByteArray new: 0.
+	result:: array asString.
+	assert: result isKindOfString.
+	assert: result size equals: 0.
+	assert: result equals: ''.
+
+	array:: ByteArray new: 3.
+	array at: 1 put: 65.
+	array at: 2 put: 66.
+	array at: 3 put: 67.
+	result:: array asString.
+	assert: result isKindOfString.
+	assert: result size equals: 3.
+	assert: result equals: 'ABC'.
+)
 public testByteArrayAt = (
 	| array = ByteArray new: 2. empty = ByteArray new: 0. |
 	array at: 1 put: 3.
@@ -5881,6 +5911,19 @@ public testIsKindOfString = (
 )
 public testStringAdd = (
 	should: ['foo' + 'bar'] signal: MessageNotUnderstood.
+)
+public testStringAsByteArray = (
+	| array |
+	array:: '' asByteArray.
+	assert: array isKindOfByteArray.
+	assert: array size equals: 0.
+
+	array:: 'ABC' asByteArray.
+	assert: array isKindOfByteArray.
+	assert: array size equals: 3.
+	assert: (array at: 1) equals: 65.
+	assert: (array at: 2) equals: 66.
+	assert: (array at: 3) equals: 67.
 )
 public testStringAsString = (
 	assert: 'foo' asString equals: 'foo'.

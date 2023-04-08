@@ -173,6 +173,9 @@ public class Map new: capacity <Integer> = Collection (
 	|
 	1 to: table size by: 2 do: [:index | table at: index put: table].
 ) (
+public addAll: other = (
+	other keysAndValuesDo: [:key :value | self at: key put: value].
+)
 public at: key <K> ^<V> = (
 	^self at: key ifAbsent: [(NotFound element: key) signal]
 )
@@ -350,6 +353,9 @@ public values ^<Array[V]> = (
 public new ^<Map[K, V]> = (
 	^self new: 3
 )
+public withAll: collection ^<Map[K, V]> = (
+	^(self new: collection size) addAll: collection; yourself
+)
 )
 public class NotFound element: e = Exception (
 	|
@@ -373,6 +379,9 @@ public class OrderedMap new: capacity <Integer> = Collection (
 	createTable: capacity.
 ) (
 protected transient hashtable_ <Array> ::= rehash.
+public addAll: other = (
+	other keysAndValuesDo: [:key :value | self at: key put: value].
+)
 public at: key <K> ^<V> = (
 	^self at: key ifAbsent: [(NotFound element: key) signal]
 )
@@ -579,6 +588,9 @@ public values ^<Array[V]> = (
 ) : (
 public new ^<OrderedMap[K, V]> = (
 	^self new: 3
+)
+public withAll: collection ^<OrderedMap[K, V]> = (
+	^(self new: collection size) addAll: collection; yourself
 )
 )
 (* Like Set, but iteration happens in insertion order.

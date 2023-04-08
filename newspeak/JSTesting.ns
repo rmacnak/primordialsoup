@@ -22,6 +22,17 @@ public testJSEval = (
 	assert: (js global eval: '42.5') equals: 42.5 asFloat.
 	assert: (js global eval: '"string"') equals: 'string'.
 )
+public testJSFloat = (
+	| n |
+	n:: 0.5 asFloat.
+	assert: (js global Number: n) equals: n.
+	n:: Float parse: 'Infinity'.
+	assert: (js global Number: n) equals: n.
+	n:: Float parse: '-Infinity'.
+	assert: (js global Number: n) equals: n.
+	n:: Float parse: 'NaN'.
+	assert: (js global Number: n) isNaN.
+)
 public testJSInstanceOf = (
 	| JSObject JSFunction object function |
 	JSObject:: js global at: 'Object'.

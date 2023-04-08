@@ -367,6 +367,19 @@ public testListCopyFromTo = (
 	should: [list copyFrom: 0 to: 1] signal: Error.
 	should: [list copyFrom: 7 to: 8] signal: Error.
 )
+public testListDo = (
+	| list count |
+	list:: List new.
+	list add: 'apple'.
+	list add: 'banana'.
+	list removeLast.
+	count:: 0.
+	list do:
+		[:value |
+		 assert: value equals: 'apple'.
+		 count:: count + 1].
+	assert: count equals: 1.
+)
 public testListEnumeration = (
 	| list evens odds sum |
 	list:: List withAll: {1. 2. 3. 4. 5. 6. 7. 8. 9}.
@@ -497,6 +510,20 @@ public testListIsEmpty = (
 	deny: list isEmpty.
 	list removeLast.
 	assert: list isEmpty.
+)
+public testListKeysAndValuesDo = (
+	| list count |
+	list:: List new.
+	list add: 'apple'.
+	list add: 'banana'.
+	list removeLast.
+	count:: 0.
+	list keysAndValuesDo:
+		[:key :value |
+		 assert: key equals: 1.
+		 assert: value equals: 'apple'.
+		 count:: count + 1].
+	assert: count equals: 1.
 )
 public testListNew = (
 	assert: (List new) size equals: 0.
@@ -752,6 +779,27 @@ public testIsKindOfMap = (
 	deny: true isKindOfMap.
 	deny: 0 isKindOfMap.
 )
+public testMapAddAll = (
+	| source map |
+	source:: Map new.
+	source at: 'red' put: 'rouge'.
+	source at: 'green' put: 'vert'.
+	source at: 'blue' put: 'bleu'.
+
+	map:: Map new.
+	map at: 'yellow' put: 'jaune'.
+
+	map addAll: source.
+	assert: map size equals: 4.
+	assert: (map at: 'red') equals: 'rouge'.
+	assert: (map at: 'blue') equals: 'bleu'.
+	assert: (map at: 'green') equals: 'vert'.
+	assert: (map at: 'yellow') equals: 'jaune'.
+
+	map addAll: {true}.
+	assert: map size equals: 5.
+	assert: (map at: 1) equals: true.
+)
 public testMapAtIfAbsentPut = (
 	| map |
 	map:: Map new.
@@ -784,6 +832,19 @@ public testMapCollect = (
 	assert: (result at: 'white') equals: 5.
 	assert: (result at: 'gray') equals: 4.
 	assert: (result at: 'black') equals: 4.
+)
+public testMapDo = (
+	| map count |
+	map:: Map new.
+	map at: 'red' put: 'rouge'.
+	map at: 'blue' put: 'bleu'.
+	map removeKey: 'blue'.
+	count:: 0.
+	map do:
+		[:value |
+		 assert: value equals: 'rouge'.
+		 count:: count + 1].
+	assert: count equals: 1.
 )
 public testMapIsEmpty = (
 	| map |
@@ -846,6 +907,20 @@ public testMapKeysAndValues = (
 	assert: (keys indexOf: 'white') equals: (values indexOf: 'blanc').
 	assert: (keys indexOf: 'gray') equals: (values indexOf: 'gris').
 	assert: (keys indexOf: 'black') equals: (values indexOf: 'noir').
+)
+public testMapKeysAndValuesDo = (
+	| map count |
+	map:: Map new.
+	map at: 'red' put: 'rouge'.
+	map at: 'blue' put: 'bleu'.
+	map removeKey: 'blue'.
+	count:: 0.
+	map keysAndValuesDo:
+		[:key :value |
+		 assert: key equals: 'red'.
+		 assert: value equals: 'rouge'.
+		 count:: count + 1].
+	assert: count equals: 1.
 )
 public testMapLowCapacity = (
 	(* Regression test against naively taking the capacity hint, which can break the invariant of having at least one free slot. *)
@@ -1067,6 +1142,27 @@ public testMapUpdates = (
 	assert: (map at: 'gray') equals: 'gris'.
 	assert: (map at: 'black') equals: 'noir'.
 )
+public testMapWithAll = (
+	| source map |
+	source:: Map new.
+	source at: 'red' put: 'rouge'.
+	source at: 'green' put: 'vert'.
+	source at: 'blue' put: 'bleu'.
+
+	map:: Map withAll: source.
+	map at: 'yellow' put: 'jaune'.
+
+	map addAll: source.
+	assert: map size equals: 4.
+	assert: (map at: 'red') equals: 'rouge'.
+	assert: (map at: 'blue') equals: 'bleu'.
+	assert: (map at: 'green') equals: 'vert'.
+	assert: (map at: 'yellow') equals: 'jaune'.
+
+	map addAll: {true}.
+	assert: map size equals: 5.
+	assert: (map at: 1) equals: true.
+)
 ) : (
 TEST_CONTEXT = ()
 )
@@ -1083,6 +1179,34 @@ public testIsKindOfOrderedMap = (
 	deny: false isKindOfOrderedMap.
 	deny: true isKindOfOrderedMap.
 	deny: 0 isKindOfOrderedMap.
+)
+public testOrderedMapAddAll = (
+	| source map keys |
+	source:: OrderedMap new.
+	source at: 'red' put: 'rouge'.
+	source at: 'green' put: 'vert'.
+	source at: 'blue' put: 'bleu'.
+
+	map:: OrderedMap new.
+	map at: 'yellow' put: 'jaune'.
+
+	map addAll: source.
+	assert: map size equals: 4.
+	assert: (map at: 'red') equals: 'rouge'.
+	assert: (map at: 'blue') equals: 'bleu'.
+	assert: (map at: 'green') equals: 'vert'.
+	assert: (map at: 'yellow') equals: 'jaune'.
+
+	map addAll: {true}.
+	assert: map size equals: 5.
+	assert: (map at: 1) equals: true.
+
+	keys:: map keys.
+	assert: (keys at: 1) equals: 'yellow'.
+	assert: (keys at: 2) equals: 'red'.
+	assert: (keys at: 3) equals: 'green'.
+	assert: (keys at: 4) equals: 'blue'.
+	assert: (keys at: 5) equals: 1.
 )
 public testOrderedMapAtIfAbsentPut = (
 	| map |
@@ -1117,6 +1241,19 @@ public testOrderedMapCollect = (
 	assert: (result at: 'white') equals: 5.
 	assert: (result at: 'gray') equals: 4.
 	assert: (result at: 'black') equals: 4.
+)
+public testOrderedMapDo = (
+	| map count |
+	map:: OrderedMap new.
+	map at: 'red' put: 'rouge'.
+	map at: 'blue' put: 'bleu'.
+	map removeKey: 'blue'.
+	count:: 0.
+	map do:
+		[:value |
+		 assert: value equals: 'rouge'.
+		 count:: count + 1].
+	assert: count equals: 1.
 )
 public testOrderedMapIsEmpty = (
 	| map |
@@ -1168,6 +1305,20 @@ public testOrderedMapKeysAndValues = (
 	assert: (values at: 7) equals: 'blanc'.
 	assert: (values at: 8) equals: 'gris'.
 	assert: (values at: 9) equals: 'noir'.
+)
+public testOrderedMapKeysAndValuesDo = (
+	| map count |
+	map:: OrderedMap new.
+	map at: 'red' put: 'rouge'.
+	map at: 'blue' put: 'bleu'.
+	map removeKey: 'blue'.
+	count:: 0.
+	map keysAndValuesDo:
+		[:key :value |
+		 assert: key equals: 'red'.
+		 assert: value equals: 'rouge'.
+		 count:: count + 1].
+	assert: count equals: 1.
 )
 public testOrderedMapLowCapacity = (
 	(* Regression test against naively taking the capacity hint, which can break the invariant of having at least one free slot. *)
@@ -1422,6 +1573,34 @@ public testOrderedMapUpdates = (
 	assert: (map at: 'gray') equals: 'gris'.
 	assert: (map at: 'black') equals: 'noir'.
 )
+public testOrderedMapWithAll = (
+	| source map keys |
+	source:: OrderedMap new.
+	source at: 'red' put: 'rouge'.
+	source at: 'green' put: 'vert'.
+	source at: 'blue' put: 'bleu'.
+
+	map:: OrderedMap withAll: source.
+	map at: 'yellow' put: 'jaune'.
+
+	map addAll: source.
+	assert: map size equals: 4.
+	assert: (map at: 'red') equals: 'rouge'.
+	assert: (map at: 'blue') equals: 'bleu'.
+	assert: (map at: 'green') equals: 'vert'.
+	assert: (map at: 'yellow') equals: 'jaune'.
+
+	map addAll: {true}.
+	assert: map size equals: 5.
+	assert: (map at: 1) equals: true.
+
+	keys:: map keys.
+	assert: (keys at: 1) equals: 'red'.
+	assert: (keys at: 2) equals: 'green'.
+	assert: (keys at: 3) equals: 'blue'.
+	assert: (keys at: 4) equals: 'yellow'.
+	assert: (keys at: 5) equals: 1.
+)
 ) : (
 TEST_CONTEXT = ()
 )
@@ -1463,6 +1642,19 @@ public testOrderedSetAsArray = (
 	assert: (array at: 1) equals: 30.
 	assert: (array at: 2) equals: 40.
 	assert: (array at: 3) equals: 50.
+)
+public testOrderedSetDo = (
+	| set count |
+	set:: OrderedSet new.
+	set add: 'red'.
+	set add: 'blue'.
+	set remove: 'blue'.
+	count:: 0.
+	set do:
+		[:value |
+		 assert: value equals: 'red'.
+		 count:: count + 1].
+	assert: count equals: 1.
 )
 public testOrderedSetDuplicates = (
 	| set = OrderedSet new. |
@@ -1787,6 +1979,19 @@ public testSetAsArray = (
 	assert: (array at: 1) equals: 30.
 	assert: (array at: 2) equals: 40.
 	assert: (array at: 3) equals: 50.
+)
+public testSetDo = (
+	| set count |
+	set:: Set new.
+	set add: 'red'.
+	set add: 'blue'.
+	set remove: 'blue'.
+	count:: 0.
+	set do:
+		[:value |
+		 assert: value equals: 'red'.
+		 count:: count + 1].
+	assert: count equals: 1.
 )
 public testSetDuplicates = (
 	| set = Set new. |
