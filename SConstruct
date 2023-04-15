@@ -91,7 +91,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   else:
     raise Exception('Unknown architecture: ' + arch)
 
-  outdir = os.path.join('out', configname)
+  outdir = os.path.join('#out', configname)
 
   if target_os == 'windows':
     env['CCFLAGS'] += [
@@ -188,7 +188,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-s', 'MALLOC=emmalloc',
       '-s', 'TOTAL_STACK=131072',
       '--emrun',
-      '--shell-file', 'meta/shell.html',
+      '--shell-file', File('meta/shell.html').path,
     ]
   else:
     raise Exception('Unknown operating system: ' + target_os)
@@ -256,52 +256,38 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
 
   if target_os == 'emscripten':
     program = env.Program(os.path.join(outdir, 'primordialsoup.html'), objects)
-    Depends(program, 'meta/shell.html');
+    Depends(program, 'meta/shell.html')
   else:
     program = env.Program(os.path.join(outdir, 'primordialsoup'), objects)
-  return str(program[0])
+  return program[0]
 
 
-def BuildSnapshots(outdir, host_vm):
-  nssources = Glob(os.path.join('newspeak', '*.ns'))
-  compilersnapshot = os.path.join('snapshots', 'compiler.vfuel')
+def BuildSnapshots(host_vm, triples):
+  cmd = [host_vm.path]
+
+  bootstrap_compiler = File(os.path.join('snapshots', 'compiler.vfuel'))
+  cmd += [bootstrap_compiler.path]
+
+  sources = Glob(os.path.join('newspeak', '*.ns'))
+  cmd += [source.path for source in sources]
+
   snapshots = []
-  cmd = host_vm + ' ' + compilersnapshot + ' $SOURCES'
+  for triple in triples:
+    snapshot = File(os.path.join('#out', 'snapshots', triple[2]))
+    snapshots += [snapshot]
+    cmd += [triple[0], triple[1], snapshot.path]
 
-  helloout = os.path.join(outdir, 'HelloApp.vfuel')
-  snapshots += [helloout]
-  cmd += ' Runtime HelloApp ' + helloout
-
-  testout = os.path.join(outdir, 'TestRunner.vfuel')
-  snapshots += [testout]
-  cmd += ' RuntimeWithMirrors TestRunner ' + testout
-
-  benchmarkout = os.path.join(outdir, 'BenchmarkRunner.vfuel')
-  snapshots += [benchmarkout]
-  cmd += ' Runtime BenchmarkRunner ' + benchmarkout
-
-  compilerout = os.path.join(outdir, 'CompilerApp.vfuel')
-  snapshots += [compilerout]
-  cmd += ' RuntimeWithMirrors CompilerApp ' + compilerout
-
-  formatterout = os.path.join(outdir, 'Formatter.vfuel')
-  snapshots += [formatterout]
-  cmd += ' RuntimeWithMirrors Formatter ' + formatterout
-
-  profilerout = os.path.join(outdir, 'VictoryFuelToV8Profile.vfuel')
-  snapshots += [profilerout]
-  cmd += ' Runtime VictoryFuelToV8Profile ' + profilerout
-
-  Command(target=snapshots, source=nssources, action=cmd)
+  Command(target=snapshots, source=sources, action=' '.join(cmd))
   Requires(snapshots, host_vm)
-  Depends(snapshots, compilersnapshot)
+  Depends(snapshots, bootstrap_compiler)
 
+  profilersnapshot = File(os.path.join('#out', 'snapshots', 'VictoryFuelToV8Profile.vfuel'))
   for snapshot in snapshots:
-    cmd = host_vm + ' ' + profilerout + ' ' + snapshot
-    profiles = [snapshot + '.json']
-    Command(target=profiles, source=[], action=cmd)
+    cmd = [host_vm.path, profilersnapshot.path, snapshot.path]
+    profiles = [File(snapshot.abspath + '.json')]
+    Command(target=profiles, source=[], action=' '.join(cmd))
     Requires(profiles, host_vm)
-    Depends(profiles, [profilerout, snapshot])
+    Depends(profiles, [profilersnapshot, snapshot])
 
 
 def Main():
@@ -354,12 +340,19 @@ def Main():
   # sanitizer.
   host_debug_vm = BuildVM(host_cxx, host_arch, host_os, True, None)
   host_release_vm = BuildVM(host_cxx, host_arch, host_os, False, None)
-  BuildSnapshots('out/snapshots/', host_release_vm)
+  BuildSnapshots(host_release_vm, [
+     ['Runtime', 'HelloApp', 'HelloApp.vfuel'],
+     ['RuntimeWithMirrors', 'TestRunner', 'TestRunner.vfuel'],
+     ['Runtime', 'BenchmarkRunner', 'BenchmarkRunner.vfuel'],
+     ['RuntimeWithMirrors', 'CompilerApp', 'CompilerApp.vfuel'],
+     ['RuntimeWithMirrors', 'Formatter', 'Formatter.vfuel'],
+     ['Runtime', 'VictoryFuelToV8Profile', 'VictoryFuelToV8Profile.vfuel'],
+  ])
 
   # Copy the VM to an architecture-independent path for the convenience of
   # other scripts.
-  Install('out/DebugHost', host_debug_vm)
-  Install('out/ReleaseHost', host_release_vm)
+  Install(os.path.join('#out', 'DebugHost'), host_debug_vm)
+  Install(os.path.join('#out', 'ReleaseHost'), host_release_vm)
 
   # Build for the host, avoiding specifying the host build twice.
   if sanitize != None:
@@ -413,22 +406,22 @@ def Main():
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
         + android_host_name + '/bin/armv7a-linux-androideabi28-clang++'
-    BuildVM(target_cxx, 'arm', 'android', False, None);
-    BuildVM(target_cxx, 'arm', 'android', True, None);
+    BuildVM(target_cxx, 'arm', 'android', False, None)
+    BuildVM(target_cxx, 'arm', 'android', True, None)
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
         + android_host_name + '/bin/aarch64-linux-android28-clang++'
-    BuildVM(target_cxx, 'arm64', 'android', False, None);
-    BuildVM(target_cxx, 'arm64', 'android', True, None);
+    BuildVM(target_cxx, 'arm64', 'android', False, None)
+    BuildVM(target_cxx, 'arm64', 'android', True, None)
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
         + android_host_name + '/bin/i686-linux-android28-clang++'
-    BuildVM(target_cxx, 'ia32', 'android', False, None);
-    BuildVM(target_cxx, 'ia32', 'android', True, None);
+    BuildVM(target_cxx, 'ia32', 'android', False, None)
+    BuildVM(target_cxx, 'ia32', 'android', True, None)
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
         + android_host_name + '/bin/x86_64-linux-android28-clang++'
-    BuildVM(target_cxx, 'x64', 'android', False, None);
-    BuildVM(target_cxx, 'x64', 'android', True, None);
+    BuildVM(target_cxx, 'x64', 'android', False, None)
+    BuildVM(target_cxx, 'x64', 'android', True, None)
 
 Main()
