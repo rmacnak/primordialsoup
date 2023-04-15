@@ -29,13 +29,6 @@ public testArrayList = (
 	assert: (list at: 2) equals: 10.
 	should: [list at: 3] signal: rangeError.
 
-	list include: 20.
-	assert: list size equals: 2.
-	should: [list at: 0] signal: rangeError.
-	assert: (list at: 1) equals: 20.
-	assert: (list at: 2) equals: 10.
-	should: [list at: 3] signal: rangeError.
-
 	assert: (list at: 2 put: 30) equals: 30.
 	should: [list at: 0 put: nil] signal: rangeError.
 	should: [list at: 3 put: nil] signal: rangeError.
@@ -114,7 +107,7 @@ public testHashSet = (
 	assert: (set add: 2) equals: 2.
 	assert: set size equals: 1.
 
-	set add: 4; include: 6; add: 8.
+	set add: 4; add: 6; add: 8.
 	set addAll: {1. 2. 3. 4}.
 	assert: set size equals: 6.
 

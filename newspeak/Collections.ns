@@ -75,11 +75,6 @@ public do: action <[:E]> = (
 public first ^<E> = (
 	^self at: 1
 )
-public include: element <E> ^<E> = (
-	1 to: size_ do:
-		[:index | (data at: index) = element ifTrue: [^element]].
-	^self addLast: element
-)
 public indexOf: element <E> ^<Integer> = (
 	1 to: size_ do: [:index | (data at: index) = element ifTrue: [^index]].
 	^0
@@ -648,17 +643,6 @@ public do: action <[:E]> = (
 		 table = element ifFalse:
 			[action value: element]].
 )
-public include: element <E> ^<E> = (
-	^self add: element
-)
-public include: element <E> ifNew: onNew <[]> ^<E> = (
-	| bucketIndex keyIndex |
-	bucketIndex:: scanFor: element.
-	bucketIndex < 0 ifTrue:
-		[insert: 0 - bucketIndex element: element.
-		 onNew value].
-	^element
-)
 public includes: element <E> ^<Boolean> = (
 	^(scanFor: element) > 0
 )
@@ -820,19 +804,6 @@ fixCollisionsAfter: start <Integer> = (
 		 newIndex = index ifFalse:
 			[table at: newIndex put: element.
 			 table at: index put: table]].
-)
-public include: element <E> ^<E> = (
-	^self add: element
-)
-public include: element <E> ifNew: onNew <[]> ^<E> = (
-	| index entry |
-	index:: scanFor: element.
-	entry:: table at: index.
-	table = entry ifTrue:
-		[table at: index put: element.
-		 incrementSize.
-		 onNew value].
-	^element
 )
 public includes: element <E> ^<Boolean> = (
 	^(table = (table at: (scanFor: element))) not

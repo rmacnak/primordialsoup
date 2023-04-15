@@ -662,12 +662,12 @@ public localNames = (
 	#BOGUS. (* The pc needs to be adjusted the same way we do for the source range. *)
 
 	names: List new.
-
-	debugInfo localVariables do: [:info |
-		((info validBCIRange includes: bci)
-		and: [info isSynthetic not
-		and: [myDepth >= info contextDepth]]) ifTrue: [
-			names include: info name ]].
+	debugInfo localVariables do:
+		[:info |
+		(info validBCIRange includes: bci) ifTrue:
+			[info isSynthetic ifFalse:
+				[myDepth >= info contextDepth ifTrue:
+					[names add: info name]]]].
 	^names
 )
 mostLocalInfoFor: varName <Symbol> ^<LocalVarDebugInfo> = (
@@ -1499,14 +1499,12 @@ public blockNode: node <BlockAST> = (
 
 	(* 2. Copy downs *)
 	(capturedSets at: node) do:
-		[:captured |
-		 captured remote
-			ifTrue: [copied include: captured remoteVector2]
-			ifFalse: [copied include: captured]].
-	copied do:
-		[:copiedVar |
-		 copiedOuter add: (parentRemapping at: copiedVar).
-		 copiedInner add: (allocateLocal: copiedVar)].
+		[:captured | | copiedVar |
+		 copiedVar:: captured remote ifTrue: [captured remoteVector2] ifFalse: [captured].
+		 (copied includes: copiedVar) ifFalse:
+			[copied add: copiedVar.
+			 copiedOuter add: (parentRemapping at: copiedVar).
+			 copiedInner add: (allocateLocal: copiedVar)]].
 
 	lastImplicitOffset:: nextOffset.
 
@@ -1995,10 +1993,10 @@ checkForDuplicateNames: node <ClassDeclarationAST> = (
 
 	names:: Set new.
 	duplicateNames:: Set new.
-	namesWithDuplicates do: [:each | | present |
-		present:: true.
-		names include: each ifNew: [present:: false].
-		present ifTrue: [duplicateNames add: each]].
+	namesWithDuplicates do: [:each |
+		(names includes: each)
+			ifTrue: [duplicateNames add: each]
+			ifFalse: [names add: each]].
 
 	duplicateNames isEmpty ifFalse: [ | s |
 		s:: StringBuilder new.
