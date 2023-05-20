@@ -25,17 +25,17 @@ private Stopwatch = p time Stopwatch.
 private List = p collections List.
 private cachedPlatform = p.
 |) (
-measure: block forAtLeast: milliseconds = (
+measure: block forAtLeast: nanoseconds = (
 	| runs stopwatch elapsed score |
 	runs:: 0.
 	stopwatch:: Stopwatch new start.
 
 	[block value.
 	runs:: runs + 1.
-	elapsed:: stopwatch elapsedMilliseconds.
-	elapsed < milliseconds] whileTrue.
+	elapsed:: stopwatch elapsedNanoseconds.
+	elapsed < nanoseconds] whileTrue.
 
-	score:: runs * 1000 asFloat / elapsed.
+	score:: runs * 1000000000 asFloat / elapsed.
 	^score asStringFixed: 1
 )
 public report = (
@@ -43,8 +43,8 @@ public report = (
 		[:benchmark |
 		| b score |
 		b:: benchmark usingPlatform: cachedPlatform.
-		self measure: [b bench] forAtLeast: 3.
-		score:: measure: [b bench] forAtLeast: 20.
+		self measure: [b bench] forAtLeast: 3000000.
+		score:: measure: [b bench] forAtLeast: 20000000.
 		(benchmark name, ': ', score) out].
 )
 ) : (
