@@ -18,23 +18,30 @@ public class List new: capacity <Integer> = Collection (
 ) (
 (* Concatenation. *)
 public , other = (
-	| result = List new: (self size + other size bitOr: 3). |
-	self do: [:element | result addLast: element].
-	other do: [:element | result addLast: element].
+	| result = List new: (self size + other size | 3). |
+	self do: [:element | result add: element].
+	other do: [:element | result add: element].
 	^result
 )
 public add: element <E> ^<E> = (
-	^self addLast: element
+	|
+	capacity = data size.
+	newSize = size_ + 1.
+	|
+	newSize > capacity ifTrue:
+		[data:: data copyWithSize: (capacity >> 1 + capacity | 7)].
+	size_:: newSize.
+	^data at: size_ put: element.
 )
 public addAll: collection <Collection[E]> = (
-	collection do: [:element | self addLast: element].
+	collection do: [:element | self add: element].
 )
 public addFirst: element <E> ^<E> = (
 	| oldData capacity newData |
 	oldData:: data.
 	capacity:: oldData size.
 	size_ >= oldData size
-		ifTrue: [data:: newData:: Array new: (capacity >> 1 + capacity bitOr: 7)]
+		ifTrue: [data:: newData:: Array new: (capacity >> 1 + capacity | 7)]
 		ifFalse: [newData:: oldData].
 	newData replaceFrom: 2 to: 1 + size_ with: oldData startingAt: 1.
 	newData at: 1 put: element.
@@ -42,12 +49,7 @@ public addFirst: element <E> ^<E> = (
 	^element
 )
 public addLast: element <E> ^<E> = (
-	| capacity = data size. |
-	size_ >= capacity ifTrue:
-		[data:: data copyWithSize: (capacity >> 1 + capacity bitOr: 7)].
-	size_:: size_ + 1.
-	data at: size_ put: element.
-	^element
+	^self add: element
 )
 public asArray ^<Array[E]> = (
 	^data copyFrom: 1 to: size_

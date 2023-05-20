@@ -74,18 +74,52 @@ Nested classes also have an enclosing object slot pointing at the object that cr
 
 The primary constructor induces a synthetic class method of the same name, which calls a synthetic instance method prefixed with initializer` me on a freshly created instance. Within that instance method is the code for all the slot initializers, as well as the superclass constructor call. See astForPrimaryFactory: and astForClassDeclarationInitializer:. *)
 public class Compiler = super Compiler (
-|
-currentSource <String>
-currentScope <Scope>
-currentDepth <Integer> (* The nesting level of the current class; top level classes are at level 0. *)
+	|
+	currentSource <String>
+	currentScope <Scope>
+	currentDepth <Integer> (* The nesting level of the current class; top level classes are at level 0. *)
 
-literalTable <Map[Object, Integer]>
-rewriter = Rewriter new.
-methodCompiler = AST2ByteCodeCompiler new.
+	literalTable <Map[Object, Integer]>
+	rewriter = Rewriter new.
+	methodCompiler = AST2ByteCodeCompiler new.
 
-specialSelectors =
-	{#+. #-. #*. #//. #\\. #<<. #>>. #&. #|. #<. #>. #<=. #>=. #=. #new. #new:. #at:. #at:put:. #size. #value. #value:. #value:value:. #name. #name:. #add:. #hash. #yourself. #,. #and:. #or:. #not. #basicNew.}.
-|) (
+	specialSelectors = Map new.
+	|
+
+	specialSelectors
+		at: #+ put: 176;
+		at: #- put: 177;
+		at: #* put: 178;
+		at: #// put: 179;
+		at: #\\ put: 180;
+		at: #<< put: 181;
+		at: #>> put: 182;
+		at: #& put: 183;
+		at: #| put: 184;
+		at: #< put: 185;
+		at: #> put: 186;
+		at: #<= put: 187;
+		at: #>= put: 188;
+		at: #= put: 189;
+		at: #new put: 190;
+		at: #new: put: 191;
+		at: #at: put: 192;
+		at: #at:put: put: 193;
+		at: #size put: 194;
+		at: #value put: 195;
+		at: #value: put: 196;
+		at: #value:value: put: 197;
+		at: #name put: 198;
+		at: #name: put: 199;
+		at: #add: put: 200;
+		at: #hash put: 201;
+		at: #yourself put: 202;
+		at: #, put: 203;
+		at: #and: put: 204;
+		at: #or: put: 205;
+		at: #not put: 206;
+		at: #basicNew put: 207.
+) (
 (* The compiler is a visitor on an AST that has been processed by the rewriter.
 It is a subtype of  ASTTool[Self] - that is, its methods do not return individual results, but instead
 side effect state within the compiler.
@@ -286,8 +320,8 @@ public ordinarySend: selector numArgs: numArgs = (
 	decrementStackDepthBy: numArgs + 1 (* the receiver *).
 	incrementStackDepthBy: 1.
 
-	(specialSelectors includes: selector) ifTrue:
-		[code byte: 175 + (specialSelectors indexOf: selector).
+	(specialSelectors includesKey: selector) ifTrue:
+		[code byte: (specialSelectors at: selector).
 		 ^self].
 
 	selectorIndex:: indexForLiteral: selector.
@@ -363,6 +397,10 @@ public popIntoTemporary: index = (
 	index < currentArgs ifTrue: [halt].
 	popIntoLocal: index - currentArgs.
 )
+public pushBoolean: value = (
+	code byte: (value ifTrue: [154] ifFalse: [153]).
+	incrementStackDepthBy: 1.
+)
 public pushEnclosingObject: depth = (
 	check: depth between: 0 and: 127.
 
@@ -370,10 +408,6 @@ public pushEnclosingObject: depth = (
 
 	incrementStackDepthBy: 1.
 	code byte: 233; byte: depth
-)
-public pushFalse = (
-	code byte: 153.
-	incrementStackDepthBy: 1.
 )
 public pushInteger: n <Integer> = (
 	incrementStackDepthBy: 1.
@@ -387,12 +421,7 @@ public pushInteger: n <Integer> = (
 		byte: n >> 8 & 255.
 )
 public pushLiteral: value = (
-	true = value ifTrue: [^pushTrue].
-	false = value ifTrue: [^pushFalse].
-	nil = value ifTrue: [^pushNil].
-	(value isKindOfInteger and: [value between: -32768 and: 32767])
-		ifTrue: [^pushInteger: value].
-	^pushLiteralWithIndex: (indexForLiteral: value).
+	^pushLiteralWithIndex: (indexForLiteral: value)
 )
 public pushLiteralWithIndex: index = (
 	check: index between: 0 and: 65535.
@@ -421,6 +450,12 @@ public pushNil = (
 	code byte: 152.
 	incrementStackDepthBy: 1.
 )
+public pushNumber: value = (
+	value isKindOfInteger ifTrue:
+		[(value between: -32768 and: 32767) ifTrue:
+			[^pushInteger: value]].
+	^pushLiteral: value
+)
 public pushParameter: offset = (
 	incrementStackDepthBy: 1.
 	offset <= 7 ifTrue: [code byte: 112 + offset. ^self].
@@ -442,10 +477,6 @@ public pushTemporary: index = (
 	index < currentArgs
 		ifTrue: [pushParameter: currentArgs - index]
 		ifFalse: [pushLocal: index - currentArgs].
-)
-public pushTrue = (
-	code byte: 154.
-	incrementStackDepthBy: 1.
 )
 public returnLocal: value = (
 	nil = value ifTrue: [code byte: 166. ^self].
@@ -539,7 +570,7 @@ public addInfoForLocal: var <AllocatedLocal> = (
 	info zeroOriginOffset: var offset.
 	info remoteVector: nil.
 	info contextDepth: var closureDepth.
-	^localVariables addLast: info.
+	^localVariables add: info
 )
 public addInfoForRemote: varInfo <AllocatedLocal> in: remoteVarInfo <SemanticVarDecl> = (
 	| info |
@@ -548,7 +579,7 @@ public addInfoForRemote: varInfo <AllocatedLocal> in: remoteVarInfo <SemanticVar
 	info zeroOriginOffset: varInfo original remoteOffset.
 	info remoteVector: remoteVarInfo original name.
 	info contextDepth: varInfo closureDepth.
-	^localVariables addLast: info.
+	^localVariables add: info
 )
 public isKindOfDebugInfo ^<Boolean> = (
 	^true
@@ -783,7 +814,7 @@ public blockLocalReturnNode: node <BlockLocalReturnAST> = (
 public boolNode: node <BoolAST> = (
 	valueExpected ifFalse: [^self].
 	addDebugInfo: node.
-	cgen pushLiteral: node value
+	cgen pushBoolean: node value.
 )
 cascadeSend: node <SendAST> = (
 	node isKindOfCascadedSendNode
@@ -810,7 +841,7 @@ public cascadedSendNode: node <CascadedSendAST> = (
 public characterNode: node <CharacterAST> = (
 	valueExpected ifFalse: [^self].
 	addDebugInfo: node.
-	cgen pushLiteral: node value
+	cgen pushLiteral: node value.
 )
 cleanup = (
 	cgen: nil.
@@ -964,10 +995,9 @@ localReturnNode: node <MethodLocalReturnAST | BlockLocalReturnAST> = (
 	(node expression isKindOfNilNode) ifTrue:
 		[nil = node start ifFalse: [addDebugInfo: node].
 		^cgen returnLocal: nil].
-	(node expression isKindOfLiteralNode) ifTrue:
-		[node expression value isKindOfBoolean ifTrue:
-			[nil = node start ifFalse: [addDebugInfo: node].
-			 ^cgen returnLocal: node expression value]].
+	(node expression isKindOfBooleanNode) ifTrue:
+		[nil = node start ifFalse: [addDebugInfo: node].
+		 ^cgen returnLocal: node expression value].
 
 	self applyForValueTo: node expression.
 	addDebugInfo: node.
@@ -1055,10 +1085,9 @@ public nonLocalReturnNode: node <NonlocalReturnAST> = (
 	(node expression isKindOfNilNode) ifTrue:
 		[nil = node start ifFalse: [addDebugInfo: node].
 		^cgen returnNonLocal: nil].
-	(node expression isKindOfLiteralNode) ifTrue:
-		[node expression value isKindOfBoolean ifTrue:
-			[nil = node start ifFalse: [addDebugInfo: node].
-			 ^cgen returnNonLocal: node expression value]].
+	(node expression isKindOfBooleanNode) ifTrue:
+		[nil = node start ifFalse: [addDebugInfo: node].
+		 ^cgen returnNonLocal: node expression value].
 
 	self applyForValueTo: node expression.
 	addDebugInfo: node.
@@ -1070,7 +1099,7 @@ public nonLocalReturnNode: node <NonlocalReturnAST> = (
 public numberNode: node <NumberAST> = (
 	valueExpected ifFalse: [^self].
 	addDebugInfo: node.
-	cgen pushLiteral: node value.
+	cgen pushNumber: node value.
 )
 public ordinarySendNode: node <OrdinarySendAST> = (
 	self applyForValueTo: node receiver.
@@ -1338,7 +1367,7 @@ public blockNode: node <BlockAST> = (
 )
 public cascadedSendNode: node <CascadedSendAST> = (
 	| selector = node message selector. |
-	(specialSelectors includes: selector)
+	(specialSelectors includesKey: selector)
 		ifFalse: [addLiteral: selector].
 	^super cascadedSendNode: node
 )
@@ -1405,13 +1434,15 @@ public methodNode: node <MethodAST> = (
 )
 public numberNode: node <NumberAST> = (
 	| value = node value. |
-	(value isKindOfInteger and: [value between: -32768 and: 32767])
-		ifFalse: [addLiteral: node value].
+	value isKindOfInteger ifTrue:
+		[(value between: -32768 and: 32767) ifTrue:
+			[^node]].
+	addLiteral: value.
 	^node
 )
 public ordinarySendNode: node <OrdinarySendAST> = (
 	| selector = node message selector. |
-	(specialSelectors includes: selector)
+	(specialSelectors includesKey: selector)
 		ifFalse: [addLiteral: selector].
 	^super ordinarySendNode: node
 )

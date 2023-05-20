@@ -1271,7 +1271,7 @@ protected saveContext = (
 	^extendedStart
 )
 private scanBinarySelector = (
-	[position <= size and: [isSpecialCharacter: (input at: position)]]
+	[position <= size ifFalse: [false] ifTrue: [isSpecialCharacter: (input at: position)]]
 		whileTrue: [position:: position + 1].
 
 	tokenValue:: input copyFrom: tokenStart to: position - 1.
@@ -1424,7 +1424,7 @@ private scanNumber = (
 	| val byte radix digit |
 	val:: (input at: position - 1) - 48.
 
-	[position <= size and: [isDecimalDigit: (byte:: input at: position)]]
+	[position <= size ifFalse: [false] ifTrue: [isDecimalDigit: (byte:: input at: position)]]
 		whileTrue:
 			[val:: val * 10 + (byte - 48).
 			 position:: position + 1].

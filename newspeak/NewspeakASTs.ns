@@ -32,9 +32,24 @@ public copyPositionFrom: other <AST> = (
 	self start: other start.
 	self end: other end.
 )
-public isKindOfAST ^<Boolean> = (
-	^true
-)
+public isKindOfAST ^<Boolean> = ( ^true )
+public isKindOfBlockLocalReturnAST ^<Boolean> = ( ^false )
+public isKindOfBlockNode ^<Boolean> = ( ^false )
+public isKindOfBooleanNode ^<Boolean> = ( ^false )
+public isKindOfCascadedSendNode ^<Boolean> = ( ^false )
+public isKindOfClassDeclarationNode ^<Boolean> = ( ^false )
+public isKindOfClassHeaderAST ^<Boolean> = ( ^false )
+public isKindOfCodeBodyNode ^<Boolean> = ( ^false )
+public isKindOfLiteralNode ^<Boolean> = ( ^false )
+public isKindOfMixinApplicationClassAST ^<Boolean> = ( ^false )
+public isKindOfNilNode ^<Boolean> = ( ^false )
+public isKindOfNumberNode ^<Boolean> = ( ^false )
+public isKindOfReceiverNode ^<Boolean> = ( ^false )
+public isKindOfReturnStatNode ^<Boolean> = ( ^false )
+public isKindOfSendNode ^<Boolean> = ( ^false )
+public isKindOfTupleNode ^<Boolean> = ( ^false )
+public isKindOfUnresolvedSendNode ^<Boolean> = ( ^false )
+public isKindOfVariableNode ^<Boolean> = ( ^false )
 ) : (
 )
 public class ASTTool = () (

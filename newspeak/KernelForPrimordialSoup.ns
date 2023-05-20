@@ -1232,35 +1232,38 @@ public size ::= 0.
 1 to: table size do: [:index | table at: index put: table]
 ) (
 public at: key = (
-	| mask index entry |
+	| table mask index entry |
+	table:: self table.
 	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	index:: (identityHashOf: key) & mask + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
 	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
+		[index:: index + 2 & mask + 1].
 
 	noSuchKey
 )
 public at: key ifAbsent: onAbsent = (
-	| mask index entry value |
+	| table mask index entry value |
+	table:: self table.
 	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	index:: (identityHashOf: key) & mask + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
 	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
+		[index:: index + 2 & mask + 1].
 
 	^onAbsent value
 )
 public at: key ifAbsentPut: valueGen = (
-	| mask index entry value |
+	| table mask index entry value |
+	table:: self table.
 	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	index:: (identityHashOf: key) & mask + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1].
 	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
+		[index:: index + 2 & mask + 1].
 
 	value:: valueGen value.
 	table at: index put: key.
@@ -1270,13 +1273,14 @@ public at: key ifAbsentPut: valueGen = (
 	^value
 )
 public at: key ifAbsentPutVal: value = (
-	| mask index entry |
+	| table mask index entry |
+	table:: self table.
 	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	index:: (identityHashOf: key) & mask + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^false].
 	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
+		[index:: index + 2 & mask + 1].
 
 	table at: index put: key.
 	table at: index + 1 put: value.
@@ -1289,24 +1293,26 @@ public at: key put: value = (
 	^value
 )
 public at: key putReplace: value = (
-	| mask index entry |
+	| table mask index entry |
+	table:: self table.
 	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	index:: (identityHashOf: key) & mask + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: index + 1 put: value].
 	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
+		[index:: index + 2 & mask + 1].
 
 	noSuchKey
 )
 public atOrItself: key = (
-	| mask index entry |
+	| table mask index entry |
+	table:: self table.
 	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	index:: (identityHashOf: key) & mask + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^table at: 1 + index].
 	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
+		[index:: index + 2 & mask + 1].
 
 	^key
 )
@@ -1324,21 +1330,22 @@ grow = (
 		oldTable = key ifFalse:
 			[ | value newIndex |
 			 value:: oldTable at: oldIndex + 1.
-			 newIndex:: ((identityHashOf: key) bitAnd: mask) + 1.
+			 newIndex:: (identityHashOf: key) & mask + 1.
 			 [newTable = (newTable at: newIndex)] whileFalse:
-				[newIndex:: (newIndex + 2 bitAnd: mask) + 1].
+				[newIndex:: newIndex + 2 & mask + 1].
 			 newTable at: newIndex put: key.
 			 newTable at: newIndex + 1 put: value]].
 	table:: newTable.
 )
 public includesKey: key = (
-	| mask index entry |
+	| table mask index entry |
+	table:: self table.
 	mask:: table size - 2.
-	index:: ((identityHashOf: key) bitAnd: mask) + 1.
+	index:: (identityHashOf: key) & mask + 1.
 	[entry:: table at: index.
 	 (is: entry identicalTo: key) ifTrue: [^true].
 	 table = entry] whileFalse:
-		[index:: ((index + 2) bitAnd: mask) + 1].
+		[index:: index + 2 & mask + 1].
 
 	^false
 )
@@ -1900,7 +1907,8 @@ public atan: y ^<Float> = (
 	^self asFloat atan: y
 )
 public between: min <Number> and: max <Number> ^<Boolean> = (
-	^self <= max and: [self >= min]
+	self <= max ifFalse: [^false].
+	^self >= min
 )
 (* Answer the cosine of the receiver, measured in radians. *)
 public cos ^<Float> = (
@@ -1911,6 +1919,9 @@ public exp ^<Float> = (
 	^self asFloat exp
 )
 public isKindOfFloat ^<Boolean> = (
+	^false
+)
+public isKindOfFraction ^<Boolean> = (
 	^false
 )
 public isKindOfInteger ^<Boolean> = (
@@ -2083,7 +2094,9 @@ private continue: continuation withValue: value = (
 	^value
 )
 protected doesNotUnderstand: message <Message> = (
-	(0 = message arguments size and: [message selector startsWith: 'isKindOf']) ifTrue: [^false].
+	0 = message arguments size ifTrue:
+		[(message selector startsWith: 'isKindOf') ifTrue:
+			[^false]].
 
 	^(MessageNotUnderstood receiver: self message: message) signal
 )
@@ -2317,10 +2330,9 @@ public addByte: byte <Integer> = (
 	newSize = size_ + 1.
 	|
 	newSize > capacity ifTrue:
-		[data:: data copyWithSize: (capacity >> 1 + capacity bitOr: 7)].
-	data at: newSize put: byte.
+		[data:: data copyWithSize: (capacity >> 1 + capacity | 7)].
 	size_:: newSize.
-	^byte
+	^data at: newSize put: byte
 )
 public asByteArray ^<ByteArray> = (
 	^data copyFrom: 1 to: size_

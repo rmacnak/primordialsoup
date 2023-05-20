@@ -71,6 +71,7 @@ public class BooleanAST withValue: b = AST (|
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool boolNode: self
 )
+public isKindOfBooleanNode ^<Boolean> = (^true)
 public isKindOfLiteralNode ^<Boolean> = (^true)
 ) : (
 )
@@ -956,8 +957,9 @@ public unresolvedSendNode: node <UnresolvedSendAST> ^<AST> = (
 		[^processSuperSend: node].
 	(isOuterNode: node receiver) ifTrue:
 		[^processOuterExpression: node].
-	(node receiver isKindOfSendNode and: [isOuterNode: node receiver receiver]) ifTrue:
-		[^processOuterSend: node].
+	node receiver isKindOfSendNode ifTrue:
+		[(isOuterNode: node receiver receiver) ifTrue:
+			[^processOuterSend: node]].
 	^processOrdinarySend: node
 )
 public variableNode: node <VariableAST> = (
@@ -1028,7 +1030,13 @@ public doitContextArgumentName = (
 	^#'@context'
 )
 public isReservedWord: selector = (
-	^{#self. #super. #outer. #true. #false. #nil} includes: selector
+	#self = selector ifTrue: [^true].
+	#super = selector ifTrue: [^true].
+	#outer = selector ifTrue: [^true].
+	#true = selector ifTrue: [^true].
+	#false = selector ifTrue: [^true].
+	#nil = selector ifTrue: [^true].
+	^false
 )
 public mixinSlotNameFor: nestedName = (
 	^(nestedName, '`slot') asSymbol

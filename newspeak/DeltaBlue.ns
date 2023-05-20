@@ -29,7 +29,7 @@ class Plan = (
 private constraints = List new.
 |) (
 public addConstraint: c <Constraint> = (
-	constraints addLast: c.
+	constraints add: c.
 )
 (* Execute my constraints in order. *)
 public execute = (
@@ -323,7 +323,7 @@ public name <String> = n.
 |) (
 (* Add the given constraint to the set of all constraints that refer to me. *)
 public addConstraint: c <Constraint> = (
-	constraints addLast: c.
+	constraints add: c.
 )
 (* Remove all traces of c from this variable. *)
 public removeConstraint: c <Constraint> = (
@@ -334,13 +334,13 @@ public removeConstraint: c <Constraint> = (
 )
 public addConstraintsConsuming: v <Variable> to: list <List[Constraints]> = (
 	| determining <Constraint> = v determinedBy. |
-	v constraints do: [:c | ((c = determining) not and: [c isSatisfied]) ifTrue: [list addLast: c]].
+	v constraints do: [:c | ((c = determining) not and: [c isSatisfied]) ifTrue: [list add: c]].
 )
 (* Recompute the walkabout strengths and stay flags of all variables downstream of the given constraint and recompute the actual values of all variables whose stay flag is true. If a cycle is detected, remove the given constraint and answer false. Otherwise, answer true. *)
 public addPropagate: c <Constraint> mark: mark <Integer> ^<Boolean> = (
 	(* Details: Cycles are detected when a marked variable is encountered downstream of the given constraint. The sender is assumed to have marked the inputs of the given constraint with the given mark. Thus, encountering a marked node downstream of the output constraint means that there is a path from the constraint's output to one of its inputs. *)
 	| todo <List[Constraint]> = List new. |
-	todo addLast: c.
+	todo add: c.
 	[todo isEmpty] whileFalse: [
 		| d <Constraint> = todo removeLast. |
 		d output mark = mark ifTrue: [incrementalRemove: c. ^false].
@@ -366,7 +366,7 @@ public chainTest: n = (
 	StayConstraint var: last strength: strongDefault.
 	editC:: EditConstraint var: first strength: preferred.
 	editV:: List new.
-	editV addLast: editC.
+	editV add: editC.
 	plan:: extractPlanFromConstraints: editV.
 	1 to: n do: [:i |
 		first value: i.
@@ -378,7 +378,7 @@ public chainTest: n = (
 (* Extract a plan for resatisfaction starting from the outputs of the given constraints, usually a set of input constraints. *)
 public extractPlanFromConstraints: constraints <List[Constraint]> ^<Plan> = (
 	| sources <List[Constraint]> = List new. |
-	constraints do: [:c | (c isInput and: [c isSatisfied]) ifTrue: [sources addLast: c]].
+	constraints do: [:c | (c isInput and: [c isSatisfied]) ifTrue: [sources add: c]].
 	^makePlan: sources
 )
 (* Attempt to satisfy the given constraint and, if successful, incrementally update the dataflow graph.  Details: If satisfying the constraint is successful, it may override a weaker constraint on its output. The algorithm attempts to resatisfy that constraint using some other method. This process is repeated until either a) it reaches a variable that was not previously determined by any constraint or b) it reaches a constraint that is too weak to be satisfied using any of its methods. The variables of constraints that have been processed are marked with a unique mark value so that we know where we've been. This allows the algorithm to avoid getting into an infinite loop even if the constraint graph has an inadvertent cycle. *)
@@ -436,7 +436,7 @@ public projectionTest: n <Integer> = (
 	0 to: n-1 do: [:i |
 		src:: Variable name: 'src', i printString initialValue: i.
 		dst:: Variable name: 'dst', i printString initialValue: i.
-		dests addLast: dst.
+		dests add: dst.
 		StayConstraint var: src strength: normal.
 		ScaleConstraint source: src scale: scale offset: offset destination: dst strength: required.
 	].
@@ -475,15 +475,15 @@ public removePropagateFrom: out <Variable> ^<List[Constraint]> = (
 	out stay: true.
 	unsatisfied:: List new.
 	todo:: List new.
-	todo addLast: out.
+	todo add: out.
 	[todo isEmpty] whileFalse: [
 		| v <Variable> determining <Constraint> |
 		v:: todo removeLast.
-		v constraints do: [:c | c isSatisfied ifFalse: [unsatisfied addLast: c]].
+		v constraints do: [:c | c isSatisfied ifFalse: [unsatisfied add: c]].
 		determining:: v determinedBy.
 		v constraints do: [:nextC |
 			((nextC = determining) not and: [nextC isSatisfied])
-				ifTrue: [nextC recalculate. todo addLast: nextC output]].
+				ifTrue: [nextC recalculate. todo add: nextC output]].
 	].
 	^unsatisfied
 )
@@ -491,7 +491,7 @@ public setValueOf: var <Variable> to: newValue = (
 	| editC <Constraint> editV <List[Constraint]> plan <Plan> |
 	editC:: EditConstraint var: var strength: preferred.
 	editV:: List new.
-	editV addLast: editC.
+	editV add: editC.
 	plan:: extractPlanFromConstraints: editV.
 	10 timesRepeat: [var value: newValue. plan execute].
 	editC destroyConstraint.
