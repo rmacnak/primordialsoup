@@ -367,7 +367,7 @@ const bool kFailure = false;
 
 #define RETURN_MINT(raw_integer)                                               \
   if (SmallInteger::IsSmiValue(raw_integer)) {                                 \
-    RETURN(SmallInteger::New(raw_integer));                                    \
+    RETURN(SmallInteger::New(static_cast<intptr_t>(raw_integer)));             \
   } else {                                                                     \
     MediumInteger result = H->AllocateMediumInteger();                         \
     result->set_value(raw_integer);                                            \
@@ -1504,7 +1504,8 @@ DEFINE_PRIMITIVE(ByteArray_size) {
     if ((value < min) || (value > max)) {                                      \
       return kFailure;                                                         \
     }                                                                          \
-    *reinterpret_cast<ctype*>(array->element_addr(index)) = value;             \
+    *reinterpret_cast<ctype*>(array->element_addr(index)) =                    \
+        static_cast<ctype>(value);                                             \
     RETURN(I->Stack(0));                                                       \
   }
 ACCESS_INTEGER(uint8, uint8_t, 0, UINT8_MAX)

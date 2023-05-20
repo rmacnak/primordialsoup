@@ -103,7 +103,6 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '/wd4200',  # Zero-sized array in struct
       '/wd4996',  # Deprecated POSIX names
       '/wd4244',  # Implicit narrowing conversion
-      '/wd4800',  # Implicit bool conversion
       '/wd4146',  # Negating unsigned type
       '/D_HAS_EXCEPTIONS=0',
       '/DSTRICT',

@@ -146,7 +146,7 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
   if (port_id == ILLEGAL_PORT) {
     port = interpreter_->nil_obj();
   } else if (SmallInteger::IsSmiValue(port_id)) {
-    port = SmallInteger::New(port_id);
+    port = SmallInteger::New(static_cast<intptr_t>(port_id));
   } else {
     HandleScope h1(heap_, reinterpret_cast<Object*>(&message));
     MediumInteger mint = heap_->AllocateMediumInteger();  // SAFEPOINT

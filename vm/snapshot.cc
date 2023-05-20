@@ -260,7 +260,7 @@ class IntegerCluster : public Cluster {
     for (intptr_t i = 0; i < num_objects; i++) {
       int64_t value = d->ReadSLEB128<int64_t>();
       if (SmallInteger::IsSmiValue(value)) {
-        SmallInteger object = SmallInteger::New(value);
+        SmallInteger object = SmallInteger::New(static_cast<intptr_t>(value));
         ASSERT(object->IsSmallInteger());
         d->RegisterRef(object);
       } else {
@@ -417,12 +417,12 @@ void Deserializer::Deserialize() {
   heap_->InitializeAfterSnapshot();
 
   int64_t stop = OS::CurrentMonotonicNanos();
-  intptr_t time = stop - start;
+  int64_t time = stop - start;
   if (TRACE_GROWTH) {
     OS::PrintErr("Deserialized %" Pd "kB snapshot "
                  "into %" Pd "kB heap "
                  "with %" Pd " objects "
-                 "in %" Pd " us\n",
+                 "in %" Pd64 " us\n",
                  snapshot_length_ / KB,
                  heap_->Size() / KB,
                  next_ref_ - 1,

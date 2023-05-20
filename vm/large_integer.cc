@@ -72,7 +72,7 @@ Object LargeInteger::Reduce(LargeInteger large, Heap* H) {
 
     int64_t value = static_cast<int64_t>(-absolute_value);
     if (SmallInteger::IsSmiValue(value)) {
-      return SmallInteger::New(value);
+      return SmallInteger::New(static_cast<intptr_t>(value));
     }
 
     MediumInteger result = H->AllocateMediumInteger();
@@ -86,7 +86,7 @@ Object LargeInteger::Reduce(LargeInteger large, Heap* H) {
 
     int64_t value = static_cast<int64_t>(absolute_value);
     if (SmallInteger::IsSmiValue(value)) {
-      return SmallInteger::New(value);
+      return SmallInteger::New(static_cast<intptr_t>(value));
     }
 
     MediumInteger result = H->AllocateMediumInteger();
@@ -1528,7 +1528,7 @@ bool LargeInteger::FromDouble(double raw_value, Object* result, Heap* H) {
   if (exponent == 0) {
     // The double fits in a Smi or Mint.
     if (SmallInteger::IsSmiValue(ival)) {
-      *result = SmallInteger::New(ival);
+      *result = SmallInteger::New(static_cast<intptr_t>(ival));
     } else {
       MediumInteger mint = H->AllocateMediumInteger();
       mint->set_value(ival);
@@ -1579,7 +1579,7 @@ bool LargeInteger::AsUint64(Object integer, uint64_t* result) {
 
 Object LargeInteger::FromUint64(uint64_t raw_value, Heap* H) {
   if (raw_value < SmallInteger::kMaxValue) {
-    return SmallInteger::New(raw_value);
+    return SmallInteger::New(static_cast<intptr_t>(raw_value));
   } else if (raw_value < MediumInteger::kMaxValue) {
     MediumInteger medium = H->AllocateMediumInteger();  // SAFEPOINT
     medium->set_value(raw_value);
