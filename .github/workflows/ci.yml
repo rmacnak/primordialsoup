@@ -12,7 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
-        run: sudo apt-get install g++-multilib scons
+        run: |
+          sudo apt-get update
+          sudo apt-get install g++-multilib scons
       - name: Build
         run: ./build
       - name: Test
@@ -22,7 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
-        run: sudo apt-get install g++ scons
+        run: |
+          sudo apt-get update
+          sudo apt-get install g++ scons
       - name: Build
         run: ./build arch=x64 sanitize=address
       - name: Test
@@ -34,7 +38,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
-        run: sudo apt-get install clang scons
+        run: |
+          sudo apt-get update
+          sudo apt-get install clang scons
       - name: Build
         run: ./build arch=x64 sanitize=memory cxx_host=clang++
       - name: Test
@@ -46,7 +52,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
-        run: sudo apt-get install g++ scons
+        run: |
+          sudo apt-get update
+          sudo apt-get install g++ scons
       - name: Build
         run: ./build arch=x64 sanitize=thread
       - name: Test
@@ -58,7 +66,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
-        run: sudo apt-get install g++ scons
+        run: |
+          sudo apt-get update
+          sudo apt-get install g++ scons
       - name: Build
         run: ./build arch=x64 sanitize=undefined
       - name: Test
@@ -92,7 +102,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
-        run: sudo apt-get install g++-multilib scons
+        run: |
+          sudo apt-get update
+          sudo apt-get install g++-multilib scons
       - name: Build
         run: ./build ndk=$ANDROID_NDK
   web:
@@ -100,9 +112,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install Dependencies
-        run: sudo apt-get install g++ scons
+        run: |
+          sudo apt-get update
+          sudo apt-get install g++ scons
       - name: Install Emscripten
-        uses: mymindstorm/setup-emsdk@v11
+        uses: mymindstorm/setup-emsdk@v12
       - name: Build
         run: ./build os=emscripten arch=wasm
       - name: Test
