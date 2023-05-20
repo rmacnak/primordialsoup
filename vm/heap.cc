@@ -440,6 +440,7 @@ void Heap::ScavengeRoots() {
   }
 }
 
+NOINLINE
 uword Heap::ScavengeToSpace(uword scan) {
   while (scan < top_) {
     HeapObject obj = HeapObject::FromAddr(scan);
@@ -483,6 +484,7 @@ bool Heap::IsTenureStackEmpty() {
   return end_ == to_.limit();
 }
 
+NOINLINE
 void Heap::ProcessTenureStack() {
   while (!IsTenureStackEmpty()) {
     HeapObject obj = HeapObject::FromAddr(PopTenureStack());
@@ -1488,6 +1490,7 @@ uword FreeList::TryAllocate(size_t size) {
       SplitAndRequeue(element, size);
       return element->Addr();
     }
+    prev = element;
     element = element->next();
   }
 
@@ -1515,13 +1518,6 @@ FreeListElement FreeList::Dequeue(intptr_t index) {
   return element;
 }
 
-void FreeList::Enqueue(FreeListElement element) {
-  ASSERT(element->IsFreeListElement());
-  intptr_t index = IndexForSize(element->HeapSize());
-  element->set_next(free_lists_[index]);
-  free_lists_[index] = element;
-}
-
 void FreeList::EnqueueRange(uword addr, size_t size) {
 #if defined(DEBUG)
   memset(reinterpret_cast<void*>(addr), kUnallocatedByte, size);
@@ -1537,7 +1533,9 @@ void FreeList::EnqueueRange(uword addr, size_t size) {
   }
   ASSERT(object->HeapSize() == size);
   ASSERT(element->HeapSize() == size);
-  Enqueue(element);
+  intptr_t index = IndexForSize(size);
+  element->set_next(free_lists_[index]);
+  free_lists_[index] = element;
 }
 
 }  // namespace psoup

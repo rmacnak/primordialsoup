@@ -85,7 +85,6 @@ class FreeList {
 
   void SplitAndRequeue(FreeListElement element, size_t size);
   FreeListElement Dequeue(intptr_t index);
-  void Enqueue(FreeListElement element);
   void EnqueueRange(uword address, size_t size);
   void Reset() {
     for (intptr_t i = 0; i <= kSizeClasses; i++) {

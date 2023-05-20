@@ -300,6 +300,14 @@ class FreeListElement : public HeapObject {
   inline void set_next(FreeListElement value);
   inline intptr_t overflow_size() const;
   inline void set_overflow_size(intptr_t value);
+
+  size_t HeapSize() const {
+    size_t heap_size_from_tag = heap_size();
+    if (heap_size_from_tag != 0) {
+      return heap_size_from_tag;
+    }
+    return overflow_size();
+  }
 };
 
 class SmallInteger : public Object {
