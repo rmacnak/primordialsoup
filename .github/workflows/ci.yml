@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: CI
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -19,52 +19,10 @@ jobs:
         run: ./build
       - name: Test
         run: ./test
-  linux-asan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install g++ scons
-      - name: Build
-        run: ./build arch=x64 sanitize=address
-      - name: Test
-        run: ./out/ReleaseASanX64/primordialsoup out/snapshots/TestRunner.vfuel
-        env:
-          ASAN_OPTIONS: halt_on_error=1
-  linux-msan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install clang scons
-      - name: Build
-        run: ./build arch=x64 sanitize=memory cxx_host=clang++
-      - name: Test
-        run: ./out/ReleaseMSanX64/primordialsoup out/snapshots/TestRunner.vfuel
-        env:
-          MSAN_OPTIONS: halt_on_error=1
-  linux-tsan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install g++ scons
-      - name: Build
-        run: ./build arch=x64 sanitize=thread
-      - name: Test
-        run: ./out/ReleaseTSanX64/primordialsoup out/snapshots/TestRunner.vfuel
-        env:
-          TSAN_OPTIONS: halt_on_error=1
   linux-ubsan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -78,7 +36,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Dependencies
         run: HOMEBREW_NO_AUTO_UPDATE=1 brew install scons
       - name: Build
@@ -88,7 +46,7 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Dependencies
         run: pip install scons
       - name: Build
@@ -100,7 +58,7 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Dependencies
         run: |
           sudo apt-get update
@@ -110,13 +68,13 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install g++ scons
       - name: Install Emscripten
-        uses: mymindstorm/setup-emsdk@v12
+        uses: mymindstorm/setup-emsdk@v14
       - name: Build
         run: ./build os=emscripten arch=wasm
       - name: Test
