@@ -83,7 +83,7 @@ void Isolate::PrintStack() {
   interpreter_->PrintStack();
 }
 
-Isolate::Isolate(void* snapshot, size_t snapshot_length, uint64_t seed)
+Isolate::Isolate(const void* snapshot, size_t snapshot_length, uint64_t seed)
     : heap_(nullptr),
       interpreter_(nullptr),
       loop_(nullptr),
@@ -95,10 +95,7 @@ Isolate::Isolate(void* snapshot, size_t snapshot_length, uint64_t seed)
   heap_ = new Heap();
   interpreter_ = new Interpreter(heap_, this);
   loop_ = new PlatformMessageLoop(this);
-  {
-    Deserializer deserializer(heap_, snapshot, snapshot_length);
-    deserializer.Deserialize();
-  }
+  Deserialize(heap_, snapshot, snapshot_length);
 
   AddIsolateToList(this);
 
@@ -199,7 +196,7 @@ void Isolate::Interpret() {
 
 class SpawnIsolateTask : public ThreadPool::Task {
  public:
-  SpawnIsolateTask(void* snapshot,
+  SpawnIsolateTask(const void* snapshot,
                    size_t snapshot_length,
                    IsolateMessage* initial_message)
       : snapshot_(snapshot),
@@ -219,7 +216,7 @@ class SpawnIsolateTask : public ThreadPool::Task {
   }
 
  private:
-  void* snapshot_;
+  const void* snapshot_;
   size_t snapshot_length_;
   IsolateMessage* initial_message_;
 

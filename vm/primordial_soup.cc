@@ -28,7 +28,7 @@ PSOUP_EXTERN_C void PrimordialSoup_Shutdown() {
   psoup::OS::Shutdown();
 }
 
-PSOUP_EXTERN_C intptr_t PrimordialSoup_RunIsolate(void* snapshot,
+PSOUP_EXTERN_C intptr_t PrimordialSoup_RunIsolate(const void* snapshot,
                                                   size_t snapshot_length,
                                                   int argc,
                                                   const char** argv) {

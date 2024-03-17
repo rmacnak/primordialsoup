@@ -24,7 +24,7 @@ EM_JS(void, _JS_initializeAliens, (), {
 });
 
 static psoup::Isolate* isolate;
-extern "C" void load_snapshot(void* snapshot, size_t snapshot_length) {
+extern "C" void load_snapshot(const void* snapshot, size_t snapshot_length) {
   PrimordialSoup_Startup();
   _JS_initializeAliens();
 

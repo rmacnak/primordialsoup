@@ -21,7 +21,7 @@ class ThreadPool;
 
 class Isolate {
  public:
-  Isolate(void* snapshot, size_t snapshot_length, uint64_t seed);
+  Isolate(const void* snapshot, size_t snapshot_length, uint64_t seed);
   ~Isolate();
 
   Heap* heap() const { return heap_; }
@@ -54,7 +54,7 @@ class Isolate {
   Heap* heap_;
   Interpreter* interpreter_;
   MessageLoop* loop_;
-  void* snapshot_;
+  const void* snapshot_;
   size_t snapshot_length_;
   uintptr_t salt_;
   Random random_;

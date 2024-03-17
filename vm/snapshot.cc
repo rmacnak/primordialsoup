@@ -6,12 +6,15 @@
 
 #include <type_traits>
 
+#include "vm/allocation.h"
 #include "vm/heap.h"
 #include "vm/interpreter.h"
 #include "vm/object.h"
 #include "vm/os.h"
 
 namespace psoup {
+
+class Deserializer;
 
 class Cluster {
  public:
@@ -25,6 +28,54 @@ class Cluster {
  protected:
   intptr_t ref_start_;
   intptr_t ref_stop_;
+};
+
+class Deserializer : public ValueObject {
+ public:
+  Deserializer(const void* snapshot, size_t snapshot_length);
+  ~Deserializer();
+
+  intptr_t position() { return cursor_ - snapshot_; }
+  template <typename T>
+  T Read() {
+    T result;
+    memcpy(&result, cursor_, sizeof(T));
+    cursor_ += sizeof(T);
+    return result;
+  }
+  template <typename T = uintptr_t>
+  T ReadLEB128();
+  template <typename T = intptr_t>
+  T ReadSLEB128();
+
+  void Deserialize(Heap* heap);
+
+  Cluster* ReadCluster();
+
+  intptr_t next_ref() const { return next_ref_; }
+
+  void RegisterRef(Object object) {
+    refs_[next_ref_++] = object;
+  }
+  Object ReadRef() {
+    return Ref(ReadLEB128());
+  }
+  Object Ref(intptr_t i) {
+    ASSERT(i > 0);
+    ASSERT(i < next_ref_);
+    return refs_[i];
+  }
+
+ private:
+  const uint8_t* const snapshot_;
+  const size_t snapshot_length_;
+  const uint8_t* cursor_;
+
+  intptr_t num_clusters_;
+  Cluster** clusters_;
+
+  Object* refs_;
+  intptr_t next_ref_;
 };
 
 class RegularObjectCluster : public Cluster {
@@ -345,11 +396,11 @@ class FloatCluster : public Cluster {
   void ReadEdges(Deserializer* d, Heap* h) {}
 };
 
-Deserializer::Deserializer(Heap* heap, void* snapshot, size_t snapshot_length)
+Deserializer::Deserializer(const void* snapshot, size_t snapshot_length)
     : snapshot_(reinterpret_cast<const uint8_t*>(snapshot)),
       snapshot_length_(snapshot_length),
       cursor_(snapshot_),
-      heap_(heap),
+      num_clusters_(0),
       clusters_(nullptr),
       refs_(nullptr),
       next_ref_(0) {}
@@ -363,7 +414,7 @@ Deserializer::~Deserializer() {
   delete[] refs_;
 }
 
-void Deserializer::Deserialize() {
+void Deserializer::Deserialize(Heap* heap) {
   int64_t start = OS::CurrentMonotonicNanos();
 
   // Skip interpreter directive, if any.
@@ -392,29 +443,29 @@ void Deserializer::Deserialize() {
   for (intptr_t i = 0; i < num_clusters_; i++) {
     Cluster* c = ReadCluster();
     clusters_[i] = c;
-    c->ReadNodes(this, heap_);
+    c->ReadNodes(this, heap);
   }
   ASSERT((next_ref_ - 1) == num_nodes);
   for (intptr_t i = 0; i < num_clusters_; i++) {
-    clusters_[i]->ReadEdges(this, heap_);
+    clusters_[i]->ReadEdges(this, heap);
   }
 
   ObjectStore os = static_cast<ObjectStore>(ReadRef());
 
-  heap_->RegisterClass(kSmallIntegerCid, os->SmallInteger());
-  heap_->RegisterClass(kMediumIntegerCid, os->MediumInteger());
-  heap_->RegisterClass(kLargeIntegerCid, os->LargeInteger());
-  heap_->RegisterClass(kFloatCid, os->Float());
-  heap_->RegisterClass(kByteArrayCid, os->ByteArray());
-  heap_->RegisterClass(kStringCid, os->String());
-  heap_->RegisterClass(kArrayCid, os->Array());
-  heap_->RegisterClass(kWeakArrayCid, os->WeakArray());
-  heap_->RegisterClass(kEphemeronCid, os->Ephemeron());
-  heap_->RegisterClass(kActivationCid, os->Activation());
-  heap_->RegisterClass(kClosureCid, os->Closure());
+  heap->RegisterClass(kSmallIntegerCid, os->SmallInteger());
+  heap->RegisterClass(kMediumIntegerCid, os->MediumInteger());
+  heap->RegisterClass(kLargeIntegerCid, os->LargeInteger());
+  heap->RegisterClass(kFloatCid, os->Float());
+  heap->RegisterClass(kByteArrayCid, os->ByteArray());
+  heap->RegisterClass(kStringCid, os->String());
+  heap->RegisterClass(kArrayCid, os->Array());
+  heap->RegisterClass(kWeakArrayCid, os->WeakArray());
+  heap->RegisterClass(kEphemeronCid, os->Ephemeron());
+  heap->RegisterClass(kActivationCid, os->Activation());
+  heap->RegisterClass(kClosureCid, os->Closure());
 
-  heap_->interpreter()->InitializeRoot(os);
-  heap_->InitializeAfterSnapshot();
+  heap->interpreter()->InitializeRoot(os);
+  heap->InitializeAfterSnapshot();
 
   int64_t stop = OS::CurrentMonotonicNanos();
   int64_t time = stop - start;
@@ -424,15 +475,15 @@ void Deserializer::Deserialize() {
                  "with %" Pd " objects "
                  "in %" Pd64 " us\n",
                  snapshot_length_ / KB,
-                 heap_->Size() / KB,
+                 heap->Size() / KB,
                  next_ref_ - 1,
                  time / kNanosecondsPerMicrosecond);
   }
 
 #if defined(DEBUG)
-  size_t before = heap_->Size();
-  heap_->CollectAll(Heap::kSnapshotTest);
-  size_t after = heap_->Size();
+  size_t before = heap->Size();
+  heap->CollectAll(Heap::kSnapshotTest);
+  size_t after = heap->Size();
   ASSERT(before == after);  // Snapshots should not contain garbage.
 #endif
 }
@@ -507,6 +558,11 @@ Cluster* Deserializer::ReadCluster() {
     FATAL("Unknown cluster format %" Pd "\n", format);
     return nullptr;
   }
+}
+
+void Deserialize(Heap* heap, const void* snapshot, size_t snapshot_length) {
+  Deserializer d(snapshot, snapshot_length);
+  d.Deserialize(heap);
 }
 
 }  // namespace psoup

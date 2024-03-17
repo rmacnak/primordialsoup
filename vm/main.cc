@@ -26,7 +26,7 @@ int main(int argc, const char** argv) {
   void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
 
   intptr_t exit_code =
-      PrimordialSoup_RunIsolate(reinterpret_cast<void*>(snapshot.base()),
+      PrimordialSoup_RunIsolate(reinterpret_cast<const void*>(snapshot.base()),
                                 snapshot.size(), argc - 2, &argv[2]);
 
   signal(SIGINT, defaultSIGINT);
