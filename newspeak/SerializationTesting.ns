@@ -1,8 +1,8 @@
 class SerializationTesting usingPlatform: p minitest: m resources: r = (|
 private WeakArray = p kernel WeakArray.
 private Ephemeron = p kernel Ephemeron.
-private Map = p collections OrderedMap.
-private Set = p collections OrderedSet.
+private Map = p collections Map.
+private Set = p collections Set.
 private Serializer = p serialization Serializer.
 private Deserializer = p serialization Deserializer.
 private TestContext = m TestContext.

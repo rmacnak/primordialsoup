@@ -160,214 +160,11 @@ public withAll: collection <Collection[E]> ^<List[E]> = (
 
 Lookup (#at:) runs in constant time, and insertion (#at:put:) and removal (#removeKey:) run in amortized constant time, provided the #hash of keys is well distributed.
 
-The order of iteration of keys is unspecified except for the following constraints. The iteration order only changes when the map is modified (insertion or removal). The iteration order of values and associations is consistent with the iteration order of keys.
+Iteration happens in insertion order. If the value associated with a key changes while the key is already in the map, the key's order does not change. Removing a key and adding it back will change the key's order to last.
 
-nil is a valid key and a valid value. *)
+nil is a valid key and a valid value.
+*)
 public class Map new: capacity <Integer> = Collection (
-	|
-	protected size_ ::= 0.
-	protected table ::= Array new: (capacityFor: capacity).
-	|
-	1 to: table size by: 2 do: [:index | table at: index put: table].
-) (
-public addAll: other = (
-	other keysAndValuesDo: [:key :value | self at: key put: value].
-)
-public at: key <K> ^<V> = (
-	^self at: key ifAbsent: [(NotFound element: key) signal]
-)
-public at: key <K> ifAbsent: onAbsent <[X def]> ^<K | X> = (
-	| index |
-	index:: scanFor: key.
-	table = (table at: index) ifTrue: [^onAbsent value].
-	^table at: 1 + index
-)
-public at: key <K> ifAbsentPut: valueGenerator <[V]> ^<V> = (
-	| index |
-	index:: scanFor: key.
-	table = (table at: index) ifTrue:
-		[ | value = valueGenerator value. |
-		 table at: index put: key.
-		 table at: 1 + index put: value.
-		 self incrementSize.
-		 ^value].
-	^table at: 1 + index
-)
-public at: key <K> put: value <V> ^<V> = (
-	| index |
-	index:: scanFor: key.
-	table at: 1 + index put: value.
-	table = (table at: index) ifTrue:
-		[table at: index put: key.
-		 self incrementSize].
-	^value
-)
-private capacityFor: numElements <Integer> = (
-	numElements < 0 ifTrue: [^(ArgumentError value: numElements) signal].
-	(* + 1 for an empty slot to terminate probing *)
-	(* * 4 // 3 for 75% load factor *)
-	(* << 1 for flattened association *)
-	^numElements + 1 * 4 // 3 << 1
-)
-public collect: transform <[:V | W]> ^<Map[K, W]> = (
-	| result = Map new: size_. |
-	1 to: table size by: 2 do: [:index |
-		| key |
-		table = (key:: table at: index) ifFalse:
-			[result at: key put: (transform value: (table at: 1 + index))]].
-	^result
-)
-public do: action <[:V]> = (
-	1 to: table size by: 2 do: [:index |
-		table = (table at: index) ifFalse:
-			[action value: (table at: 1 + index)]].
-)
-fixCollisionsAfter: start <Integer> = (
-	| index ::= start. key |
-	[index:: index + 1 \\ table size + 1.
-	 key:: table at: index.
-	 table = key] whileFalse:
-		[ | newIndex = self scanFor: key. |
-		 newIndex = index ifFalse:
-			[table at: newIndex put: key.
-			 table at: 1 + newIndex put: (table at: 1 + index).
-			 table at: index put: table.
-			 table at: 1 + index put: nil]].
-)
-public includesKey: key <K> ^<Boolean> = (
-	^(table = (table at: (scanFor: key))) not
-)
-incrementSize = (
-	| oldTable newTable |
-	size_:: 1 + size_.
-	(table size * 3) >= (size_ * 8) ifTrue: [^self]. (* 75% load factor *)
-
-	oldTable:: table.
-	table:: newTable:: Array new: oldTable size << 1.
-	1 to: newTable size by: 2 do:
-		[:newIndex | newTable at: newIndex put: newTable].
-	1 to: oldTable size by: 2 do: [:oldIndex |
-		| key = oldTable at: oldIndex. |
-		oldTable = key ifFalse:
-			[ | newIndex = scanForEmptySlotFor: key. |
-			newTable at: newIndex put: key.
-			newTable at: (1 + newIndex) put: (oldTable at: 1 + oldIndex)]].
-)
-public isEmpty ^<Boolean> = (
-	^0 = size_
-)
-public isKindOfMap ^<Boolean> = (
-	^true
-)
-public keys ^<Array[K]> = (
-	|
-	result = Array new: size.
-	table = self table.
-	cursor ::= 0.
-	|
-	1 to: table size by: 2 do: [:index |
-		| key = table at: index. |
-		table = key ifFalse:
-			[result at: (cursor:: 1 + cursor) put: key]].
-	^result
-)
-public keysAndValuesDo: action <[:K :V]> = (
-	1 to: table size by: 2 do: [:index |
-		| key = table at: index. |
-		table = key ifFalse:
-			[action value: key value: (table at: 1 + index)]].
-)
-public reject: predicate <[:V | Boolean]> ^<Map[K, V]> = (
-	| result = Map new: size_. |
-	1 to: table size by: 2 do: [:index |
-		| key |
-		table = (key:: table at: index) ifFalse:
-			[ | value = table at: 1 + index. |
-			(predicate value: value) ifFalse:
-				[result at: key put: value]]].
-	^result
-)
-public removeAll = (
-	table:: Array new: (capacityFor: 3).
-	1 to: table size by: 2 do: [:index | table at: index put: table].
-	size_:: 0.
-)
-public removeKey: key <K> ^<V> = (
-	^self removeKey: key ifAbsent: [(NotFound element: key) signal]
-)
-public removeKey: key <K> ifAbsent: onAbsent <[X def]> ^<V | X> = (
-	| index oldValue |
-	index:: scanFor: key.
-	table = (table at: index) ifTrue: [^onAbsent value].
-	table at: index put: table.
-	oldValue:: table at: 1 + index.
-	table at: 1 + index put: nil.
-	self fixCollisionsAfter: index.
-	size_:: size_ - 1.
-	^oldValue
-)
-scanFor: key <K> ^<Integer> = (
-	| index start |
-	index:: start:: key hash << 1 \\ table size + 1.
-	[ | element |
-	 table = (element:: table at: index) ifTrue: [^index].
-	 key = element ifTrue: [^index].
-	 (index:: index + 1 \\ table size + 1) = start] whileFalse.
-	self errorNoFreeSpace
-)
-scanForEmptySlotFor: key = (
-	| index start |
-	index:: start:: key hash << 1 \\ table size + 1.
-	[table = (table at: index) ifTrue: [^index].
-	 (index:: index + 1 \\ table size + 1) = start] whileFalse.
-	self errorNoFreeSpace
-)
-public select: predicate <[:V | Boolean]> ^<Map[K, V]> = (
-	| result = Map new: size_. |
-	1 to: table size by: 2 do: [:index |
-		| key |
-		table = (key:: table at: index) ifFalse:
-			[ | value = table at: 1 + index. |
-			(predicate value: value) ifTrue:
-				[result at: key put: value]]].
-	^result
-)
-public size ^<Integer> = (
-	^size_
-)
-public values ^<Array[V]> = (
-	|
-	result = Array new: size.
-	table = self table.
-	cursor ::= 0.
-	|
-	1 to: table size by: 2 do: [:index |
-		table = (table at: index) ifFalse:
-			[result at: (cursor:: 1 + cursor) put: (table at: 1 + index)]].
-	^result
-)
-) : (
-public new ^<Map[K, V]> = (
-	^self new: 3
-)
-public withAll: collection ^<Map[K, V]> = (
-	^(self new: collection size) addAll: collection; yourself
-)
-)
-public class NotFound element: e = Exception (
-	|
-	public element = e.
-	|
-) (
-public printString = (
-	^'NotFound: ', element printString
-)
-) : (
-)
-(* Like Map, but iteration happens in insertion order.
-
-If the value associated with a key changes while the key is already in the map, the key's order does not change. Removing a key and adding it back will change the key's order to last. *)
-public class OrderedMap new: capacity <Integer> = Collection (
 	|
 	protected size_ <Integer>
 	protected deleted_ <Integer>
@@ -405,7 +202,7 @@ public at: key <K> put: value <V> ^<V> = (
 )
 public collect: transform <[:V | W]> ^<Map[K, W]> = (
 	|
-	result = OrderedMap new: size.
+	result = Map new: size.
 	table = data_.
 	|
 	1 to: size_ + deleted_ << 1 by: 2 do:
@@ -499,7 +296,7 @@ rehash = (
 )
 public reject: predicate <[:V | Boolean]> ^<Map[K, V]> = (
 	|
-	result = OrderedMap new: size.
+	result = Map new: size.
 	table = data_.
 	|
 	1 to: size_ + deleted_ << 1 by: 2 do:
@@ -556,7 +353,7 @@ scanForEmptySlotFor: key <K> ^<Integer> = (
 )
 public select: predicate <[:V | Boolean]> ^<Map[K, V]> = (
 	|
-	result = OrderedMap new: size.
+	result = Map new: size.
 	table = data_.
 	|
 	1 to: size_ + deleted_ << 1 by: 2 do:
@@ -583,17 +380,31 @@ public values ^<Array[V]> = (
 	^result
 )
 ) : (
-public new ^<OrderedMap[K, V]> = (
+public new ^<Map[K, V]> = (
 	^self new: 3
 )
-public withAll: collection ^<OrderedMap[K, V]> = (
+public withAll: collection ^<Map[K, V]> = (
 	^(self new: collection size) addAll: collection; yourself
 )
 )
-(* Like Set, but iteration happens in insertion order.
+public class NotFound element: e = Exception (
+	|
+	public element = e.
+	|
+) (
+public printString = (
+	^'NotFound: ', element printString
+)
+) : (
+)
+(* A collection of elements without duplicates.
 
-If element is added while the element is already in the set, the element's order does not change. Removing an element and adding it back will change the element's order to last. *)
-public class OrderedSet new: capacity <Integer> = Collection (
+Lookup (#includes:) runs in constant time, and insertion (#add:) and removal (#remove:) run in amortized constant time, provided the #hash of elements is well distributed.
+
+Iteration happens in insertion order. If element is added while the element is already in the set, the element's order does not change. Removing an element and adding it back will change the element's order to last.
+
+nil is a valid element. *)
+public class Set new: capacity <Integer> = Collection (
 	|
 	protected size_ <Integer>
 	protected deleted_ <Integer>
@@ -667,7 +478,7 @@ public isKindOfSet ^<Boolean> = (
 	^true
 )
 protected newForCollectUsingAdd: capacity = (
-	^OrderedSet new: capacity
+	^Set new: capacity
 )
 rehash = (
 	| oldData oldLast newHashtable newData newKeyIndex |
@@ -739,142 +550,6 @@ scanForEmptySlotFor: key <E> ^<Integer> = (
 	[0 = (hashtable at: bucketIndex) ifTrue: [^bucketIndex].
 	 (bucketIndex:: bucketIndex \\ hashtable size + 1) = start] whileFalse.
 	self errorNoFreeSpace.
-)
-public size ^<Integer> = (
-	^size_
-)
-) : (
-public new ^<OrderedSet[E]> = (
-	^self new: 3
-)
-public withAll: collection <Collection[E]> ^<OrderedSet[E]> = (
-	^(self new: collection size) addAll: collection; yourself
-)
-)
-(* A collection of elements without duplicates.
-
-Lookup (#includes:) runs in constant time, and insertion (#add:) and removal (#remove:) run in amortized constant time, provided the #hash of elements is well distributed.
-
-The order of iteration of elements is unspecified except the iteration order only changes when the set is modified (insertion or removal).
-
-nil is a valid element. *)
-public class Set new: capacity <Integer> = Collection (
-	|
-	protected size_ ::= 0.
-	protected table ::= Array new: (capacityFor: capacity).
-	|
-	1 to: table size do: [:index | table at: index put: table].
-) (
-public add: element <E> ^<E> = (
-	| index entry |
-	index:: scanFor: element.
-	entry:: table at: index.
-	table = entry ifTrue:
-		[table at: index put: element.
-		 incrementSize].
-	^element
-)
-public addAll: collection <Collection[E]> = (
-	collection do: [:element | self add: element].
-)
-public asArray ^<Array[E]> = (
-	| result cursor |
-	result:: Array new: size_.
-	cursor:: 1.
-	1 to: table size do: [:index |
-		| entry = table at: index. |
-		table = entry ifFalse:
-			[result at: cursor put: entry.
-			 cursor:: 1 + cursor]].
-	^result
-)
-private capacityFor: numElements <Integer> = (
-	numElements < 0 ifTrue: [^(ArgumentError value: numElements) signal].
-	(* + 1 for an empty slot to terminate probing *)
-	(* * 4 // 3 for 75% load factor *)
-	^numElements + 1 * 4 // 3
-)
-public do: action <[:E]> = (
-	table do: [:entry | table = entry ifFalse: [action value: entry]].
-)
-fixCollisionsAfter: start <Integer> = (
-	| index ::= start. element |
-	[index:: index \\ table size + 1.
-	 element:: table at: index.
-	 table = element] whileFalse:
-		[ | newIndex = self scanFor: element. |
-		 newIndex = index ifFalse:
-			[table at: newIndex put: element.
-			 table at: index put: table]].
-)
-public includes: element <E> ^<Boolean> = (
-	^(table = (table at: (scanFor: element))) not
-)
-incrementSize = (
-	| oldTable newTable |
-	size_:: 1 + size_.
-	(table size * 3) >= (size_ * 4) ifTrue: [^self]. (* 75% load factor *)
-
-	oldTable:: table.
-	table:: newTable:: Array new: oldTable size << 1.
-	1 to: newTable size do: [:index | newTable at: index put: newTable].
-	1 to: oldTable size do: [:index |
-		| entry = oldTable at: index. |
-		oldTable = entry ifFalse:
-			[table at: (scanForEmptySlotFor: entry) put: entry]]
-)
-public isEmpty ^<Boolean> = (
-	^0 = size_
-)
-public isKindOfSet ^<Boolean> = (
-	^true
-)
-protected newForCollectUsingAdd: capacity = (
-	^Set new: capacity
-)
-public remove: element <E> ^<E> = (
-	^self remove: element ifAbsent: [(NotFound element: element) signal].
-)
-public remove: element <E> ifAbsent: onAbsent <[X def]> ^<E | X> = (
-	| index entry |
-	index:: scanFor: element.
-	entry:: table at: index.
-	table = entry ifTrue: [^onAbsent value].
-	table at: index put: table.
-	fixCollisionsAfter: index.
-	size_:: size_ - 1.
-	^element
-)
-public removeAll = (
-	table:: Array new: (capacityFor: 3).
-	1 to: table size do: [:index | table at: index put: table].
-	size_:: 0.
-)
-public removeAll: collection <Collection[E]> = (
-	collection do: [:element | self remove: element].
-)
-public removeAllSuchThat: predicate <[:E | Boolean]> = (
-	asArray do:
-		[:element | (predicate value: element) ifTrue:
-			[self remove: element]].
-)
-scanFor: element <E> ^<Integer> = (
-	| index start |
-	index:: start:: element hash \\ table size + 1.
-	[
-		| entry |
-		(table = (entry:: table at: index) or: [ element = entry ])
-			ifTrue: [ ^index ].
-		(index:: index \\ table size + 1) = start ] whileFalse.
-	self errorNoFreeSpace
-)
-scanForEmptySlotFor: key = (
-	| index start |
-	index:: start:: key hash \\ table size + 1.
-	[
-		table = (table at: index) ifTrue: [ ^index ].
-		(index:: index \\ table size + 1) = start] whileFalse.
-	self errorNoFreeSpace
 )
 public size ^<Integer> = (
 	^size_
