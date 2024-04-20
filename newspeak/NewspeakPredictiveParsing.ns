@@ -39,7 +39,7 @@ class NewspeakPredictiveParsing usingPlatform: platform asts: asts = (
 	private VarDeclAST = asts VarDeclAST.
 	private VariableAST = asts VariableAST.
 |) (
-class ParseError message: m position: p = Error (
+class ParseError message: m position: p = Exception (
 	|
 	public message <String> = m.
 	public position <Integer> = p.
@@ -600,7 +600,7 @@ public parsePragmaCommentOpt = (
 		 pragma:: subparser advanceToken parsePragmaOpt.
 		 nil = pragma ifFalse: [pragmas add: pragma]].
 	pragmas isEmpty ifTrue: [^nil].
-	^pragmas] on: Error do: [:e | ^nil].
+	^pragmas] on: Exception do: [:e | ^nil].
 )
 public parsePragmaOpt = (
 	(* :pragma: unaryMessage | (keyword, literal)+ *)

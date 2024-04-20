@@ -20,7 +20,7 @@ parse: input = (
 	^json decode: input
 )
 reject: input = (
-	should: [parse: input] signal: Error
+	should: [parse: input] signal: Exception
 )
 public testDecodeEmpty = (
 	reject: ''.
@@ -174,8 +174,8 @@ public testEncodeMap = (
 	assert: (encode: (Map new at: 'x' put: 1; at: 'y' put: 2; yourself)) equals: '{"x":1,"y":2}'.
 	assert: (encode: (Map new at: 'x' put: 1; at: 'y' put: 2; at: 'z' put: 3; yourself)) equals: '{"x":1,"y":2,"z":3}'.
 
-	should: [encode: (Map new at: 'x' put: Object new; yourself)] signal: Error.
-	should: [encode: (Map new at: true put: 'x'; yourself)] signal: Error.
+	should: [encode: (Map new at: 'x' put: Object new; yourself)] signal: Exception.
+	should: [encode: (Map new at: true put: 'x'; yourself)] signal: Exception.
 )
 public testEncodeNull = (
 	assert: (encode: nil) equals: 'null'.

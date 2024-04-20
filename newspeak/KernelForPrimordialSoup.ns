@@ -752,7 +752,7 @@ public collect: transform <[:E | F]> ^<List[F]> = (
 	^result
 )
 public detect: predicate <[:E | Boolean]> ^<E> = (
-	^self detect: predicate ifNone: [Error signal: 'No matching element detected']
+	^self detect: predicate ifNone: [Exception signal: 'No matching element detected']
 )
 public detect: predicate <[:E | Boolean]> ifNone: onNone <[X def]> ^<E | X> = (
 	self do: [:element <E> | (predicate value: element) ifTrue: [^element]].
@@ -789,7 +789,7 @@ public noneSatisfy: predicate <[:E | Boolean]> ^<Boolean> = (
 	^true
 )
 public reduce: mergeFunction <[:(E | X) :E | X def]> ^<X> = (
-	^self reduce: mergeFunction ifEmpty: [Error signal: 'Cannot reduce an empty collection' ]
+	^self reduce: mergeFunction ifEmpty: [Exception signal: 'Cannot reduce an empty collection' ]
 )
 public reduce: mergeFunction <[:(E | X) :E | X def]> ifEmpty: onEmpty <[Y def]> ^<E | X | Y> = (
 	| first <Boolean> ::= true. runningValue <E | X> |
@@ -1667,7 +1667,7 @@ public reciprocalModulo: modulus <Integer> ^<Integer> = (
 		 tmp:: newr.
 		 newr:: r - (q * newr).
 		 r:: tmp].
-	r > 1 ifTrue: [^Error signal: 'Not coprime'].
+	r > 1 ifTrue: [^Exception signal: 'Not coprime'].
 	t < 0 ifTrue: [t:: t + modulus].
 	^t
 )
@@ -2085,10 +2085,6 @@ protected Array = (
 )
 protected ByteArray = (
 	^outer KernelForPrimordialSoup ByteArray
-)
-(* squeak compatibility *)
-protected Error = (
-	^outer KernelForPrimordialSoup Exception
 )
 protected Exception = (
 	^outer KernelForPrimordialSoup Exception

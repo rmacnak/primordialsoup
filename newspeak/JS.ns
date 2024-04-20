@@ -106,31 +106,31 @@ private pushExpat: closure = (
 )
 private rawPerformCall: numArgs = (
 	(* :pragma: primitive: 329 *)
-	^Error signal: rawPop printString
+	^Exception signal: rawPop printString
 )
 private rawPerformDelete = (
 	(* :pragma: primitive: 328 *)
-	^Error signal: rawPop printString
+	^Exception signal: rawPop printString
 )
 private rawPerformGet = (
 	(* :pragma: primitive: 326 *)
-	^Error signal: rawPop printString
+	^Exception signal: rawPop printString
 )
 private rawPerformHas = (
 	(* :pragma: primitive: 332 *)
-	^Error signal: rawPop printString
+	^Exception signal: rawPop printString
 )
 private rawPerformInstanceOf = (
 	(* :pragma: primitive: 331 *)
-	^Error signal: rawPop printString
+	^Exception signal: rawPop printString
 )
 private rawPerformNew: numArgs = (
 	(* :pragma: primitive: 330 *)
-	^Error signal: rawPop printString
+	^Exception signal: rawPop printString
 )
 private rawPerformSet = (
 	(* :pragma: primitive: 327 *)
-	^Error signal: rawPop printString
+	^Exception signal: rawPop printString
 )
 private rawPop = (
 	(* :pragma: primitive: 323 *)

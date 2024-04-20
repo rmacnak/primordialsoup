@@ -259,7 +259,7 @@ public testListAt = (
 	should: [list at: 0] signal: rangeError.
 	should: [list at: 3] signal: rangeError.
 	should: [list at: -3] signal: rangeError.
-	should: [list at: nil] signal: Error.
+	should: [list at: nil] signal: Exception.
 
 	empty:: List new.
 	should: [empty at: 1] signal: rangeError.
@@ -287,10 +287,10 @@ public testListAtPut = (
 	should: [list at: 0 put: 'pineapple'] signal: rangeError.
 	should: [list at: 3 put: 'pineapple'] signal: rangeError.
 	should: [list at: -3 put: 'pineapple'] signal: rangeError.
-	should: [list at: nil put: 'pineapple'] signal: Error.
+	should: [list at: nil put: 'pineapple'] signal: Exception.
 
 	empty:: List new.
-	should: [empty at: 1 put: 'orange'] signal: Error.
+	should: [empty at: 1 put: 'orange'] signal: Exception.
 )
 public testListConcatenation = (
 	|
@@ -353,9 +353,9 @@ public testListCopyFromTo = (
 	assert: result isKindOfList.
 	assertList: result equals: {70}.
 
-	should: [list copyFrom: -1 to: 1] signal: Error.
-	should: [list copyFrom: 0 to: 1] signal: Error.
-	should: [list copyFrom: 7 to: 8] signal: Error.
+	should: [list copyFrom: -1 to: 1] signal: Exception.
+	should: [list copyFrom: 0 to: 1] signal: Exception.
+	should: [list copyFrom: 7 to: 8] signal: Exception.
 )
 public testListDo = (
 	| list count |
@@ -416,13 +416,13 @@ public testListEnumerationEmpty = (
 	sum:: list reduce: [:a :b | a + b] ifEmpty: ['Empty'].
 	assert: sum equals: 'Empty'.
 
-	should: [list reduce: [:a :b | a + b]] signal: Error.
+	should: [list reduce: [:a :b | a + b]] signal: Exception.
 
 	deny: (list anySatisfy: [:e | fail]).
 	assert: (list allSatisfy: [:e | fail]).
 	assert: (list noneSatisfy: [:e | fail]).
 
-	should: [list detect: [:e | e > 5]] signal: Error.
+	should: [list detect: [:e | e > 5]] signal: Exception.
 	assert: (list detect: [:e | e > 55] ifNone: ['None']) equals: 'None'.
 )
 public testListEqualityIsIdentity = (
@@ -462,15 +462,15 @@ public testListFirstLast = (
 	assert: (list first) equals: 'apple'.
 	assert: (list last) equals: 'banana'.
 
-	should: [empty first] signal: Error.
-	should: [empty last] signal: Error.
+	should: [empty first] signal: Exception.
+	should: [empty last] signal: Exception.
 )
 public testListFloatIndex = (
 	| list = List new. |
 	list add: 'apple'.
 
-	should: [list at: 1 asFloat] signal: Error.
-	should: [list at: 1 asFloat put: 'banana'] signal: Error.
+	should: [list at: 1 asFloat] signal: Exception.
+	should: [list at: 1 asFloat put: 'banana'] signal: Exception.
 )
 public testListIndexOf = (
 	| list = List new. empty = List new. |
@@ -520,9 +520,9 @@ public testListNew = (
 	assert: (List new: 0) size equals: 0.
 	assert: (List new: 16) size equals: 0.
 
-	should: [List new: -1] signal: Error.
-	should: [List new: '10'] signal: Error.
-	should: [List new: nil] signal: Error.
+	should: [List new: -1] signal: Exception.
+	should: [List new: '10'] signal: Exception.
+	should: [List new: nil] signal: Exception.
 )
 public testListRemove = (
 	| list = List new: 0. |
@@ -540,7 +540,7 @@ public testListRemove = (
 	assert: (list at: 3) equals: 'strawberry'.
 	assert: (list at: 4) equals: 'watermelon'.
 
-	should: [list remove: 'orange'] signal: Error.
+	should: [list remove: 'orange'] signal: Exception.
 	assert: (list remove: 'orange' ifAbsent: ['missing']) equals: 'missing'.
 
 	assert: (list remove: 'apple') equals: 'apple'.
@@ -645,7 +645,7 @@ public testListRemoveFirst = (
 	assert: list removeFirst equals: 'watermelon'.
 	assert: list size equals: 0.
 
-	should: [list removeFirst] signal: Error.
+	should: [list removeFirst] signal: Exception.
 )
 public testListRemoveLast = (
 	| list = List new: 0. |
@@ -681,7 +681,7 @@ public testListRemoveLast = (
 	assert: list removeLast equals: 'apple'.
 	assert: list size equals: 0.
 
-	should: [list removeLast] signal: Error.
+	should: [list removeLast] signal: Exception.
 )
 public testListSort = (
 	| list |
@@ -747,10 +747,10 @@ public testListWithAll = (
 	assert: (result at: 1) equals: 'G'.
 	assert: (result at: 2) equals: 'H'.
 
-	should: [List withAll: -1] signal: Error.
-	should: [List withAll: 16r110000] signal: Error.
-	should: [List withAll: nil] signal: Error.
-	should: [List withAll: 122 asFloat] signal: Error.
+	should: [List withAll: -1] signal: Exception.
+	should: [List withAll: 16r110000] signal: Exception.
+	should: [List withAll: nil] signal: Exception.
+	should: [List withAll: 122 asFloat] signal: Exception.
 )
 ) : (
 TEST_CONTEXT = ()
@@ -923,9 +923,9 @@ public testMapNew = (
 	assert: (Map new: 0) size equals: 0.
 	assert: (Map new: 16) size equals: 0.
 
-	should: [Map new: -1] signal: Error.
-	should: [Map new: '10'] signal: Error.
-	should: [Map new: nil] signal: Error.
+	should: [Map new: -1] signal: Exception.
+	should: [Map new: '10'] signal: Exception.
+	should: [Map new: nil] signal: Exception.
 )
 public testMapNilKey = (
 	| map = Map new. |
@@ -1308,9 +1308,9 @@ public testSetNew = (
 	assert: (Set new) size equals: 0.
 	assert: (Set new: 16) size equals: 0.
 
-	should: [Set new: -1] signal: Error.
-	should: [Set new: '10'] signal: Error.
-	should: [Set new: nil] signal: Error.
+	should: [Set new: -1] signal: Exception.
+	should: [Set new: '10'] signal: Exception.
+	should: [Set new: nil] signal: Exception.
 )
 public testSetNilElement = (
 	| set = Set new. |
@@ -1517,17 +1517,17 @@ public testSetWithAll = (
 	assert: (result includes: 'G').
 	assert: (result includes: 'H').
 
-	should: [Set withAll: -1] signal: Error.
-	should: [Set withAll: 16r110000] signal: Error.
-	should: [Set withAll: nil] signal: Error.
-	should: [Set withAll: 122 asFloat] signal: Error.
+	should: [Set withAll: -1] signal: Exception.
+	should: [Set withAll: 16r110000] signal: Exception.
+	should: [Set withAll: nil] signal: Exception.
+	should: [Set withAll: 122 asFloat] signal: Exception.
 )
 ) : (
 TEST_CONTEXT = ()
 )
 rangeError = (
 	(* :todo: Introduce a more specific exception. *)
-	^Error
+	^Exception
 )
 ) : (
 )

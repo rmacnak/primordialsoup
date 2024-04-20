@@ -23,10 +23,10 @@ public apply: tool <ASTTool[T]> ^<T> = (
 	^self subclassResponsibility
 )
 assert: condition = (
-	condition ifFalse: [Error signal: 'Assert failed'].
+	condition ifFalse: [Exception signal: 'Assert failed'].
 )
 assert: condition message: message = (
-	condition ifFalse: [Error signal: message].
+	condition ifFalse: [Exception signal: message].
 )
 public copyPositionFrom: other <AST> = (
 	self start: other start.

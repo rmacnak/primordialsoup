@@ -13,14 +13,14 @@ classFromSource: src <String> ^<Class> = (
 	^(ClassDeclarationBuilder fromSource: src) install applyToObject reflectee
 )
 conflictError = (
-	^Error
+	^Exception
 )
 in: collection findMirrorNamed: name = (
 	collection do: [:mirror | mirror name = name ifTrue: [^mirror]].
 	^nil
 )
 syntaxError = (
-	^Error
+	^Exception
 )
 public testAccessModifiersFromClass = (
 	| klass builder |
@@ -1297,11 +1297,11 @@ public testShapeChangeWithHostileEquals = (
 	builder <ClassDeclarationBuilder>
 	|
 	klass:: classFromSource: 'class Class slot: s = ( | public slot = s. |)(
-		public = other ^<Boolean> = ( ^Error signal: ''Should not be called'' )
-		public hash ^<Integer> = ( ^Error signal: ''Should not be called'' )
+		public = other ^<Boolean> = ( ^Exception signal: ''Should not be called'' )
+		public hash ^<Integer> = ( ^Exception signal: ''Should not be called'' )
 	) : (
-		public = other ^<Boolean> = ( ^Error signal: ''Should not be called'' )
-		public hash ^<Integer> = ( ^Error signal: ''Should not be called'' )
+		public = other ^<Boolean> = ( ^Exception signal: ''Should not be called'' )
+		public hash ^<Integer> = ( ^Exception signal: ''Should not be called'' )
 	)'.
 	instance1:: klass slot: 1.
 	instance2:: klass slot: 2.

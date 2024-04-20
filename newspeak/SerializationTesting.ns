@@ -65,7 +65,7 @@ public testClosureLoadedByVM = (
 	assert: (testClosureAdd value: 3 value: 4) equals: 7.
 
 	assert: testClosureNLR isKindOfClosure.
-	should: [testClosureNLR value] signal: Error.
+	should: [testClosureNLR value] signal: Exception.
 )
 public testClosures = (
 	| before after |

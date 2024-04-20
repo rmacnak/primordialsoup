@@ -20,7 +20,7 @@ assertCompilationErrorIn: classSource <String> = (
 			with: 'class SampleTest test: sampleClass = ()( public test = () )'
 			ifFailure: [:message | ^self]
 			ifError: [:message | ^self]]
-		on: Error (* not Exception, which catches InMidstOfFileinNotifications *)
+		on: Exception (* not Exception, which catches InMidstOfFileinNotifications *)
 		do: [:ex | ^self].
 	failWithMessage: 'Expected a compilation error, but succeeded'
 )
@@ -31,7 +31,7 @@ assertNoCompilationErrorIn: classSource <String> = (
 			with: 'class SampleTest test: sampleClass = ()( public test = () )'
 			ifFailure: [:message | ^self]
 			ifError: [:message | ^self]]
-		on: Error (* not Exception, which catches InMidstOfFileinNotifications *)
+		on: Exception (* not Exception, which catches InMidstOfFileinNotifications *)
 		do: [:ex | ^failWithMessage: 'Unexpected compilation error'].
 )
 test: sampleClassSource <String> with: testClassSource <String> = (
@@ -39,7 +39,7 @@ test: sampleClassSource <String> with: testClassSource <String> = (
 		test: sampleClassSource
 		with: testClassSource
 		ifFailure: [:message | failWithMessage: message]
-		ifError: [:message | Error new signal: message]
+		ifError: [:message | Exception new signal: message]
 )
 public testAssignBooleanLiteral = (
 	testSampleMethod: 'public run = (| t | t:: false)'
@@ -625,14 +625,14 @@ public testImmutableInstVar = (
 		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
 			public test = (
 				assert: [sample slot = 9] description: ''Slot not properly initialized''.
-				assert: [sample slot: 10] signals: Error description: ''Assignment did not raise error''.
+				assert: [sample slot: 10] signals: Exception description: ''Assignment did not raise error''.
 				assert: [sample slot = 9] description: ''Slot did not retain value''.
 			)
 		)'
 )
 public testImmutableTempEnforced = (
 	testSampleMethod: 'public immutableTemp = ( | a = 9. | a:: 10. )'
-	with: 'assert: [sample immutableTemp] signals: Error.'
+	with: 'assert: [sample immutableTemp] signals: Exception.'
 )
 public testImmutableTempInitialized = (
 	testSampleMethod: 'public immutableTemp = ( | a = 9. | ^a )'
@@ -1449,7 +1449,7 @@ public testOverrideSelectorIdentical = (
 )
 public testParameterImmutabilityEnforced = (
 	testSampleMethod: 'public immutableParem: x = ( x:: 10. )'
-	with: 'assert: [sample immutableParem: 9] signals: Error.'
+	with: 'assert: [sample immutableParem: 9] signals: Exception.'
 )
 public testParameterTemporaryConflictInBlock = (
 	assertCompilationErrorIn: 'class Sample = () (foo = ( [:x | | x | ] ))'.
@@ -1999,7 +1999,7 @@ withStdError: stdError <Alien | Integer>
 		result ifFalse: [^reportError]].
 	^Process new lpProcessInformation: lpProcessInformation
 )'
-	with: 'assert: [true].' (* Just checking no error during compilation.  Error is avoided by removing the cascaded sends. *)
+	with: 'assert: [true].' (* Just checking no error during compilation.  Exception is avoided by removing the cascaded sends. *)
 )
 public testStackDepthTracking3 = (
 	testSampleMethod:
@@ -2035,7 +2035,7 @@ withStdError: stdError <Alien | Integer>
 		result ifFalse: [^reportError]].
 	^Process new lpProcessInformation: lpProcessInformation
 )'
-	with: 'assert: [true].' (* Just checking no error during compilation.  Error is avoided by removing the cascaded sends. *)
+	with: 'assert: [true].' (* Just checking no error during compilation.  Exception is avoided by removing the cascaded sends. *)
 )
 public testStackDepthTracking4 = (
 	testSampleMethod:
@@ -2059,7 +2059,7 @@ withStdError: stdError <Alien | Integer>
 			^3
 		].
 )'
-	with: 'assert: [true].' (* Just checking no error during compilation.  Error is avoided by removing the cascaded sends. *)
+	with: 'assert: [true].' (* Just checking no error during compilation.  Exception is avoided by removing the cascaded sends. *)
 )
 public testStatementBoundaries = (
 	assertCompilationErrorIn: 'class Sample = () ( method = ( . ) )'.
@@ -2299,7 +2299,7 @@ public testTemporaryTemporaryConflictInMethod = (
 )
 public testThisContext = (
 	testSampleMethod: 'public testThisContext = ( ^thisContext )'
-	with: 'assert: [sample testThisContext] signals: Error.'  (* MessageNotUnderstood *)
+	with: 'assert: [sample testThisContext] signals: Exception.'  (* MessageNotUnderstood *)
 )
 public testTimesRepeat = (
 (* The convention for naming the methods that test control structures differs from others. We retain the leading word test. This is so name completion is not corrupted by the presence of these methods. *)

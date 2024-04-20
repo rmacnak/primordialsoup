@@ -407,8 +407,8 @@ computeNames = (
 public deserialize: bytes = (
 	| numClusters |
 	stream:: ReadStream over: bytes.
-	stream uint16 = 16r1984 ifFalse: [Error signal: 'Not VictoryFuel'].
-	stream leb128 = 0 ifFalse: [Error signal: 'Version mismatch'].
+	stream uint16 = 16r1984 ifFalse: [Exception signal: 'Not VictoryFuel'].
+	stream leb128 = 0 ifFalse: [Exception signal: 'Version mismatch'].
 	numClusters:: stream leb128.
 	clusters:: Array new: numClusters.
 	refs:: Array new: stream leb128.

@@ -47,7 +47,7 @@ awaitNonInlinedLoop: events = (
 	^events
 )
 public testAwaitExceptionInContinuation = (
-	^assert: awaitExceptionInContinuation smashedWith: Error.
+	^assert: awaitExceptionInContinuation smashedWith: Exception.
 )
 public testAwaitExceptionLocalReturn = (
 	^assert: awaitExceptionLocalReturn resolvesTo: 'exception'.
@@ -114,7 +114,7 @@ public testAwaitOutOfOrder = (
 ) : (
 TEST_CONTEXT = ()
 )
-class FooError = Error () (
+class FooError = Exception () (
 ) : (
 )
 class HappensAfterChecker eventCount: n = (|
@@ -295,19 +295,19 @@ public testBrokenPromiseContagion1 = (
 	| p |
 	p:: (self <-: signalError) <-: doesNotExist.
 
-	^assert: p smashedWith: Error. (* Not MessageNotUnderstood *)
+	^assert: p smashedWith: Exception. (* Not MessageNotUnderstood *)
 )
 public testBrokenPromiseContagion2 = (
 	| p |
 	p:: (self <-: signalError) <-: yourself.
 
-	^assert: p smashedWith: Error.
+	^assert: p smashedWith: Exception.
 )
 public testBrokenPromiseContagion3 = (
 	| p |
 	p:: when: (self <-: signalError) fulfilled: [halt].
 
-	^assert: p smashedWith: Error.
+	^assert: p smashedWith: Exception.
 )
 public testChainAfterBroken = (
 	| r p r2 p2 |
@@ -382,41 +382,41 @@ public testDoubleResolution = (
 	(* Initially settled. *)
 	r:: Resolver new.
 	r fulfill: 1.
-	should: [r fulfill: 1] signal: Error.
+	should: [r fulfill: 1] signal: Exception.
 
 	r:: Resolver new.
 	r fulfill: 1.
-	should: [r fulfill: p] signal: Error.
+	should: [r fulfill: p] signal: Exception.
 
 	r:: Resolver new.
 	r fulfill: 1.
-	should: [r break: 1] signal: Error.
+	should: [r break: 1] signal: Exception.
 
 	(* Initially forwarded. *)
 	r:: Resolver new.
 	r fulfill: p.
-	should: [r fulfill: 1] signal: Error.
+	should: [r fulfill: 1] signal: Exception.
 
 	r:: Resolver new.
 	r fulfill: p.
-	should: [r fulfill: p] signal: Error.
+	should: [r fulfill: p] signal: Exception.
 
 	r:: Resolver new.
 	r fulfill: p.
-	should: [r break: 1] signal: Error.
+	should: [r break: 1] signal: Exception.
 
 	(* Initially broken. *)
 	r:: Resolver new.
 	r break: 1.
-	should: [r fulfill: 1] signal: Error.
+	should: [r fulfill: 1] signal: Exception.
 
 	r:: Resolver new.
 	r break: 1.
-	should: [r fulfill: p] signal: Error.
+	should: [r fulfill: p] signal: Exception.
 
 	r:: Resolver new.
 	r break: 1.
-	should: [r break: 1] signal: Error.
+	should: [r break: 1] signal: Exception.
 )
 public testEventualSendToNearPromiseError = (
 	| p |
@@ -459,7 +459,7 @@ public testImmediateResolution = (
 public testImmediateSendToBroken = (
 	| p |
 	p:: Resolver new break: FooError new; promise.
-	should: [p size] signal: Error. (* Not FooError. *)
+	should: [p size] signal: Exception. (* Not FooError. *)
 )
 public testImmediateSendToResolved = (
 	| p |
@@ -469,7 +469,7 @@ public testImmediateSendToResolved = (
 public testImmediateSendToUnresolved = (
 	| p |
 	p:: Resolver new promise.
-	should: [p size] signal: Error.
+	should: [p size] signal: Exception.
 )
 public testIsKindOfPromise = (
 	| r p |
@@ -492,9 +492,9 @@ public testMissingWhenBroken = (
 	r:: Resolver new.
 	p:: when: r promise fulfilled: [:v | halt].
 	assert: [p isKindOfPromise].
-	r break: Error new.
+	r break: Exception new.
 
-	^assert: p smashedWith: Error.
+	^assert: p smashedWith: Exception.
 )
 public testNearReferenceWhen = (
 	(* Does when need to be a message to some object other than the reference being observed? *)
@@ -543,7 +543,7 @@ public testViciousResolutionDirect = (
 	p:: r promise.
 	r fulfill: p.
 
-	^assert: p smashedWith: Error. (* CyclicResolutionError *)
+	^assert: p smashedWith: Exception. (* CyclicResolutionError *)
 )
 public testViciousResolutionIndirect = (
 	| r1 p1 r2 p2 joinResolver outstanding |
@@ -558,10 +558,10 @@ public testViciousResolutionIndirect = (
 	outstanding:: 2.
 	joinResolver:: Resolver new.
 	when: p1
-		fulfilled: [:resolution | joinResolver break: (Error new messageText: 'p1 was not smashed')]
+		fulfilled: [:resolution | joinResolver break: (Exception new messageText: 'p1 was not smashed')]
 		broken: [:error | outstanding:: outstanding - 1. 0 = outstanding ifTrue: [joinResolver fulfill: nil]].
 	when: p2
-		fulfilled: [:resolution | joinResolver break: (Error new messageText: 'p2 was not smashed')]
+		fulfilled: [:resolution | joinResolver break: (Exception new messageText: 'p2 was not smashed')]
 		broken: [:error | outstanding:: outstanding - 1. 0 = outstanding ifTrue: [joinResolver fulfill: nil]].
 	^joinResolver promise
 )
@@ -572,7 +572,7 @@ public testWhenBrokenError = (
 		fulfilled: [:v | halt]
 		broken: [:e | doesNotExist].
 	assert: [p isKindOfPromise].
-	r break: Error new.
+	r break: Exception new.
 
 	^assert: p smashedWith: MessageNotUnderstood.
 )
@@ -583,7 +583,7 @@ public testWhenBrokenValue = (
 		fulfilled: [:v | halt]
 		broken: [:e | 42].
 	assert: [p isKindOfPromise].
-	r break: Error new.
+	r break: Exception new.
 
 	^assert: p resolvesTo: 42.
 )
@@ -591,12 +591,12 @@ public testWhenResolvedError = (
 	| r p |
 	r:: Resolver new.
 	p:: when: r promise
-		fulfilled: [:v | Error signal: 'Something']
+		fulfilled: [:v | Exception signal: 'Something']
 		broken: [:e | fail].
 	assert: [p isKindOfPromise].
 	r fulfill: 21.
 
-	^assert: p smashedWith: Error.
+	^assert: p smashedWith: Exception.
 )
 public testWhenResolvedValue = (
 	| r p |
@@ -813,7 +813,7 @@ public testFarRefImmediateSend = (
 	r:: Resolver new.
 	when: testActorP fulfilled:
 		[:testActorRef |
-		should: [testActorRef return42] signal: Error.
+		should: [testActorRef return42] signal: Exception.
 		r fulfill: true].
 
 	^assert: r promise resolvesTo: true.
@@ -838,7 +838,7 @@ public testFarSendError1 = (
 	testActor:: ((Actor named: 'other') seed: TestActor) <-: new.
 	p:: testActor <-: signalError.
 
-	^assert: p smashedWith: Error.
+	^assert: p smashedWith: Exception.
 )
 public testFarSendError2 = (
 	| testActor p |
@@ -993,7 +993,7 @@ public testViciousResolutionIndirectWithRemotePromise = (
 	p:: r promise.
 	r fulfill: (testActor <-: echo: p).
 
-	^assert: p smashedWith: Error. (* CyclicResolutionError *)
+	^assert: p smashedWith: Exception. (* CyclicResolutionError *)
 )
 ) : (
 TEST_CONTEXT = ()

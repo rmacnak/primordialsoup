@@ -183,7 +183,7 @@ public satisfy: mark <Integer> ^<Constraint> = (
 	chooseMethod: mark.
 	isSatisfied ifFalse:
 		[strength = required ifTrue:
-			[Error signal: 'Could not satisfy a required constraint'].
+			[Exception signal: 'Could not satisfy a required constraint'].
 		^nil].
 	(* constraint can be satisfied *)
 	(* mark inputs to allow cycle detection in addPropagate *)
@@ -192,7 +192,7 @@ public satisfy: mark <Integer> ^<Constraint> = (
 	overridden:: out determinedBy.
 	overridden isNil ifFalse: [overridden markUnsatisfied].
 	out determinedBy: self.
-	(addPropagate: self mark: mark) ifFalse: [Error signal: 'Cycle encountered'].
+	(addPropagate: self mark: mark) ifFalse: [Exception signal: 'Cycle encountered'].
 	out mark: mark.
 	^overridden
 )
@@ -371,7 +371,7 @@ public chainTest: n = (
 	1 to: n do: [:i |
 		first value: i.
 		plan execute.
-		last value = i ifFalse: [Error signal: 'Chain test failed!'].
+		last value = i ifFalse: [Exception signal: 'Chain test failed!'].
 	].
 	editC destroyConstraint.
 )
@@ -442,20 +442,20 @@ public projectionTest: n <Integer> = (
 	].
 
 	setValueOf: src to: 17.
-	dst value = 1170 ifFalse: [Error signal: 'Projection test 1 failed!'].
+	dst value = 1170 ifFalse: [Exception signal: 'Projection test 1 failed!'].
 
 	setValueOf: dst to: 1050.
-	src value = 5 ifFalse: [Error signal: 'Projection test 2 failed!'].
+	src value = 5 ifFalse: [Exception signal: 'Projection test 2 failed!'].
 
 	setValueOf: scale to: 5.
 	0 to: n - 2 do:
 		[:i | (dests at: i + 1) value = (i * 5 + 1000)
-			ifFalse: [Error signal: 'Projection test 3 failed!'] ].
+			ifFalse: [Exception signal: 'Projection test 3 failed!'] ].
 
 	setValueOf: offset to: 2000.
 	0 to: n - 2 do:
 		[:i | (dests at: i + 1) value = (i * 5 + 2000)
-			ifFalse: [Error signal: 'Projection test 4 failed!']].
+			ifFalse: [Exception signal: 'Projection test 4 failed!']].
 )
 (* The given variable has changed. Propagate new values downstream. *)
 public propagateFrom: v <Variable> = (

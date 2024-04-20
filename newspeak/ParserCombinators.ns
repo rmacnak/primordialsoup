@@ -29,9 +29,9 @@ seed <Integer> ::= 16rCAFE.
 parser <CombinatorialParser> = SimpleExpressionGrammar new start compress.
 theExpression <String> = randomExpression: 20.
 |theExpression size = 41137 ifFalse:
-  [Error signal: 'Generated expression of the wrong size'].
+  [Exception signal: 'Generated expression of the wrong size'].
 ((parser parseWithContext: (ParserContext over: theExpression) ifError: [parseFailed]) = 31615)
-  ifFalse: [Error signal: 'Expression evaluated to wrong value']) (
+  ifFalse: [Exception signal: 'Expression evaluated to wrong value']) (
 class AlternatingParser either: p or: q = CombinatorialParser (|
 p <CombinatorialParser> ::= p.
 q <CombinatorialParser> ::= q.
@@ -108,7 +108,7 @@ class ForwardReferenceParser = CombinatorialParser (|
 forwardee <CombinatorialParser>
 |) (
 public bind: p = (
-	forwardee isNil ifFalse: [Error signal: 'Forward reference parser already bound'].
+	forwardee isNil ifFalse: [Exception signal: 'Forward reference parser already bound'].
 	forwardee:: p.
 )
 public compress = (

@@ -27,7 +27,7 @@ private (* N.B. Do not leak to subinstances. *) internalActor = InternalActor na
 |) (
 public seed: value <Value> ^<FarReference[Value]> = (
 	(* Creating a far reference to a PassByCopy is questionable. It may be that this should be seed: receiver perform: selector with: argument. *)
-	(isValueObject: value) ifFalse: [^Error signal: 'Cannot seed an actor with a non-Value.'].
+	(isValueObject: value) ifFalse: [^Exception signal: 'Cannot seed an actor with a non-Value.'].
 	^createFarReferenceTo: value in: internalActor for: currentActor.
 )
 ) : (
@@ -138,7 +138,7 @@ public eventualSend: selector <Symbol> arguments: arguments <Array> ^<Ref> = (
 	^self externalRef (* I.e., broken with same problem. Should this wait for the next turn? *)
 )
 public immediateSend: message <Message> ^<Object> = (
-	^Error signal: 'Cannot immediate-send to a broken ref: ', message selector
+	^Exception signal: 'Cannot immediate-send to a broken ref: ', message selector
 )
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise = InternalLocalPromise new. |
@@ -191,7 +191,7 @@ public eventualSend: selector <Symbol> arguments: arguments <Array> ^<Ref> = (
 	^remotePromise externalRef
 )
 public immediateSend: message <Message> ^<Object> = (
-	^Error signal: 'Cannot immediate-send to an eventual ref: ', message selector
+	^Exception signal: 'Cannot immediate-send to an eventual ref: ', message selector
 )
 public whenFulfilled: onValue whenBroken: onError ^<Ref> = (
 	| localPromise = InternalLocalPromise new. |
@@ -237,15 +237,15 @@ public eventualSend: selector <Symbol> arguments: arguments <Array> ^<Ref> = (
 )
 public immediateSend: message <Message> ^<Object> = (
 	state = #resolved ifTrue: [^resolution immediateSend: message].
-	^Error signal: 'Cannot immediate-send to an eventual ref: ', message selector
+	^Exception signal: 'Cannot immediate-send to an eventual ref: ', message selector
 )
 public internalResolve: internalRef <InternalRef> = (
-	state = #unresolved ifFalse: [^Error signal: 'Already resolved'].
+	state = #unresolved ifFalse: [^Exception signal: 'Already resolved'].
 	internalRef isKindOfInternalRef ifFalse: [panic].
 
 	state:: #resolving.
 	internalRef checkCycle
-		ifTrue: [resolution:: InternalBrokenRef problem: (Error new messageText: 'Cyclic resolution')]
+		ifTrue: [resolution:: InternalBrokenRef problem: (Exception new messageText: 'Cyclic resolution')]
 		ifFalse: [resolution:: internalRef].
 	state:: #resolved.
 
@@ -375,15 +375,15 @@ public eventualSend: selector <Symbol> arguments: arguments <Array> ^<Ref> = (
 )
 public immediateSend: message <Message> ^<Object> = (
 	state = #resolved ifTrue: [^resolution immediateSend: message].
-	^Error signal: 'Cannot immediate-send to an eventual ref: ', message selector
+	^Exception signal: 'Cannot immediate-send to an eventual ref: ', message selector
 )
 public internalResolve: internalRef <InternalRef> = (
-	state = #unresolved ifFalse: [^Error signal: 'Already resolved'].
+	state = #unresolved ifFalse: [^Exception signal: 'Already resolved'].
 	internalRef isKindOfInternalRef ifFalse: [panic].
 
 	state:: #resolving.
 	internalRef checkCycle
-		ifTrue: [resolution:: InternalBrokenRef problem: (Error new messageText: 'Cyclic resolution')]
+		ifTrue: [resolution:: InternalBrokenRef problem: (Exception new messageText: 'Cyclic resolution')]
 		ifFalse: [resolution:: internalRef].
 	state:: #resolved.
 )

@@ -300,9 +300,9 @@ public bench = (
 	scheduler schedule.
 
 	scheduler queueCount = 2322
-		ifFalse: [Error signal: 'bad scheduler queue-count'].
+		ifFalse: [Exception signal: 'bad scheduler queue-count'].
 	scheduler holdCount = 928
-		ifFalse: [Error signal: 'bad scheduler hold-count'].
+		ifFalse: [Exception signal: 'bad scheduler hold-count'].
 )
 ) : (
 )

@@ -53,7 +53,7 @@ classFromSource: src <String> ^<Class> = (
 	^(ClassDeclarationBuilder fromSource: src) install applyToObject reflectee
 )
 compilationError = (
-	^Error
+	^Exception
 )
 currentSnippet: activation = (
 	| range |
@@ -540,7 +540,7 @@ public testActivationRestartClosureWithLookup = (
 	assert: (describeActivation: thread suspendedActivation)
 	equals: '[] in ActivationTests testActivationRestartClosureWithLookup <list>'.
 
-	should: [activation restartWithLookup] signal: Error.
+	should: [activation restartWithLookup] signal: Exception.
 	assert: thread isSuspended.
 	assert: (describeActivation: thread suspendedActivation)
 	equals: '[] in ActivationTests testActivationRestartClosureWithLookup <list>'.
@@ -1050,22 +1050,22 @@ public testActivationStepUncontinuable = (
 
 	assert: activation isUncontinuable.
 
-	should: [activation stepInto] signal: Error.
+	should: [activation stepInto] signal: Exception.
 	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
 	assert: thread isSuspended.
-	should: [activation stepOver] signal: Error.
+	should: [activation stepOver] signal: Exception.
 	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
 	assert: thread isSuspended.
-	should: [activation stepThrough] signal: Error.
+	should: [activation stepThrough] signal: Exception.
 	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
 	assert: thread isSuspended.
-	should: [activation stepOut] signal: Error.
+	should: [activation stepOut] signal: Exception.
 	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
 	assert: thread isSuspended.
-	should: [activation restart] signal: Error.
+	should: [activation restart] signal: Exception.
 	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
 	assert: thread isSuspended.
-	should: [activation return: (ObjectMirror reflecting: 1984)] signal: Error.
+	should: [activation return: (ObjectMirror reflecting: 1984)] signal: Exception.
 	assertThread: thread atMethod: #testActivationStepUncontinuable snippet: 'add: 3 to: 4'.
 	assert: thread isSuspended.
 

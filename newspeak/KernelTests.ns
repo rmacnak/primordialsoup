@@ -20,23 +20,23 @@ public testArrayAt = (
 
 	assert: (array at: 1) equals: 'apple'.
 	assert: (array at: 2) equals: 'banana'.
-	should: [array at: 0] signal: Error.
-	should: [array at: 3] signal: Error.
-	should: [array at: -3] signal: Error.
-	should: [array at: nil] signal: Error.
+	should: [array at: 0] signal: Exception.
+	should: [array at: 3] signal: Exception.
+	should: [array at: -3] signal: Exception.
+	should: [array at: nil] signal: Exception.
 
-	should: [empty at: 1] signal: Error.
+	should: [empty at: 1] signal: Exception.
 )
 public testArrayAtPut = (
 	| array = Array new: 2. empty = Array new: 0. |
 	assert: (array at: 1 put: 'apple') equals: 'apple'.
 	assert: (array at: 2 put: 'banana') equals: 'banana'.
-	should: [array at: 0 put: 'orange'] signal: Error.
-	should: [array at: 3 put: 'orange'] signal: Error.
-	should: [array at: -3 put: 'orange'] signal: Error.
-	should: [array at: nil put: 'orange'] signal: Error.
+	should: [array at: 0 put: 'orange'] signal: Exception.
+	should: [array at: 3 put: 'orange'] signal: Exception.
+	should: [array at: -3 put: 'orange'] signal: Exception.
+	should: [array at: nil put: 'orange'] signal: Exception.
 
-	should: [empty at: 1 put: 'orange'] signal: Error.
+	should: [empty at: 1 put: 'orange'] signal: Exception.
 )
 public testArrayConcatenation = (
 	|
@@ -89,9 +89,9 @@ public testArrayCopyFromTo = (
 	deny: result isKindOfList.
 	assertList: result equals: {70}.
 
-	should: [array copyFrom: -1 to: 1] signal: Error.
-	should: [array copyFrom: 0 to: 1] signal: Error.
-	should: [array copyFrom: 7 to: 8] signal: Error.
+	should: [array copyFrom: -1 to: 1] signal: Exception.
+	should: [array copyFrom: 0 to: 1] signal: Exception.
+	should: [array copyFrom: 7 to: 8] signal: Exception.
 )
 public testArrayDo = (
 	| array count |
@@ -142,13 +142,13 @@ public testArrayFirstLast = (
 	assert: (array first) equals: 'apple'.
 	assert: (array last) equals: 'banana'.
 
-	should: [empty first] signal: Error.
-	should: [empty last] signal: Error.
+	should: [empty first] signal: Exception.
+	should: [empty last] signal: Exception.
 )
 public testArrayFloatIndex = (
 	| array = Array new: 1. |
-	should: [array at: 1 asFloat] signal: Error.
-	should: [array at: 1 asFloat put: 'apple'] signal: Error.
+	should: [array at: 1 asFloat] signal: Exception.
+	should: [array at: 1 asFloat put: 'apple'] signal: Exception.
 )
 public testArrayIndexOf = (
 	| array = Array new: 6. empty = Array new: 0. |
@@ -188,9 +188,9 @@ public testArrayNew = (
 	assert: (Array new: 0) size equals: 0.
 	assert: (Array new: 500) size equals: 500.
 
-	should: [Array new: -1] signal: Error.
-	should: [Array new: '10'] signal: Error.
-	should: [Array new: nil] signal: Error.
+	should: [Array new: -1] signal: Exception.
+	should: [Array new: '10'] signal: Exception.
+	should: [Array new: nil] signal: Exception.
 	should: [Array new] signal: MessageNotUnderstood.
 )
 public testArrayReject = (
@@ -266,27 +266,27 @@ public testArrayReplace = (
 	assert: (array at: 5) equals: 50.
 
 	(* After end source *)
-	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 6] signal: Error.
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 6] signal: Exception.
 	(* Crossing end source *)
-	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 3] signal: Error.
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 3] signal: Exception.
 	(* Before beginning source *)
-	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: -3] signal: Error.
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: -3] signal: Exception.
 	(* Crossing begining source *)
-	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 0] signal: Error.
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 0] signal: Exception.
 
 	(* After end destination *)
-	should: [array replaceFrom: 6 to: 6 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 6 to: 6 with: replacement startingAt: 1] signal: Exception.
 	(* Crossing end destination *)
-	should: [array replaceFrom: 5 to: 6 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 5 to: 6 with: replacement startingAt: 1] signal: Exception.
 	(* Before beginning destination *)
-	should: [array replaceFrom: 0 to: 0 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 0 to: 0 with: replacement startingAt: 1] signal: Exception.
 	(* Crossing begining destination *)
-	should: [array replaceFrom: 0 to: 2 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 0 to: 2 with: replacement startingAt: 1] signal: Exception.
 
-	should: [array replaceFrom: nil to: 3 with: replacement startingAt: 1] signal: Error.
-	should: [array replaceFrom: 3 to: nil with: replacement startingAt: 1] signal: Error.
-	should: [array replaceFrom: 3 to: 3 with: nil startingAt: 1] signal: Error.
-	should: [array replaceFrom: 3 to: 3 with: replacement startingAt: nil] signal: Error.
+	should: [array replaceFrom: nil to: 3 with: replacement startingAt: 1] signal: Exception.
+	should: [array replaceFrom: 3 to: nil with: replacement startingAt: 1] signal: Exception.
+	should: [array replaceFrom: 3 to: 3 with: nil startingAt: 1] signal: Exception.
+	should: [array replaceFrom: 3 to: 3 with: replacement startingAt: nil] signal: Exception.
 )
 public testArrayReplaceSlideDown = (
 	| array result |
@@ -405,10 +405,10 @@ public testArrayWithAll = (
 	assert: (result at: 1) equals: 'G'.
 	assert: (result at: 2) equals: 'H'.
 
-	should: [Array withAll: -1] signal: Error.
-	should: [Array withAll: 16r110000] signal: Error.
-	should: [Array withAll: nil] signal: Error.
-	should: [Array withAll: 122 asFloat] signal: Error.
+	should: [Array withAll: -1] signal: Exception.
+	should: [Array withAll: 16r110000] signal: Exception.
+	should: [Array withAll: nil] signal: Exception.
+	should: [Array withAll: 122 asFloat] signal: Exception.
 )
 public testIsKindOfArray = (
 	assert: (Array new: 0) isKindOfArray.
@@ -591,28 +591,28 @@ public testByteArrayAt = (
 
 	assert: (array at: 1) equals: 3.
 	assert: (array at: 2) equals: 4.
-	should: [array at: 0] signal: Error.
-	should: [array at: 3] signal: Error.
-	should: [array at: -3] signal: Error.
-	should: [array at: nil] signal: Error.
+	should: [array at: 0] signal: Exception.
+	should: [array at: 3] signal: Exception.
+	should: [array at: -3] signal: Exception.
+	should: [array at: nil] signal: Exception.
 
-	should: [empty at: 1] signal: Error.
+	should: [empty at: 1] signal: Exception.
 )
 public testByteArrayAtPut = (
 	| array = ByteArray new: 2. empty = ByteArray new: 0. |
 	assert: (array at: 1 put: 3) equals: 3.
 	assert: (array at: 2 put: 4) equals: 4.
-	should: [array at: 0 put: 5] signal: Error.
-	should: [array at: 3 put: 6] signal: Error.
-	should: [array at: -3 put: 7] signal: Error.
-	should: [array at: nil put: 8] signal: Error.
+	should: [array at: 0 put: 5] signal: Exception.
+	should: [array at: 3 put: 6] signal: Exception.
+	should: [array at: -3 put: 7] signal: Exception.
+	should: [array at: nil put: 8] signal: Exception.
 
 	assert: (array at: 1 put: 0) equals: 0.
 	assert: (array at: 2 put: 255) equals: 255.
-	should: [array at: 1 put: -1] signal: Error.
-	should: [array at: 1 put: 256] signal: Error.
+	should: [array at: 1 put: -1] signal: Exception.
+	should: [array at: 1 put: 256] signal: Exception.
 
-	should: [empty at: 1 put: 9] signal: Error.
+	should: [empty at: 1 put: 9] signal: Exception.
 )
 public testByteArrayCopyByteArrayFromTo = (
 	| array = ByteArray new: 4. empty = ByteArray new: 0. copy |
@@ -639,17 +639,17 @@ public testByteArrayCopyByteArrayFromTo = (
 	copy:: empty copyByteArrayFrom: 1 to: 0.
 	assert: copy size equals: 0.
 
-	should: [empty copyByteArrayFrom: 0 to: 0] signal: Error.
-	should: [empty copyByteArrayFrom: 2 to: 0] signal: Error.
-	should: [empty copyByteArrayFrom: 1 to: 1] signal: Error.
+	should: [empty copyByteArrayFrom: 0 to: 0] signal: Exception.
+	should: [empty copyByteArrayFrom: 2 to: 0] signal: Exception.
+	should: [empty copyByteArrayFrom: 1 to: 1] signal: Exception.
 
-	should: [array copyByteArrayFrom: 4 to: 5] signal: Error.
-	should: [array copyByteArrayFrom: nil to: 2] signal: Error.
-	should: [array copyByteArrayFrom: 2 to: nil] signal: Error.
-	should: [array copyByteArrayFrom: 2 to: 50] signal: Error.
-	should: [array copyByteArrayFrom: 0 to: 2] signal: Error.
-	should: [array copyByteArrayFrom: 2 asFloat to: 3] signal: Error.
-	should: [array copyByteArrayFrom: 2 to: 3 asFloat] signal: Error.
+	should: [array copyByteArrayFrom: 4 to: 5] signal: Exception.
+	should: [array copyByteArrayFrom: nil to: 2] signal: Exception.
+	should: [array copyByteArrayFrom: 2 to: nil] signal: Exception.
+	should: [array copyByteArrayFrom: 2 to: 50] signal: Exception.
+	should: [array copyByteArrayFrom: 0 to: 2] signal: Exception.
+	should: [array copyByteArrayFrom: 2 asFloat to: 3] signal: Exception.
+	should: [array copyByteArrayFrom: 2 to: 3 asFloat] signal: Exception.
 )
 public testByteArrayCopyFromTo = (
 	| array = ByteArray new: 4. empty = ByteArray new: 0. copy |
@@ -676,17 +676,17 @@ public testByteArrayCopyFromTo = (
 	copy:: empty copyFrom: 1 to: 0.
 	assert: copy size equals: 0.
 
-	should: [empty copyFrom: 0 to: 0] signal: Error.
-	should: [empty copyFrom: 2 to: 0] signal: Error.
-	should: [empty copyFrom: 1 to: 1] signal: Error.
+	should: [empty copyFrom: 0 to: 0] signal: Exception.
+	should: [empty copyFrom: 2 to: 0] signal: Exception.
+	should: [empty copyFrom: 1 to: 1] signal: Exception.
 
-	should: [array copyFrom: 4 to: 5] signal: Error.
-	should: [array copyFrom: nil to: 2] signal: Error.
-	should: [array copyFrom: 2 to: nil] signal: Error.
-	should: [array copyFrom: 2 to: 50] signal: Error.
-	should: [array copyFrom: 0 to: 2] signal: Error.
-	should: [array copyFrom: 2 asFloat to: 3] signal: Error.
-	should: [array copyFrom: 2 to: 3 asFloat] signal: Error.
+	should: [array copyFrom: 4 to: 5] signal: Exception.
+	should: [array copyFrom: nil to: 2] signal: Exception.
+	should: [array copyFrom: 2 to: nil] signal: Exception.
+	should: [array copyFrom: 2 to: 50] signal: Exception.
+	should: [array copyFrom: 0 to: 2] signal: Exception.
+	should: [array copyFrom: 2 asFloat to: 3] signal: Exception.
+	should: [array copyFrom: 2 to: 3 asFloat] signal: Exception.
 )
 public testByteArrayCopyStringFromTo = (
 	| array = ByteArray new: 4. empty = ByteArray new: 0. copy |
@@ -709,17 +709,17 @@ public testByteArrayCopyStringFromTo = (
 	copy:: empty copyStringFrom: 1 to: 0.
 	assert: copy equals: ''.
 
-	should: [empty copyStringFrom: 0 to: 0] signal: Error.
-	should: [empty copyStringFrom: 2 to: 0] signal: Error.
-	should: [empty copyStringFrom: 1 to: 1] signal: Error.
+	should: [empty copyStringFrom: 0 to: 0] signal: Exception.
+	should: [empty copyStringFrom: 2 to: 0] signal: Exception.
+	should: [empty copyStringFrom: 1 to: 1] signal: Exception.
 
-	should: [array copyStringFrom: 4 to: 5] signal: Error.
-	should: [array copyStringFrom: nil to: 2] signal: Error.
-	should: [array copyStringFrom: 2 to: nil] signal: Error.
-	should: [array copyStringFrom: 2 to: 50] signal: Error.
-	should: [array copyStringFrom: 0 to: 2] signal: Error.
-	should: [array copyStringFrom: 2 asFloat to: 3] signal: Error.
-	should: [array copyStringFrom: 2 to: 3 asFloat] signal: Error.
+	should: [array copyStringFrom: 4 to: 5] signal: Exception.
+	should: [array copyStringFrom: nil to: 2] signal: Exception.
+	should: [array copyStringFrom: 2 to: nil] signal: Exception.
+	should: [array copyStringFrom: 2 to: 50] signal: Exception.
+	should: [array copyStringFrom: 0 to: 2] signal: Exception.
+	should: [array copyStringFrom: 2 asFloat to: 3] signal: Exception.
+	should: [array copyStringFrom: 2 to: 3 asFloat] signal: Exception.
 )
 public testByteArrayEndsWith = (
 	| foo zero empty |
@@ -744,14 +744,14 @@ public testByteArrayEndsWith = (
 	deny: (empty endsWith: 'foo').
 	deny: (empty endsWith: foo).
 
-	should: [zero endsWith: 0] signal: Error.
-	should: [foo endsWith: true] signal: Error.
-	should: [foo endsWith: nil] signal: Error.
+	should: [zero endsWith: 0] signal: Exception.
+	should: [foo endsWith: true] signal: Exception.
+	should: [foo endsWith: nil] signal: Exception.
 )
 public testByteArrayFloatIndex = (
 	| array = ByteArray new: 1. |
-	should: [array at: 1 asFloat] signal: Error.
-	should: [array at: 1 asFloat put: 0] signal: Error.
+	should: [array at: 1 asFloat] signal: Exception.
+	should: [array at: 1 asFloat put: 0] signal: Exception.
 )
 public testByteArrayIndexOf = (
 	assert: ((b: 'fofofobar') indexOf: (b: 'fofo')) equals: 1.
@@ -768,8 +768,8 @@ public testByteArrayIndexOf = (
 	assert: ((b: '') indexOf: (b: '')) equals: 1.
 	assert: ((b: '') indexOf: (b: 'baz')) equals: 0.
 
-	should: [(b: 'fofofobar') indexOf: 0] signal: Error.
-	should: [(b: '') indexOf: Object new] signal: Error.
+	should: [(b: 'fofofobar') indexOf: 0] signal: Exception.
+	should: [(b: '') indexOf: Object new] signal: Exception.
 )
 public testByteArrayIndexOfStartingAt = (
 	assert: ((b: 'fofofobar') indexOf: (b: 'fofo') startingAt: 1) equals: 1.
@@ -797,13 +797,13 @@ public testByteArrayIndexOfStartingAt = (
 	assert: ((b: '') indexOf: (b: '') startingAt: 1) equals: 1.
 	assert: ((b: '') indexOf: (b: 'baz') startingAt: 1) equals: 0.
 
-	should: [(b: 'fofofobar') indexOf: 0 startingAt: 1] signal: Error.
-	should: [(b: 'fofobobar') indexOf: Object new startingAt: 1] signal: Error.
+	should: [(b: 'fofofobar') indexOf: 0 startingAt: 1] signal: Exception.
+	should: [(b: 'fofobobar') indexOf: Object new startingAt: 1] signal: Exception.
 
-	should: [(b: 'fofofobar') indexOf: (b: 'foo') startingAt: 0] signal: Error.
-	should: [(b: 'fofofobar') indexOf: (b: 'foo') startingAt: 11] signal: Error.
-	should: [(b: '') indexOf: (b: '') startingAt: 0] signal: Error.
-	should: [(b: '') indexOf: (b: '') startingAt: 2] signal: Error.
+	should: [(b: 'fofofobar') indexOf: (b: 'foo') startingAt: 0] signal: Exception.
+	should: [(b: 'fofofobar') indexOf: (b: 'foo') startingAt: 11] signal: Exception.
+	should: [(b: '') indexOf: (b: '') startingAt: 0] signal: Exception.
+	should: [(b: '') indexOf: (b: '') startingAt: 2] signal: Exception.
 )
 public testByteArrayIsEmpty = (
 	assert: (ByteArray new: 0) isEmpty.
@@ -824,8 +824,8 @@ public testByteArrayLastIndexOf = (
 	assert: ((b: '') lastIndexOf: (b: '')) equals: 1.
 	assert: ((b: '') lastIndexOf: (b: 'baz')) equals: 0.
 
-	should: [(b: 'fofofobar') lastIndexOf: 0] signal: Error.
-	should: [(b: '') lastIndexOf: Object new] signal: Error.
+	should: [(b: 'fofofobar') lastIndexOf: 0] signal: Exception.
+	should: [(b: '') lastIndexOf: Object new] signal: Exception.
 )
 public testByteArrayLastIndexOfStartingAt = (
 	assert: ((b: 'fofofobar') lastIndexOf: (b: 'fofo') startingAt: 10) equals: 3.
@@ -855,21 +855,21 @@ public testByteArrayLastIndexOfStartingAt = (
 	assert: ((b: '') lastIndexOf: (b: '') startingAt: 1) equals: 1.
 	assert: ((b: '') lastIndexOf: (b: 'baz') startingAt: 1) equals: 0.
 
-	should: [(b: 'fofofobar') lastIndexOf: 0 startingAt: 1] signal: Error.
-	should: [(b: '') lastIndexOf: Object new startingAt: 1] signal: Error.
+	should: [(b: 'fofofobar') lastIndexOf: 0 startingAt: 1] signal: Exception.
+	should: [(b: '') lastIndexOf: Object new startingAt: 1] signal: Exception.
 
-	should: [(b: 'fofofobar') lastIndexOf: (b: 'foo') startingAt: 0] signal: Error.
-	should: [(b: 'fofofobar') lastIndexOf: (b: 'foo') startingAt: 11] signal: Error.
-	should: [(b: '') lastIndexOf: (b: '') startingAt: 0] signal: Error.
-	should: [(b: '') lastIndexOf: (b: '') startingAt: 2] signal: Error.
+	should: [(b: 'fofofobar') lastIndexOf: (b: 'foo') startingAt: 0] signal: Exception.
+	should: [(b: 'fofofobar') lastIndexOf: (b: 'foo') startingAt: 11] signal: Exception.
+	should: [(b: '') lastIndexOf: (b: '') startingAt: 0] signal: Exception.
+	should: [(b: '') lastIndexOf: (b: '') startingAt: 2] signal: Exception.
 )
 public testByteArrayNew = (
 	assert: (ByteArray new: 0) size equals: 0.
 	assert: (ByteArray new: 500) size equals: 500.
 
-	should: [ByteArray new: -1] signal: Error.
-	should: [ByteArray new: '10'] signal: Error.
-	should: [ByteArray new: nil] signal: Error.
+	should: [ByteArray new: -1] signal: Exception.
+	should: [ByteArray new: '10'] signal: Exception.
+	should: [ByteArray new: nil] signal: Exception.
 	should: [ByteArray new] signal: MessageNotUnderstood.
 )
 public testByteArrayReplace = (
@@ -923,27 +923,27 @@ public testByteArrayReplace = (
 	assert: (array at: 5) equals: 50.
 
 	(* After end source *)
-	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 6] signal: Error.
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 6] signal: Exception.
 	(* Crossing end source *)
-	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 3] signal: Error.
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 3] signal: Exception.
 	(* Before beginning source *)
-	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: -3] signal: Error.
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: -3] signal: Exception.
 	(* Crossing begining source *)
-	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 0] signal: Error.
+	should: [array replaceFrom: 1 to: 3 with: replacement startingAt: 0] signal: Exception.
 
 	(* After end destination *)
-	should: [array replaceFrom: 6 to: 6 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 6 to: 6 with: replacement startingAt: 1] signal: Exception.
 	(* Crossing end destination *)
-	should: [array replaceFrom: 5 to: 6 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 5 to: 6 with: replacement startingAt: 1] signal: Exception.
 	(* Before beginning destination *)
-	should: [array replaceFrom: 0 to: 0 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 0 to: 0 with: replacement startingAt: 1] signal: Exception.
 	(* Crossing begining destination *)
-	should: [array replaceFrom: 0 to: 2 with: replacement startingAt: 1] signal: Error.
+	should: [array replaceFrom: 0 to: 2 with: replacement startingAt: 1] signal: Exception.
 
-	should: [array replaceFrom: nil to: 3 with: replacement startingAt: 1] signal: Error.
-	should: [array replaceFrom: 3 to: nil with: replacement startingAt: 1] signal: Error.
-	should: [array replaceFrom: 3 to: 3 with: nil startingAt: 1] signal: Error.
-	should: [array replaceFrom: 3 to: 3 with: replacement startingAt: nil] signal: Error.
+	should: [array replaceFrom: nil to: 3 with: replacement startingAt: 1] signal: Exception.
+	should: [array replaceFrom: 3 to: nil with: replacement startingAt: 1] signal: Exception.
+	should: [array replaceFrom: 3 to: 3 with: nil startingAt: 1] signal: Exception.
+	should: [array replaceFrom: 3 to: 3 with: replacement startingAt: nil] signal: Exception.
 )
 public testByteArrayReplaceSlideDown = (
 	| array result |
@@ -1010,9 +1010,9 @@ public testByteArrayStartsWith = (
 	deny: (empty startsWith: 'foo').
 	deny: (empty startsWith: foo).
 
-	should: [zero startsWith: 0] signal: Error.
-	should: [foo startsWith: true] signal: Error.
-	should: [foo startsWith: nil] signal: Error.
+	should: [zero startsWith: 0] signal: Exception.
+	should: [foo startsWith: true] signal: Exception.
+	should: [foo startsWith: nil] signal: Exception.
 )
 public testByteArrayWithAll = (
 	| array bytearray list result |
@@ -1080,21 +1080,21 @@ public testByteArrayWithAll = (
 	assert: (result at: 2) equals: 111.
 	assert: (result at: 3) equals: 120.
 
-	should: [ByteArray withAll: -1] signal: Error.
-	should: [ByteArray withAll: 16r110000] signal: Error.
-	should: [ByteArray withAll: nil] signal: Error.
-	should: [ByteArray withAll: 122 asFloat] signal: Error.
+	should: [ByteArray withAll: -1] signal: Exception.
+	should: [ByteArray withAll: 16r110000] signal: Exception.
+	should: [ByteArray withAll: nil] signal: Exception.
+	should: [ByteArray withAll: 122 asFloat] signal: Exception.
 
-	should: [ByteArray withAll: {nil}] signal: Error.
-	should: [ByteArray withAll: {-1}] signal: Error.
-	should: [ByteArray withAll: {16r256}] signal: Error.
-	should: [ByteArray withAll: {nil}] signal: Error.
-	should: [ByteArray withAll: {122 asFloat}] signal: Error.
-	should: [ByteArray withAll: {'z'}] signal: Error.
+	should: [ByteArray withAll: {nil}] signal: Exception.
+	should: [ByteArray withAll: {-1}] signal: Exception.
+	should: [ByteArray withAll: {16r256}] signal: Exception.
+	should: [ByteArray withAll: {nil}] signal: Exception.
+	should: [ByteArray withAll: {122 asFloat}] signal: Exception.
+	should: [ByteArray withAll: {'z'}] signal: Exception.
 
 	list:: List new.
 	list add: 256.
-	should: [ByteArray withAll: list] signal: Error.
+	should: [ByteArray withAll: list] signal: Exception.
 )
 public testIsKindOfByteArray = (
 	assert: (ByteArray new: 0) isKindOfByteArray.
@@ -1123,7 +1123,7 @@ ensure3 = (
 	^'afterward'
 )
 public testCannotReturn = (
-	should: [cannotReturn value] signal: Error.
+	should: [cannotReturn value] signal: Exception.
 )
 public testCull = (
 	assert: ([42] cull: 7) equals: 42.
@@ -1134,12 +1134,12 @@ public testCull = (
 	assert: ([:a | a] cull: 7 cull: 9) equals: 7.
 	assert: ([:a | a] cull: 7 cull: 9 cull: 11) equals: 7.
 
-	should: [[:a :b | a + b] cull: 7] signal: Error.
+	should: [[:a :b | a + b] cull: 7] signal: Exception.
 	assert: ([:a :b | a + b] cull: 7 cull: 9) equals: 16.
 	assert: ([:a :b | a + b] cull: 7 cull: 9 cull: 11) equals: 16.
 
-	should: [[:a :b :c | a + b + c] cull: 7] signal: Error.
-	should: [[:a :b :c | a + b + c] cull: 7 cull: 9] signal: Error.
+	should: [[:a :b :c | a + b + c] cull: 7] signal: Exception.
+	should: [[:a :b :c | a + b + c] cull: 7 cull: 9] signal: Exception.
 	assert: ([:a :b :c | a + b + c] cull: 7 cull: 9 cull: 11) equals: 27.
 )
 public testEnsure = (
@@ -1164,14 +1164,14 @@ public testValue = (
 	assert: ([:x :y :z | x - y + z] value: 13 value: 3 value: 1) equals: 11.
 )
 public testValueTooFew = (
-	should: [[:x | x - 4] value] signal: Error.
-	should: [[:x :y | x - y] value: 1] signal: Error.
-	should: [[:x :y :z | 3 - 4] value: 1 value: 2] signal: Error.
+	should: [[:x | x - 4] value] signal: Exception.
+	should: [[:x :y | x - y] value: 1] signal: Exception.
+	should: [[:x :y :z | 3 - 4] value: 1 value: 2] signal: Exception.
 )
 public testValueTooMany = (
-	should: [[3 - 4] value: 1] signal: Error.
-	should: [[:x | x - 4] value: 1 value: 2] signal: Error.
-	should: [[:x :y | x - y] value: 1 value: 2 value: 3] signal: Error.
+	should: [[3 - 4] value: 1] signal: Exception.
+	should: [[:x | x - 4] value: 1 value: 2] signal: Exception.
+	should: [[:x :y | x - y] value: 1 value: 2 value: 3] signal: Exception.
 )
 public testValueWithArguments = (
 	(* Should this be called apply: ? *)
@@ -1188,23 +1188,23 @@ public testValueWithArgumentsList = (
 	assert: ([:x :y :z | x - y + z] valueWithArguments: (List withAll: {13. 3. 1})) equals: 11.
 )
 public testValueWithArgumentsNonArray = (
-	should: [[1] valueWithArguments: nil] signal: Error.
-	should: [[1] valueWithArguments: false] signal: Error.
-	should: [[1] valueWithArguments: true] signal: Error.
-	should: [[1] valueWithArguments: 'string'] signal: Error.
-	should: [[1] valueWithArguments: 0] signal: Error.
-	should: [[1] valueWithArguments: []] signal: Error.
+	should: [[1] valueWithArguments: nil] signal: Exception.
+	should: [[1] valueWithArguments: false] signal: Exception.
+	should: [[1] valueWithArguments: true] signal: Exception.
+	should: [[1] valueWithArguments: 'string'] signal: Exception.
+	should: [[1] valueWithArguments: 0] signal: Exception.
+	should: [[1] valueWithArguments: []] signal: Exception.
 )
 public testValueWithArgumentsTooFew = (
-	should: [[:x | x - 4] valueWithArguments: {}] signal: Error.
-	should: [[:x :y | x - y] valueWithArguments: {1}] signal: Error.
-	should: [[:x :y :z | x - y + z] valueWithArguments: {1. 2}] signal: Error.
+	should: [[:x | x - 4] valueWithArguments: {}] signal: Exception.
+	should: [[:x :y | x - y] valueWithArguments: {1}] signal: Exception.
+	should: [[:x :y :z | x - y + z] valueWithArguments: {1. 2}] signal: Exception.
 )
 public testValueWithArgumentsTooMany = (
-	should: [[3 - 4] valueWithArguments: {1}] signal: Error.
-	should: [[:x | x - 4] valueWithArguments: {1. 2}] signal: Error.
-	should: [[:x :y | x - y] valueWithArguments: {1. 2. 3}] signal: Error.
-	should: [[:x :y :z | x - y + z] valueWithArguments: {1. 2. 3. 4}] signal: Error.
+	should: [[3 - 4] valueWithArguments: {1}] signal: Exception.
+	should: [[:x | x - 4] valueWithArguments: {1. 2}] signal: Exception.
+	should: [[:x :y | x - y] valueWithArguments: {1. 2. 3}] signal: Exception.
+	should: [[:x :y :z | x - y + z] valueWithArguments: {1. 2. 3. 4}] signal: Exception.
 )
 ) : (
 TEST_CONTEXT = ()
@@ -1218,7 +1218,7 @@ protected doesNotUnderstand: message = (
 public class ExceptionTests = TestContext () (
 nonLocalReturnCrossingExceptionHandler = (
 	[^'correct']
-		on: Error
+		on: Exception
 		do: [:ex | ^'wrong1'].
 	^'wrong2'
 )
@@ -1253,21 +1253,21 @@ public testExceptionInvalidPass = (
 	(* Already handled. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | ].
-	should: [ex pass] signal: Error.
+	should: [ex pass] signal: Exception.
 
 	(* Already resumed. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | e resume: 42].
-	should: [ex pass] signal: Error.
+	should: [ex pass] signal: Exception.
 
 	(* Already returned. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | e return: 42].
-	should: [ex pass] signal: Error.
+	should: [ex pass] signal: Exception.
 
 	(* Never signaled. *)
 	ex:: Exception new.
-	should: [ex pass] signal: Error.
+	should: [ex pass] signal: Exception.
 )
 public testExceptionInvalidResume = (
 	| ex |
@@ -1275,21 +1275,21 @@ public testExceptionInvalidResume = (
 	(* Already handled. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | ].
-	should: [ex resume: 84] signal: Error.
+	should: [ex resume: 84] signal: Exception.
 
 	(* Already resumed. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | e resume: 42].
-	should: [ex resume: 84] signal: Error.
+	should: [ex resume: 84] signal: Exception.
 
 	(* Already returned. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | e return: 42].
-	should: [ex resume: 84] signal: Error.
+	should: [ex resume: 84] signal: Exception.
 
 	(* Never signaled. *)
 	ex:: Exception new.
-	should: [ex resume: 84] signal: Error.
+	should: [ex resume: 84] signal: Exception.
 )
 public testExceptionInvalidReturn = (
 	| ex |
@@ -1297,21 +1297,21 @@ public testExceptionInvalidReturn = (
 	(* Already handled. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | ].
-	should: [ex return: 84] signal: Error.
+	should: [ex return: 84] signal: Exception.
 
 	(* Already resumed. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | e resume: 42].
-	should: [ex return: 84] signal: Error.
+	should: [ex return: 84] signal: Exception.
 
 	(* Already returned. *)
 	ex:: Exception new.
 	[ex signal] on: Exception do: [:e | e return: 42].
-	should: [ex return: 84] signal: Error.
+	should: [ex return: 84] signal: Exception.
 
 	(* Never signaled. *)
 	ex:: Exception new.
-	should: [ex return: 84] signal: Error.
+	should: [ex return: 84] signal: Exception.
 )
 public testExceptionPass = (
 	|
@@ -1656,9 +1656,9 @@ public testFloatAsInteger = (
 	nan:: Float parse: 'NaN'.
 	posInfinity:: Float parse: 'Infinity'.
 	negInfinity:: Float parse: '-Infinity'.
-	should: [nan asInteger] signal: Error.
-	should: [posInfinity asInteger] signal: Error.
-	should: [negInfinity asInteger] signal: Error.
+	should: [nan asInteger] signal: Exception.
+	should: [posInfinity asInteger] signal: Exception.
+	should: [negInfinity asInteger] signal: Exception.
 )
 public testFloatAsLargeInteger = (
 	assert: (Float parse: '-9223372036854775809.0') asInteger equals: -9223372036854775808.
@@ -1771,10 +1771,10 @@ public testFloatAsStringExponential = (
 	assert: ((Float parse: fmin) asStringExponential: 20) equals: '-1.79769313486231570815e+308'.
 )
 public testFloatAsStringExponentialErrors = (
-	should: [0 asFloat asStringExponential: -1] signal: Error.
-	should: [0 asFloat asStringExponential: 21] signal: Error.
-	should: [0 asFloat asStringExponential: nil] signal: Error.
-	should: [0 asFloat asStringExponential: '1'] signal: Error.
+	should: [0 asFloat asStringExponential: -1] signal: Exception.
+	should: [0 asFloat asStringExponential: 21] signal: Exception.
+	should: [0 asFloat asStringExponential: nil] signal: Exception.
+	should: [0 asFloat asStringExponential: '1'] signal: Exception.
 )
 public testFloatAsStringFixed = (
 	| fmax fmin |
@@ -1826,10 +1826,10 @@ public testFloatAsStringFixed = (
 	assert: ((Float parse: fmin) asStringFixed: 20) equals: '-1.7976931348623157e+308'.
 )
 public testFloatAsStringFixedErrors = (
-	should: [0 asFloat asStringFixed: -1] signal: Error.
-	should: [0 asFloat asStringFixed: 21] signal: Error.
-	should: [0 asFloat asStringFixed: nil] signal: Error.
-	should: [0 asFloat asStringFixed: '1'] signal: Error.
+	should: [0 asFloat asStringFixed: -1] signal: Exception.
+	should: [0 asFloat asStringFixed: 21] signal: Exception.
+	should: [0 asFloat asStringFixed: nil] signal: Exception.
+	should: [0 asFloat asStringFixed: '1'] signal: Exception.
 )
 public testFloatAsStringPrecision = (
 	| fmax fmin |
@@ -1881,10 +1881,10 @@ public testFloatAsStringPrecision = (
 	assert: ((Float parse: fmin) asStringPrecision: 20) equals: '-1.7976931348623157081e+308'.
 )
 public testFloatAsStringPrecisionErrors = (
-	should: [0 asFloat asStringPrecision: 0] signal: Error.
-	should: [0 asFloat asStringPrecision: 22] signal: Error.
-	should: [0 asFloat asStringPrecision: nil] signal: Error.
-	should: [0 asFloat asStringPrecision: '1'] signal: Error.
+	should: [0 asFloat asStringPrecision: 0] signal: Exception.
+	should: [0 asFloat asStringPrecision: 22] signal: Exception.
+	should: [0 asFloat asStringPrecision: nil] signal: Exception.
+	should: [0 asFloat asStringPrecision: '1'] signal: Exception.
 )
 public testFloatCeiling = (
 	assert: 3.0 asFloat ceiling equals: 3.
@@ -1918,16 +1918,16 @@ public testFloatCommonLogarithm = (
 )
 public testFloatComparisonErrors = (
 	deny: 4.25 asFloat = '4.25'.
-	should: [4.25 asFloat < '4.25'] signal: Error.
-	should: [4.25 asFloat > '4.25'] signal: Error.
-	should: [4.25 asFloat <= '4.25'] signal: Error.
-	should: [4.25 asFloat >= '4.25'] signal: Error.
+	should: [4.25 asFloat < '4.25'] signal: Exception.
+	should: [4.25 asFloat > '4.25'] signal: Exception.
+	should: [4.25 asFloat <= '4.25'] signal: Exception.
+	should: [4.25 asFloat >= '4.25'] signal: Exception.
 
 	deny: 4.25 asFloat = {4.25 asFloat}.
-	should: [4.25 asFloat < {4.25 asFloat}] signal: Error.
-	should: [4.25 asFloat > {4.25 asFloat}] signal: Error.
-	should: [4.25 asFloat <= {4.25 asFloat}] signal: Error.
-	should: [4.25 asFloat >= {4.25 asFloat}] signal: Error.
+	should: [4.25 asFloat < {4.25 asFloat}] signal: Exception.
+	should: [4.25 asFloat > {4.25 asFloat}] signal: Exception.
+	should: [4.25 asFloat <= {4.25 asFloat}] signal: Exception.
+	should: [4.25 asFloat >= {4.25 asFloat}] signal: Exception.
 )
 public testFloatComparisons = (
 	assert: 1.618 asFloat = 1.618 asFloat.
@@ -2245,20 +2245,20 @@ public testFloatNaturalLogarithm = (
 	assert: nan ln isNaN.
 )
 public testFloatOperatorsInvalidArgument = (
-	should: [0 asFloat + nil] signal: Error.
-	should: [0 asFloat - nil] signal: Error.
-	should: [0 asFloat / nil] signal: Error.
-	should: [0 asFloat * nil] signal: Error.
-	should: [0 asFloat // nil] signal: Error.
-	should: [0 asFloat \\ nil] signal: Error.
-	should: [0 asFloat quo: nil] signal: Error.
-	should: [0 asFloat rem: nil] signal: Error.
-	should: [0 asFloat << nil] signal: Error.
-	should: [0 asFloat >> nil] signal: Error.
-	should: [0 asFloat bitAnd: nil] signal: Error.
-	should: [0 asFloat bitOr: nil] signal: Error.
-	should: [0 asFloat bitXor: nil] signal: Error.
-	should: [1 asFloat raisedTo: nil] signal: Error.
+	should: [0 asFloat + nil] signal: Exception.
+	should: [0 asFloat - nil] signal: Exception.
+	should: [0 asFloat / nil] signal: Exception.
+	should: [0 asFloat * nil] signal: Exception.
+	should: [0 asFloat // nil] signal: Exception.
+	should: [0 asFloat \\ nil] signal: Exception.
+	should: [0 asFloat quo: nil] signal: Exception.
+	should: [0 asFloat rem: nil] signal: Exception.
+	should: [0 asFloat << nil] signal: Exception.
+	should: [0 asFloat >> nil] signal: Exception.
+	should: [0 asFloat bitAnd: nil] signal: Exception.
+	should: [0 asFloat bitOr: nil] signal: Exception.
+	should: [0 asFloat bitXor: nil] signal: Exception.
+	should: [1 asFloat raisedTo: nil] signal: Exception.
 )
 public testFloatParse = (
 	assert: (Float parse: '3') isKindOfFloat.
@@ -2290,15 +2290,15 @@ public testFloatParse = (
 	assert: (Float parse: '-Infinity') < 0.
 	assert: (Float parse: '-Infinity') asString equals: '-Infinity'.
 
-	should: [Float parse: 'xyz'] signal: Error.
-	should: [Float parse: ''] signal: Error.
-	should: [Float parse: '--9'] signal: Error.
-	should: [Float parse: 'nan'] signal: Error.
-	should: [Float parse: 'NAN'] signal: Error.
-	should: [Float parse: 'infinity'] signal: Error.
-	should: [Float parse: '-infinity'] signal: Error.
-	should: [Float parse: 'inf'] signal: Error.
-	should: [Float parse: '-inf'] signal: Error.
+	should: [Float parse: 'xyz'] signal: Exception.
+	should: [Float parse: ''] signal: Exception.
+	should: [Float parse: '--9'] signal: Exception.
+	should: [Float parse: 'nan'] signal: Exception.
+	should: [Float parse: 'NAN'] signal: Exception.
+	should: [Float parse: 'infinity'] signal: Exception.
+	should: [Float parse: '-infinity'] signal: Exception.
+	should: [Float parse: 'inf'] signal: Exception.
+	should: [Float parse: '-inf'] signal: Exception.
 )
 public testFloatRaisedTo = (
 	assert: (1 asFloat raisedTo: -1) equals: 1 asFloat.
@@ -2430,16 +2430,16 @@ public testFractionCeiling = (
 )
 public testFractionComparisionErrors = (
 	deny: (1/9) = '(1/9)'.
-	should: [(1/9) < '(1/9)'] signal: Error.
-	should: [(1/9) > '(1/9)'] signal: Error.
-	should: [(1/9) <= '(1/9)'] signal: Error.
-	should: [(1/9) >= '(1/9)'] signal: Error.
+	should: [(1/9) < '(1/9)'] signal: Exception.
+	should: [(1/9) > '(1/9)'] signal: Exception.
+	should: [(1/9) <= '(1/9)'] signal: Exception.
+	should: [(1/9) >= '(1/9)'] signal: Exception.
 
 	deny: (1/9) = {1/9}.
-	should: [(1/9) < {1/9}] signal: Error.
-	should: [(1/9) > {1/9}] signal: Error.
-	should: [(1/9) <= {1/9}] signal: Error.
-	should: [(1/9) >= {1/9}] signal: Error.
+	should: [(1/9) < {1/9}] signal: Exception.
+	should: [(1/9) > {1/9}] signal: Exception.
+	should: [(1/9) <= {1/9}] signal: Exception.
+	should: [(1/9) >= {1/9}] signal: Exception.
 )
 public testFractionComparisions = (
 	assert: (1/9) = (1/9).
@@ -2790,15 +2790,15 @@ public testIntegerAsStringRadix = (
 	assert: (36rABCXYZ negated asStringRadix: 36) equals: '-ABCXYZ'.
 
 	(* Bad radix *)
-	should: [0 asStringRadix: -1] signal: Error.
-	should: [0 asStringRadix: 0] signal: Error.
-	should: [0 asStringRadix: 1] signal: Error.
-	should: [0 asStringRadix: 37] signal: Error.
+	should: [0 asStringRadix: -1] signal: Exception.
+	should: [0 asStringRadix: 0] signal: Exception.
+	should: [0 asStringRadix: 1] signal: Exception.
+	should: [0 asStringRadix: 37] signal: Exception.
 
-	should: [0 asStringRadix: '10'] signal: Error.
-	should: [0 asStringRadix: nil] signal: Error.
-	should: [0 asStringRadix: false] signal: Error.
-	should: [0 asStringRadix: true] signal: Error.
+	should: [0 asStringRadix: '10'] signal: Exception.
+	should: [0 asStringRadix: nil] signal: Exception.
+	should: [0 asStringRadix: false] signal: Exception.
+	should: [0 asStringRadix: true] signal: Exception.
 )
 public testIntegerCeiling = (
 	assert: -1 ceiling equals: -1.
@@ -3126,28 +3126,28 @@ public testIntegerParse = (
 	(* Digit out of range. *)
 	2 to: 36 do:
 		[:radix |
-		should: [Integer parse: ('123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' copyFrom: radix to: radix) radix: radix] signal: Error.
-		should: [Integer parse: ('123456789abcdefghijklmnopqrstuvwxyz' copyFrom: radix to: radix) radix: radix] signal: Error].
+		should: [Integer parse: ('123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' copyFrom: radix to: radix) radix: radix] signal: Exception.
+		should: [Integer parse: ('123456789abcdefghijklmnopqrstuvwxyz' copyFrom: radix to: radix) radix: radix] signal: Exception].
 
 	(* Bad radix *)
-	should: [Integer parse: '0' radix: -1] signal: Error.
-	should: [Integer parse: '0' radix: 0] signal: Error.
-	should: [Integer parse: '0' radix: 1] signal: Error.
-	should: [Integer parse: '0' radix: 37] signal: Error.
+	should: [Integer parse: '0' radix: -1] signal: Exception.
+	should: [Integer parse: '0' radix: 0] signal: Exception.
+	should: [Integer parse: '0' radix: 1] signal: Exception.
+	should: [Integer parse: '0' radix: 37] signal: Exception.
 
-	should: [Integer parse: 'xyz'] signal: Error.
-	should: [Integer parse: ''] signal: Error.
-	should: [Integer parse: '--9'] signal: Error.
-	should: [Integer parse: 'nan'] signal: Error.
-	should: [Integer parse: 'NAN'] signal: Error.
-	should: [Integer parse: 'infinity'] signal: Error.
-	should: [Integer parse: '-infinity'] signal: Error.
-	should: [Integer parse: 'inf'] signal: Error.
-	should: [Integer parse: '-inf'] signal: Error.
-	should: [Integer parse: '3.0'] signal: Error.
+	should: [Integer parse: 'xyz'] signal: Exception.
+	should: [Integer parse: ''] signal: Exception.
+	should: [Integer parse: '--9'] signal: Exception.
+	should: [Integer parse: 'nan'] signal: Exception.
+	should: [Integer parse: 'NAN'] signal: Exception.
+	should: [Integer parse: 'infinity'] signal: Exception.
+	should: [Integer parse: '-infinity'] signal: Exception.
+	should: [Integer parse: 'inf'] signal: Exception.
+	should: [Integer parse: '-inf'] signal: Exception.
+	should: [Integer parse: '3.0'] signal: Exception.
 
-	should: [Integer parse: ' 3'] signal: Error.
-	should: [Integer parse: '3 '] signal: Error.
+	should: [Integer parse: ' 3'] signal: Exception.
+	should: [Integer parse: '3 '] signal: Exception.
 )
 public testIntegerRaisedTo = (
 	| r |
@@ -3288,7 +3288,7 @@ public testIntegerReciprocalModulo = (
 					[inverse:: x reciprocalModulo: modulus.
 					 assert: (x * inverse) \\ modulus equals: 1]
 				ifFalse:
-					[should: [x reciprocalModulo: modulus] signal: Error]]].
+					[should: [x reciprocalModulo: modulus] signal: Exception]]].
 )
 public testIntegerRounded = (
 	assert: -1 rounded equals: -1.
@@ -3691,13 +3691,13 @@ public testLargeIntegerComparisions = (
 	assert: 16rFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF >= 16rFFFFFFFFFFFFFFFF.
 )
 public testLargeIntegerDigitAtErrors = (
-	should: [smallestPositiveLargeInteger digitAt: 9] signal: Error.
-	should: [largestNegativeLargeInteger digitAt: 9] signal: Error.
+	should: [smallestPositiveLargeInteger digitAt: 9] signal: Exception.
+	should: [largestNegativeLargeInteger digitAt: 9] signal: Exception.
 
-	should: [smallestPositiveLargeInteger digitAt: -1] signal: Error.
-	should: [smallestPositiveLargeInteger digitAt: 0] signal: Error.
-	should: [smallestPositiveLargeInteger digitAt: nil] signal: Error.
-	should: [smallestPositiveLargeInteger digitAt: '1'] signal: Error.
+	should: [smallestPositiveLargeInteger digitAt: -1] signal: Exception.
+	should: [smallestPositiveLargeInteger digitAt: 0] signal: Exception.
+	should: [smallestPositiveLargeInteger digitAt: nil] signal: Exception.
+	should: [smallestPositiveLargeInteger digitAt: '1'] signal: Exception.
 )
 public testLargeIntegerDigitLength = (
 	assert: smallestPositiveLargeInteger digitLength equals: 8.
@@ -3814,12 +3814,12 @@ public testLargeIntegerDiv = (
 	assert: e // f equals: 0.
 	assert: f // f equals: 1.
 
-	should: [a // 0] signal: Error.
-	should: [b // 0] signal: Error.
-	should: [c // 0] signal: Error.
-	should: [d // 0] signal: Error.
-	should: [e // 0] signal: Error.
-	should: [f // 0] signal: Error.
+	should: [a // 0] signal: Exception.
+	should: [b // 0] signal: Exception.
+	should: [c // 0] signal: Exception.
+	should: [d // 0] signal: Exception.
+	should: [e // 0] signal: Exception.
+	should: [f // 0] signal: Exception.
 
 	assert: 0 // a equals: 0.
 	assert: 0 // b equals: 0.
@@ -3951,12 +3951,12 @@ public testLargeIntegerDivide = (
 	assert: c * d / d equals: c.
 	assert: d * d / d equals: d.
 
-	should: [a / 0] signal: Error.
-	should: [b / 0] signal: Error.
-	should: [c / 0] signal: Error.
-	should: [d / 0] signal: Error.
-	should: [e / 0] signal: Error.
-	should: [f / 0] signal: Error.
+	should: [a / 0] signal: Exception.
+	should: [b / 0] signal: Exception.
+	should: [c / 0] signal: Exception.
+	should: [d / 0] signal: Exception.
+	should: [e / 0] signal: Exception.
+	should: [f / 0] signal: Exception.
 
 	assert: 0 / a equals: 0.
 	assert: 0 / b equals: 0.
@@ -4081,12 +4081,12 @@ public testLargeIntegerMod = (
 	assert: e \\ f equals: e.
 	assert: f \\ f equals: 0.
 
-	should: [a \\ 0] signal: Error.
-	should: [b \\ 0] signal: Error.
-	should: [c \\ 0] signal: Error.
-	should: [d \\ 0] signal: Error.
-	should: [e \\ 0] signal: Error.
-	should: [f \\ 0] signal: Error.
+	should: [a \\ 0] signal: Exception.
+	should: [b \\ 0] signal: Exception.
+	should: [c \\ 0] signal: Exception.
+	should: [d \\ 0] signal: Exception.
+	should: [e \\ 0] signal: Exception.
+	should: [f \\ 0] signal: Exception.
 
 	assert: 0 \\ a equals: 0.
 	assert: 0 \\ b equals: 0.
@@ -4313,12 +4313,12 @@ public testLargeIntegerQuo = (
 	assert: (e quo: f) equals: 0.
 	assert: (f quo: f) equals: 1.
 
-	should: [a quo: 0] signal: Error.
-	should: [b quo: 0] signal: Error.
-	should: [c quo: 0] signal: Error.
-	should: [d quo: 0] signal: Error.
-	should: [e quo: 0] signal: Error.
-	should: [f quo: 0] signal: Error.
+	should: [a quo: 0] signal: Exception.
+	should: [b quo: 0] signal: Exception.
+	should: [c quo: 0] signal: Exception.
+	should: [d quo: 0] signal: Exception.
+	should: [e quo: 0] signal: Exception.
+	should: [f quo: 0] signal: Exception.
 
 	assert: (0 quo: a) equals: 0.
 	assert: (0 quo: b) equals: 0.
@@ -4435,12 +4435,12 @@ public testLargeIntegerRem = (
 	assert: (e rem: f) equals: e.
 	assert: (f rem: f) equals: 0.
 
-	should: [a rem: 0] signal: Error.
-	should: [b rem: 0] signal: Error.
-	should: [c rem: 0] signal: Error.
-	should: [d rem: 0] signal: Error.
-	should: [e rem: 0] signal: Error.
-	should: [f rem: 0] signal: Error.
+	should: [a rem: 0] signal: Exception.
+	should: [b rem: 0] signal: Exception.
+	should: [c rem: 0] signal: Exception.
+	should: [d rem: 0] signal: Exception.
+	should: [e rem: 0] signal: Exception.
+	should: [f rem: 0] signal: Exception.
 
 	assert: (0 rem: a) equals: 0.
 	assert: (0 rem: b) equals: 0.
@@ -4494,16 +4494,16 @@ public testLargeIntegerShiftLeft = (
 	should: [a << a] signal: OutOfMemory.
 	should: [b << a] signal: OutOfMemory. *)
 
-	should: [a << -1] signal: Error.
-	should: [b << -1] signal: Error.
-	should: [a << minInt31] signal: Error.
-	should: [b << minInt31] signal: Error.
-	should: [a << minInt63] signal: Error.
-	should: [b << minInt63] signal: Error.
-	should: [a << minInt64] signal: Error.
-	should: [b << minInt64] signal: Error.
-	should: [a << b] signal: Error.
-	should: [b << b] signal: Error.
+	should: [a << -1] signal: Exception.
+	should: [b << -1] signal: Exception.
+	should: [a << minInt31] signal: Exception.
+	should: [b << minInt31] signal: Exception.
+	should: [a << minInt63] signal: Exception.
+	should: [b << minInt63] signal: Exception.
+	should: [a << minInt64] signal: Exception.
+	should: [b << minInt64] signal: Exception.
+	should: [a << b] signal: Exception.
+	should: [b << b] signal: Exception.
 )
 public testLargeIntegerShiftRight = (
 	|
@@ -4550,16 +4550,16 @@ public testLargeIntegerShiftRight = (
 	assert: a >> a equals: 0.
 	assert: b >> a equals: -1.
 
-	should: [a >> -1] signal: Error.
-	should: [b >> -1] signal: Error.
-	should: [a >> minInt31] signal: Error.
-	should: [b >> minInt31] signal: Error.
-	should: [a >> minInt63] signal: Error.
-	should: [b >> minInt63] signal: Error.
-	should: [a >> minInt64] signal: Error.
-	should: [b >> minInt64] signal: Error.
-	should: [a >> b] signal: Error.
-	should: [b >> b] signal: Error.
+	should: [a >> -1] signal: Exception.
+	should: [b >> -1] signal: Exception.
+	should: [a >> minInt31] signal: Exception.
+	should: [b >> minInt31] signal: Exception.
+	should: [a >> minInt63] signal: Exception.
+	should: [b >> minInt63] signal: Exception.
+	should: [a >> minInt64] signal: Exception.
+	should: [b >> minInt64] signal: Exception.
+	should: [a >> b] signal: Exception.
+	should: [b >> b] signal: Exception.
 )
 public testLargeIntegerSubtract = (
 	|
@@ -4875,15 +4875,15 @@ public testMediumIntegerDigitAt = (
 	assert: (maxInt64 digitAt: 8) equals: 16r7F.
 )
 public testMediumIntegerDigitAtErrors = (
-	should: [minInt63 digitAt: 9] signal: Error.
-	should: [maxInt63 digitAt: 9] signal: Error.
-	should: [minInt64 digitAt: 9] signal: Error.
-	should: [maxInt64 digitAt: 9] signal: Error.
+	should: [minInt63 digitAt: 9] signal: Exception.
+	should: [maxInt63 digitAt: 9] signal: Exception.
+	should: [minInt64 digitAt: 9] signal: Exception.
+	should: [maxInt64 digitAt: 9] signal: Exception.
 
-	should: [minInt64 digitAt: -1] signal: Error.
-	should: [minInt64 digitAt: 0] signal: Error.
-	should: [minInt64 digitAt: nil] signal: Error.
-	should: [minInt64 digitAt: '1'] signal: Error.
+	should: [minInt64 digitAt: -1] signal: Exception.
+	should: [minInt64 digitAt: 0] signal: Exception.
+	should: [minInt64 digitAt: nil] signal: Exception.
+	should: [minInt64 digitAt: '1'] signal: Exception.
 )
 public testMediumIntegerDigitLength = (
 	assert: minInt63 digitLength equals: 8.
@@ -4939,8 +4939,8 @@ public testMediumIntegerDiv = (
 	assert: maxInt63 // minInt64 equals: -1.
 	assert: maxInt64 // minInt64 equals: -1. *)
 
-	should: [minInt64 // 0] signal: Error.
-	should: [maxInt64 // 0] signal: Error.
+	should: [minInt64 // 0] signal: Exception.
+	should: [maxInt64 // 0] signal: Exception.
 
 	assert: 0 // minInt64 equals: 0.
 	assert: 0 // maxInt64 equals: 0.
@@ -4980,8 +4980,8 @@ public testMediumIntegerDivide = (
 	assert: maxInt63 / -1 equals: -4611686018427387903.
 	assert: maxInt64 / -1 equals: -9223372036854775807.
 
-	should: [minInt64 / 0] signal: Error.
-	should: [maxInt64 / 0] signal: Error.
+	should: [minInt64 / 0] signal: Exception.
+	should: [maxInt64 / 0] signal: Exception.
 
 	assert: 0 / minInt64 equals: 0.
 	assert: 0 / maxInt64 equals: 0.
@@ -5045,26 +5045,26 @@ public testMediumIntegerMod = (
 	assert: maxInt63 \\ minInt64 equals: -4611686018427387905.
 	assert: maxInt64 \\ minInt64 equals: -1.
 
-	should: [minInt64 \\ 0] signal: Error.
-	should: [maxInt64 \\ 0] signal: Error.
+	should: [minInt64 \\ 0] signal: Exception.
+	should: [maxInt64 \\ 0] signal: Exception.
 
 	assert: 0 \\ minInt64 equals: 0.
 	assert: 0 \\ maxInt64 equals: 0.
 )
 public testMediumIntegerOperatorsInvalidArgument = (
-	should: [maxInt64 + nil] signal: Error.
-	should: [maxInt64 - nil] signal: Error.
-	should: [maxInt64 / nil] signal: Error.
-	should: [maxInt64 * nil] signal: Error.
-	should: [maxInt64 // nil] signal: Error.
-	should: [maxInt64 \\ nil] signal: Error.
-	should: [maxInt64 quo: nil] signal: Error.
-	should: [maxInt64 rem: nil] signal: Error.
-	should: [maxInt64 << nil] signal: Error.
-	should: [maxInt64 >> nil] signal: Error.
-	should: [maxInt64 bitAnd: nil] signal: Error.
-	should: [maxInt64 bitOr: nil] signal: Error.
-	should: [0 bitXor: nil] signal: Error.
+	should: [maxInt64 + nil] signal: Exception.
+	should: [maxInt64 - nil] signal: Exception.
+	should: [maxInt64 / nil] signal: Exception.
+	should: [maxInt64 * nil] signal: Exception.
+	should: [maxInt64 // nil] signal: Exception.
+	should: [maxInt64 \\ nil] signal: Exception.
+	should: [maxInt64 quo: nil] signal: Exception.
+	should: [maxInt64 rem: nil] signal: Exception.
+	should: [maxInt64 << nil] signal: Exception.
+	should: [maxInt64 >> nil] signal: Exception.
+	should: [maxInt64 bitAnd: nil] signal: Exception.
+	should: [maxInt64 bitOr: nil] signal: Exception.
+	should: [0 bitXor: nil] signal: Exception.
 )
 public testMediumIntegerOr = (
 	assert: (minInt31 bitOr: 0) equals: minInt31.
@@ -5149,8 +5149,8 @@ public testMediumIntegerQuo = (
 	assert: (maxInt63 quo: minInt64) equals: 0.
 	assert: (maxInt64 quo: minInt64) equals: 0.
 
-	should: [minInt64 quo: 0] signal: Error.
-	should: [maxInt64 quo: 0] signal: Error.
+	should: [minInt64 quo: 0] signal: Exception.
+	should: [maxInt64 quo: 0] signal: Exception.
 
 	assert: (0 quo: minInt64) equals: 0.
 	assert: (0 quo: maxInt64) equals: 0.
@@ -5204,8 +5204,8 @@ public testMediumIntegerRem = (
 	assert: (maxInt63 rem: minInt64) equals: 4611686018427387903.
 	assert: (maxInt64 rem: minInt64) equals: 9223372036854775807.
 
-	should: [minInt64 rem: 0] signal: Error.
-	should: [maxInt64 rem: 0] signal: Error.
+	should: [minInt64 rem: 0] signal: Exception.
+	should: [maxInt64 rem: 0] signal: Exception.
 
 	assert: (0 rem: minInt64) equals: 0.
 	assert: (0 rem: maxInt64) equals: 0.
@@ -5241,14 +5241,14 @@ public testMediumIntegerShiftLeft = (
 	assert: maxInt31 << 33 equals: 9223372028264841216.
 	assert: maxInt32 << 32 equals: 9223372032559808512.
 
-	should: [minInt31 << -1] signal: Error.
-	should: [minInt32 << -1] signal: Error.
-	should: [minInt63 << -1] signal: Error.
-	should: [minInt64 << -1] signal: Error.
-	should: [maxInt31 << -1] signal: Error.
-	should: [maxInt32 << -1] signal: Error.
-	should: [maxInt63 << -1] signal: Error.
-	should: [maxInt64 << -1] signal: Error.
+	should: [minInt31 << -1] signal: Exception.
+	should: [minInt32 << -1] signal: Exception.
+	should: [minInt63 << -1] signal: Exception.
+	should: [minInt64 << -1] signal: Exception.
+	should: [maxInt31 << -1] signal: Exception.
+	should: [maxInt32 << -1] signal: Exception.
+	should: [maxInt63 << -1] signal: Exception.
+	should: [maxInt64 << -1] signal: Exception.
 )
 public testMediumIntegerShiftLeftOverflow = (
 	assert: minInt64 << 1 equals: -18446744073709551616.
@@ -5322,30 +5322,30 @@ public testMediumIntegerShiftRight = (
 	assert: maxInt63 >> maxInt64 equals: 0.
 	assert: maxInt64 >> maxInt64 equals: 0.
 
-	should: [minInt31 >> -1] signal: Error.
-	should: [minInt32 >> -1] signal: Error.
-	should: [minInt63 >> -1] signal: Error.
-	should: [minInt64 >> -1] signal: Error.
-	should: [maxInt31 >> -1] signal: Error.
-	should: [maxInt32 >> -1] signal: Error.
-	should: [maxInt63 >> -1] signal: Error.
-	should: [maxInt64 >> -1] signal: Error.
-	should: [minInt31 >> minInt31] signal: Error.
-	should: [minInt32 >> minInt31] signal: Error.
-	should: [minInt63 >> minInt31] signal: Error.
-	should: [minInt64 >> minInt31] signal: Error.
-	should: [maxInt31 >> minInt31] signal: Error.
-	should: [maxInt32 >> minInt31] signal: Error.
-	should: [maxInt63 >> minInt31] signal: Error.
-	should: [maxInt64 >> minInt31] signal: Error.
-	should: [minInt31 >> minInt64] signal: Error.
-	should: [minInt32 >> minInt64] signal: Error.
-	should: [minInt63 >> minInt64] signal: Error.
-	should: [minInt64 >> minInt64] signal: Error.
-	should: [maxInt31 >> minInt64] signal: Error.
-	should: [maxInt32 >> minInt64] signal: Error.
-	should: [maxInt63 >> minInt64] signal: Error.
-	should: [maxInt64 >> minInt64] signal: Error.
+	should: [minInt31 >> -1] signal: Exception.
+	should: [minInt32 >> -1] signal: Exception.
+	should: [minInt63 >> -1] signal: Exception.
+	should: [minInt64 >> -1] signal: Exception.
+	should: [maxInt31 >> -1] signal: Exception.
+	should: [maxInt32 >> -1] signal: Exception.
+	should: [maxInt63 >> -1] signal: Exception.
+	should: [maxInt64 >> -1] signal: Exception.
+	should: [minInt31 >> minInt31] signal: Exception.
+	should: [minInt32 >> minInt31] signal: Exception.
+	should: [minInt63 >> minInt31] signal: Exception.
+	should: [minInt64 >> minInt31] signal: Exception.
+	should: [maxInt31 >> minInt31] signal: Exception.
+	should: [maxInt32 >> minInt31] signal: Exception.
+	should: [maxInt63 >> minInt31] signal: Exception.
+	should: [maxInt64 >> minInt31] signal: Exception.
+	should: [minInt31 >> minInt64] signal: Exception.
+	should: [minInt32 >> minInt64] signal: Exception.
+	should: [minInt63 >> minInt64] signal: Exception.
+	should: [minInt64 >> minInt64] signal: Exception.
+	should: [maxInt31 >> minInt64] signal: Exception.
+	should: [maxInt32 >> minInt64] signal: Exception.
+	should: [maxInt63 >> minInt64] signal: Exception.
+	should: [maxInt64 >> minInt64] signal: Exception.
 )
 public testMediumIntegerSubtractOverflow = (
 	assert: minInt64 - 1 equals: -9223372036854775809.
@@ -5416,16 +5416,16 @@ public testSmallIntegerAsString = (
 )
 public testSmallIntegerComparisonErrors = (
 	deny: 42 = '42'.
-	should: [42 < '42'] signal: Error.
-	should: [42 > '42'] signal: Error.
-	should: [42 <= '42'] signal: Error.
-	should: [42 >= '42'] signal: Error.
+	should: [42 < '42'] signal: Exception.
+	should: [42 > '42'] signal: Exception.
+	should: [42 <= '42'] signal: Exception.
+	should: [42 >= '42'] signal: Exception.
 
 	deny: 42 = {42}.
-	should: [42 < {42}] signal: Error.
-	should: [42 > {42}] signal: Error.
-	should: [42 <= {42}] signal: Error.
-	should: [42 >= {42}] signal: Error.
+	should: [42 < {42}] signal: Exception.
+	should: [42 > {42}] signal: Exception.
+	should: [42 <= {42}] signal: Exception.
+	should: [42 >= {42}] signal: Exception.
 )
 public testSmallIntegerComparisons = (
 	assert: 42 = 42.
@@ -5488,21 +5488,21 @@ public testSmallIntegerDigitAt = (
 	assert: (-16r12345678 digitAt: 4) equals: 16r12.
 )
 public testSmallIntegerDigitAtErrors = (
-	should: [0 digitAt: 1] signal: Error.
-	should: [16r12 digitAt: 2] signal: Error.
-	should: [16r1234 digitAt: 3] signal: Error.
-	should: [16r123456 digitAt: 4] signal: Error.
-	should: [16r12345678 digitAt: 5] signal: Error.
+	should: [0 digitAt: 1] signal: Exception.
+	should: [16r12 digitAt: 2] signal: Exception.
+	should: [16r1234 digitAt: 3] signal: Exception.
+	should: [16r123456 digitAt: 4] signal: Exception.
+	should: [16r12345678 digitAt: 5] signal: Exception.
 
-	should: [-16r12 digitAt: 2] signal: Error.
-	should: [-16r1234 digitAt: 3] signal: Error.
-	should: [-16r123456 digitAt: 4] signal: Error.
-	should: [-16r12345678 digitAt: 5] signal: Error.
+	should: [-16r12 digitAt: 2] signal: Exception.
+	should: [-16r1234 digitAt: 3] signal: Exception.
+	should: [-16r123456 digitAt: 4] signal: Exception.
+	should: [-16r12345678 digitAt: 5] signal: Exception.
 
-	should: [42 digitAt: -1] signal: Error.
-	should: [42 digitAt: 0] signal: Error.
-	should: [42 digitAt: nil] signal: Error.
-	should: [42 digitAt: '1'] signal: Error.
+	should: [42 digitAt: -1] signal: Exception.
+	should: [42 digitAt: 0] signal: Exception.
+	should: [42 digitAt: nil] signal: Exception.
+	should: [42 digitAt: '1'] signal: Exception.
 )
 public testSmallIntegerDigitLength = (
 	assert: 0 digitLength equals: 0.
@@ -5527,14 +5527,14 @@ public testSmallIntegerDiv = (
 	assert: -7 // -3 equals: 2.
 	assert: 7 // 3 equals: 2.
 
-	should: [42 // 0] signal: Error.
+	should: [42 // 0] signal: Exception.
 
 	assert: 0 // 42 equals: 0.
 )
 public testSmallIntegerDivideExact = (
 	assert: 8 / 4 equals: 2.
 	assert: 8 / 1 equals: 8.
-	should: [8 / 0] signal: Error.
+	should: [8 / 0] signal: Exception.
 	assert: 0 / 8 equals: 0.
 
 	assert: 3 / 3 equals: 1.
@@ -5562,7 +5562,7 @@ public testSmallIntegerMod = (
 	assert: -7 \\ -3 equals: -1.
 	assert: 7 \\ 3 equals: 1.
 
-	should: [42 \\ 0] signal: Error.
+	should: [42 \\ 0] signal: Exception.
 
 	assert: 0 \\ 42 equals: 0.
 )
@@ -5578,19 +5578,19 @@ public testSmallIntegerMultiplyOverflow = (
 	assert: maxInt63 * maxInt63 equals: 21267647932558653957237540927630737409.
 )
 public testSmallIntegerOperatorsInvalidArgument = (
-	should: [0 + nil] signal: Error.
-	should: [0 - nil] signal: Error.
-	should: [0 / nil] signal: Error.
-	should: [0 * nil] signal: Error.
-	should: [0 // nil] signal: Error.
-	should: [0 \\ nil] signal: Error.
-	should: [0 quo: nil] signal: Error.
-	should: [0 rem: nil] signal: Error.
-	should: [0 << nil] signal: Error.
-	should: [0 >> nil] signal: Error.
-	should: [0 bitAnd: nil] signal: Error.
-	should: [0 bitOr: nil] signal: Error.
-	should: [0 bitXor: nil] signal: Error.
+	should: [0 + nil] signal: Exception.
+	should: [0 - nil] signal: Exception.
+	should: [0 / nil] signal: Exception.
+	should: [0 * nil] signal: Exception.
+	should: [0 // nil] signal: Exception.
+	should: [0 \\ nil] signal: Exception.
+	should: [0 quo: nil] signal: Exception.
+	should: [0 rem: nil] signal: Exception.
+	should: [0 << nil] signal: Exception.
+	should: [0 >> nil] signal: Exception.
+	should: [0 bitAnd: nil] signal: Exception.
+	should: [0 bitOr: nil] signal: Exception.
+	should: [0 bitXor: nil] signal: Exception.
 )
 public testSmallIntegerOr = (
 	assert: (1 bitOr: 0) equals: 1.
@@ -5615,7 +5615,7 @@ public testSmallIntegerQuo = (
 	assert: (-7 quo: -3) equals: 2.
 	assert: (7 quo: 3) equals: 2.
 
-	should: [42 quo: 0] signal: Error.
+	should: [42 quo: 0] signal: Exception.
 
 	assert: (0 quo: 42) equals: 0.
 )
@@ -5629,7 +5629,7 @@ public testSmallIntegerRem = (
 	assert: (-7 rem: -3) equals: -1.
 	assert: (7 rem: 3) equals: 1.
 
-	should: [42 rem: 0] signal: Error.
+	should: [42 rem: 0] signal: Exception.
 
 	assert: (0 rem: 42) equals: 0.
 )
@@ -5642,8 +5642,8 @@ public testSmallIntegerShiftLeft = (
 	assert: 1 << 0 equals: 1.
 	assert: -1 << 0 equals: -1.
 
-	should: [4 << -1] signal: Error.
-	should: [-4 << -1] signal: Error.
+	should: [4 << -1] signal: Exception.
+	should: [-4 << -1] signal: Exception.
 )
 public testSmallIntegerShiftRight = (
 	assert: 4 >> 2 equals: 1.
@@ -5671,10 +5671,10 @@ public testSmallIntegerShiftRight = (
 	assert: 4 >> 0 equals: 4.
 	assert: -4 >> 0 equals: -4.
 
-	should: [4 >> -1] signal: Error.
-	should: [-4 >> -1] signal: Error.
-	should: [4 >> minInt31] signal: Error.
-	should: [-4 >> minInt31] signal: Error.
+	should: [4 >> -1] signal: Exception.
+	should: [-4 >> -1] signal: Exception.
+	should: [4 >> minInt31] signal: Exception.
+	should: [-4 >> minInt31] signal: Exception.
 )
 public testSmallIntegerXor = (
 	assert: (42 bitXor: 42) equals: 0.
@@ -5779,7 +5779,7 @@ public testGlobalsProtected = (
 	| o = Object new. |
 	should: [o Array] signal: MessageNotUnderstood.
 	should: [o ByteArray] signal: MessageNotUnderstood.
-	should: [o Error] signal: MessageNotUnderstood.
+	should: [o Exception] signal: MessageNotUnderstood.
 	should: [o Exception] signal: MessageNotUnderstood.
 	should: [o Float] signal: MessageNotUnderstood.
 	should: [o Integer] signal: MessageNotUnderstood.
@@ -5942,9 +5942,9 @@ public testStringBuilderNew = (
 	assert: (StringBuilder new: 0) size equals: 0.
 	assert: (StringBuilder new: 16) size equals: 0.
 
-	should: [StringBuilder new: -1] signal: Error.
-	should: [StringBuilder new: '10'] signal: Error.
-	should: [StringBuilder new: nil] signal: Error.
+	should: [StringBuilder new: -1] signal: Exception.
+	should: [StringBuilder new: '10'] signal: Exception.
+	should: [StringBuilder new: nil] signal: Exception.
 )
 ) : (
 TEST_CONTEXT = ()
@@ -5988,23 +5988,23 @@ public testStringAt = (
 	assert: ('foo' at: 2) equals: 111.
 	assert: ('foo' at: 3) equals: 111.
 
-	should: ['foo' at: 0] signal: Error.
-	should: ['foo' at: 4] signal: Error.
+	should: ['foo' at: 0] signal: Exception.
+	should: ['foo' at: 4] signal: Exception.
 
-	should: ['' at: 0] signal: Error.
+	should: ['' at: 0] signal: Exception.
 
-	should: ['foo' at: -1] signal: Error.
-	should: ['foo' at: nil] signal: Error.
-	should: ['foo' at: 1 asFloat] signal: Error.
+	should: ['foo' at: -1] signal: Exception.
+	should: ['foo' at: nil] signal: Exception.
+	should: ['foo' at: 1 asFloat] signal: Exception.
 )
 public testStringConcatenation = (
 	assert: 'foo' , 'bar' equals: 'foobar'.
 	assert: 'foo' , 'bar', '' equals: 'foobar'.
 	assert: ('foo' , 'bar') size equals: 6.
 
-	should: ['foo', 3] signal: Error.
-	should: ['foo', true] signal: Error.
-	should: ['foo', nil] signal: Error.
+	should: ['foo', 3] signal: Exception.
+	should: ['foo', true] signal: Exception.
+	should: ['foo', nil] signal: Exception.
 	should: [3, 'foo'] signal: MessageNotUnderstood.
 	should: [true, 'foo'] signal: MessageNotUnderstood.
 	should: [nil, 'foo'] signal: MessageNotUnderstood.
@@ -6024,18 +6024,18 @@ public testStringCopyByteArrayFromTo = (
 
 	assert: ('' copyByteArrayFrom: 1 to: 0) size equals: 0.
 
-	should: ['' copyByteArrayFrom: 0 to: 0] signal: Error.
-	should: ['' copyByteArrayFrom: 2 to: 0] signal: Error.
-	should: ['' copyByteArrayFrom: 1 to: 1] signal: Error.
+	should: ['' copyByteArrayFrom: 0 to: 0] signal: Exception.
+	should: ['' copyByteArrayFrom: 2 to: 0] signal: Exception.
+	should: ['' copyByteArrayFrom: 1 to: 1] signal: Exception.
 
-	should: ['Hello, world!' copyByteArrayFrom: 13 to: 14] signal: Error.
-	should: ['Hello, world!' copyByteArrayFrom: 0 to: 1] signal: Error.
-	should: ['Hello, world!' copyByteArrayFrom: 8 to: nil] signal: Error.
-	should: ['Hello, world!' copyByteArrayFrom: nil to: 9] signal: Error.
-	should: ['Hello, world!' copyByteArrayFrom: 2 to: 90] signal: Error.
-	should: ['Hello, world!' copyByteArrayFrom: 80 to: 90] signal: Error.
-	should: ['Hello, world!' copyByteArrayFrom: 2 to: 5 asFloat] signal: Error.
-	should: ['Hello, world!' copyByteArrayFrom: 2 asFloat to: 5] signal: Error.
+	should: ['Hello, world!' copyByteArrayFrom: 13 to: 14] signal: Exception.
+	should: ['Hello, world!' copyByteArrayFrom: 0 to: 1] signal: Exception.
+	should: ['Hello, world!' copyByteArrayFrom: 8 to: nil] signal: Exception.
+	should: ['Hello, world!' copyByteArrayFrom: nil to: 9] signal: Exception.
+	should: ['Hello, world!' copyByteArrayFrom: 2 to: 90] signal: Exception.
+	should: ['Hello, world!' copyByteArrayFrom: 80 to: 90] signal: Exception.
+	should: ['Hello, world!' copyByteArrayFrom: 2 to: 5 asFloat] signal: Exception.
+	should: ['Hello, world!' copyByteArrayFrom: 2 asFloat to: 5] signal: Exception.
 )
 public testStringCopyFromTo = (
 	assert: ('Hello, world!' copyFrom: 8 to: 12) equals: 'world'.
@@ -6046,18 +6046,18 @@ public testStringCopyFromTo = (
 
 	assert: ('' copyFrom: 1 to: 0) equals: ''.
 
-	should: ['' copyFrom: 0 to: 0] signal: Error.
-	should: ['' copyFrom: 2 to: 0] signal: Error.
-	should: ['' copyFrom: 1 to: 1] signal: Error.
+	should: ['' copyFrom: 0 to: 0] signal: Exception.
+	should: ['' copyFrom: 2 to: 0] signal: Exception.
+	should: ['' copyFrom: 1 to: 1] signal: Exception.
 
-	should: ['Hello, world!' copyFrom: 13 to: 14] signal: Error.
-	should: ['Hello, world!' copyFrom: 0 to: 1] signal: Error.
-	should: ['Hello, world!' copyFrom: 8 to: nil] signal: Error.
-	should: ['Hello, world!' copyFrom: nil to: 9] signal: Error.
-	should: ['Hello, world!' copyFrom: 2 to: 90] signal: Error.
-	should: ['Hello, world!' copyFrom: 80 to: 90] signal: Error.
-	should: ['Hello, world!' copyFrom: 2 to: 5 asFloat] signal: Error.
-	should: ['Hello, world!' copyFrom: 2 asFloat to: 5] signal: Error.
+	should: ['Hello, world!' copyFrom: 13 to: 14] signal: Exception.
+	should: ['Hello, world!' copyFrom: 0 to: 1] signal: Exception.
+	should: ['Hello, world!' copyFrom: 8 to: nil] signal: Exception.
+	should: ['Hello, world!' copyFrom: nil to: 9] signal: Exception.
+	should: ['Hello, world!' copyFrom: 2 to: 90] signal: Exception.
+	should: ['Hello, world!' copyFrom: 80 to: 90] signal: Exception.
+	should: ['Hello, world!' copyFrom: 2 to: 5 asFloat] signal: Exception.
+	should: ['Hello, world!' copyFrom: 2 asFloat to: 5] signal: Exception.
 )
 public testStringCopyStringFromTo = (
 	assert: ('Hello, world!' copyStringFrom: 8 to: 12) equals: 'world'.
@@ -6068,18 +6068,18 @@ public testStringCopyStringFromTo = (
 
 	assert: ('' copyStringFrom: 1 to: 0) equals: ''.
 
-	should: ['' copyStringFrom: 0 to: 0] signal: Error.
-	should: ['' copyStringFrom: 2 to: 0] signal: Error.
-	should: ['' copyStringFrom: 1 to: 1] signal: Error.
+	should: ['' copyStringFrom: 0 to: 0] signal: Exception.
+	should: ['' copyStringFrom: 2 to: 0] signal: Exception.
+	should: ['' copyStringFrom: 1 to: 1] signal: Exception.
 
-	should: ['Hello, world!' copyStringFrom: 13 to: 14] signal: Error.
-	should: ['Hello, world!' copyStringFrom: 0 to: 1] signal: Error.
-	should: ['Hello, world!' copyStringFrom: 8 to: nil] signal: Error.
-	should: ['Hello, world!' copyStringFrom: nil to: 9] signal: Error.
-	should: ['Hello, world!' copyStringFrom: 2 to: 90] signal: Error.
-	should: ['Hello, world!' copyStringFrom: 80 to: 90] signal: Error.
-	should: ['Hello, world!' copyStringFrom: 2 to: 5 asFloat] signal: Error.
-	should: ['Hello, world!' copyStringFrom: 2 asFloat to: 5] signal: Error.
+	should: ['Hello, world!' copyStringFrom: 13 to: 14] signal: Exception.
+	should: ['Hello, world!' copyStringFrom: 0 to: 1] signal: Exception.
+	should: ['Hello, world!' copyStringFrom: 8 to: nil] signal: Exception.
+	should: ['Hello, world!' copyStringFrom: nil to: 9] signal: Exception.
+	should: ['Hello, world!' copyStringFrom: 2 to: 90] signal: Exception.
+	should: ['Hello, world!' copyStringFrom: 80 to: 90] signal: Exception.
+	should: ['Hello, world!' copyStringFrom: 2 to: 5 asFloat] signal: Exception.
+	should: ['Hello, world!' copyStringFrom: 2 asFloat to: 5] signal: Exception.
 )
 public testStringEndsWith = (
 	| foo empty |
@@ -6102,9 +6102,9 @@ public testStringEndsWith = (
 	deny: ('' endsWith: 'foo').
 	deny: ('' endsWith: foo).
 
-	should: ['0' endsWith: 0] signal: Error.
-	should: ['foo' endsWith: true] signal: Error.
-	should: ['foo' endsWith: nil] signal: Error.
+	should: ['0' endsWith: 0] signal: Exception.
+	should: ['foo' endsWith: true] signal: Exception.
+	should: ['foo' endsWith: nil] signal: Exception.
 )
 public testStringEquals = (
 	assert: 'foo' equals: 'foo'.
@@ -6119,11 +6119,11 @@ public testStringFirstLast = (
 	assert: ('bar' first) equals: 98.
 	assert: ('bar' last) equals: 114.
 
-	should: ['' first] signal: Error.
-	should: ['' last] signal: Error.
+	should: ['' first] signal: Exception.
+	should: ['' last] signal: Exception.
 )
 public testStringFloatIndex = (
-	should: ['foo' at: 1 asFloat] signal: Error.
+	should: ['foo' at: 1 asFloat] signal: Exception.
 )
 public testStringHash = (
 	assert: 'foo' hash isKindOfInteger.
@@ -6159,8 +6159,8 @@ public testStringIndexOf = (
 	assert: ('' indexOf: '') equals: 1.
 	assert: ('' indexOf: 'baz') equals: 0.
 
-	should: ['fofofobar' indexOf: 0] signal: Error.
-	should: ['' indexOf: Object new] signal: Error.
+	should: ['fofofobar' indexOf: 0] signal: Exception.
+	should: ['' indexOf: Object new] signal: Exception.
 )
 public testStringIndexOfStartingAt = (
 	assert: ('fofofobar' indexOf: 'fofo' startingAt: 1) equals: 1.
@@ -6188,13 +6188,13 @@ public testStringIndexOfStartingAt = (
 	assert: ('' indexOf: '' startingAt: 1) equals: 1.
 	assert: ('' indexOf: 'baz' startingAt: 1) equals: 0.
 
-	should: ['fofofobar' indexOf: 0 startingAt: 1] signal: Error.
-	should: ['fofobobar' indexOf: Object new startingAt: 1] signal: Error.
+	should: ['fofofobar' indexOf: 0 startingAt: 1] signal: Exception.
+	should: ['fofobobar' indexOf: Object new startingAt: 1] signal: Exception.
 
-	should: ['fofofobar' indexOf: 'foo' startingAt: 0] signal: Error.
-	should: ['fofofobar' indexOf: 'foo' startingAt: 11] signal: Error.
-	should: ['' indexOf: '' startingAt: 0] signal: Error.
-	should: ['' indexOf: '' startingAt: 2] signal: Error.
+	should: ['fofofobar' indexOf: 'foo' startingAt: 0] signal: Exception.
+	should: ['fofofobar' indexOf: 'foo' startingAt: 11] signal: Exception.
+	should: ['' indexOf: '' startingAt: 0] signal: Exception.
+	should: ['' indexOf: '' startingAt: 2] signal: Exception.
 )
 public testStringIsEmpty = (
 	assert: '' isEmpty.
@@ -6215,8 +6215,8 @@ public testStringLastIndexOf = (
 	assert: ('' lastIndexOf: '') equals: 1.
 	assert: ('' lastIndexOf: 'baz') equals: 0.
 
-	should: ['fofofobar' lastIndexOf: 0] signal: Error.
-	should: ['' lastIndexOf: Object new] signal: Error.
+	should: ['fofofobar' lastIndexOf: 0] signal: Exception.
+	should: ['' lastIndexOf: Object new] signal: Exception.
 )
 public testStringLastIndexOfStartingAt = (
 	assert: ('fofofobar' lastIndexOf: 'fofo' startingAt: 10) equals: 3.
@@ -6246,13 +6246,13 @@ public testStringLastIndexOfStartingAt = (
 	assert: ('' lastIndexOf: '' startingAt: 1) equals: 1.
 	assert: ('' lastIndexOf: 'baz' startingAt: 1) equals: 0.
 
-	should: ['fofofobar' lastIndexOf: 0 startingAt: 1] signal: Error.
-	should: ['' lastIndexOf: Object new startingAt: 1] signal: Error.
+	should: ['fofofobar' lastIndexOf: 0 startingAt: 1] signal: Exception.
+	should: ['' lastIndexOf: Object new startingAt: 1] signal: Exception.
 
-	should: ['fofofobar' lastIndexOf: 'foo' startingAt: 0] signal: Error.
-	should: ['fofofobar' lastIndexOf: 'foo' startingAt: 11] signal: Error.
-	should: ['' lastIndexOf: '' startingAt: 0] signal: Error.
-	should: ['' lastIndexOf: '' startingAt: 2] signal: Error.
+	should: ['fofofobar' lastIndexOf: 'foo' startingAt: 0] signal: Exception.
+	should: ['fofofobar' lastIndexOf: 'foo' startingAt: 11] signal: Exception.
+	should: ['' lastIndexOf: '' startingAt: 0] signal: Exception.
+	should: ['' lastIndexOf: '' startingAt: 2] signal: Exception.
 )
 public testStringPrintString = (
 	97 to: 127 do:
@@ -6296,19 +6296,19 @@ public testStringStartsWith = (
 	deny: ('' startsWith: 'foo').
 	deny: ('' startsWith: foo).
 
-	should: ['0' startsWith: 0] signal: Error.
-	should: ['foo' startsWith: true] signal: Error.
-	should: ['foo' startsWith: nil] signal: Error.
+	should: ['0' startsWith: 0] signal: Exception.
+	should: ['foo' startsWith: true] signal: Exception.
+	should: ['foo' startsWith: nil] signal: Exception.
 )
 public testStringWith = (
 	assert: (String with: 122) equals: 'z'.
 	assert: ((String with: 0) at: 1) equals: 0.
 
-	should: [String with: -1] signal: Error.
-	should: [String with: 16r110000] signal: Error.
-	should: [String with: nil] signal: Error.
-	should: [String with: 122 asFloat] signal: Error.
-	should: [String with: 'z'] signal: Error.
+	should: [String with: -1] signal: Exception.
+	should: [String with: 16r110000] signal: Exception.
+	should: [String with: nil] signal: Exception.
+	should: [String with: 122 asFloat] signal: Exception.
+	should: [String with: 'z'] signal: Exception.
 )
 public testStringWithAll = (
 	| bytearray list result |
@@ -6382,20 +6382,20 @@ public testStringWithAll = (
 	assert: (result at: 2) equals: 111.
 	assert: (result at: 3) equals: 120.
 
-	should: [String withAll: -1] signal: Error.
-	should: [String withAll: 16r110000] signal: Error.
-	should: [String withAll: nil] signal: Error.
-	should: [String withAll: 122 asFloat] signal: Error.
+	should: [String withAll: -1] signal: Exception.
+	should: [String withAll: 16r110000] signal: Exception.
+	should: [String withAll: nil] signal: Exception.
+	should: [String withAll: 122 asFloat] signal: Exception.
 
-	should: [String withAll: {-1}] signal: Error.
-	should: [String withAll: {16r256}] signal: Error.
-	should: [String withAll: {nil}] signal: Error.
-	should: [String withAll: {122 asFloat}] signal: Error.
-	should: [String withAll: {'z'}] signal: Error.
+	should: [String withAll: {-1}] signal: Exception.
+	should: [String withAll: {16r256}] signal: Exception.
+	should: [String withAll: {nil}] signal: Exception.
+	should: [String withAll: {122 asFloat}] signal: Exception.
+	should: [String withAll: {'z'}] signal: Exception.
 
 	list:: List new.
 	list add: 256.
-	should: [String withAll: list] signal: Error.
+	should: [String withAll: list] signal: Exception.
 )
 public testWideStringAsString = (
 	assert: 'Îñţérñåţîöñåļîžåţîờñ' asString equals: 'Îñţérñåţîöñåļîžåţîờñ'.
@@ -6412,12 +6412,12 @@ public testWideStringAt = (
 	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 38) equals: 157.
 	assert: ('Îñţérñåţîöñåļîžåţîờñ' at: 40) equals: 177.
 
-	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 0] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 41] signal: Error.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 0] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 41] signal: Exception.
 
-	should: ['Îñţérñåţîöñåļîžåţîờñ' at: -1] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' at: nil] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 1 asFloat] signal: Error.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' at: -1] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' at: nil] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' at: 1 asFloat] signal: Exception.
 )
 public testWideStringConcatenation = (
 	assert: 'Îñţérñåţîöñåļ' , 'îžåţîờñ' equals: 'Îñţérñåţîöñåļîžåţîờñ'.
@@ -6432,9 +6432,9 @@ public testWideStringConcatenation = (
 	assert: 'ASCII' , 'Îñţérñåţîöñåļ', '' equals: 'ASCIIÎñţérñåţîöñåļ'.
 	assert: ('ASCII' , 'Îñţérñåţîöñåļ') size equals: 30.
 
-	should: ['Îñţérñåţîöñåļ', 3] signal: Error.
-	should: ['Îñţérñåţîöñåļ', true] signal: Error.
-	should: ['Îñţérñåţîöñåļ', nil] signal: Error.
+	should: ['Îñţérñåţîöñåļ', 3] signal: Exception.
+	should: ['Îñţérñåţîöñåļ', true] signal: Exception.
+	should: ['Îñţérñåţîöñåļ', nil] signal: Exception.
 	should: [3, 'Îñţérñåţîöñåļ'] signal: MessageNotUnderstood.
 	should: [true, 'Îñţérñåţîöñåļ'] signal: MessageNotUnderstood.
 	should: [nil, 'Îñţérñåţîöñåļ'] signal: MessageNotUnderstood.
@@ -6444,9 +6444,9 @@ public testWideStringCopyFromTo = (
 	assert: ('Îñţérñåţîöñåļîžåţîờñ' copyFrom: 5 to: 6) equals: 'ţ'.
 	assert: ('Îñţérñåţîöñåļîžåţîờñ ASCII' copyFrom: 42 to: 46) equals: 'ASCII'.
 
-	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: 8 to: nil] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: nil to: 9] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: 80 to: 90] signal: Error.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: 8 to: nil] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: nil to: 9] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' copyFrom: 80 to: 90] signal: Exception.
 )
 public testWideStringEndsWith = (
 	assert: ('Îñţérñåţîöñåļîžåţîờñ' endsWith: 'ñ').
@@ -6468,9 +6468,9 @@ public testWideStringEndsWith = (
 	deny: ('ASCII' endsWith: 'ÎñţérîžåţîờñASCII').
 	deny: ('ASCII' endsWith: 'Îñţér').
 
-	should: ['Îñţérñåţîöñåļîžåţîờñ' endsWith: 0] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' endsWith: true] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' endsWith: nil] signal: Error.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' endsWith: 0] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' endsWith: true] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' endsWith: nil] signal: Exception.
 )
 public testWideStringSize = (
 	(* :todo: It's not clear that being able to quickly iterate code points is actually that useful. *)
@@ -6496,9 +6496,9 @@ public testWideStringStartsWith = (
 	deny: ('ASCII' startsWith: 'ASCIIÎñţérîžåţîờñ').
 	deny: ('ASCII' startsWith: 'Îñţér').
 
-	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: 0] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: true] signal: Error.
-	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: nil] signal: Error.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: 0] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: true] signal: Exception.
+	should: ['Îñţérñåţîöñåļîžåţîờñ' startsWith: nil] signal: Exception.
 )
 ) : (
 TEST_CONTEXT = ()
@@ -6518,32 +6518,32 @@ nan = ( ^Float parse: 'NaN' )
 public testFloat32 = (
 	| array = ByteArray new: 4. empty = ByteArray new: 0. |
 	assert: (array float32At: 0) equals: 0 asFloat.
-	should: [array float32At: 0 asFloat] signal: Error.
-	should: [array float32At: nil] signal: Error.
-	should: [array float32At: -1] signal: Error.
-	should: [array float32At: 1] signal: Error.
+	should: [array float32At: 0 asFloat] signal: Exception.
+	should: [array float32At: nil] signal: Exception.
+	should: [array float32At: -1] signal: Exception.
+	should: [array float32At: 1] signal: Exception.
 
 	assert: (array float32At: 0 put: nan) isNaN.
 	assert: (array at: 1) equals: 0.
 	assert: (array at: 2) equals: 0.
 	assert: (array at: 3) equals: 192.
 	assert: (array at: 4) equals: 127.
-	should: [array float32At: 0 asFloat put: 0 asFloat] signal: Error.
-	should: [array float32At: nil put: 0 asFloat] signal: Error.
-	should: [array float32At: -1 put: 0 asFloat] signal: Error.
-	should: [array float32At: 1 put: 0 asFloat] signal: Error.
-	should: [array float32At: 0 put: nil] signal: Error.
+	should: [array float32At: 0 asFloat put: 0 asFloat] signal: Exception.
+	should: [array float32At: nil put: 0 asFloat] signal: Exception.
+	should: [array float32At: -1 put: 0 asFloat] signal: Exception.
+	should: [array float32At: 1 put: 0 asFloat] signal: Exception.
+	should: [array float32At: 0 put: nil] signal: Exception.
 
-	should: [empty float32At: 0] signal: Error.
-	should: [empty float32At: 0 put: 0 asFloat] signal: Error.
+	should: [empty float32At: 0] signal: Exception.
+	should: [empty float32At: 0 put: 0 asFloat] signal: Exception.
 )
 public testFloat64 = (
 	| array = ByteArray new: 8. empty = ByteArray new: 0. |
 	assert: (array float64At: 0) equals: 0 asFloat.
-	should: [array float64At: 0 asFloat] signal: Error.
-	should: [array float64At: nil] signal: Error.
-	should: [array float64At: -1] signal: Error.
-	should: [array float64At: 1] signal: Error.
+	should: [array float64At: 0 asFloat] signal: Exception.
+	should: [array float64At: nil] signal: Exception.
+	should: [array float64At: -1] signal: Exception.
+	should: [array float64At: 1] signal: Exception.
 
 	assert: (array float64At: 0 put: nan) isNaN.
 	assert: (array at: 1) equals: 0.
@@ -6554,37 +6554,37 @@ public testFloat64 = (
 	assert: (array at: 6) equals: 0.
 	assert: (array at: 7) equals: 248.
 	assert: (array at: 8) equals: 127.
-	should: [array float64At: 0 asFloat put: 0 asFloat] signal: Error.
-	should: [array float64At: nil put: 0 asFloat] signal: Error.
-	should: [array float64At: -1 put: 0 asFloat] signal: Error.
-	should: [array float64At: 1 put: 0 asFloat] signal: Error.
-	should: [array float64At: 0 put: nil] signal: Error.
+	should: [array float64At: 0 asFloat put: 0 asFloat] signal: Exception.
+	should: [array float64At: nil put: 0 asFloat] signal: Exception.
+	should: [array float64At: -1 put: 0 asFloat] signal: Exception.
+	should: [array float64At: 1 put: 0 asFloat] signal: Exception.
+	should: [array float64At: 0 put: nil] signal: Exception.
 
-	should: [empty float64At: 0] signal: Error.
-	should: [empty float64At: 0 put: 0 asFloat] signal: Error.
+	should: [empty float64At: 0] signal: Exception.
+	should: [empty float64At: 0 put: 0 asFloat] signal: Exception.
 )
 public testInt16 = (
 	| array = ByteArray new: 2. empty = ByteArray new: 0. |
 	array at: 1 put: 200.
 	array at: 2 put: 200.
 	assert: (array int16At: 0) equals: -14136.
-	should: [array int16At: 0 asFloat] signal: Error.
-	should: [array int16At: nil] signal: Error.
-	should: [array int16At: -1] signal: Error.
-	should: [array int16At: 1] signal: Error.
+	should: [array int16At: 0 asFloat] signal: Exception.
+	should: [array int16At: nil] signal: Exception.
+	should: [array int16At: -1] signal: Exception.
+	should: [array int16At: 1] signal: Exception.
 
 	assert: (array int16At: 0 put: -22222) equals: -22222.
 	assert: (array at: 1) equals: 50.
 	assert: (array at: 2) equals: 169.
-	should: [array int16At: 0 asFloat put: 0] signal: Error.
-	should: [array int16At: nil put: 0] signal: Error.
-	should: [array int16At: -1 put: 0] signal: Error.
-	should: [array int16At: 1 put: 0] signal: Error.
-	should: [array int16At: 0 put: -32769] signal: Error.
-	should: [array int16At: 0 put: 32768] signal: Error.
+	should: [array int16At: 0 asFloat put: 0] signal: Exception.
+	should: [array int16At: nil put: 0] signal: Exception.
+	should: [array int16At: -1 put: 0] signal: Exception.
+	should: [array int16At: 1 put: 0] signal: Exception.
+	should: [array int16At: 0 put: -32769] signal: Exception.
+	should: [array int16At: 0 put: 32768] signal: Exception.
 
-	should: [empty int16At: 0] signal: Error.
-	should: [empty int16At: 0 put: 0] signal: Error.
+	should: [empty int16At: 0] signal: Exception.
+	should: [empty int16At: 0 put: 0] signal: Exception.
 )
 public testInt32 = (
 	| array = ByteArray new: 4. empty = ByteArray new: 0. |
@@ -6593,25 +6593,25 @@ public testInt32 = (
 	array at: 3 put: 200.
 	array at: 4 put: 200.
 	assert: (array int32At: 0) equals: -926365496.
-	should: [array int32At: 0 asFloat] signal: Error.
-	should: [array int32At: nil] signal: Error.
-	should: [array int32At: -1] signal: Error.
-	should: [array int32At: 1] signal: Error.
+	should: [array int32At: 0 asFloat] signal: Exception.
+	should: [array int32At: nil] signal: Exception.
+	should: [array int32At: -1] signal: Exception.
+	should: [array int32At: 1] signal: Exception.
 
 	assert: (array int32At: 0 put: -1111111111) equals: -1111111111.
 	assert: (array at: 1) equals: 57.
 	assert: (array at: 2) equals: 202.
 	assert: (array at: 3) equals: 197.
 	assert: (array at: 4) equals: 189.
-	should: [array int32At: 0 asFloat put: 0] signal: Error.
-	should: [array int32At: nil put: 0] signal: Error.
-	should: [array int32At: -1 put: 0] signal: Error.
-	should: [array int32At: 1 put: 0] signal: Error.
-	should: [array int32At: 0 put: -2147483649] signal: Error.
-	should: [array int32At: 0 put: 2147483648] signal: Error.
+	should: [array int32At: 0 asFloat put: 0] signal: Exception.
+	should: [array int32At: nil put: 0] signal: Exception.
+	should: [array int32At: -1 put: 0] signal: Exception.
+	should: [array int32At: 1 put: 0] signal: Exception.
+	should: [array int32At: 0 put: -2147483649] signal: Exception.
+	should: [array int32At: 0 put: 2147483648] signal: Exception.
 
-	should: [empty int32At: 0] signal: Error.
-	should: [empty int32At: 0 put: 0] signal: Error.
+	should: [empty int32At: 0] signal: Exception.
+	should: [empty int32At: 0 put: 0] signal: Exception.
 )
 public testInt64 = (
 	| array = ByteArray new: 8. empty = ByteArray new: 0. |
@@ -6624,9 +6624,9 @@ public testInt64 = (
 	array at: 7 put: 200.
 	array at: 8 put: 200.
 	assert: (array int64At: 0) equals: -3978709506094217016.
-	should: [array int64At: nil] signal: Error.
-	should: [array int64At: -1] signal: Error.
-	should: [array int64At: 1] signal: Error.
+	should: [array int64At: nil] signal: Exception.
+	should: [array int64At: -1] signal: Exception.
+	should: [array int64At: 1] signal: Exception.
 
 	assert: (array int64At: 0 put: -8888888888888888888) equals: -8888888888888888888.
 	assert: (array at: 1) equals: 200.
@@ -6637,58 +6637,58 @@ public testInt64 = (
 	assert: (array at: 6) equals: 82.
 	assert: (array at: 7) equals: 164.
 	assert: (array at: 8) equals: 132.
-	should: [array int64At: nil put: 0] signal: Error.
-	should: [array int64At: -1 put: 0] signal: Error.
-	should: [array int64At: 1 put: 0] signal: Error.
-	should: [array int64At: 0 put: -9223372036854775809] signal: Error.
-	should: [array int64At: 0 put: 9223372036854775808] signal: Error.
+	should: [array int64At: nil put: 0] signal: Exception.
+	should: [array int64At: -1 put: 0] signal: Exception.
+	should: [array int64At: 1 put: 0] signal: Exception.
+	should: [array int64At: 0 put: -9223372036854775809] signal: Exception.
+	should: [array int64At: 0 put: 9223372036854775808] signal: Exception.
 
-	should: [empty int64At: 0] signal: Error.
-	should: [empty int64At: 0 put: 0] signal: Error.
+	should: [empty int64At: 0] signal: Exception.
+	should: [empty int64At: 0 put: 0] signal: Exception.
 )
 public testInt8 = (
 	| array = ByteArray new: 1. empty = ByteArray new: 0. |
 	array at: 1 put: 200.
 	assert: (array int8At: 0) equals: -56.
-	should: [array int8At: 0 asFloat] signal: Error.
-	should: [array int8At: nil] signal: Error.
-	should: [array int8At: -1] signal: Error.
-	should: [array int8At: 1] signal: Error.
+	should: [array int8At: 0 asFloat] signal: Exception.
+	should: [array int8At: nil] signal: Exception.
+	should: [array int8At: -1] signal: Exception.
+	should: [array int8At: 1] signal: Exception.
 
 	assert: (array int8At: 0 put: -34) equals: -34.
 	assert: (array at: 1) equals: 222.
-	should: [array int8At: 0 asFloat put: 0] signal: Error.
-	should: [array int8At: nil put: 0] signal: Error.
-	should: [array int8At: -1 put: 0] signal: Error.
-	should: [array int8At: 1 put: 0] signal: Error.
-	should: [array int8At: 0 put: 128] signal: Error.
-	should: [array int8At: 0 put: -129] signal: Error.
+	should: [array int8At: 0 asFloat put: 0] signal: Exception.
+	should: [array int8At: nil put: 0] signal: Exception.
+	should: [array int8At: -1 put: 0] signal: Exception.
+	should: [array int8At: 1 put: 0] signal: Exception.
+	should: [array int8At: 0 put: 128] signal: Exception.
+	should: [array int8At: 0 put: -129] signal: Exception.
 
-	should: [empty int8At: 0] signal: Error.
-	should: [empty int8At: 0 put: 0] signal: Error.
+	should: [empty int8At: 0] signal: Exception.
+	should: [empty int8At: 0 put: 0] signal: Exception.
 )
 public testUint16 = (
 	| array = ByteArray new: 2. empty = ByteArray new: 0. |
 	array at: 1 put: 200.
 	array at: 2 put: 200.
 	assert: (array uint16At: 0) equals: 51400.
-	should: [array uint16At: 0 asFloat] signal: Error.
-	should: [array uint16At: nil] signal: Error.
-	should: [array uint16At: -1] signal: Error.
-	should: [array uint16At: 1] signal: Error.
+	should: [array uint16At: 0 asFloat] signal: Exception.
+	should: [array uint16At: nil] signal: Exception.
+	should: [array uint16At: -1] signal: Exception.
+	should: [array uint16At: 1] signal: Exception.
 
 	assert: (array uint16At: 0 put: 44444) equals: 44444.
 	assert: (array at: 1) equals: 156.
 	assert: (array at: 2) equals: 173.
-	should: [array uint16At: 0 asFloat put: 0] signal: Error.
-	should: [array uint16At: nil put: 0] signal: Error.
-	should: [array uint16At: -1 put: 0] signal: Error.
-	should: [array uint16At: 1 put: 0] signal: Error.
-	should: [array uint16At: 0 put: -1] signal: Error.
-	should: [array uint16At: 0 put: 65536] signal: Error.
+	should: [array uint16At: 0 asFloat put: 0] signal: Exception.
+	should: [array uint16At: nil put: 0] signal: Exception.
+	should: [array uint16At: -1 put: 0] signal: Exception.
+	should: [array uint16At: 1 put: 0] signal: Exception.
+	should: [array uint16At: 0 put: -1] signal: Exception.
+	should: [array uint16At: 0 put: 65536] signal: Exception.
 
-	should: [empty uint16At: 0] signal: Error.
-	should: [empty uint16At: 0 put: 0] signal: Error.
+	should: [empty uint16At: 0] signal: Exception.
+	should: [empty uint16At: 0 put: 0] signal: Exception.
 )
 public testUint32 = (
 	| array = ByteArray new: 4. empty = ByteArray new: 0. |
@@ -6697,25 +6697,25 @@ public testUint32 = (
 	array at: 3 put: 200.
 	array at: 4 put: 200.
 	assert: (array uint32At: 0) equals: 3368601800.
-	should: [array uint32At: 0 asFloat] signal: Error.
-	should: [array uint32At: nil] signal: Error.
-	should: [array uint32At: -1] signal: Error.
-	should: [array uint32At: 1] signal: Error.
+	should: [array uint32At: 0 asFloat] signal: Exception.
+	should: [array uint32At: nil] signal: Exception.
+	should: [array uint32At: -1] signal: Exception.
+	should: [array uint32At: 1] signal: Exception.
 
 	assert: (array uint32At: 0 put: 2222222222) equals: 2222222222.
 	assert: (array at: 1) equals: 142.
 	assert: (array at: 2) equals: 107.
 	assert: (array at: 3) equals: 116.
 	assert: (array at: 4) equals: 132.
-	should: [array uint32At: 0 asFloat put: 0] signal: Error.
-	should: [array uint32At: nil put: 0] signal: Error.
-	should: [array uint32At: -1 put: 0] signal: Error.
-	should: [array uint32At: 1 put: 0] signal: Error.
-	should: [array uint32At: 0 put: -1] signal: Error.
-	should: [array uint32At: 0 put: 4294967296] signal: Error.
+	should: [array uint32At: 0 asFloat put: 0] signal: Exception.
+	should: [array uint32At: nil put: 0] signal: Exception.
+	should: [array uint32At: -1 put: 0] signal: Exception.
+	should: [array uint32At: 1 put: 0] signal: Exception.
+	should: [array uint32At: 0 put: -1] signal: Exception.
+	should: [array uint32At: 0 put: 4294967296] signal: Exception.
 
-	should: [empty uint32At: 0] signal: Error.
-	should: [empty uint32At: 0 put: 0] signal: Error.
+	should: [empty uint32At: 0] signal: Exception.
+	should: [empty uint32At: 0 put: 0] signal: Exception.
 )
 public testUint64 = (
 	| array = ByteArray new: 8. empty = ByteArray new: 0. |
@@ -6728,10 +6728,10 @@ public testUint64 = (
 	array at: 7 put: 200.
 	array at: 8 put: 200.
 	assert: (array uint64At: 0) equals: 14468034567615334600.
-	should: [array uint64At: 0 asFloat] signal: Error.
-	should: [array uint64At: nil] signal: Error.
-	should: [array uint64At: -1] signal: Error.
-	should: [array uint64At: 1] signal: Error.
+	should: [array uint64At: 0 asFloat] signal: Exception.
+	should: [array uint64At: nil] signal: Exception.
+	should: [array uint64At: -1] signal: Exception.
+	should: [array uint64At: 1] signal: Exception.
 
 	assert: (array uint64At: 0 put: 11111111111111111111) equals: 11111111111111111111.
 	assert: (array at: 1) equals: 199.
@@ -6742,36 +6742,36 @@ public testUint64 = (
 	assert: (array at: 6) equals: 152.
 	assert: (array at: 7) equals: 50.
 	assert: (array at: 8) equals: 154.
-	should: [array uint64At: 0 asFloat put: 0] signal: Error.
-	should: [array uint64At: nil put: 0] signal: Error.
-	should: [array uint64At: -1 put: 0] signal: Error.
-	should: [array uint64At: 1 put: 0] signal: Error.
-	should: [array uint64At: 0 put: -1] signal: Error.
-	should: [array uint64At: 0 put: 18446744073709551616] signal: Error.
+	should: [array uint64At: 0 asFloat put: 0] signal: Exception.
+	should: [array uint64At: nil put: 0] signal: Exception.
+	should: [array uint64At: -1 put: 0] signal: Exception.
+	should: [array uint64At: 1 put: 0] signal: Exception.
+	should: [array uint64At: 0 put: -1] signal: Exception.
+	should: [array uint64At: 0 put: 18446744073709551616] signal: Exception.
 
-	should: [empty uint64At: 0] signal: Error.
-	should: [empty uint64At: 0 put: 0] signal: Error.
+	should: [empty uint64At: 0] signal: Exception.
+	should: [empty uint64At: 0 put: 0] signal: Exception.
 )
 public testUint8 = (
 	| array = ByteArray new: 1. empty = ByteArray new: 0. |
 	array at: 1 put: 200.
 	assert: (array uint8At: 0) equals: 200.
-	should: [array uint8At: 0 asFloat] signal: Error.
-	should: [array uint8At: nil] signal: Error.
-	should: [array uint8At: -1] signal: Error.
-	should: [array uint8At: 1] signal: Error.
+	should: [array uint8At: 0 asFloat] signal: Exception.
+	should: [array uint8At: nil] signal: Exception.
+	should: [array uint8At: -1] signal: Exception.
+	should: [array uint8At: 1] signal: Exception.
 
 	assert: (array uint8At: 0 put: 222) equals: 222.
 	assert: (array at: 1) equals: 222.
-	should: [array uint8At: 0 asFloat put: 0] signal: Error.
-	should: [array uint8At: nil put: 0] signal: Error.
-	should: [array uint8At: -1 put: 0] signal: Error.
-	should: [array uint8At: 1 put: 0] signal: Error.
-	should: [array uint8At: 0 put: -1] signal: Error.
-	should: [array uint8At: 0 put: 256] signal: Error.
+	should: [array uint8At: 0 asFloat put: 0] signal: Exception.
+	should: [array uint8At: nil put: 0] signal: Exception.
+	should: [array uint8At: -1 put: 0] signal: Exception.
+	should: [array uint8At: 1 put: 0] signal: Exception.
+	should: [array uint8At: 0 put: -1] signal: Exception.
+	should: [array uint8At: 0 put: 256] signal: Exception.
 
-	should: [empty uint8At: 0] signal: Error.
-	should: [empty uint8At: 0 put: 0] signal: Error.
+	should: [empty uint8At: 0] signal: Exception.
+	should: [empty uint8At: 0 put: 0] signal: Exception.
 )
 ) : (
 TEST_CONTEXT = ()

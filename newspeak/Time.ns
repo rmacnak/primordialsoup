@@ -90,7 +90,7 @@ private parts = (
 				 parts at: 9 put: 'UTC']
 			ifFalse:
 				[status:: localtime: seconds parts: parts.
-				 0 = status ifFalse: [^Error signal: 'localtime: ', status asString]].
+				 0 = status ifFalse: [^Exception signal: 'localtime: ', status asString]].
 		 split: seconds + (parts at: 8) into: parts.
 		 parts_:: parts].
 	^parts_

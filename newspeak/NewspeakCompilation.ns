@@ -412,7 +412,7 @@ public codeBodyNode: node <CodeBodyAST> = (
 		[:parameter <VarDeclAST> |
 		 checkForReservedWord: parameter name.
 		 (bodyScope includesKeyLocal: parameter name) ifTrue:
-			[Error signal: 'Conflicting slots named ', parameter name].
+			[Exception signal: 'Conflicting slots named ', parameter name].
 		 bodyScope
 			at: parameter name
 			put: (LocalEntry
@@ -422,7 +422,7 @@ public codeBodyNode: node <CodeBodyAST> = (
 		[:temporary <SlotDefAST> | | local |
 		 checkForReservedWord: temporary name.
 		 (bodyScope includesKeyLocal: temporary name) ifTrue:
-			[Error signal: 'Conflicting slots named ', temporary name].
+			[Exception signal: 'Conflicting slots named ', temporary name].
 		 local:: LocalEntry forDeclaration: temporary slotDecl atDepth: nil.
 		 bodyScope at: (namer selectorForSlotInitializer: temporary) put: local.
 		 bodyScope at: (namer selectorForSlotGetter: temporary) put: local.
@@ -980,7 +980,7 @@ public Scope = (
 )
 checkForReservedWord: selector = (
 	(namer isReservedWord: selector) ifTrue:
-		[Error signal: '"', selector, '" is a reserved word'].
+		[Exception signal: '"', selector, '" is a reserved word'].
 )
 public compileClassHeader: source <String> within: enclosingIR <IntermediateMixin> = (
 	subclassResponsibility
@@ -1051,7 +1051,7 @@ public selectorForSlotInitializer: slot <SlotDefAST | InstanceVariableMirror> ^<
 	^('init`', slot name, ':') asSymbol
 )
 public selectorForSlotSetter: slot <SlotDefAST | InstanceVariableMirror> ^<Symbol> = (
-	slot isMutable ifFalse: [Error signal: 'Slot is not mutable'].
+	slot isMutable ifFalse: [Exception signal: 'Slot is not mutable'].
 	^(slot name, ':') asSymbol
 )
 public setterTemp = (
@@ -1065,7 +1065,7 @@ public class Scope parent: p = (|
 |) (
 public at: key <Symbol> ^<SymbolTableEntry> = (
 	(* Answers the value associated with aKey in this or one the super scopes or fails if aKey is absent. *)
-	^self at: key ifAbsent: [Error signal: 'Key ', key, ' not found!']
+	^self at: key ifAbsent: [Exception signal: 'Key ', key, ' not found!']
 )
 public at: key depth: d = (
 	depth = d ifFalse: [
@@ -1122,10 +1122,10 @@ public isKindOfMappedBinding = (
 ) : (
 )
 assert: condition = (
-	condition ifFalse: [Error signal: 'Assert failed'].
+	condition ifFalse: [Exception signal: 'Assert failed'].
 )
 assert: condition message: message = (
-	condition ifFalse: [Error signal: message].
+	condition ifFalse: [Exception signal: message].
 )
 ) : (
 )

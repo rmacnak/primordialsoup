@@ -57,7 +57,7 @@ private getEntropy: buffer <ByteArray> size: size <Integer> = (
 public new ^<Random> = (
 	| buffer = ByteArray new: 8. status |
 	status:: getEntropy: buffer size: 8.
-	0 = status ifFalse: [^Error signal: status asString].
+	0 = status ifFalse: [^Exception signal: status asString].
 	^self seed: (buffer int64At: 0)
 )
 )

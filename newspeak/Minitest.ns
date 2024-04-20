@@ -265,7 +265,7 @@ public runUnsafeUsing: tester <Tester> ^<TestResult> = (
 )
 public runUsing: tester <Tester> ^<TestResult> = (
 	^[self runUnsafeUsing: tester]
-		on: Error
+		on: Exception
 		do: [:ex | ^nil = testContextInstance
 					ifTrue: [TestError case: self exception: ex]
 					ifFalse: [testContextInstance createErrorResultFor: self exception: ex]]
@@ -404,7 +404,7 @@ assertList: actualList equals: expectedList = (
 (* Sent after a successful completion of a test, to clean up if simple garbage collection at some point in the future is not enough (which it normally should be). If a test completes abnormally, with either a failure or an error, the test context is retained by the test case which in turn is retained by the test result. In this case, the message is not sent until a later time when the test results are discarded. *)
 public cleanUp = (
 )
-public createErrorResultFor: testCase <TestCase> exception: ex <Error> = (
+public createErrorResultFor: testCase <TestCase> exception: ex <Exception> = (
 	^TestError case: testCase exception: ex
 )
 public createFailureResultFor: testCase <TestCase> description: description <String> = (

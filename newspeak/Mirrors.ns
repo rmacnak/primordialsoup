@@ -750,7 +750,7 @@ public name: newName <String> = (
 			detect: [:nested | nested name = newName]
 			ifNone: [nil].
 		(nil = existing or: [existing = intermediate builder])
-			ifFalse: [^Error signal: 'A sibling already exists with the name ', newName]].
+			ifFalse: [^Exception signal: 'A sibling already exists with the name ', newName]].
 
 	(* patch header source with the new name *)
 	parser:: parsing Parser for: source.
@@ -788,7 +788,7 @@ public source: newHeader <String> = (
 		within: intermediate enclosingClass.
 
 	checkForHeaderConflicts: newIR.
-	intermediate name = newIR name ifFalse: [^Error signal: 'Name changed'].
+	intermediate name = newIR name ifFalse: [^Exception signal: 'Name changed'].
 
 	intermediate headerSource: newIR headerSource.
 	intermediate factoryName: newIR factoryName.
@@ -874,7 +874,7 @@ public source ^<String> = (
 )
 public class ClassMirror reflecting: behavior = (|
 public reflectee <Behavior> = behavior.
-|(isBehavior: behavior) ifFalse: [^Error new signal].
+|(isBehavior: behavior) ifFalse: [^Exception new signal].
 reflectees at: self put: behavior) (
 public = other ^<Boolean> = (
 	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
@@ -2220,10 +2220,10 @@ private prepareToResumeWithRoot: simulationRoot <Activation> = (
 public restart: activation withLookup: doLookup = (
 	| closure newMethod |
 	(hasSender: activation) ifFalse:
-		[^Error signal: 'Activation is not in thread'].
+		[^Exception signal: 'Activation is not in thread'].
 	doLookup ifTrue:
 		[nil = activation closure ifFalse:
-			[^Error signal: 'Cannot lookup closure activations']].
+			[^Exception signal: 'Cannot lookup closure activations']].
 	unwindTo: activation.
 	newMethod:: doLookup
 		ifTrue: [lookupNewMethod: activation]
@@ -2249,7 +2249,7 @@ private restart: activation withMethod: newMethod = (
 public resume = (
 	(* The state check is in a separate method because we don't want a method marked as a simulation root to be on the stack when the exception is signaled. *)
 	nil = suspendedActivation ifTrue:
-		[^Error signal: 'Nothing to resume'].
+		[^Exception signal: 'Nothing to resume'].
 	^resumeImpl
 )
 private resumeImpl = (
@@ -2271,7 +2271,7 @@ public resumeSlowly = (
 )
 public return: returnValue from: activation = (
 	(hasSender: activation) ifFalse:
-		[^Error signal: 'Activation is not in thread'].
+		[^Exception signal: 'Activation is not in thread'].
 
 	(isBottom: activation) ifTrue:
 		[unwindTo: activation.
@@ -2298,31 +2298,31 @@ private simulatorRootMethod = (
 )
 public stepInto = (
 	nil = suspendedActivation ifTrue:
-		[^Error signal: 'Nothing to resume'].
+		[^Exception signal: 'Nothing to resume'].
 	stepUntil: [:top | true].
 )
 public stepInto: activation = (
 	(hasSender: activation) ifFalse:
-		[^Error signal: 'Activation is not in thread'].
+		[^Exception signal: 'Activation is not in thread'].
 	stepUntil: [:top | true].
 )
 public stepOut: activation = (
 	| goal = activation sender. |
 	(hasSender: activation) ifFalse:
-		[^Error signal: 'Activation is not in thread'].
+		[^Exception signal: 'Activation is not in thread'].
 	(isBottom: activation) ifTrue:
 		[^resume].
 	stepUntil: [:top | has: top reachedOrSkipped: goal].
 )
 public stepOver: activation = (
 	(hasSender: activation) ifFalse:
-		[^Error signal: 'Activation is not in thread'].
+		[^Exception signal: 'Activation is not in thread'].
 	stepUntil: [:top | has: top reachedOrSkipped: activation].
 )
 public stepThrough: activation = (
 	| goal = activation home. |
 	(hasSender: activation) ifFalse:
-		[^Error signal: 'Activation is not in thread'].
+		[^Exception signal: 'Activation is not in thread'].
 	stepUntil: [:top | has: top reachedOrSkippedHome: goal].
 )
 private stepUntil: predicate <[:Activation | Boolean]> = (
@@ -2349,7 +2349,7 @@ private stepUntil: predicate <[:Activation | Boolean]> = (
 )
 public terminate = (
 	nil = suspendedActivation ifTrue:
-		[^Error signal: 'Nothing to terminate'].
+		[^Exception signal: 'Nothing to terminate'].
 	unwindTo: (findBottom: suspendedActivation) sender.
 	suspendedActivation: nil.
 	state: #terminated.
@@ -2360,7 +2360,7 @@ private unwindTo: activation = (
 	unwind:: suspendedActivation.
 	[unwind = activation] whileFalse:
 		[unwind isUnwindContext ifTrue:
-			[^Error signal: 'Unwind-protect unimplemented'].
+			[^Exception signal: 'Unwind-protect unimplemented'].
 		 unwind:: unwind sender].
 
 	unwind:: suspendedActivation.

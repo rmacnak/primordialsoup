@@ -11,7 +11,7 @@ protected position <Integer> ::= 1.
 protected size <Integer> = string size.
 |) (
 error: message = (
-	^Error signal: message
+	^Exception signal: message
 )
 isDigit: byte = (
 	16r30 <= byte ifTrue: [16r39 >= byte ifTrue: [^true]].

@@ -280,7 +280,7 @@ public testClassMirrorNestedClasses = (
 	mirror nestedClasses.
 )
 public testClassMirrorNonBehavior = (
-	should: [ClassMirror reflecting: 'Not a behavior'] signal: Error
+	should: [ClassMirror reflecting: 'Not a behavior'] signal: Exception
 )
 public testClassMirrorSlots = (
 	| mirror |
@@ -368,15 +368,15 @@ public yourclass = (
 	^self class
 )
 )
-class ErrorOnEquals = () (
+class ExceptionOnEquals = () (
 public = other = (
-	^Error new signal
+	^Exception new signal
 )
 public class = (
-	^Error new signal
+	^Exception new signal
 )
 public hash = (
-	^Error new signal
+	^Exception new signal
 )
 ) : (
 )
@@ -662,8 +662,8 @@ public testIsKindOfObjectMirror = (
 )
 public testObjectMirrorEquality = (
 	| a b |
-	a:: ErrorOnEquals new.
-	b:: ErrorOnEquals new.
+	a:: ExceptionOnEquals new.
+	b:: ExceptionOnEquals new.
 
 	assert: (ObjectMirror reflecting: a) equals: (ObjectMirror reflecting: a).
 	assert: (ObjectMirror reflecting: a) hash equals: (ObjectMirror reflecting: a) hash.
@@ -681,7 +681,7 @@ public testObjectMirrorEvaluate = (
 	assert: thread isFulfilled.
 	assert: thread result reflectee equals: 'C'.
 
-	should: [mirror evaluate: '--parse--error--'] signal: Error.
+	should: [mirror evaluate: '--parse--error--'] signal: Exception.
 )
 public testObjectMirrorEvaluateEmpty = (
 	| c mirror thread |
@@ -705,10 +705,10 @@ public testObjectMirrorEvaluateWithScope = (
 )
 public testObjectMirrorGetClass = (
 	| a |
-	a:: ErrorOnEquals new.
+	a:: ExceptionOnEquals new.
 
-	assert: (ObjectMirror reflecting: a) getClass equals: (ClassMirror reflecting: ErrorOnEquals).
-	assert: (ObjectMirror reflecting: a) getClass reflectee equals: ErrorOnEquals.
+	assert: (ObjectMirror reflecting: a) getClass equals: (ClassMirror reflecting: ExceptionOnEquals).
+	assert: (ObjectMirror reflecting: a) getClass reflectee equals: ExceptionOnEquals.
 )
 public testObjectMirrorGetSlot = (
 	(* :todo: Remove after implementing SlotMirror>>value: *)

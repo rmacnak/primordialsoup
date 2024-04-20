@@ -2682,10 +2682,10 @@ SymbolTableEntry = (
 	^super SymbolTableEntry
 )
 assert: condition = (
-	condition ifFalse: [Error signal: 'Assert failed'].
+	condition ifFalse: [Exception signal: 'Assert failed'].
 )
 assert: condition message: message = (
-	condition ifFalse: [Error signal: message].
+	condition ifFalse: [Exception signal: message].
 )
 check: value between: min and: max = (
 	value >= min ifTrue: [value <= max ifTrue: [^self]].

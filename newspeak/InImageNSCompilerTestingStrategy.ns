@@ -45,7 +45,7 @@ class InImageNSCompilerTestingStrategy platform: platform mirrors: mirrors = (
 	private ClassDeclarationBuilder = mirrors ClassDeclarationBuilder.
 |) (
 assertionFailedClassSource ^<String> = (
-	^'class AssertionFailed = Error () ()'
+	^'class AssertionFailed = Exception () ()'
 )
 assertionMethodsSource ^<String> = (
 	^'assert: aBlockOrValue = (
@@ -92,7 +92,7 @@ runMethodSource ^<String> = (
 	[[(SampleTest test: Sample) test]
 		on: AssertionFailed
 		do: [:ex | ^failureBlock value: ex messageText]]
-		on: Error
+		on: Exception
 		do: [:ex | ^errorBlock value: ex messageText]
 	)'
 )

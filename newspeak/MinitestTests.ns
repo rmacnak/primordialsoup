@@ -126,7 +126,7 @@ public isSuccess = (
 )
 ) : (
 )
-public createErrorResultFor: testCase <TestCase> exception: ex <Error> = (
+public createErrorResultFor: testCase <TestCase> exception: ex <Exception> = (
 	| exception |
 	exception:: TestException1 new.
 	exception messageText: 'created here'.

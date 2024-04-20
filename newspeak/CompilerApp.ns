@@ -125,7 +125,7 @@ class Manifest forNamespace: ns = (|
 namespace = ns.
 |) (
 protected doesNotUnderstand: message = (
-	^namespace at: message selector ifAbsent: [Error signal: 'Missing ', message selector]
+	^namespace at: message selector ifAbsent: [Exception signal: 'Missing ', message selector]
 )
 ) : (
 )

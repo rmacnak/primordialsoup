@@ -128,35 +128,35 @@ public assembleSlots = (
 checkForFactory: selector = (
 	isMeta ifTrue:
 		[declaration factoryName = selector ifTrue:
-			[^Error signal: 'Class already has primary factory named ', selector]].
+			[^Exception signal: 'Class already has primary factory named ', selector]].
 )
 checkForMethod: selector = (
 	methods do:
 		[:method |
 		method selector = selector ifTrue:
-			[^Error signal: 'Class already has method named ', selector]].
+			[^Exception signal: 'Class already has method named ', selector]].
 )
 checkForNestedClass: selector = (
 	nestedClasses do:
 		[:nestedClass |
 		nestedClass name = selector ifTrue:
-			[^Error signal: 'Class already has nested class named ', selector]].
+			[^Exception signal: 'Class already has nested class named ', selector]].
 )
 checkForSlot: selector = (
 	slots do:
 		[:slot |
 		slot name = selector ifTrue:
-			[^Error signal: 'Class already has slot named ', selector].
+			[^Exception signal: 'Class already has slot named ', selector].
 		(slot isMutable and: [(slot name, ':') = selector]) ifTrue:
-			[^Error signal: 'Class already has mutable slot named ', selector]].
+			[^Exception signal: 'Class already has mutable slot named ', selector]].
 )
 checkForTransientSlot: selector = (
 	transientSlots do:
 		[:slot |
 		slot name = selector ifTrue:
-			[^Error signal: 'Class already has transient slot named ', selector].
+			[^Exception signal: 'Class already has transient slot named ', selector].
 		(slot isMutable and: [(slot name, ':') = selector]) ifTrue:
-			[^Error signal: 'Class already has mutable transient slot named ', selector]].
+			[^Exception signal: 'Class already has mutable transient slot named ', selector]].
 )
 public checkNameConflictsForFactory: selector <Symbol> = (
 	isMeta ifFalse: [panic].

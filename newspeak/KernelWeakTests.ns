@@ -335,23 +335,23 @@ public testWeakArrayAt = (
 
 	assert: (array at: 1) equals: 'apple'.
 	assert: (array at: 2) equals: 'banana'.
-	should: [array at: 0] signal: Error.
-	should: [array at: 3] signal: Error.
-	should: [array at: -3] signal: Error.
-	should: [array at: nil] signal: Error.
+	should: [array at: 0] signal: Exception.
+	should: [array at: 3] signal: Exception.
+	should: [array at: -3] signal: Exception.
+	should: [array at: nil] signal: Exception.
 
-	should: [empty at: 1] signal: Error.
+	should: [empty at: 1] signal: Exception.
 )
 public testWeakArrayAtPut = (
 	| array = WeakArray new: 2. empty = WeakArray new: 0. |
 	assert: (array at: 1 put: 'apple') equals: 'apple'.
 	assert: (array at: 2 put: 'banana') equals: 'banana'.
-	should: [array at: 0 put: 'orange'] signal: Error.
-	should: [array at: 3 put: 'orange'] signal: Error.
-	should: [array at: -3 put: 'orange'] signal: Error.
-	should: [array at: nil put: 'orange'] signal: Error.
+	should: [array at: 0 put: 'orange'] signal: Exception.
+	should: [array at: 3 put: 'orange'] signal: Exception.
+	should: [array at: -3 put: 'orange'] signal: Exception.
+	should: [array at: nil put: 'orange'] signal: Exception.
 
-	should: [empty at: 1 put: 'orange'] signal: Error.
+	should: [empty at: 1 put: 'orange'] signal: Exception.
 )
 public testWeakArrayDo = (
 	| array count |
@@ -367,8 +367,8 @@ public testWeakArrayDo = (
 )
 public testWeakArrayFloatIndex = (
 	| array = WeakArray new: 1. |
-	should: [array at: 1 asFloat] signal: Error.
-	should: [array at: 1 asFloat put: 0] signal: Error.
+	should: [array at: 1 asFloat] signal: Exception.
+	should: [array at: 1 asFloat put: 0] signal: Exception.
 )
 public testWeakArrayIsEmpty = (
 	assert: (WeakArray new: 0) isEmpty.
@@ -391,9 +391,9 @@ public testWeakArrayNew = (
 	assert: (WeakArray new: 0) size equals: 0.
 	assert: (WeakArray new: 500) size equals: 500.
 
-	should: [WeakArray new: -1] signal: Error.
-	should: [WeakArray new: '10'] signal: Error.
-	should: [WeakArray new: nil] signal: Error.
+	should: [WeakArray new: -1] signal: Exception.
+	should: [WeakArray new: '10'] signal: Exception.
+	should: [WeakArray new: nil] signal: Exception.
 	should: [WeakArray new] signal: MessageNotUnderstood.
 )
 public testWeakArrayWeakness = (
