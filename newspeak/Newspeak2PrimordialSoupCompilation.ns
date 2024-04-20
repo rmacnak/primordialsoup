@@ -2106,7 +2106,7 @@ public compileExpressionSource: src <String> debugMapper: debugMapper <MethodCon
 	(* Put into a method *)
 	method:: MethodAST new
 		pattern: (MessagePatternAST new
-			selector: #DoItIn:With:
+			selector: #'[evaluate]'
 			parameters:
 				{VarDeclAST name: namer doitContextArgumentName type: nil.
 				 VarDeclAST name: namer scopeArgumentName type: nil});

@@ -1171,7 +1171,7 @@ public testEvaluateActivation = (
 	activation:: thread suspendedActivation.
 	assert: activation closure equals: nil.
 	assert: activation receiver equals: (ObjectMirror reflecting: self).
-	assert: activation method name equals: #DoItIn:With:.
+	assert: activation method name equals: '[evaluate]'.
 	assert: activation method source equals: '3 + 4'.
 	assert: activation sender equals: nil.
 	assert: activation enclosingActivation equals: nil.
@@ -1189,7 +1189,7 @@ public testEvaluateActivationLocals = (
 	activation:: thread suspendedActivation.
 	assert: activation closure equals: nil.
 	assert: activation receiver equals: (ObjectMirror reflecting: self).
-	assert: activation method name equals: #DoItIn:With:.
+	assert: activation method name equals: '[evaluate]'.
 	assert: activation method source equals: ' | seven | seven:: 3 + 4 '.
 	assert: activation sender equals: nil.
 	locals:: activation slots.
