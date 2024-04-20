@@ -186,7 +186,6 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-s', 'FILESYSTEM=0',
       '-s', 'MALLOC=emmalloc',
       '-s', 'TOTAL_STACK=131072',
-      '--emrun',
       '--shell-file', File('meta/shell.html').path,
     ]
   else:
@@ -256,6 +255,12 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   if target_os == 'emscripten':
     program = env.Program(os.path.join(outdir, 'primordialsoup.html'), objects)
     Depends(program, 'meta/shell.html')
+
+    emrun_env = env.Clone()
+    emrun_env['LINKFLAGS'] += ['--emrun']
+    emrun_path = os.path.join(outdir, 'primordialsoup-emrun.html')
+    emrun_program = emrun_env.Program(emrun_path, objects)
+    Depends(emrun_program, 'meta/shell.html')
   else:
     program = env.Program(os.path.join(outdir, 'primordialsoup'), objects)
   return program[0]

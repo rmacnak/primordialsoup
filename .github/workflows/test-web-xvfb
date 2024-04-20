@@ -1,2 +1,3 @@
 #!/bin/bash -ex
-xvfb-run emrun --browser=firefox --serve_root=out "out/ReleaseEmscriptenWASM/primordialsoup.html?snapshot=../snapshots/TestRunner.vfuel"
+xvfb-run emrun --browser=firefox --serve_root=out "out/DebugEmscriptenWASM/primordialsoup-emrun.html?snapshot=../snapshots/TestRunner.vfuel"
+xvfb-run emrun --browser=firefox --serve_root=out "out/ReleaseEmscriptenWASM/primordialsoup-emrun.html?snapshot=../snapshots/TestRunner.vfuel"
