@@ -1,3 +1,5 @@
+(* Reflection. *)
+(* :exemplar: platform mirrors *)
 class Mirrors usingPlatform: platform internalKernel: ik namespace: ns = (|
 private Collection = platform collections Collection.
 private List = platform collections List.

@@ -1,3 +1,5 @@
+(* Promises and eventual sends. *)
+(* :exemplar: platform actors *)
 class Actors usingPlatform: p internalKernel: k = (|
 private WeakMap = k WeakMap.
 private List = p collections List.
@@ -494,6 +496,8 @@ public Promise = (
 public Resolver = (
 	^outer Actors Resolver
 )
+(* Respond to an event on a handle, typically a file descriptor or expat. *)
+(* :vmEntryPoint: *)
 private dispatchHandle: handle status: status signals: signals count: count = (
 	| handler |
 	handler:: handleMap at: handle ifAbsent: [nil].
@@ -508,6 +512,8 @@ private dispatchHandle: handle status: status signals: signals count: count = (
 				resolver: nil].
 	finish: drainQueue.
 )
+(* Respond to a timer firing (no message), the initial message for an isolate (no port, invoke main) or an isolate message sent to a port. *)
+(* :vmEntryPoint: *)
 private dispatchMessage: message port: port = (
 	nil = message ifFalse:
 		[nil = port
@@ -550,14 +556,17 @@ private enqueueStartupMessage: argvOrBytes = (
 	platform:: nil.
 )
 (* Also sent from the eventual send bytecode. *)
+(* :vmEntryPoint: *)
 public eventualSendTo: receiver selector: selector arguments: arguments = (
 	^(asInternalRef: receiver) eventualSend: selector arguments: arguments
 )
-private exit: code = (
+(* Exit the current isolate. If this is the main isolate or the exit code is non-zero (failure), also exits the process. *)
+private exit: code <Integer> = (
 	(* :pragma: primitive: 189 *)
 	panic.
 )
-private finish: wakeup = (
+(* Return to the message loop and set the due time for the next timer. *)
+private finish: wakeup <Integer> = (
 	(* :pragma: primitive: 188 *)
 	panic.
 )

@@ -1,3 +1,5 @@
+(* Access to Zircon primitives such as channels and VMOs. *)
+(* :exemplar: platform zircon *)
 class Zircon usingPlatform: p internalKernel: ik = (
 |
 private ArgumentError = p kernel ArgumentError.

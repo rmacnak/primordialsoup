@@ -1,4 +1,5 @@
 (* Lists, maps and sets. *)
+(* :exemplar: platform collections *)
 class Collections usingInternalKernel: ik = (
 	|
 	public Collection = ik Collection.
@@ -10,6 +11,7 @@ class Collections usingInternalKernel: ik = (
 Indexing (#at: and #at:put:) happens in constant time. Insertion (#add:, #addLast) and removal (#removeLast:) at the end run in amortized constant time. Insertion (#addFirst:) and removal (#removeFirst) at the beginning run in linear time. As such, List can be used as an efficient stack, but an inefficient queue.
 
 nil is a valid element. *)
+(* :exemplar: platform collections List new add: 1; add: 2; add: 3; yourself *)
 public class List new: capacity <Integer> = Collection (
 	|
 	protected size_ ::= 0.
@@ -164,6 +166,7 @@ Iteration happens in insertion order. If the value associated with a key changes
 
 nil is a valid key and a valid value.
 *)
+(* :exemplar: platform collections Map new at: 1 put: "A"; at: 2 put: "B"; at: 3 put: "C"; yourself *)
 public class Map new: capacity <Integer> = Collection (
 	|
 	protected size_ <Integer>
@@ -404,6 +407,7 @@ Lookup (#includes:) runs in constant time, and insertion (#add:) and removal (#r
 Iteration happens in insertion order. If element is added while the element is already in the set, the element's order does not change. Removing an element and adding it back will change the element's order to last.
 
 nil is a valid element. *)
+(* :exemplar: platform collections Set new add: 1; add: 2; add: 3; yourself *)
 public class Set new: capacity <Integer> = Collection (
 	|
 	protected size_ <Integer>

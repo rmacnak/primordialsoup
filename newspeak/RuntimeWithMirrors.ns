@@ -1,3 +1,4 @@
+(* Runtime configuration with mirrors. *)
 class RuntimeWithMirrors packageRuntimeUsing: manifest = (|
 private Kernel = manifest Kernel.
 public InternalKernel = manifest KernelForPrimordialSoup.

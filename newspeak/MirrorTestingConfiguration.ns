@@ -1,3 +1,4 @@
+(* Test configuration using the current platform. *)
 class MirrorTestingConfiguration packageTestsUsing: manifest = (|
 private MirrorTesting = manifest MirrorTesting.
 private MirrorTestingModel = manifest MirrorTestingModel.

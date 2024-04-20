@@ -1,3 +1,4 @@
+(* Test configuration using the current platform. *)
 class SerializationTestingConfiguration packageTestsUsing: manifest = (|
 private SerializationTesting = manifest SerializationTesting.
 public SerializationTestApp = manifest SerializationTestApp.

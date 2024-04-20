@@ -1,4 +1,5 @@
 (* The foreign function interface for accessing JavaScript. *)
+(* :exemplar: platform js *)
 class JS usingPlatform: platform internalKernel: ik = (
 	|
 	public undefined = Alien withIndex: 0.
@@ -11,6 +12,7 @@ class JS usingPlatform: platform internalKernel: ik = (
 (* An Alien is a Newspeak proxy for a JavaScript object. Upon receiving a message, an Alien expatriates the arguments, sends the message to the target JavaScript object, and alienates the result.
 
 An Expat is a JavaScript proxy for a Newspeak object. Upon receiving a message, an Expat alienates the arguments, sends the message to the target Newspeak object, and expatriates the result. *)
+(* :exemplar: platform js global at: #Math *)
 class Alien withIndex: i = (
 	|
 	public index <Integer> = i.

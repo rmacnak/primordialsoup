@@ -1,3 +1,4 @@
+(* Tests for reflection: modification. *)
 class MirrorBuilderTesting usingPlatform: p minitest: m = (|
 private ClassDeclarationBuilder = p mirrors ClassDeclarationBuilder.
 private ClassMirror = p mirrors ClassMirror.

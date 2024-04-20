@@ -1,3 +1,4 @@
+(* Tests for the JSON encoder/decoder. *)
 class JSONTesting usingPlatform: platform minitest: minitest json: json_ = (|
 private TestContext = minitest TestContext.
 private json = json_.

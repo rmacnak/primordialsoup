@@ -1,4 +1,5 @@
 (* Clustered serialization inspired by Fuel and Parcels. *)
+(* :exemplar: platform serialization *)
 class Serialization usingPlatform: p internalKernel: k = (|
 private List = p collections List.
 private IdentityMap = k IdentityMap.

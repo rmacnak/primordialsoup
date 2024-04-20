@@ -1,3 +1,5 @@
+(* The public facet of the core library. *)
+(* :exemplar: platform kernel *)
 class Kernel wrapping: k = (|
 private internalKernel = k.
 |) (

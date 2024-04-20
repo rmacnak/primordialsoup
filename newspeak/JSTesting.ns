@@ -1,3 +1,4 @@
+(* Tests for accessing JavaScript. *)
 class JSTesting usingPlatform: platform minitest: minitest = (
 |
 	private js = platform js.

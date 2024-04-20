@@ -1,3 +1,4 @@
+(* JSON encoder/decoder. *)
 class JSON usingPlatform: platform = (|
 private ArgumentError = platform kernel ArgumentError.
 private StringBuilder = platform kernel StringBuilder.

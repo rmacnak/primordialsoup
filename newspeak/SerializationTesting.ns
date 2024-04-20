@@ -1,3 +1,4 @@
+(* Tests for partial-graph serialization. *)
 class SerializationTesting usingPlatform: p minitest: m resources: r = (|
 private WeakArray = p kernel WeakArray.
 private Ephemeron = p kernel Ephemeron.

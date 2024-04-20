@@ -1,3 +1,4 @@
+(* The core library. Notably includes the classes for representing programs, such as classes, mixins and methods. *)
 class KernelForPrimordialSoup = (|
 public messageLoop <MessageLoop>
 public symbolTable <WeakArray[Symbol]>
@@ -18,6 +19,7 @@ numTemps <SmallInteger>
 |*)
 ) (
 (* Sent by the VM if a non-local return would cross an unwind-protect activation. *)
+(* :vmEntryPoint: *)
 private aboutToReturn: result through: firstUnwindActivation = (
 	^home return: result
 )
@@ -30,6 +32,7 @@ public bci: value = (
 	panic.
 )
 (* Sent by the VM if attempting to return to nil sender, or a sender that has already returned. Also triggered if non-local return attempts to return to an activation that can no longer be reached along the chain of senders. *)
+(* :vmEntryPoint: *)
 private cannotReturn: result = (
 	^(CannotReturn result: result) signal
 )
@@ -84,6 +87,7 @@ public method: value = (
 	panic.
 )
 (* Sent by the VM if the top of stack is neither true or false when a branch bytecode is reached. *)
+(* :vmEntryPoint: *)
 private nonBooleanReceiver: nonBoolean = (
 	^(NonBooleanReceiver receiver: nonBoolean) signal
 )
@@ -212,6 +216,7 @@ public new = (
 )
 )
 (* A mutable, fixed-length sequence of arbitrary elements. *)
+(* :exemplar: {1. 2. 3} *)
 public class Array _cannotInstantiate = Collection (
 ) (
 (* Concatenation. *)
@@ -385,6 +390,7 @@ public isKindOfBoolean ^<Boolean> = (
 ) : (
 )
 (* A mutable, fixed-length sequence of integers between 0 and 255. *)
+(* :exemplar: (ByteArray new: 3) at: 1 put: 1; at: 2 put: 2; yourself *)
 public class ByteArray _cannotInstantiate = Collection (
 ) (
 public asByteArray ^<ByteArray> = (
@@ -564,6 +570,7 @@ public printString ^<String> = (
 ) : (
 )
 (* The superclass of all metaclasses. *)
+(* :exemplar: Object *)
 public class Class = Behavior (
 |
 private nameS <Symbol> (* Must be slot 7, known to the VM for debug printing only. *)
@@ -606,19 +613,23 @@ public isMeta ^<Boolean> = (
 ) : (
 )
 (* A piece of delayed code; sometimes called a `block`. *)
+(* :exemplar: [3 + 4] *)
 public class Closure _cannotInstantiate = (
 ) (
+(* Invoke this closure with 1 or fewer arguments. *)
 public cull: arg1 = (
 	0 = numArgs ifTrue: [^self value].
 	1 = numArgs ifTrue: [^self value: arg1].
 	^numArgsError: 1
 )
+(* Invoke this closure with 2 or fewer arguments. *)
 public cull: arg1 cull: arg2 = (
 	0 = numArgs ifTrue: [^self value].
 	1 = numArgs ifTrue: [^self value: arg1].
 	2 = numArgs ifTrue: [^self value: arg1 value: arg2].
 	^numArgsError: 2
 )
+(* Invoke this closure with 3 or fewer arguments. *)
 public cull: arg1 cull: arg2 cull: arg3 = (
 	0 = numArgs ifTrue: [^self value].
 	1 = numArgs ifTrue: [^self value: arg1].
@@ -626,6 +637,7 @@ public cull: arg1 cull: arg2 cull: arg3 = (
 	3 = numArgs ifTrue: [^self value: arg1 value: arg2 value: arg3].
 	^numArgsError: 3
 )
+(* Invoke this closure, and invoke the argument on normal return or if non-local return or exception handling would skip over normal return. *)
 public ensure: onUnwind <[]> = (
 	(* :pragma: primitive: 162 *)
 	| complete result |
@@ -646,6 +658,7 @@ private numArgsError: argsProvided = (
 	(* :bogus: *)
 	^(ArgumentError value: self) signal
 )
+(* Exception handling. *)
 public on: exceptionClass <E class> do: catch <[:E]> = (
 	(* :pragma: primitive: 161 *)
 	| handlerActive ::= true. |
@@ -654,30 +667,37 @@ public on: exceptionClass <E class> do: catch <[:E]> = (
 public printString ^<String> = (
 	^'[closure] in ', (definingActivationOf: self) printString
 )
+(* Looping. *)
+(* :inlineBytecode: *)
 public repeat = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers. *)
 	^[self value] repeat
 )
+(* Invoke this closure with no arguments. *)
 public value = (
 	(* :pragma: primitive: 156 *)
 	self numArgs = 0 ifFalse: [^numArgsError: 0].
 	panic.
 )
+(* Invoke this closure with 1 argument. *)
 public value: arg1 = (
 	(* :pragma: primitive: 157 *)
 	self numArgs = 1 ifFalse: [^numArgsError: 1].
 	panic.
 )
+(* Invoke this closure with 2 arguments. *)
 public value: arg1 value: arg2 = (
 	(* :pragma: primitive: 158 *)
 	self numArgs = 2 ifFalse: [^numArgsError: 2].
 	panic.
 )
+(* Invoke this closure with 3 arguments. *)
 public value: arg1 value: arg2 value: arg3 = (
 	(* :pragma: primitive: 159 *)
 	self numArgs = 3 ifFalse: [^numArgsError: 3].
 	panic.
 )
+(* Invoke this closure with a variable number of arguments. *)
 public valueWithArguments: arguments = (
 	(* :pragma: primitive: 160 *)
 	self numArgs = arguments size ifFalse: [^numArgsError: arguments size].
@@ -688,18 +708,26 @@ private valueWithArgumentsAgain: arguments = (
 	self numArgs = arguments size ifFalse: [^numArgsError: arguments size].
 	panic.
 )
+(* Looping. *)
+(* :inlineBytecode: *)
 public whileFalse = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers. *)
 	^[self value] whileFalse
 )
+(* Looping. *)
+(* :inlineBytecode: *)
 public whileFalse: action <[]> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers/arguments. *)
 	^[self value] whileFalse: [action value]
 )
+(* Looping. *)
+(* :inlineBytecode: *)
 public whileTrue = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers. *)
 	^[self value] whileTrue
 )
+(* Looping. *)
+(* :inlineBytecode: *)
 public whileTrue: action <[]> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal receivers/arguments. *)
 	^[self value] whileTrue: [action value]
@@ -916,6 +944,7 @@ public signal: message <String> = (
 )
 )
 (* Defines the behavior of `false`. *)
+(* :exemplar: false *)
 public class False _cannotInstantiate = Boolean (
 ) (
 (* Evaluating conjunction. *)
@@ -929,18 +958,26 @@ public and: alternative <[Boolean]> ^<Boolean> = (
 public asString ^<String> = (
 	^'false'
 )
+(* Branching. *)
+(* :inlineBytecode: *)
 public ifFalse: else <[Y def]> ^<nil | Y> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^else value
 )
+(* Branching. *)
+(* :inlineBytecode: *)
 public ifFalse: else <[Y def]> ifTrue: then <[X def]> ^<X | Y> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^else value
 )
+(* Branching. *)
+(* :inlineBytecode: *)
 public ifTrue: then <[X def]> ^<X | nil> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^nil
 )
+(* Branching. *)
+(* :inlineBytecode: *)
 public ifTrue: then <[X def]> ifFalse: else <[Y def]> ^<X | Y> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^else value
@@ -963,6 +1000,7 @@ public | alternative <Boolean> ^<Boolean> = (
 ) : (
 )
 (* A double-precision floating point number. *)
+(* :exemplar: 1 exp *)
 public class Float _cannotInstantiate = Number (
 ) (
 public acos ^<Float> = (
@@ -1003,12 +1041,12 @@ private atanAgain: y <Float> ^<Float> = (
 	(* :pragma: primitive: 43 *)
 	^(ArgumentError value: y) signal
 )
-(* Round to the smallest integer value not less than the receiver. *)
+(* Round toward positive infinity. *)
 public ceiling ^<Float> = (
 	(* :pragma: primitive: 33 *)
 	panic.
 )
-(* Answer the cosine of the receiver, measured in radians. *)
+(* Cosine in radians. *)
 public cos ^<Float> = (
 	(* :pragma: primitive: 38 *)
 	panic.
@@ -1021,7 +1059,7 @@ public exp ^<Float> = (
 	(* :pragma: primitive: 50 *)
 	panic.
 )
-(* Round to the largest integer value not greater than the receiver. *)
+(* Round toward negative infinity. *)
 public floor ^<Float> = (
 	(* :pragma: primitive: 32 *)
 	panic.
@@ -1060,7 +1098,7 @@ private pow: exponent <Float> ^<Float> = (
 	(* :pragma: primitive: 54 *)
 	^(ArgumentError value: exponent) signal
 )
-(* Answer the receiver raised to the power of the argument. *)
+(* Exponentiation. *)
 public raisedTo: exponent <Number> ^<Float> = (
 	^self pow: exponent asFloat
 )
@@ -1094,6 +1132,7 @@ public parse: string <String> ^<Float> = (
 )
 )
 (* A rational number. *)
+(* :exemplar: 3/4 *)
 public class Fraction reducedNumerator: num denominator: denom = Number (
 |
 public numerator <Integer> = num.
@@ -1170,12 +1209,14 @@ public addFromNumber: left = (
 public asFloat ^<Float> = (
 	^numerator asFloat / denominator asFloat
 )
+(* Round toward zero (truncation). *)
 public asInteger ^<Integer> = (
 	^self truncated
 )
 public asString ^<String> = (
 	^'(', numerator asString, '/', denominator asString, ')'
 )
+(* Round toward positive infinity. *)
 public ceiling ^<Integer> = (
 	^0 <= numerator
 		ifTrue: [1 + self truncated]
@@ -1184,6 +1225,7 @@ public ceiling ^<Integer> = (
 public divideFromNumber: left = (
 	^(left * denominator) / numerator
 )
+(* Round toward negative infinity. *)
 public floor ^<Integer> = (
 	^numerator // denominator
 )
@@ -1483,9 +1525,10 @@ private toWeakSet: set add: element = (
 ) : (
 )
 (* Integers are represented by my subclasses: SmallInteger, MediumInteger and LargeInteger. *)
+(* :exemplar: 1984 *)
 class Integer = Number (
 ) (
-(* Answer the bitwise and of the receiver and argument in two's complement form. *)
+(* Bitwise and. *)
 public & other <Integer> ^<Integer> = (
 	(* :pragma: primitive: 20 *)
 	^(ArgumentError value: other) signal
@@ -1496,12 +1539,12 @@ public / other <Number> ^<Number> = (
 	0 = other ifTrue: [^(ArgumentError value: other) signal].
 	^Fraction numerator: self denominator: other
 )
-(* Two's complement shift left. *)
+(* Shift left. *)
 public << other <Integer> ^<Integer> = (
 	(* :pragma: primitive: 23 *)
 	^(ArgumentError value: other) signal
 )
-(* Two's complement arithmetic shift right. *)
+(* Shift right arithmetic. *)
 public >> other <Integer> ^<Integer> = (
 	(* :pragma: primitive: 24 *)
 	^(ArgumentError value: other) signal
@@ -1509,6 +1552,7 @@ public >> other <Integer> ^<Integer> = (
 public addFromFraction: left <Fraction> ^<Number> = (
 	^(left numerator + (self * left denominator)) / left denominator
 )
+(* Round toward zero (truncation). *)
 public asInteger ^<Integer> = (
 	^self
 )
@@ -1526,25 +1570,26 @@ public asStringRadix: radix <Integer> ^<String> = (
 	 value > 0] whileTrue.
 	^result
 )
-(* Answer the bitwise and of the receiver and argument in two's complement form. *)
+(* Bitwise and. *)
 public bitAnd: other <Integer> ^<Integer> = (
 	(* :pragma: primitive: 20 *)
 	^(ArgumentError value: other) signal
 )
-(* Answer the complement of the receiver in two's complement form. *)
+(* Bitwise complement. *)
 public bitInvert ^<Integer> = (
 	^-1 - self
 )
-(* Answer the bitwise inclusive or of the receiver and argument in two's complement form. *)
+(* Bitwise inclusive or. *)
 public bitOr: other <Integer> ^<Integer> = (
 	(* :pragma: primitive: 21 *)
 	^(ArgumentError value: other) signal
 )
-(* Answer the bitwise exclusive or of the receiver and argument in two's complement form. *)
+(* Bitwise exclusive or. *)
 public bitXor: other <Integer> ^<Integer> = (
 	(* :pragma: primitive: 22 *)
 	^(ArgumentError value: other) signal
 )
+(* Round toward positive infinity. *)
 public ceiling ^<Integer> = (
 	^self
 )
@@ -1564,6 +1609,7 @@ public digitLength ^<Integer> = (
 public divideFromFraction: left <Fraction> ^<Number> = (
 	^left numerator / (left denominator * self)
 )
+(* Round toward negative infinity. *)
 public floor ^<Integer> = (
 	^self
 )
@@ -1631,6 +1677,8 @@ public rounded ^<Integer> = (
 public subtractFromFraction: left <Fraction> ^<Number> = (
 	^(left numerator - (self * left denominator)) / left denominator
 )
+(* Looping. *)
+(* :inlineBytecode: *)
 public timesRepeat: action <[]> ^<Integer> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	1 to: self do: [:ignore | action value].
@@ -1674,11 +1722,13 @@ public parse: string <String> radix: radix <Integer> ^<Integer> = (
 )
 )
 (* An arbitrary-precision integer. *)
+(* :exemplar: 1 << 64 *)
 public class LargeInteger _cannotInstantiate = Integer (
 ) (
 ) : (
 )
 (* An integer representable as a 64-bit two's complement number. *)
+(* :exemplar: 1 << 63 - 1 *)
 public class MediumInteger _cannotInstantiate = Integer (
 ) (
 ) : (
@@ -1821,28 +1871,28 @@ public printString ^<String> = (
 ) : (
 )
 class Number = () (
-(* Answer the receiver multiplied by the argument. *)
+(* Multiplication. *)
 public * other <Number> ^<Number> = (
 	(* :pragma: primitive: 3 *)
 	^other multiplyFromNumber: self
 )
-(* Answer the sum of the receiver and the argument. *)
+(* Addition. *)
 public + other <Number> ^<Number> = (
 	(* :pragma: primitive: 1 *)
 	^other addFromNumber: self
 )
-(*Answer the difference of the argument from the receiver*)
+(* Subtraction. *)
 public - other <Number> ^<Number> = (
 	(* :pragma: primitive: 2 *)
 	^other subtractFromNumber: self
 )
-(* Answer the receiver divided by the argument.
+(* Division.
 	 'Exact' division. For integer division see // and quo: *)
 public / other <Number> ^<Number> = (
 	(* :pragma: primitive: 4 *)
 	^other divideFromNumber: self
 )
-(* Answer the receiver divided by the argument, rounded to nearest integer toward negative infinity.  The remainder of this division is given by \\ *)
+(* Integer division, rounded toward negative infinity. The remainder of this division is given by \\ *)
 public // other <Number> ^<Number> = (
 	(* :pragma: primitive: 5 *)
 	^(ArgumentError value: other) signal
@@ -1871,12 +1921,12 @@ public >= other <Number> ^<Boolean> = (
 	other isKindOfFraction ifTrue: [^other < self].
 	^(ArgumentError value: other) signal
 )
-(* Answer the remainder of division rounded to the nearest integer toward negative inifinity.  The quoitent of this division is given by // *)
+(* Remainder of integer division rounded toward negative infinity.  The quoitent of this division is given by // *)
 public \\ other <Number> ^<Number> = (
 	(* :pragma: primitive: 6 *)
 	^(ArgumentError value: other) signal
 )
-(* Answer the absolute value of the receiver. *)
+(* Absolute value. *)
 public abs ^<Number> = (
 	self < 0 ifTrue: [^self negated].
 	^self
@@ -1888,7 +1938,7 @@ public asFloat ^<Float> = (
 	(* :pragma: primitive: 18 *)
 	panic.
 )
-(* Answer the integer part of the receiver (truncation). *)
+(* Round toward zero (truncation). *)
 public asInteger ^<Integer> = (
 	(* :pragma: primitive: 17 *)
 	^(ArgumentError value: self) signal
@@ -1910,7 +1960,7 @@ public between: min <Number> and: max <Number> ^<Boolean> = (
 	self <= max ifFalse: [^false].
 	^self >= min
 )
-(* Answer the cosine of the receiver, measured in radians. *)
+(* Cosine in radians. *)
 public cos ^<Float> = (
 	^self asFloat cos
 )
@@ -1930,11 +1980,11 @@ public isKindOfInteger ^<Boolean> = (
 public isKindOfNumber ^<Boolean> = (
 	^true
 )
-(* Answer the natural logarithm of the receiver. *)
+(* Natural logarithm. *)
 public ln ^<Float> = (
 	^self asFloat ln
 )
-(* Answer the common logarithm of the receiver. *)
+(* Common logarithm. *)
 public log ^<Float> = (
 	^self asFloat log
 )
@@ -1950,11 +2000,12 @@ public negated ^<Number> = (
 public printString ^<String> = (
 	^self asString
 )
-(* Answer the receiver divided by the argument, rounded to nearest integer toward zero. The remainder of this division is given by rem: *)
+(* Division, rounded toward zero. The remainder of this division is given by rem: *)
 public quo: other <Number> ^<Number> = (
 	(* :pragma: primitive: 7 *)
 	^(ArgumentError value: other) signal
 )
+(* Exponentiation. *)
 public raisedTo: exponent <Number> ^<Number> = (
 	exponent isKindOfInteger ifTrue: [^self raisedToInteger: exponent].
 	^self asFloat raisedTo: exponent
@@ -1971,23 +2022,25 @@ private raisedToInteger: exponent <Integer> ^<Integer | Fraction> = (
 		 base:: base * base].
 	^result
 )
-(* Answer the remainder of division rounded to the nearest integer toward zero. The quoitent of this division is given by quo: *)
+(* Remainder of division rounded toward zero. The quoitent of this division is given by quo: *)
 public rem: other <Number> ^<Number> = (
 	(* :pragma: primitive: 8 *)
 	^(ArgumentError value: other) signal
 )
-(* Answer the sine of the receiver measured in radians. *)
+(* Sine in radians. *)
 public sin ^<Float> = (
 	^self asFloat sin
 )
-(* Answer the square root of the receiver. *)
+(* Square root. *)
 public sqrt ^<Float> = (
 	^self asFloat sqrt
 )
-(* Answer the tangent of the receiver measured in radians. *)
+(* Tangent in radians. *)
 public tan ^<Float> = (
 	^self asFloat tan
 )
+(* Iteration. *)
+(* :inlineBytecode: *)
 public to: stop <Number> by: step <Number> do: action <[:Number]> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	| current ::= self. |
@@ -1995,6 +2048,8 @@ public to: stop <Number> by: step <Number> do: action <[:Number]> = (
 
 	^nil (* To match the inlined version *)
 )
+(* Iteration. *)
+(* :inlineBytecode: *)
 public to: stop <Number> do: action <[:Number]> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	| current ::= self. |
@@ -2093,6 +2148,7 @@ private continue: continuation withValue: value = (
 	current sender: continuation.
 	^value
 )
+(* :vmEntryPoint: *)
 protected doesNotUnderstand: message <Message> = (
 	0 = message arguments size ifTrue:
 		[(message selector startsWith: 'isKindOf') ifTrue:
@@ -2184,11 +2240,13 @@ public isTransient: v = (
 ) : (
 )
 (* An integer representable as a 31-/63-bit two's complement number. *)
+(* :exemplar: 1984 *)
 public class SmallInteger _cannotInstantiate = Integer (
 ) (
 ) : (
 )
 (* An immutable, fixed-length sequence of integers between 0 and 255. Often interpreted as UTF-8. *)
+(* :exemplar: 'Hello, polymerizing new world!' *)
 public class String _cannotInstantiate = (
 ) (
 (* Concatenation. *)
@@ -2359,6 +2417,7 @@ public new ^<StringBuilder> = (
 )
 )
 (* Defines the behavior of `true`. *)
+(* :exemplar: true *)
 public class True _cannotInstantiate = Boolean (
 ) (
 (* Evaluating conjunction. *)
@@ -2372,18 +2431,26 @@ public and: alternative <[Boolean]> ^<Boolean> = (
 public asString ^<String> = (
 	^'true'
 )
+(* Branching. *)
+(* :inlineBytecode: *)
 public ifFalse: else <[Y def]> ^<nil | Y> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^nil
 )
+(* Branching. *)
+(* :inlineBytecode: *)
 public ifFalse: else <[Y def]> ifTrue: then <[X def]> ^<X | Y> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^then value
 )
+(* Branching. *)
+(* :inlineBytecode: *)
 public ifTrue: then <[X def]> ^<X | nil> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^then value
 )
+(* Branching. *)
+(* :inlineBytecode: *)
 public ifTrue: then <[X def]> ifFalse: else <[Y def]> ^<X | Y> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	^then value
@@ -2406,6 +2473,7 @@ public | alternative <Boolean> ^<Boolean> = (
 ) : (
 )
 (* Defines the behavior of `nil`. *)
+(* :exemplar: nil *)
 public class UndefinedObject _cannotInstantiate = (
 ) (
 public isNil ^<Boolean> = (
@@ -2417,6 +2485,7 @@ public printString ^<String> = (
 ) : (
 )
 (* An array that does not prevent its elements from being garbage collected. *)
+(* :exemplar: (WeakArray new: 3) at: 1 put: Object new; yourself *)
 public class WeakArray _cannotInstantiate = Collection (
 ) (
 public at: index <Integer> ^<E> = (
@@ -2582,6 +2651,7 @@ public removeKey: key <K> ^<V> = (
 )
 ) : (
 )
+(* The root object of a complete snapshot. It provides the objects that are known to the VM. *)
 public buildObjectStore = (
 	^{
 		nil.

@@ -1,3 +1,4 @@
+(* Tests for the JSON encoder/decoder. *)
 class JSONTestingConfiguration packageTestsUsing: manifest = (|
 private JSON = manifest JSON.
 private JSONTesting = manifest JSONTesting.

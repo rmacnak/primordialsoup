@@ -1,3 +1,4 @@
+(* :exemplar: platform time *)
 class Time usingPlatform: p = (|
 	public Timer = p actors Timer.
 	private StringBuilder = p kernel StringBuilder.

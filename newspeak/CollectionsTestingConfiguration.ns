@@ -1,3 +1,4 @@
+(* Test configuration using the current platform's collections. *)
 class CollectionsTestingConfiguration packageTestsUsing: manifest = (|
 private CollectionsTesting = manifest CollectionsTesting.
 |) (

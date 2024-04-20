@@ -1,3 +1,5 @@
+(* PRNG and entropy. *)
+(* :exemplar: platform random *)
 class Random usingPlatform: platform = (
 ) (
 public class Random seed: seed <Integer> = (

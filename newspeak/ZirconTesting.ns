@@ -1,3 +1,4 @@
+(* Tests for Zircon primitives. *)
 class ZirconTesting usingPlatform: platform minitest: minitest = (
 |
 	private zx = platform zircon.

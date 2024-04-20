@@ -1,3 +1,4 @@
+(* Tests for weakness and ephemerality. *)
 class KernelWeakTests usingPlatform: p minitest: m gcAction: gc = (|
 private TestContext = m TestContext.
 private MessageNotUnderstood = p kernel MessageNotUnderstood.
