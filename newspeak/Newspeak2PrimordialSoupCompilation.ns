@@ -2058,24 +2058,6 @@ private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration>
 
 	^classDecl
 )
-public compileClassHeader2: src <String> within: enclosing <InstanceMixin> ^<IntermediateClassDeclaration> = (
-	| tree <ClassDeclarationAST> intermediate <IntermediateClassDeclaration>  |
-
-	currentSource:: src.
-	currentScope:: Scope new.
-	currentDepth:: 0.
-
-	nil = enclosing ifFalse: [buildIncrementalScopeFor: enclosing].
-	tree:: parseClassDeclaration: src , '()'.
-
-	toScope: currentScope addClass: tree.
-
-	nil = enclosing
-		ifTrue: [intermediate:: compileClass: tree]
-		ifFalse: [intermediate:: within: enclosing compileClassNoAdd: tree].
-
-	^intermediate
-)
 public compileClassHeader: source <String> within: enclosingIR <IntermediateMixin> = (
 	^compileClassSource: (source, '()') within: enclosingIR
 )
@@ -2086,7 +2068,7 @@ public compileClassSource: src <String> within: enclosingIR <IntermediateMixin> 
 	currentScope:: Scope new.
 	currentDepth:: 0.
 
-	nil = enclosingIR ifFalse: [buildIncrementalScopeFor: enclosingIR builder].
+	nil = enclosingIR ifFalse: [buildIncrementalScopeFor: enclosingIR].
 	tree:: parseClassDeclaration: src.
 
 	toScope: currentScope addClass: tree.
@@ -2470,28 +2452,6 @@ selfNode ^<VariableAST> = (
 )
 sourceForNode: node <AST> ^ <String> = (
 	^currentSource copyFrom: node start to: node end
-)
-superConstructorCallFor: aNode <ClassHeaderAST> ^<NormalSendAST> = (
-	(* create call to super constructor method *)
-	|
-	var <VariableAST>
-	send <NormalSendAST>
-	start <Integer>
-	end <Integer>
-	superMsg <MessageAST>
-	args <List[VariableAST]>
-	|
-
-	start:: aNode superConstructorCall start.
-	end:: aNode superConstructorCall end.
-	var:: VariableAST new name: #self; start: start; end: end.
-	args:: aNode constructor parameters collect:
-		[:p <VarDeclAST> | hereSendFrom: p].
-	superMsg:: MessageAST new
-		send: (superConstructorNameFor: aNode) with: args;
-		start: start; end: end.
-	send:: UnresolvedSendAST new to: var send: superMsg; start: start; end: end.
-	^send
 )
 superConstructorNameFor: aNode <ClassHeaderAST> ^ <Symbol> = (
 	^(aNode name, '`superInit`', aNode constructor selector) asSymbol

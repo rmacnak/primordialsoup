@@ -76,12 +76,12 @@ private computeDebugInfo = (
 		 definingMixin _nestedMixins do:
 			[:nestedMixin | nestedMixin _name = rawMethod selector ifTrue:
 				[^(compiler
-					compileClassHeader2: nestedMixin _headerSource
+					compileClassHeader: nestedMixin _headerSource
 					within: (mxn: definingMixin)) accessor debugInfo]].
 		 (* Instance initializer *)
 		 (isSubinitializerSelector: rawMethod selector) ifTrue:
 			[^(compiler
-				compileClassHeader2: rawMethod mixin _headerSource
+				compileClassHeader: rawMethod mixin _headerSource
 				within: (mxn: definingMixin _enclosingMixin)) initializers first debugInfo].
 		 (* Transient slot getter / setter / initializer *)
 		 definingMixin _slots do:
@@ -109,7 +109,7 @@ private computeDebugInfo = (
 	definingMixin isMeta ifTrue:
 		[definingMixin _instanceMixin _primaryFactorySelector = rawMethod selector ifTrue:
 			[^(compiler
-				compileClassHeader2: definingMixin _instanceMixin _headerSource
+				compileClassHeader: definingMixin _instanceMixin _headerSource
 				within: (mxn: definingMixin _enclosingMixin)) factory debugInfo]].
 
 	panic.
