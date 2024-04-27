@@ -8,13 +8,10 @@
 #define LOOKUP_CACHE true
 #define STATIC_PREDICTION_BYTECODES true
 
-#define REPORT_GC false
 #define TEST_SLOW_PATH false
-#define TRACE_BECOME false
-#define TRACE_DNU false
+
+#define TRACE_GC false
 #define TRACE_GROWTH false
-#define TRACE_PRIMITIVES false
 #define TRACE_SIGNALS false
-#define TRACE_SPECIAL_CONTROL false
 
 #endif  // VM_FLAGS_H_

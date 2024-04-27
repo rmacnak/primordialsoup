@@ -253,9 +253,6 @@ public isEmpty ^<Boolean> = (
 public isKindOfMap ^<Boolean> = (
 	^true
 )
-public isKindOfOrderedMap ^<Boolean> = (
-	^true
-)
 public keys ^<Array[V]> = (
 	|
 	result = Array new: size.
@@ -474,9 +471,6 @@ insert: bucketIndex element: element = (
 )
 public isEmpty ^<Boolean> = (
 	^0 = size
-)
-public isKindOfOrderedSet ^<Boolean> = (
-	^true
 )
 public isKindOfSet ^<Boolean> = (
 	^true

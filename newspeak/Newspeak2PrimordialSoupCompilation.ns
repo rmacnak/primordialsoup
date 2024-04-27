@@ -2379,15 +2379,6 @@ hereNode ^<VariableAST> = (
 	(* Generates an AST representing the implicit receiver. Note we use a name that is not a legal identifier. *)
 	^VariableAST new name: #'@here'
 )
-hereSendFrom: arg <VarDeclAST> ^<MessageNode> = (
-	^UnresolvedSendAST new
-		to: hereNode
-		send: (MessageAST new
-			send: arg name
-			with: {};
-			start: arg start; end: arg end);
-		start: arg start; end: arg end
-)
 inheritanceASTWIthSuperclass: sc <ExpressionAST> iList: iList <List[SendAST]> ^ <NormalSendAST> = (
 (*
 Produce an AST representing a series of mixin applications corresponding

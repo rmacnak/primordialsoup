@@ -577,16 +577,6 @@ void Interpreter::DNUSend(String selector,
                           Object receiver,
                           Behavior lookup_class,
                           bool present_receiver) {
-  if (TRACE_DNU) {
-    char* c1 = receiver->ToCString(H);
-    char* c2 = selector->ToCString(H);
-    char* c3 = FrameMethod(fp_)->selector()->ToCString(H);
-    OS::PrintErr("DNU %s %s from %s\n", c1, c2, c3);
-    free(c1);
-    free(c2);
-    free(c3);
-  }
-
   Behavior cls = lookup_class;
   Method method;
   do {
@@ -633,10 +623,6 @@ void Interpreter::DNUSend(String selector,
 }
 
 void Interpreter::SendCannotReturn(Object result) {
-  if (TRACE_SPECIAL_CONTROL) {
-    OS::PrintErr("#cannotReturn:\n");
-  }
-
   Activation top;
   {
     HandleScope h1(H, &result);
@@ -664,10 +650,6 @@ void Interpreter::SendCannotReturn(Object result) {
 }
 
 void Interpreter::SendAboutToReturnThrough(Object result, Activation unwind) {
-  if (TRACE_SPECIAL_CONTROL) {
-    OS::PrintErr("#aboutToReturn:through:\n");
-  }
-
   Activation top;
   {
     HandleScope h1(H, &result);
@@ -698,9 +680,6 @@ void Interpreter::SendAboutToReturnThrough(Object result, Activation unwind) {
 
 void Interpreter::SendNonBooleanReceiver(Object non_boolean) {
   // Note that Squeak instead sends #mustBeBoolean to the non-boolean.
-  if (TRACE_SPECIAL_CONTROL) {
-    OS::PrintErr("#nonBooleanReceiver:\n");
-  }
 
   Activation top;
   {
@@ -781,9 +760,6 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
 
   intptr_t prim = method->Primitive();
   if (prim != 0) {
-    if (TRACE_PRIMITIVES) {
-      OS::PrintErr("Primitive %" Pd "\n", prim);
-    }
     if ((prim & 512) != 0) {
       // Getter
       intptr_t offset = prim & 511;

@@ -38,7 +38,7 @@ class Region {
     return result;
   }
 
-  uword size() const { return memory_.size(); }
+  size_t size() const { return memory_.size(); }
   uword limit() const { return memory_.limit(); }
   uword object_start() const {
     return reinterpret_cast<uword>(this) + AllocationSize(sizeof(Region));
@@ -303,7 +303,7 @@ void Heap::ShrinkRememberedSet() {
 
 NOINLINE
 void Heap::Scavenge(Reason reason) {
-#if REPORT_GC
+#if TRACE_GC
   int64_t start = OS::CurrentMonotonicNanos();
   size_t new_before = top_ - to_.object_start();
 #endif
@@ -352,7 +352,7 @@ void Heap::Scavenge(Reason reason) {
     }
   }
 
-#if REPORT_GC
+#if TRACE_GC
   size_t freed = (new_before + old_before) - (new_after + old_after);
   int64_t stop = OS::CurrentMonotonicNanos();
   int64_t time = stop - start;
@@ -624,7 +624,7 @@ bool Heap::ScavengeClass(intptr_t cid) {
 
 NOINLINE
 void Heap::MarkSweep(Reason reason) {
-#if REPORT_GC
+#if TRACE_GC
   int64_t start = OS::CurrentMonotonicNanos();
   size_t size_before = old_size_;
 #endif
@@ -668,7 +668,7 @@ void Heap::MarkSweep(Reason reason) {
 
   SetOldAllocationLimit();
 
-#if REPORT_GC
+#if TRACE_GC
   size_t size_after = old_size_;
   int64_t stop = OS::CurrentMonotonicNanos();
   int64_t time = stop - start;
@@ -1076,10 +1076,6 @@ bool Heap::BecomeForward(Array old, Array neu) {
   }
 
   intptr_t length = old->Size();
-  if (TRACE_BECOME) {
-    OS::PrintErr("become(%" Pd ")\n", length);
-  }
-
   for (intptr_t i = 0; i < length; i++) {
     Object forwarder = old->element(i);
     Object forwardee = neu->element(i);
