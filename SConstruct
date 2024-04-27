@@ -253,13 +253,20 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
                           os.path.join('double-conversion', cc + '.cc'))
 
   if target_os == 'emscripten':
-    program = env.Program(os.path.join(outdir, 'primordialsoup.html'), objects)
+    program = env.Program([os.path.join(outdir, 'primordialsoup.html'),
+                           os.path.join(outdir, 'primordialsoup.wasm'),
+                           os.path.join(outdir, 'primordialsoup.js')],
+                          objects)
     Depends(program, 'meta/shell.html')
 
     emrun_env = env.Clone()
     emrun_env['LINKFLAGS'] += ['--emrun']
-    emrun_path = os.path.join(outdir, 'primordialsoup-emrun.html')
-    emrun_program = emrun_env.Program(emrun_path, objects)
+    emrun_paths = [
+      os.path.join(outdir, 'primordialsoup-emrun.html'),
+      os.path.join(outdir, 'primordialsoup-emrun.wasm'),
+      os.path.join(outdir, 'primordialsoup-emrun.js'),
+    ]
+    emrun_program = emrun_env.Program(emrun_paths, objects)
     Depends(emrun_program, 'meta/shell.html')
   else:
     program = env.Program(os.path.join(outdir, 'primordialsoup'), objects)
