@@ -14,7 +14,7 @@ public nextBoolean ^<Boolean> = (
 )
 public nextBytes: byteCount <Integer> ^<ByteArray> = (
 	| result |
-	byteCount < 0 ifTrue: [^(ArgumentError value: byteCount) signa].
+	byteCount < 0 ifTrue: [^(ArgumentError value: byteCount) signal].
 	result:: ByteArray new: byteCount.
 	1 to: byteCount do:
 		[:index | result at: index put: (nextState & 255)].

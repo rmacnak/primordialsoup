@@ -281,7 +281,7 @@ public run: block = (
 	^block value
 )
 public signalError = (
-	Error signal: 'some error'.
+	Exception signal: 'some error'.
 )
 public testAddPromises = (
 	(* :todo: Do we want this property? What this tests is really an issue with the Number implementation, not the Promise implementation, namely it uses a double-dispatching the works with proxies. *)

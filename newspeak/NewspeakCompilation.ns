@@ -488,7 +488,7 @@ depthOfEnclosingClass: name <Symbol> ^<Integer> = (
 		[entry name = name ifTrue: [
 			^entry depth].
 		entry:: entry enclosingClass].
-	Error signal: 'No enclosing class named "', name, '"'
+	Exception signal: 'No enclosing class named "', name, '"'
 )
 emptyBody = (
 	| body |
@@ -576,7 +576,7 @@ offsetOfEnclosingObjectForClass: name <Symbol> ^<Integer> = (
 			assert: offset >= 0 message: 'Invalid enclosing object index'.
 			^offset].
 		entry:: entry enclosingClass].
-	Error signal: 'No enclosing class named "', name, '"'
+	Exception signal: 'No enclosing class named "', name, '"'
 )
 offsetOfImplicitReceiverTarget: binding <SymbolTableEntry> ^<Integer> = (
 	(* Note this calculation differs from the one used by explicit outer sends by a factor of one. This is because an explicit outer send needs the depth of the enclosing object with for a class whose name is a given selector, whereas an implicit receiver send needs the depth of the enclosing object for the class that defined a given selector. *)
@@ -971,6 +971,7 @@ public variableNode: node <VariableAST> = (
 		[^(BooleanAST withValue: true) copyPositionFrom: node].
 	node name = #false ifTrue:
 		[^(BooleanAST withValue: false) copyPositionFrom: node].
+	checkForReservedWord: node name.
 	halt
 )
 ) : (

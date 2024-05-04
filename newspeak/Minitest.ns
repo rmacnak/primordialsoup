@@ -392,6 +392,10 @@ assert: anObject equals: anotherObject description: messageText = (
 assert: anObject equals: anotherObject descriptionBlock: messageBlock = (
 	assert: anObject = anotherObject descriptionBlock: messageBlock
 )
+assert: haystack <String> includesSubstring: needle <String> = (
+	0 = (haystack indexOf: needle) ifTrue:
+		[failWithMessage: 'Expected `', haystack, '` to contain `', needle, '`'].
+)
 assertList: actualList equals: expectedList = (
 	assert: actualList size = expectedList size descriptionBlock:
 		['List equality assertion failed; expected: ',

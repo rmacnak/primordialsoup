@@ -115,7 +115,7 @@ public compress = (
 	^forwardee compress
 )
 public parseWithContext: ctxt ifError: onError = (
-	Error signal: 'Forward reference parsers should be compressed away before parsing'
+	Exception signal: 'Forward reference parsers should be compressed away before parsing'
 )
 ) : (
 )

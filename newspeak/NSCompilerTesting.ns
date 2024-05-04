@@ -14,14 +14,17 @@ class NSCompilerTesting usingPlatform: platform testingStrategy: strategy minite
 public class CompilerTests = TestContext (
 ) (
 assertCompilationErrorIn: classSource <String> = (
+	assertCompilationErrorIn: classSource including: ''.
+)
+assertCompilationErrorIn: classSource <String> including: errorSubstring <String> = (
 	[
 		testingStrategy
 			test: classSource
 			with: 'class SampleTest test: sampleClass = ()( public test = () )'
 			ifFailure: [:message | ^self]
 			ifError: [:message | ^self]]
-		on: Exception (* not Exception, which catches InMidstOfFileinNotifications *)
-		do: [:ex | ^self].
+		on: Exception
+		do: [:ex | ^assert: ex printString includesSubstring: errorSubstring].
 	failWithMessage: 'Expected a compilation error, but succeeded'
 )
 assertNoCompilationErrorIn: classSource <String> = (
@@ -31,7 +34,7 @@ assertNoCompilationErrorIn: classSource <String> = (
 			with: 'class SampleTest test: sampleClass = ()( public test = () )'
 			ifFailure: [:message | ^self]
 			ifError: [:message | ^self]]
-		on: Exception (* not Exception, which catches InMidstOfFileinNotifications *)
+		on: Exception
 		do: [:ex | ^failWithMessage: 'Unexpected compilation error'].
 )
 test: sampleClassSource <String> with: testClassSource <String> = (
@@ -417,17 +420,17 @@ public testDoublyNestedIWhileInIf = (
 	with: 'assert: sample doublyNestedWhileInIf equals: 10203.'
 )
 public testDuplicateNames = (
-	assertCompilationErrorIn: 'class Sample = (| foo |) (class foo = ()() foo = ())'.
+	assertCompilationErrorIn: 'class Sample = (| foo |) (class foo = ()() foo = ())' including: 'foo'.
 
-	assertCompilationErrorIn: 'class Sample = (| foo |) (foo = ())'.
-	assertCompilationErrorIn: 'class Sample = () (class foo = ()() foo = ())'.
-	assertCompilationErrorIn: 'class Sample = (| foo |) (class foo = ()())'.
+	assertCompilationErrorIn: 'class Sample = (| foo |) (foo = ())' including: 'foo'.
+	assertCompilationErrorIn: 'class Sample = () (class foo = ()() foo = ())' including: 'foo'.
+	assertCompilationErrorIn: 'class Sample = (| foo |) (class foo = ()())' including: 'foo'.
 
-	assertCompilationErrorIn: 'class Sample = () (foo = () foo = ())'.
-	assertCompilationErrorIn: 'class Sample = (| foo foo |) ()'.
-	assertCompilationErrorIn: 'class Sample = () (class foo = ()() class foo = ()())'.
+	assertCompilationErrorIn: 'class Sample = () (foo = () foo = ())' including: 'foo'.
+	assertCompilationErrorIn: 'class Sample = (| foo foo |) ()' including: 'foo'.
+	assertCompilationErrorIn: 'class Sample = () (class foo = ()() class foo = ()())' including: 'foo'.
 
-	assertCompilationErrorIn: 'class Sample = ( | foo ::= 42. | ) (foo: x = ())'.
+	assertCompilationErrorIn: 'class Sample = ( | foo ::= 42. | ) (foo: x = ())' including: 'foo'.
 	assertNoCompilationErrorIn: 'class Sample = ( | foo = 42. | ) (foo: x = ())'.
 )
 public testDynamicSuper = (
@@ -1411,17 +1414,17 @@ public testOuterSendToSibling = (
 'class Sample = () (
  class Sibling = ()()
  class Nested = ()(method= (^outer Sibling yourself))
-)'.
+)' including: 'Sibling'.
 )
 public testOuterSendToSlot = (
 	assertCompilationErrorIn:
 'class Sample = ( | slot | ) (
  class Nested = ()(method = (^outer slot yourself))
-)'.
+)' including: 'slot'.
 	assertCompilationErrorIn:
 'class Sample = () (
  class Nested = ( | slot | )(method = (^outer slot yourself))
-)'.
+)' including: 'slot'.
 )
 public testOverrideSelectorClass = (
 	test:
@@ -1452,10 +1455,10 @@ public testParameterImmutabilityEnforced = (
 	with: 'assert: [sample immutableParem: 9] signals: Exception.'
 )
 public testParameterTemporaryConflictInBlock = (
-	assertCompilationErrorIn: 'class Sample = () (foo = ( [:x | | x | ] ))'.
+	assertCompilationErrorIn: 'class Sample = () (foo = ( [:x | | x | ] ))' including: 'x'.
 )
 public testParameterTemporaryConflictInMethod = (
-	assertCompilationErrorIn: 'class Sample = () (foo: x = ( | x | ))'.
+	assertCompilationErrorIn: 'class Sample = () (foo: x = ( | x | ))' including: 'x'.
 )
 public testParseAccessors = (
 	assertNoCompilationErrorIn:
@@ -1522,73 +1525,73 @@ public testRepeatNonLiteralBlock = (
 	with: 'assert: sample testRepeatNonLiteralBlock equals: 60.'
 )
 public testReservedWordsAsClasses = (
-	assertCompilationErrorIn: 'class Sample = () ( class self = ()() )'.
-	assertCompilationErrorIn: 'class Sample = () ( class super = ()() )'.
-	assertCompilationErrorIn: 'class Sample = () ( class outer = ()() )'.
-	assertCompilationErrorIn: 'class Sample = () ( class true = ()() )'.
-	assertCompilationErrorIn: 'class Sample = () ( class false = ()() )'.
-	assertCompilationErrorIn: 'class Sample = () ( class nil = ()() )'.
+	assertCompilationErrorIn: 'class Sample = () ( class self = ()() )' including: 'self'.
+	assertCompilationErrorIn: 'class Sample = () ( class super = ()() )' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = () ( class outer = ()() )' including: 'outer'.
+	assertCompilationErrorIn: 'class Sample = () ( class true = ()() )' including: 'true'.
+	assertCompilationErrorIn: 'class Sample = () ( class false = ()() )' including: 'false'.
+	assertCompilationErrorIn: 'class Sample = () ( class nil = ()() )' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = () ( class thisContext = ()() )'.
 )
 public testReservedWordsAsMessageSends = (
 	(* For effect *)
-	assertCompilationErrorIn: 'class Sample = () (foo = (super))'.
-	assertCompilationErrorIn: 'class Sample = () (foo = (outer))'.
+	assertCompilationErrorIn: 'class Sample = () (foo = (super))' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = () (foo = (outer))' including: 'outer'.
 	(* For value *)
-	assertCompilationErrorIn: 'class Sample = () (foo = (^super))'.
-	assertCompilationErrorIn: 'class Sample = () (foo = (^outer))'.
+	assertCompilationErrorIn: 'class Sample = () (foo = (^super))' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = () (foo = (^outer))' including: 'outer'.
 )
 public testReservedWordsAsMethods = (
-	assertCompilationErrorIn: 'class Sample = ()( self = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( super = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( outer = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( true = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( false = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( nil = () )'.
+	assertCompilationErrorIn: 'class Sample = ()( self = () )' including: 'self'.
+	assertCompilationErrorIn: 'class Sample = ()( super = () )' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = ()( outer = () )' including: 'outer'.
+	assertCompilationErrorIn: 'class Sample = ()( true = () )' including: 'true'.
+	assertCompilationErrorIn: 'class Sample = ()( false = () )' including: 'false'.
+	assertCompilationErrorIn: 'class Sample = ()( nil = () )' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = ()( thisContext = () )'.
 )
 public testReservedWordsAsParams = (
-	assertCompilationErrorIn: 'class Sample = ()( foo: self = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo: super = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo: outer = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo: true = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo: false = () )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo: nil = () )'.
+	assertCompilationErrorIn: 'class Sample = ()( foo: self = () )' including: 'self'.
+	assertCompilationErrorIn: 'class Sample = ()( foo: super = () )' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = ()( foo: outer = () )' including: 'outer'.
+	assertCompilationErrorIn: 'class Sample = ()( foo: true = () )' including: 'true'.
+	assertCompilationErrorIn: 'class Sample = ()( foo: false = () )' including: 'false'.
+	assertCompilationErrorIn: 'class Sample = ()( foo: nil = () )' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = ()( foo: thisContext = () )'.
 
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:self | ] ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:super | ] ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:outer | ] ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:true | ] ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:false | ] ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:nil | ] ) )'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:self | ] ) )' including: 'self'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:super | ] ) )' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:outer | ] ) )' including: 'outer'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:true | ] ) )' including: 'true'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:false | ] ) )' including: 'false'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:nil | ] ) )' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = ()( foo = ( [:thisContext | ] ) )'.
 )
 public testReservedWordsAsSlots = (
-	assertCompilationErrorIn: 'class Sample = ( | self | ) ()'.
-	assertCompilationErrorIn: 'class Sample = ( | super | ) ()'.
-	assertCompilationErrorIn: 'class Sample = ( | outer | ) ()'.
-	assertCompilationErrorIn: 'class Sample = ( | true | ) ()'.
-	assertCompilationErrorIn: 'class Sample = ( | false | ) ()'.
-	assertCompilationErrorIn: 'class Sample = ( | nil | ) ()'.
+	assertCompilationErrorIn: 'class Sample = ( | self | ) ()' including: 'self'.
+	assertCompilationErrorIn: 'class Sample = ( | super | ) ()' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = ( | outer | ) ()' including: 'outer'.
+	assertCompilationErrorIn: 'class Sample = ( | true | ) ()' including: 'true'.
+	assertCompilationErrorIn: 'class Sample = ( | false | ) ()' including: 'false'.
+	assertCompilationErrorIn: 'class Sample = ( | nil | ) ()' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = ( | thisContext | ) ()'.
 )
 public testReservedWordsAsTemps = (
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( | self | ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( | super | ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( | outer | ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( | true | ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( | false | ) )'.
-	assertCompilationErrorIn: 'class Sample = ()( foo = ( | nil | ) )'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( | self | ) )' including: 'self'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( | super | ) )' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( | outer | ) )' including: 'outer'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( | true | ) )' including: 'true'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( | false | ) )' including: 'false'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( | nil | ) )' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = ()( foo = ( | thisContext | ) )'.
 )
 public testReservedWordsAsTransientSlots = (
-	assertCompilationErrorIn: 'class Sample = ()( transient self = init. )'.
-	assertCompilationErrorIn: 'class Sample = ()( transient super = init. )'.
-	assertCompilationErrorIn: 'class Sample = ()( transient outer = init. )'.
-	assertCompilationErrorIn: 'class Sample = ()( transient true = init. )'.
-	assertCompilationErrorIn: 'class Sample = ()( transient false = init. )'.
-	assertCompilationErrorIn: 'class Sample = ()( transient nil = init. )'.
+	assertCompilationErrorIn: 'class Sample = ()( transient self = init. )' including: 'self'.
+	assertCompilationErrorIn: 'class Sample = ()( transient super = init. )' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = ()( transient outer = init. )' including: 'outer'.
+	assertCompilationErrorIn: 'class Sample = ()( transient true = init. )' including: 'true'.
+	assertCompilationErrorIn: 'class Sample = ()( transient false = init. )' including: 'false'.
+	assertCompilationErrorIn: 'class Sample = ()( transient nil = init. )' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = ()( transient thisContext = init. )'.
 )
 public testReservedWordsCorrespondingSetters = (
@@ -2292,10 +2295,10 @@ public testTempInInstanceInitializer = (
 )'
 )
 public testTemporaryTemporaryConflictInClosure = (
-	assertCompilationErrorIn: 'class Sample = () (foo = ( ^[ | x x | ] ))'.
+	assertCompilationErrorIn: 'class Sample = () (foo = ( ^[ | x x | ] ))' including: 'x'.
 )
 public testTemporaryTemporaryConflictInMethod = (
-	assertCompilationErrorIn: 'class Sample = () (foo = ( | x x | ))'.
+	assertCompilationErrorIn: 'class Sample = () (foo = ( | x x | ))' including: 'x'.
 )
 public testThisContext = (
 	testSampleMethod: 'public testThisContext = ( ^thisContext )'

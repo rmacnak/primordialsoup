@@ -2038,7 +2038,7 @@ checkForDuplicateNames: node <ClassDeclarationAST> = (
 			do: [:each | s add: each asString]
 			separatedBy: [ s add: ','].
 		s add: '.'.
-		Error signal: s asString].
+		Exception signal: s asString].
 )
 private compileClass: node <ClassDeclarationAST> ^<IntermediateClassDeclaration> = (
 	| headerNode <ClassHeaderAST> classDecl <IntermediateClassDeclaration> |
@@ -2640,7 +2640,7 @@ assert: condition message: message = (
 )
 check: value between: min and: max = (
 	value >= min ifTrue: [value <= max ifTrue: [^self]].
-	Error signal: 'Encoding out of range'.
+	Exception signal: 'Encoding out of range'.
 )
 namer = (
 	^super namer

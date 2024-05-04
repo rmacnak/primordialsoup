@@ -37,7 +37,7 @@ public returnPromiseYourself = (
 	^self <-: yourself.
 )
 public signalError = (
-	Error signal: 'You asked for it.'
+	Exception signal: 'You asked for it.'
 )
 public waitAdd: eventualA and: eventualB = (
 	^Promise when: eventualA fulfilled: [:a | Promise when: eventualB fulfilled: [:b | a + b]].
