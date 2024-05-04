@@ -134,9 +134,28 @@ public receiver: value = (
 	(* :pragma: primitive: 175 *)
 	panic.
 )
+public restart = (
+	| unwindActivation unwindBlock |
+	self method primitive = 161 ifFalse: [panic].
+	self isDead ifTrue: [^self cannotReturn: nil].
+	self bci: 1.
+	self size: 3.
+	self tempAt: 3 put: false.
+	unwindActivation:: currentActivation.
+	[unwindActivation:: unwindActivation findNextUnwindContextUpTo: self.
+	nil = unwindActivation]
+		whileFalse:
+			[nil = (unwindActivation tempAt: 2) ifTrue: [
+				unwindActivation tempAt: 2 put: true.
+				unwindBlock:: unwindActivation tempAt: 1.
+				currentActivation terminateTo: unwindActivation.
+				unwindBlock value]].
+	currentActivation terminateTo: self.
+	^self pop
+)
 public resume: value = (
 	| unwindActivation unwindBlock |
-	self isDead ifTrue: [self cannotReturn: value to: self].
+	self isDead ifTrue: [^self cannotReturn: value].
 	unwindActivation:: currentActivation.
 	[unwindActivation:: unwindActivation findNextUnwindContextUpTo: self.
 	nil = unwindActivation]
@@ -560,7 +579,7 @@ public withAll: bytes <Collection[Integer] | ByteArray | String> ^<ByteArray> = 
 )
 )
 (* Signalled when attempting to return to (or through) a nil sender or a sender that has already returned. *)
-class CannotReturn result: r = Exception (
+public class CannotReturn result: r = Exception (
 |
 public result = r.
 |) (
@@ -900,7 +919,6 @@ public resume: resumptionValue = (
 	^savedSignalActivation return: resumptionValue
 )
 public retry = (
-	panic. (* Needs test *)
 	handlerActivation restart.
 	panic.
 )

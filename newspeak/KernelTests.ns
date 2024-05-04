@@ -2,6 +2,7 @@
 class KernelTests usingPlatform: p minitest: m = (|
 private TestContext = m TestContext.
 private Message = p kernel Message.
+private CannotReturn = p kernel CannotReturn.
 private MessageNotUnderstood = p kernel MessageNotUnderstood.
 private Exception = p kernel Exception.
 private Proxy = p kernel Proxy.
@@ -1146,7 +1147,7 @@ nonInlineRepeat = (
 	]) repeat.
 )
 public testCannotReturn = (
-	should: [cannotReturn value] signal: Exception.
+	should: [cannotReturn value] signal: CannotReturn.
 )
 public testCull = (
 	assert: ([42] cull: 7) equals: 42.
@@ -1266,6 +1267,9 @@ protected doesNotUnderstand: message = (
 ) : (
 )
 public class ExceptionTests = TestContext () (
+cannotReturn = (
+	[Exception new signal] on: Exception do: [:ex | ^ex].
+)
 nonLocalReturnCrossingExceptionHandler = (
 	[^'correct']
 		on: Exception
@@ -1429,6 +1433,52 @@ public testExceptionResume = (
 	assert: signalResult equals: 63.
 	assert: result equals: 42.
 )
+public testExceptionResumeCannotReturn = (
+	| exception |
+	exception:: cannotReturn.
+	should: [exception resume: 42] signal: CannotReturn.
+)
+public testExceptionRetry = (
+	|
+	beforeSignal ::= 0.
+	afterSignal ::= 0.
+	handler ::= 0.
+	afterRetry ::= 0.
+	exceptionSignaled
+	exceptionHandled
+	signalResult
+	result
+	|
+
+	result::
+		[beforeSignal:: beforeSignal + 1.
+		 handler = 0 ifTrue:
+			[exceptionSignaled:: Exception new.
+			 signalResult:: exceptionSignaled signal.
+			 afterSignal:: afterSignal + 1].
+		 42]
+			on: Exception
+			do:
+				[:ex |
+				handler:: handler + 1.
+				exceptionHandled:: ex.
+				ex retry.
+				afterRetry:: afterReturn + 1.
+				84].
+
+	assert: beforeSignal equals: 2.
+	assert: afterSignal equals: 0.
+	assert: handler equals: 1.
+	assert: afterRetry equals: 0.
+	assert: exceptionSignaled equals: exceptionHandled.
+	assert: signalResult equals: nil.
+	assert: result equals: 42.
+)
+public testExceptionRetryCannotReturn = (
+	| exception |
+	exception:: cannotReturn.
+	should: [exception retry] signal: CannotReturn.
+)
 public testExceptionReturn = (
 	|
 	beforeSignal ::= false.
@@ -1463,6 +1513,11 @@ public testExceptionReturn = (
 	assert: exceptionSignaled equals: exceptionHandled.
 	assert: signalResult equals: nil.
 	assert: result equals: 63.
+)
+public testExceptionReturnCannotReturn = (
+	| exception |
+	exception:: cannotReturn.
+	should: [exception return: 42] signal: CannotReturn.
 )
 public testExceptionSignalInHandler = (
 	|

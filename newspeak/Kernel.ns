@@ -6,6 +6,9 @@ private internalKernel = k.
 public ArgumentError = (
 	^internalKernel ArgumentError
 )
+public CannotReturn = (
+	^internalKernel CannotReturn
+)
 public Ephemeron = (
 	^internalKernel Ephemeron
 )
