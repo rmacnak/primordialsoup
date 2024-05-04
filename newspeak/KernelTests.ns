@@ -525,6 +525,22 @@ public testBooleanNonEvaluatingDisjuction = (
 	assert: (false or: [true]).
 	deny: (false or: [false]).
 )
+public testBooleanNonInlineIfFalse = (
+	assert: (true ifFalse: (hide: ['F'])) equals: nil.
+	assert: (false ifFalse: (hide: ['F'])) equals: 'F'.
+)
+public testBooleanNonInlineIfFalseIfTrue = (
+	assert: (true ifFalse: (hide: ['F']) ifTrue: (hide: ['T'])) equals: 'T'.
+	assert: (false ifFalse: (hide: ['F']) ifTrue: (hide: ['T'])) equals: 'F'.
+)
+public testBooleanNonInlineIfTrue = (
+	assert: (true ifTrue: (hide: ['T'])) equals: 'T'.
+	assert: (false ifTrue: (hide: ['T'])) equals: nil.
+)
+public testBooleanNonInlineIfTrueIfFalse = (
+	assert: (true ifTrue: (hide: ['T']) ifFalse: (hide: ['F'])) equals: 'T'.
+	assert: (false ifTrue: (hide: ['T']) ifFalse: (hide: ['F'])) equals: 'F'.
+)
 public testBooleanNot = (
 	deny: true not.
 	assert: false not.
@@ -1122,6 +1138,13 @@ ensure3 = (
 	[^'try-block'] ensure: ['ensure-block'].
 	^'afterward'
 )
+nonInlineRepeat = (
+	| sum ::= 0. |
+	(hide: [
+		sum:: sum + 10.
+		sum > 15 ifTrue: [^sum].
+	]) repeat.
+)
 public testCannotReturn = (
 	should: [cannotReturn value] signal: Exception.
 )
@@ -1151,6 +1174,33 @@ public testIsKindOfClosure = (
 	assert: [3 + 4] isKindOfClosure.
 	deny: (3 + 4) isKindOfClosure.
 	deny: {3 + 4} isKindOfClosure.
+)
+public testNonInlineRepeat = (
+	assert: nonInlineRepeat equals: 20.
+)
+public testNonInlineWhileFalse = (
+	| sum |
+	sum:: 0.
+	assert: (hide: [sum:: sum + 10. sum > 15]) whileFalse equals: nil.
+	assert: sum equals: 20.
+)
+public testNonInlineWhileFalseColon = (
+	| sum |
+	sum:: 0.
+	assert: ((hide: [sum > 15]) whileFalse: (hide: [sum:: sum + 10])) equals: nil.
+	assert: sum equals: 20.
+)
+public testNonInlineWhileTrue = (
+	| sum |
+	sum:: 0.
+	assert: (hide: [sum:: sum + 10. sum < 15]) whileTrue equals: nil.
+	assert: sum equals: 20.
+)
+public testNonInlineWhileTrueColon = (
+	| sum |
+	sum:: 0.
+	assert: ((hide: [sum < 15]) whileTrue: (hide: [sum:: sum + 10])) equals: nil.
+	assert: sum equals: 20.
 )
 public testNumArgs = (
 	assert: [3 + 4] numArgs equals: 0.
@@ -3103,6 +3153,32 @@ public testIntegerMultiply = (
 	assert: minInt32 * maxInt32 equals: -4611686016279904256.
 	assert: minInt32 * minInt32 equals: 4611686018427387904.
 	assert: maxInt32 * maxInt32 equals: 4611686014132420609.
+)
+public testIntegerNonInlineTimesRepeat = (
+	| sum |
+	sum:: 0.
+	assert: (10 timesRepeat: (hide: [sum:: sum + 1])) equals: nil.
+	assert: sum equals: 10.
+)
+public testIntegerNonInlineToByDo = (
+	| sum |
+	sum:: 0.
+	assert: (1 to: 10 by: 2 do: (hide: [:each | sum:: sum + each])) equals: nil.
+	assert: sum equals: 25.
+
+	sum:: 0.
+	assert: (10 to: 1 by: -1 do: (hide: [:each | sum:: sum + each])) equals: nil.
+	assert: sum equals: 55.
+)
+public testIntegerNonInlineToDo = (
+	| sum |
+	sum:: 0.
+	assert: (1 to: 10 do: (hide: [:each | sum:: sum + each])) equals: nil.
+	assert: sum equals: 55.
+
+	sum:: 0.
+	assert: (1 to: -1 do: (hide: [:each | sum:: sum + each])) equals: nil.
+	assert: sum equals: 0.
 )
 public testIntegerParse = (
 	assert: (Integer parse: '3') equals: 3.
@@ -6776,6 +6852,7 @@ public testUint8 = (
 ) : (
 TEST_CONTEXT = ()
 )
+hide: x = ( ^x )
 largestNegativeLargeInteger = (
 	(* -1 << 63 - 1 *)
 	^-9223372036854775809

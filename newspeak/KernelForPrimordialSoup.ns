@@ -2044,7 +2044,9 @@ public tan ^<Float> = (
 public to: stop <Number> by: step <Number> do: action <[:Number]> = (
 	(* Usually this message is implemented inline by the bytecode compiler, and therefore not subject to lookup. This implementation handles non-inlined cases, such as eventual sends or non-literal arguments. *)
 	| current ::= self. |
-	[current <= stop] whileTrue: [action value: current. current:: step + current].
+	step < 0
+		ifTrue: [[current >= stop] whileTrue: [action value: current. current:: step + current]]
+		ifFalse: [[current <= stop] whileTrue: [action value: current. current:: step + current]].
 
 	^nil (* To match the inlined version *)
 )
