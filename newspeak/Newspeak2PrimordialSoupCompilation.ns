@@ -1332,7 +1332,7 @@ addRemoteVectorForCodeBodyNode: node <CodeBodyAST> = (
 
 	0 = indirectionCount ifFalse:
 		[indirectionVectorAST:: rewriter TemporaryAST
-			name: #'@indirectionVector'
+			name: '@indirectionVector', closureDepth asString
 			type: nil.
 		 indirectionVectorEntry:: LocalEntry
 			forDeclaration: indirectionVectorAST

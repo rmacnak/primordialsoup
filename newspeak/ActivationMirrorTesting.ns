@@ -108,6 +108,26 @@ liveHomeWithLocals: a = (
 	d:: 4. (* Indirect *)
 	^[d:: d + c] value
 )
+localsNested = (
+	| notCopied copied indirect indirectOnlyOneLevel |
+	notCopied:: 1.
+	copied:: 2.
+	indirect:: 4.
+	indirectOnlyOneLevel:: 8.
+	[
+		| notCopied2 copied2 indirect2 |
+		notCopied2:: 16.
+		copied2:: 32.
+		indirect2:: 64.
+		[
+			stopHere.
+			copied + copied2 + indirect + indirect2
+		] value.
+		indirect2:: 128.
+		indirectOnlyOneLevel: 256.
+	] value.
+	indirect:: 512.
+)
 nlr1 = (
 	^nlr2
 )
@@ -437,6 +457,25 @@ public testActivationLocalsLiveHome = (
 	thread stepInto. (* Return top *)
 
 	assert: thread isFulfilled.
+)
+public testActivationLocalsNested = (
+	| thread |
+	thread:: ActivationMirror invokeSuspended: [localsNested].
+	assert: thread isSuspended.
+
+	[(currentSnippet: thread suspendedActivation) = #stopHere]
+		whileFalse: [thread stepInto].
+
+	assertSlotsOf: thread suspendedActivation haveNamesAndValues:
+		{#notCopied. 1.
+		 #copied. 2.
+		 #indirect. 4.
+		 #indirectOnlyOneLevel. 8.
+		(* :todo: Don't include each level of a copied local. Tricky because we'd like to display them in scope order when possible, but outer contexts might be dead. Also we do want to display shadowed locals since they in general have different values. *)
+		 #copied. 2.
+		 #notCopied2. 16.
+		 #copied2. 32.
+		 #indirect2. 64}.
 )
 public testActivationNestedClassAccessor = (
 	| thread activation |
