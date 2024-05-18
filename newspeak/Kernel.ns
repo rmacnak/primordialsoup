@@ -15,6 +15,9 @@ public Ephemeron = (
 public Exception = (
 	^internalKernel Exception
 )
+public Future = (
+	^internalKernel Future
+)
 public Message = (
 	^internalKernel Message
 )

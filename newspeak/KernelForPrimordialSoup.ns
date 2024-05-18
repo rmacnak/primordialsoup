@@ -1282,6 +1282,31 @@ public numerator: numerator <Integer> denominator: denominator <Integer> ^<Fract
 	^Fraction reducedNumerator: numer denominator: denom
 )
 )
+public class Future computing: block <[E]> = Proxy (
+	|
+	private blockOrValue ::= block.
+	private state ::= #unresolved.
+	|
+) (
+protected doesNotUnderstand: message = (
+	^message sendTo: self resolve
+)
+public isKindOfFuture ^<Boolean> = (
+	^true
+)
+private resolve = (
+	state = #resolving ifTrue:
+		[Error signal: 'Divergent evaluation of ', blockOrValue printString].
+	state = #unresolved ifTrue:
+		[state: #resolving.
+		 blockOrValue: blockOrValue value.
+		 [blockOrValue isKindOfFuture] whileTrue:
+			[blockOrValue: blockOrValue resolve].
+		 state: #resolved].
+	^blockOrValue
+)
+) : (
+)
 (* A map whose keys are considered equal according to object identity. *)
 public class IdentityMap new: capacity = (
 |
@@ -2110,6 +2135,9 @@ protected Exception = (
 )
 protected Float = (
 	^outer KernelForPrimordialSoup Float
+)
+protected Future = (
+	^outer KernelForPrimordialSoup Future
 )
 protected Integer = (
 	^outer KernelForPrimordialSoup Integer

@@ -1879,6 +1879,30 @@ public testSimpleTransientSlot = (
 	testSampleTransientSlot: 'public transient testReturn1 = 1.'
 	with: 'assert: sample testReturn1 equals: 1'
 )
+public testSimultaneousSlotsInClass = (
+	test:
+		'class Sample = (
+			|| public a = {b}. public b = {a}. ||
+		)()'
+	with:
+		'class SampleTest test: sampleClass = ( | sample = sampleClass new. | ) (
+			public test = (
+				assert: sample a first equals: sample b yourself.
+				assert: sample b first equals: sample a yourself.
+			)
+		)'
+)
+public testSimultaneousSlotsInMethod = (
+	testSampleMethod:
+		'public simulSlot = ( || public a = {b}. public b = {a}. || ^{a. b} )'
+	with:
+		' | ab a b |
+		ab:: sample simulSlot.
+		a:: ab first.
+		b:: ab last.
+		assert: a first equals: b yourself.
+		assert: b first equals: a yourself'
+)
 public testSlotDeclarationInInlinedLoop = (
 (* Regression test for NS2Dart inlining. When the condition sequence was split, the slot declaration was duplicated, appearing both in the prologue and after the loop body. The variable in the loop body shadowed the one in the prologue, so the condition expression only ever sees the first value. *)
 	testSampleMethod:
