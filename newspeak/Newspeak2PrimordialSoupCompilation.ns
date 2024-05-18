@@ -593,7 +593,7 @@ public mapperForContext: ctxt = (
 ) : (
 )
 class DebugMapper forContext: ctxt usingDebugInfo: dbgInfo = (|
-	context <MethodContext> = ctxt.
+	context <Activation> = ctxt.
 	debugInfo <DebugInfo> = dbgInfo.
 	myDepth <Integer> = self depthOfContext: ctxt.
 |) (
@@ -613,7 +613,7 @@ astForContextAtDepth: targetDepth <Integer> ^<AST> = (
 		returnContext:: (UnresolvedSendAST new
 			receiver: returnContext;
 			message: (MessageAST new
-				selector: #outerContext;
+				selector: #enclosingActivation;
 				arguments: {}))].
 
 	^returnContext
@@ -621,7 +621,7 @@ astForContextAtDepth: targetDepth <Integer> ^<AST> = (
 bci = (
 	^context bci
 )
-contextAtDepth: targetDepth <Integer> ^<MethodContext> = (
+contextAtDepth: targetDepth <Integer> ^<Activation> = (
 	|
 	returnContext
 	|
@@ -629,13 +629,13 @@ contextAtDepth: targetDepth <Integer> ^<MethodContext> = (
 
 	returnContext: context.
 	(myDepth - targetDepth)
-		timesRepeat: [returnContext: returnContext outerContext].
+		timesRepeat: [returnContext: returnContext enclosingActivation].
 	^returnContext
 )
-depthOfContext: ctxt <MethodContext> ^<Integer> = (
+depthOfContext: ctxt <Activation> ^<Integer> = (
 	^ctxt closure isNil
 		ifTrue: [0 (* method *)]
-		ifFalse: [1 + (depthOfContext: ctxt outerContext)]
+		ifFalse: [1 + (depthOfContext: ctxt enclosingActivation)]
 )
 public getValueOf: varName <Symbol> ^<Object> = (
 	| info ctxt vector |
@@ -2079,7 +2079,7 @@ public compileClassSource: src <String> within: enclosingIR <IntermediateMixin> 
 
 	^intermediate
 )
-public compileExpressionSource: src <String> debugMapper: debugMapper <MethodContext> withScope: withScope <Map> inMixin: enclosing <MixinMirror> ^<IntermediateMethod> = (
+public compileExpressionSource: src <String> debugMapper: debugMapper <DebugMapper> withScope: withScope <Map> inMixin: enclosing <MixinMirror> ^<IntermediateMethod> = (
 	(* Compile a DoIt method.  If aContext is not nil, compile a DoItIn:ctxt method where accesses to names in scope of the context are rewritten to access through the context.  Cog closures complicate this rewriting compared to BlockContexts, as access might be rather indirect.  Also, in cases where a temp is only a copied value and not in a remote indirection vector, it would be impractical to handle writes such that they actually track down all places where the temp lives and update them.  In these cases, we should merely find the most local copy, which I believe is what closure compiled Squeak does. *)
 	|
 	body <CodeBodyAST>

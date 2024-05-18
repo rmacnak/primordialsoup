@@ -989,7 +989,7 @@ public compileClassHeader: source <String> within: enclosingIR <IntermediateMixi
 public compileClassSource: src <String> within: enclosingIR <IntermediateMixin> ^<IntermediateClassDeclaration> = (
 	subclassResponsibility
 )
-public compileExpressionSource: src <String> debugMapper: debugMapper <MethodContext> withScope: withScope <Map> inMixin: enclosing <MixinMirror> ^<IntermediateMethod> = (
+public compileExpressionSource: src <String> debugMapper: debugMapper <DebugMapper> withScope: withScope <Map> inMixin: enclosing <MixinMirror> ^<IntermediateMethod> = (
 	subclassResponsibility
 )
 public compileMethodSource: source <String> within: enclosing <IntermediateMixin> ^<IntermediateMethod> = (

@@ -44,6 +44,11 @@ public closure: value = (
 	(* :pragma: primitive: 173 *)
 	panic.
 )
+public enclosingActivation ^<Activation> = (
+	| c = closure. |
+	nil = c ifTrue: [^nil].
+	^definingActivationOf: c
+)
 (* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
 public findNextUnwindContextUpTo: activation = (
 	| ctx |
@@ -90,12 +95,6 @@ public method: value = (
 (* :vmEntryPoint: *)
 private nonBooleanReceiver: nonBoolean = (
 	^(NonBooleanReceiver receiver: nonBoolean) signal
-)
-(* Squeak compatibility for DebugMapper. *)
-public outerContext ^<Activation> = (
-	| c = closure. |
-	nil = c ifTrue: [^nil].
-	^definingActivationOf: c
 )
 public pop = (
 	|

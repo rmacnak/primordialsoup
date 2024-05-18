@@ -250,6 +250,26 @@ public testActivationEvaluateEnclosingLocals = (
 	assert: eval result reflectee equals: 4.
 	assert: x equals: 4.
 )
+public testActivationEvaluateEnclosingLocals2 = (
+	| x closure thread activation eval |
+	x:: 0. (* Captured, but only in an enclosing closure *)
+	closure:: [x:: 3. [nil]] value.
+	thread:: ActivationMirror invokeSuspended: closure.
+
+	activation:: thread suspendedActivation.
+	assert: activation receiver equals: (ObjectMirror reflecting: self).
+	assert: activation closure equals: (ObjectMirror reflecting: closure).
+	assert: activation method name equals: #testActivationEvaluateEnclosingLocals2.
+
+	eval:: activation evaluate: 'x'.
+	assert: eval isFulfilled.
+	assert: eval result reflectee equals: 3.
+
+	eval:: activation evaluate: 'x: 4'.
+	assert: eval isFulfilled.
+	assert: eval result reflectee equals: 4.
+	assert: x equals: 4.
+)
 public testActivationEvaluateWithScope = (
 	| closure thread activation scope eval |
 	closure:: [add: 3 to: 4].

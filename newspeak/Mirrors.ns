@@ -118,7 +118,7 @@ private computeDebugMapper = (
 	^computeDebugInfo mapperForContext: reflectee
 )
 public enclosingActivation ^<ActivationMirror> = (
-	| rawEnclosing = reflectee outerContext. |
+	| rawEnclosing = reflectee enclosingActivation. |
 	nil = rawEnclosing ifTrue: [^nil].
 	^ActivationMirror reflecting: rawEnclosing thread: thread
 )
