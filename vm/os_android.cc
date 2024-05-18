@@ -63,25 +63,28 @@ intptr_t OS::NumberOfAvailableProcessors() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
-static void VFPrint(FILE* stream, const char* format, va_list args) {
-  vfprintf(stream, format, args);
-  fflush(stream);
-}
-
 void OS::Print(const char* format, ...) {
   va_list args;
+
   va_start(args, format);
-  VFPrint(stdout, format, args);
-  // Forward to the Android log for remote access.
+  vfprintf(stdout, format, args);
+  fflush(stdout);
+  va_end(args);
+
+  va_start(args, format);
   __android_log_vprint(ANDROID_LOG_INFO, "PrimordialSoup", format, args);
   va_end(args);
 }
 
 void OS::PrintErr(const char* format, ...) {
   va_list args;
+
   va_start(args, format);
-  VFPrint(stderr, format, args);
-  // Forward to the Android log for remote access.
+  vfprintf(stderr, format, args);
+  fflush(stderr);
+  va_end(args);
+
+  va_start(args, format);
   __android_log_vprint(ANDROID_LOG_ERROR, "PrimordialSoup", format, args);
   va_end(args);
 }

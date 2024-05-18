@@ -1,0 +1,13 @@
+#!/bin/bash -ex
+adb push out/snapshots/HelloApp.vfuel /data/local/tmp
+adb push out/snapshots/TestRunner.vfuel /data/local/tmp
+adb push out/snapshots/BenchmarkRunner.vfuel /data/local/tmp
+
+adb push out/DebugAndroidX64/primordialsoup /data/local/tmp
+adb shell /data/local/tmp/primordialsoup /data/local/tmp/HelloApp.vfuel
+adb shell /data/local/tmp/primordialsoup /data/local/tmp/TestRunner.vfuel
+
+adb push out/ReleaseAndroidX64/primordialsoup /data/local/tmp
+adb shell /data/local/tmp/primordialsoup /data/local/tmp/HelloApp.vfuel
+adb shell /data/local/tmp/primordialsoup /data/local/tmp/TestRunner.vfuel
+adb shell /data/local/tmp/primordialsoup /data/local/tmp/BenchmarkRunner.vfuel
