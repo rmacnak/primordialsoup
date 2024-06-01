@@ -1457,6 +1457,9 @@ public testParameterImmutabilityEnforced = (
 public testParameterTemporaryConflictInBlock = (
 	assertCompilationErrorIn: 'class Sample = () (foo = ( [:x | | x | ] ))' including: 'x'.
 )
+public testParameterTemporaryConflictInInlinedBlock = (
+	assertCompilationErrorIn: 'class Sample = () (foo = ( 1 to: 10 do: [:x | | x | ] ))' including: 'x'.
+)
 public testParameterTemporaryConflictInMethod = (
 	assertCompilationErrorIn: 'class Sample = () (foo: x = ( | x | ))' including: 'x'.
 )
@@ -1551,6 +1554,7 @@ public testReservedWordsAsMethods = (
 	assertNoCompilationErrorIn: 'class Sample = ()( thisContext = () )'.
 )
 public testReservedWordsAsParams = (
+	(* Method *)
 	assertCompilationErrorIn: 'class Sample = ()( foo: self = () )' including: 'self'.
 	assertCompilationErrorIn: 'class Sample = ()( foo: super = () )' including: 'super'.
 	assertCompilationErrorIn: 'class Sample = ()( foo: outer = () )' including: 'outer'.
@@ -1559,6 +1563,7 @@ public testReservedWordsAsParams = (
 	assertCompilationErrorIn: 'class Sample = ()( foo: nil = () )' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = ()( foo: thisContext = () )'.
 
+	(* Closure *)
 	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:self | ] ) )' including: 'self'.
 	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:super | ] ) )' including: 'super'.
 	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:outer | ] ) )' including: 'outer'.
@@ -1566,6 +1571,15 @@ public testReservedWordsAsParams = (
 	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:false | ] ) )' including: 'false'.
 	assertCompilationErrorIn: 'class Sample = ()( foo = ( [:nil | ] ) )' including: 'nil'.
 	assertNoCompilationErrorIn: 'class Sample = ()( foo = ( [:thisContext | ] ) )'.
+
+	(* Inlined closure *)
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( 1 to: 2 do: [:self | ] ) )' including: 'self'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( 1 to: 2 do: [:super | ] ) )' including: 'super'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( 1 to: 2 do: [:outer | ] ) )' including: 'outer'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( 1 to: 2 do: [:true | ] ) )' including: 'true'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( 1 to: 2 do: [:false | ] ) )' including: 'false'.
+	assertCompilationErrorIn: 'class Sample = ()( foo = ( 1 to: 2 do: [:nil | ] ) )' including: 'nil'.
+	assertNoCompilationErrorIn: 'class Sample = ()( foo = ( 1 to: 2 do: [:thisContext | ] ) )'.
 )
 public testReservedWordsAsSlots = (
 	assertCompilationErrorIn: 'class Sample = ( | self | ) ()' including: 'self'.

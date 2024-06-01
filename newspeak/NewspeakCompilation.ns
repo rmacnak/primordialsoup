@@ -190,6 +190,7 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 
 	(* Create counter variable from block's parameter. *)
 	counterDecl:: block parameters removeLast. (* BOGUS: Should not mutate AST *)
+	checkForReservedWord: counterDecl name.
 	counterEntry:: LocalEntry forDeclaration: counterDecl atDepth: nil.
 	counterEntry induction: true.
 	loopScope at: counterDecl name put: counterEntry.
@@ -224,6 +225,10 @@ public from: first <AST> to: last <AST> by: step <AST> do: block <BlockAST> = (
 		copyPositionFrom: block.
 
 	(* inlined closure body *)
+	block body temporaries do:
+		[:temp |
+		 temp name = counterDecl name ifTrue:
+			[Exception signal: 'Conflicting slots named ', temp name]].
 	body:: (rewriteInlinedBlockNode: block forValue: false) body.
 
 	(* add counter increment to loop body *)
