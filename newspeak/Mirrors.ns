@@ -2283,7 +2283,7 @@ public return: returnValue from: activation = (
 
 	unwindTo: activation sender.
 	suspendedActivation push: returnValue.
-	state: #running.
+	state: #suspended.
 )
 private simulatorRoot = (
 	(* :pragma: primitive: 163 *)

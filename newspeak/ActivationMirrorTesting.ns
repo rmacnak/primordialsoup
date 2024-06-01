@@ -45,6 +45,7 @@ assertSlotsOf: activation haveNamesAndValues: pairs = (
 )
 assertThread: thread atMethod: expectedMethod snippet: expectedSnippet = (
 	| activation |
+	assert: thread isSuspended | thread isBroken.
 	activation:: thread suspendedActivation.
 	assert: activation method name equals: expectedMethod.
 	assert: (currentSnippet: activation) equals: expectedSnippet.
