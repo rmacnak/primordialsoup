@@ -176,8 +176,8 @@ static LargeInteger AddAbsolutesWithSign(LargeInteger left,
     longer = left;
   }
 
-  HandleScope h1(H, reinterpret_cast<Object*>(&shorter));
-  HandleScope h2(H, reinterpret_cast<Object*>(&longer));
+  HandleScope h1(H, &shorter);
+  HandleScope h2(H, &longer);
   LargeInteger result = H->AllocateLargeInteger(longer->size() + 1);
 
   ddigit_t carry = 0;
@@ -211,8 +211,8 @@ static LargeInteger SubtractAbsolutesWithSign(LargeInteger left,
   ASSERT(left->size() >= right->size());
   ASSERT(!AbsGreater(right, left));
 
-  HandleScope h1(H, reinterpret_cast<Object*>(&left));
-  HandleScope h2(H, reinterpret_cast<Object*>(&right));
+  HandleScope h1(H, &left);
+  HandleScope h2(H, &right);
   LargeInteger result = H->AllocateLargeInteger(left->size());
 
   sddigit_t borrow = 0;
@@ -263,8 +263,8 @@ LargeInteger MultiplyAbsolutesWithSign(LargeInteger left,
   Verify(left);
   Verify(right);
 
-  HandleScope h1(H, reinterpret_cast<Object*>(&left));
-  HandleScope h2(H, reinterpret_cast<Object*>(&right));
+  HandleScope h1(H, &left);
+  HandleScope h2(H, &right);
   LargeInteger result = H->AllocateLargeInteger(left->size() + right->size());
 
   for (intptr_t i = 0; i < left->size(); i++) {
@@ -360,8 +360,8 @@ LargeInteger LargeInteger::And(LargeInteger left,
   }
 
   intptr_t result_size = longer->size();
-  HandleScope h1(H, reinterpret_cast<Object*>(&shorter));
-  HandleScope h2(H, reinterpret_cast<Object*>(&longer));
+  HandleScope h1(H, &shorter);
+  HandleScope h2(H, &longer);
   LargeInteger result = H->AllocateLargeInteger(result_size);
 
   if (!shorter->negative() && !longer->negative()) {
@@ -465,8 +465,8 @@ LargeInteger LargeInteger::Or(LargeInteger left,
   }
 
   intptr_t result_size = longer->size();
-  HandleScope h1(H, reinterpret_cast<Object*>(&shorter));
-  HandleScope h2(H, reinterpret_cast<Object*>(&longer));
+  HandleScope h1(H, &shorter);
+  HandleScope h2(H, &longer);
   LargeInteger result = H->AllocateLargeInteger(result_size);
 
   if (!shorter->negative() && !longer->negative()) {
@@ -606,8 +606,8 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
   }
 
   intptr_t result_size = longer->size();
-  HandleScope h1(H, reinterpret_cast<Object*>(&shorter));
-  HandleScope h2(H, reinterpret_cast<Object*>(&longer));
+  HandleScope h1(H, &shorter);
+  HandleScope h2(H, &longer);
   LargeInteger result = H->AllocateLargeInteger(result_size);
 
   if (!shorter->negative() && !longer->negative()) {
@@ -740,7 +740,7 @@ LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
     // This case is singled out not for performance but to avoid
     // the undefined behavior of digit_t >> kDigitBits.
     intptr_t result_size = left->size() + digit_shift;
-    HandleScope h1(H, reinterpret_cast<Object*>(&left));
+    HandleScope h1(H, &left);
     LargeInteger result = H->AllocateLargeInteger(result_size);
 
     for (intptr_t i = 0; i < digit_shift; i++) {
@@ -757,7 +757,7 @@ LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
   }
 
   intptr_t result_size = left->size() + digit_shift + 1;
-  HandleScope h1(H, reinterpret_cast<Object*>(&left));
+  HandleScope h1(H, &left);
   LargeInteger result = H->AllocateLargeInteger(result_size);
 
   for (intptr_t i = 0; i < digit_shift; i++) {
@@ -795,7 +795,7 @@ LargeInteger LargeInteger::ShiftRight(LargeInteger left,
     // This case is singled out not for performance but to avoid
     // the undefined behavior of digit_t << kDigitBits.
     intptr_t result_size = left->size() - digit_shift;
-    HandleScope h1(H, reinterpret_cast<Object*>(&left));
+    HandleScope h1(H, &left);
     LargeInteger result = H->AllocateLargeInteger(result_size);
 
     for (intptr_t i = 0; i < result_size; i++) {
@@ -820,7 +820,7 @@ LargeInteger LargeInteger::ShiftRight(LargeInteger left,
   }
 
   intptr_t result_size = left->size() - digit_shift;
-  HandleScope h1(H, reinterpret_cast<Object*>(&left));
+  HandleScope h1(H, &left);
   LargeInteger result = H->AllocateLargeInteger(result_size);
 
   digit_t carry = left->digit(digit_shift) >> bit_shift_down;
@@ -951,8 +951,8 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
     UNREACHABLE();
   }
 
-  HandleScope h1(H, reinterpret_cast<Object*>(&dividend));
-  HandleScope h2(H, reinterpret_cast<Object*>(&divisor));
+  HandleScope h1(H, &dividend);
+  HandleScope h2(H, &divisor);
   LargeInteger quoitent = H->AllocateLargeInteger(m - n + 1);
   quoitent->set_negative(dividend->negative() != divisor->negative());
 

@@ -593,9 +593,9 @@ void Interpreter::DNUSend(String selector,
 
   Array arguments;
   {
-    HandleScope h1(H, reinterpret_cast<Object*>(&selector));
+    HandleScope h1(H, &selector);
     HandleScope h2(H, &receiver);
-    HandleScope h3(H, reinterpret_cast<Object*>(&method));
+    HandleScope h3(H, &method);
     arguments = H->AllocateArray(num_args);  // SAFEPOINT
   }
   for (intptr_t i = 0; i < num_args; i++) {
@@ -604,10 +604,10 @@ void Interpreter::DNUSend(String selector,
   }
   Message message;
   {
-    HandleScope h1(H, reinterpret_cast<Object*>(&selector));
+    HandleScope h1(H, &selector);
     HandleScope h2(H, &receiver);
-    HandleScope h3(H, reinterpret_cast<Object*>(&method));
-    HandleScope h4(H, reinterpret_cast<Object*>(&arguments));
+    HandleScope h3(H, &method);
+    HandleScope h4(H, &arguments);
     message = H->AllocateMessage();  // SAFEPOINT
   }
 
@@ -653,7 +653,7 @@ void Interpreter::SendAboutToReturnThrough(Object result, Activation unwind) {
   Activation top;
   {
     HandleScope h1(H, &result);
-    HandleScope h2(H, reinterpret_cast<Object*>(&unwind));
+    HandleScope h2(H, &unwind);
     top = EnsureActivation(fp_);  // SAFEPOINT
   }
 
@@ -780,7 +780,7 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
       PopNAndPush(2, receiver);
       return;
     } else {
-      HandleScope h1(H, reinterpret_cast<Object*>(&method));
+      HandleScope h1(H, &method);
       if (Primitives::Invoke(prim, num_args, H, this)) {  // SAFEPOINT
         ASSERT(StackDepth() >= 0);
         return;
@@ -931,7 +931,7 @@ void Interpreter::LocalBaseReturn(Object result) {
   // Returning from the base frame.
   Activation top;
   {
-    HandleScope h(H, reinterpret_cast<Object*>(&result));
+    HandleScope h(H, &result);
     top = FlushAllFrames();  // SAFEPOINT
   }
 
@@ -993,8 +993,8 @@ void Interpreter::NonLocalReturn(Object result) {
 
   Activation top;
   {
-    HandleScope h1(H, reinterpret_cast<Object*>(&home));
-    HandleScope h2(H, reinterpret_cast<Object*>(&result));
+    HandleScope h1(H, &home);
+    HandleScope h2(H, &result);
     top = FlushAllFrames();  // SAFEPOINT
   }
 
@@ -1644,7 +1644,7 @@ Activation Interpreter::EnsureActivation(Object* fp) {
 
 Activation Interpreter::FlushAllFrames() {
   Activation top = EnsureActivation(fp_);  // SAFEPOINT
-  HandleScope h1(H, reinterpret_cast<Object*>(&top));
+  HandleScope h1(H, &top);
 
   while (fp_ != nullptr) {
     EnsureActivation(fp_);  // SAFEPOINT
@@ -1718,7 +1718,7 @@ void Interpreter::SetCurrentActivation(Activation new_activation) {
   ASSERT(new_activation->IsActivation());
 
   if (fp_ != nullptr) {
-    HandleScope h1(H, reinterpret_cast<Object*>(&new_activation));
+    HandleScope h1(H, &new_activation);
     FlushAllFrames();  // SAFEPOINT
   }
 
@@ -1745,8 +1745,8 @@ void Interpreter::ActivationSenderPut(Activation activation,
   if (HasLivingFrame(activation)) {
     Activation top;
     {
-      HandleScope h1(H, reinterpret_cast<Object*>(&activation));
-      HandleScope h2(H, reinterpret_cast<Object*>(&new_sender));
+      HandleScope h1(H, &activation);
+      HandleScope h2(H, &new_sender);
       top = FlushAllFrames();  // SAFEPOINT
     }
     activation->set_sender(new_sender);
@@ -1784,8 +1784,8 @@ void Interpreter::ActivationBCIPut(Activation activation,
   if (HasLivingFrame(activation)) {
     Activation top;
     {
-      HandleScope h1(H, reinterpret_cast<Object*>(&activation));
-      HandleScope h2(H, reinterpret_cast<Object*>(&new_bci));
+      HandleScope h1(H, &activation);
+      HandleScope h2(H, &new_bci);
       top = FlushAllFrames();  // SAFEPOINT
     }
     activation->set_bci(new_bci);
@@ -1800,8 +1800,8 @@ void Interpreter::ActivationMethodPut(Activation activation,
   if (HasLivingFrame(activation)) {
     Activation top;
     {
-      HandleScope h1(H, reinterpret_cast<Object*>(&activation));
-      HandleScope h2(H, reinterpret_cast<Object*>(&new_method));
+      HandleScope h1(H, &activation);
+      HandleScope h2(H, &new_method);
       top = FlushAllFrames();  // SAFEPOINT
     }
     activation->set_method(new_method);
@@ -1816,8 +1816,8 @@ void Interpreter::ActivationClosurePut(Activation activation,
   if (HasLivingFrame(activation)) {
     Activation top;
     {
-      HandleScope h1(H, reinterpret_cast<Object*>(&activation));
-      HandleScope h2(H, reinterpret_cast<Object*>(&new_closure));
+      HandleScope h1(H, &activation);
+      HandleScope h2(H, &new_closure);
       top = FlushAllFrames();  // SAFEPOINT
     }
     activation->set_closure(new_closure);
@@ -1832,8 +1832,8 @@ void Interpreter::ActivationReceiverPut(Activation activation,
   if (HasLivingFrame(activation)) {
     Activation top;
     {
-      HandleScope h1(H, reinterpret_cast<Object*>(&activation));
-      HandleScope h2(H, reinterpret_cast<Object*>(&new_receiver));
+      HandleScope h1(H, &activation);
+      HandleScope h2(H, &new_receiver);
       top = FlushAllFrames();  // SAFEPOINT
     }
     activation->set_receiver(new_receiver);
@@ -1892,8 +1892,7 @@ void Interpreter::ActivationTempSizePut(Activation activation,
   if (HasLivingFrame(activation)) {
     Activation top;
     {
-      HandleScope h1(H, reinterpret_cast<Object*>(&activation));
-      HandleScope h2(H, reinterpret_cast<Object*>(&new_size));
+      HandleScope h1(H, &activation);
       top = FlushAllFrames();  // SAFEPOINT
     }
     intptr_t old_size = activation->StackDepth();

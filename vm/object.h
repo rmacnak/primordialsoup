@@ -1134,10 +1134,10 @@ void Activation::set_temp(intptr_t index, Object o, Barrier barrier) {
   Store(&ptr()->temps_[index], o, barrier);
 }
 Object* Activation::from() {
-  return reinterpret_cast<Object*>(&ptr()->sender_);
+  return &ptr()->sender_;
 }
 Object* Activation::to() {
-  return reinterpret_cast<Object*>(&ptr()->stack_depth_) + StackDepth();
+  return &ptr()->stack_depth_ + StackDepth();
 }
 
 double Float::value() const { return ptr()->value_; }
@@ -1174,10 +1174,10 @@ void Closure::set_copied(intptr_t index, Object o, Barrier barrier) {
   Store(&ptr()->copied_[index], o, barrier);
 }
 Object* Closure::from() {
-  return reinterpret_cast<Object*>(&ptr()->num_copied_);
+  return &ptr()->num_copied_;
 }
 Object* Closure::to() {
-  return reinterpret_cast<Object*>(&ptr()->copied_[NumCopied() - 1]);
+  return &ptr()->copied_[NumCopied() - 1];
 }
 
 Behavior Behavior::superclass() const { return Load(&ptr()->superclass_); }

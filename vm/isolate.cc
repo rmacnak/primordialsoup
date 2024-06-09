@@ -127,7 +127,7 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
       strings->set_element(i, SmallInteger::New(0));
     }
 
-    HandleScope h1(heap_, reinterpret_cast<Object*>(&strings));
+    HandleScope h1(heap_, &strings);
     for (intptr_t i = 0; i < argc; i++) {
       const char* cstr = isolate_message->argv()[i];
       intptr_t length = strlen(cstr);
@@ -145,7 +145,7 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
   } else if (SmallInteger::IsSmiValue(port_id)) {
     port = SmallInteger::New(static_cast<intptr_t>(port_id));
   } else {
-    HandleScope h1(heap_, reinterpret_cast<Object*>(&message));
+    HandleScope h1(heap_, &message);
     MediumInteger mint = heap_->AllocateMediumInteger();  // SAFEPOINT
     mint->set_value(port_id);
     port = mint;

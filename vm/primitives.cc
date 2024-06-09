@@ -295,9 +295,9 @@ const bool kFailure = false;
   LargeInteger large_left;                                                     \
   LargeInteger large_right;                                                    \
   {                                                                            \
-    HandleScope h1(H, reinterpret_cast<Object*>(&right));                      \
+    HandleScope h1(H, &right);                                                 \
     large_left = LargeInteger::Expand(left, H);                                \
-    HandleScope h2(H, reinterpret_cast<Object*>(&large_left));                 \
+    HandleScope h2(H, &large_left);                                            \
     large_right = LargeInteger::Expand(right, H);                              \
   }
 
@@ -3167,9 +3167,9 @@ DEFINE_PRIMITIVE(ZXChannel_read) {
     RETURN_SMI(status);
   }
 
-  HandleScope h1(H, reinterpret_cast<Object*>(&multiple_return));
+  HandleScope h1(H, &multiple_return);
   ByteArray bytes = H->AllocateByteArray(actual_bytes);
-  HandleScope h2(H, reinterpret_cast<Object*>(&bytes));
+  HandleScope h2(H, &bytes);
   Array handles = H->AllocateArray(actual_handles);
 
   zx_handle_t raw_handles[ZX_CHANNEL_MAX_MSG_HANDLES];
@@ -3316,7 +3316,7 @@ DEFINE_PRIMITIVE(ZXVmo_read) {
   if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
     return kFailure;
   }
-  HandleScope h1(H, reinterpret_cast<Object*>(&multiple_return));
+  HandleScope h1(H, &multiple_return);
   ByteArray buffer = H->AllocateByteArray(size->value());  // SAFEPOINT
   zx_status_t status = zx_vmo_read(AsHandle(vmo), buffer->element_addr(0),
                                    offset->value(), size->value());

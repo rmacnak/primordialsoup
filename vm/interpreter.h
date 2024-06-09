@@ -60,7 +60,7 @@ class Interpreter {
   void GCPrologue();
   void RootPointers(Object** from, Object** to) {
     *from = &nil_;
-    *to = reinterpret_cast<Object*>(&object_store_);
+    *to = &object_store_;
   }
   void StackPointers(Object** from, Object** to) {
     *from = sp_;
