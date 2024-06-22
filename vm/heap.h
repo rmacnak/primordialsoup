@@ -103,7 +103,8 @@ class FreeList {
 // Languages, Programming, Systems, and Applications. 1997.
 class Heap {
  private:
-  static constexpr intptr_t kLargeAllocation = 32 * KB;
+  static constexpr intptr_t kLargeAllocationSize = 32 * KB;
+  static constexpr intptr_t kRememberedSetOverflowSize = 8 * KB;
   static constexpr size_t kInitialSemispaceCapacity = sizeof(uword) * MB / 8;
   static constexpr size_t kMaxSemispaceCapacity = 2 * sizeof(uword) * MB;
   static constexpr size_t kRegionSize = 256 * KB;
@@ -118,6 +119,7 @@ class Heap {
     kTenure,
     kOldSpace,
     kClassTable,
+    kRememberedSet,
     kPrimitive,
     kSnapshotTest
   };
@@ -128,6 +130,7 @@ class Heap {
       case kTenure: return "tenure";
       case kOldSpace: return "old-space";
       case kClassTable: return "class-table";
+      case kRememberedSet: return "remembered-set";
       case kPrimitive: return "primitive";
       case kSnapshotTest: return "snapshot-test";
     }
@@ -281,6 +284,7 @@ class Heap {
   }
 
   void CollectAll(Reason reason) { MarkSweep(reason); }
+  void RememberedSetInterrupt() { Scavenge(Heap::kRememberedSet); }
 
   Array InstancesOf(Behavior cls);
   Array ReferencesTo(Object target);
@@ -364,7 +368,7 @@ class Heap {
 
   uword Allocate(size_t size, Allocator allocator) {
     ASSERT(Utils::IsAligned(size, kObjectAlignment));
-    if (size < kLargeAllocation) {
+    if (size < kLargeAllocationSize) {
       uword result = top_;
       if (result + size <= end_) {
         top_ = result + size;

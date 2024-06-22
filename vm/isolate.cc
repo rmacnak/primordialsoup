@@ -73,7 +73,7 @@ void Isolate::InterruptAll() {
 }
 
 void Isolate::Interrupt() {
-  interpreter_->Interrupt();
+  interpreter_->Interrupt(Interpreter::kInterruptSIGINT);
   loop_->Interrupt();
 }
 

@@ -141,7 +141,7 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate)
   stack_base_ = stack_limit_ + kStackSlots;
   sp_ = stack_base_;
   checked_stack_limit_ =
-      stack_limit_ + (sizeof(Activation::Layout) / sizeof(Object));
+      reinterpret_cast<uword>(stack_limit_) + sizeof(Activation::Layout);
 
 #if defined(DEBUG)
   for (intptr_t i = 0; i < kStackSlots; i++) {
@@ -804,9 +804,7 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
     Push(nil);
   }
 
-  if (sp_ < checked_stack_limit_) {
-    StackOverflow();
-  }
+  StackOverflowOrInterruptCheck();  // SAFEPOINT
 }
 
 void Interpreter::ActivateClosure(intptr_t num_args) {
@@ -834,9 +832,7 @@ void Interpreter::ActivateClosure(intptr_t num_args) {
 
   // Temps allocated by bytecodes
 
-  if (sp_ < checked_stack_limit_) {
-    StackOverflow();
-  }
+  StackOverflowOrInterruptCheck();  // SAFEPOINT
 }
 
 void Interpreter::CreateBaseFrame(Activation activation) {
@@ -893,16 +889,26 @@ void Interpreter::CreateBaseFrame(Activation activation) {
   ASSERT(FrameReceiver(fp_) == activation->receiver());
 }
 
-void Interpreter::StackOverflow() {
-  if (checked_stack_limit_ == reinterpret_cast<Object*>(-1)) {
-    // Interrupt.
-    isolate_->PrintStack();
+void Interpreter::StackOverflowOrInterrupt() {
+  // Atomically fetch and clear any interrupts.
+  uword overflow_limit =
+      reinterpret_cast<uword>(stack_limit_) + sizeof(Activation::Layout);
+  uword overflow_or_interrupt = checked_stack_limit_.exchange(overflow_limit);
+
+  if ((overflow_or_interrupt & kInterruptSIGINT) != 0) {
+    isolate_->PrintStack();  // SAFEPOINT
     Exit();
   }
 
-  // True overflow: reclaim stack space by moving all frames except the top
-  // frame to the heap.
-  CreateBaseFrame(FlushAllFrames());  // SAFEPOINT
+  if ((overflow_or_interrupt & kInterruptRememberedSet) != 0) {
+    heap_->RememberedSetInterrupt();  // SAFEPOINT
+  }
+
+  if (reinterpret_cast<uword>(sp_) < overflow_limit) {
+    // Stack overflow: reclaim stack space by moving all frames except the top
+    // frame to the heap.
+    CreateBaseFrame(FlushAllFrames());  // SAFEPOINT
+  }
 }
 
 String Interpreter::SelectorAt(intptr_t index) {
@@ -1108,9 +1114,7 @@ void Interpreter::Interpret() {
     case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
     case 8: case 9: case 10: case 11: case 12: case 13: case 14: case 15:
       ip_ -= (byte1 & 15);
-      if (sp_ < checked_stack_limit_) {
-        StackOverflow();
-      }
+      StackOverflowOrInterruptCheck();  // SAFEPOINT
       break;
     case 16: case 17: case 18: case 19: case 20: case 21: case 22: case 23:
     case 24: case 25: case 26: case 27: case 28: case 29: case 30: case 31:
@@ -1492,9 +1496,7 @@ void Interpreter::Interpret() {
       uint8_t byte3 = *ip_++;
       intptr_t delta = (byte3 << 8) | byte2;
       ip_ -= delta;
-      if (sp_ < checked_stack_limit_) {
-        StackOverflow();
-      }
+      StackOverflowOrInterruptCheck();  // SAFEPOINT
       break;
     }
     case 241: {

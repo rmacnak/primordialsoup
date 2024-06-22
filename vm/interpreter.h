@@ -7,6 +7,8 @@
 
 #include <setjmp.h>
 
+#include <atomic>
+
 #include "vm/assert.h"
 #include "vm/flags.h"
 #include "vm/globals.h"
@@ -38,7 +40,15 @@ class Interpreter {
   Method MethodAt(Behavior cls, String selector);
   void ActivateClosure(intptr_t num_args);
 
-  void Interrupt() { checked_stack_limit_ = reinterpret_cast<Object*>(-1); }
+  enum Interrupt : uword {
+    kInterruptSIGINT = 1 << 0,
+    kInterruptRememberedSet = 1 << 1,
+    kInterruptMask = (1 << 2) - 1,
+  };
+  void Interrupt(Interrupt interrupt) {
+    checked_stack_limit_.fetch_or(~kInterruptMask | interrupt,
+                                  std::memory_order_relaxed);
+  }
   void PrintStack();
 
   const uint8_t* IPForAssert() { return ip_; }
@@ -168,7 +178,13 @@ class Interpreter {
   INLINE void InsertAbsentReceiver(Object receiver, intptr_t num_args);
   INLINE void ActivateAbsent(Method method, Object receiver, intptr_t num_args);
   NOINLINE void Activate(Method method, intptr_t num_args);
-  NOINLINE void StackOverflow();
+  INLINE void StackOverflowOrInterruptCheck() {
+    if (reinterpret_cast<uword>(sp_) <
+        checked_stack_limit_.load(std::memory_order_relaxed)) {
+      StackOverflowOrInterrupt();  // SAFEPOINT
+    }
+  }
+  NOINLINE void StackOverflowOrInterrupt();
 
   INLINE void LocalReturn(Object result);
   NOINLINE void LocalBaseReturn(Object result);
@@ -187,7 +203,7 @@ class Interpreter {
   Object* fp_;
   Object* stack_base_;
   Object* stack_limit_;
-  Object* volatile checked_stack_limit_;
+  std::atomic<uword> volatile checked_stack_limit_;
 
   Object nil_;
   Object false_;

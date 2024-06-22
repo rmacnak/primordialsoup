@@ -155,7 +155,7 @@ Message Heap::AllocateMessage() {
 }
 
 uword Heap::AllocateNormal(size_t size) {
-  if (size >= kLargeAllocation) {
+  if (size >= kLargeAllocationSize) {
     return AllocateOldLarge(size, kControlGrowth);
   }
 
@@ -193,7 +193,7 @@ uword Heap::AllocateTenure(size_t size) {
 }
 
 uword Heap::AllocateOldSmall(size_t size, GrowthPolicy growth) {
-  ASSERT(size < kLargeAllocation);
+  ASSERT(size < kLargeAllocationSize);
   uword addr = freelist_.TryAllocate(size);
   if (addr == 0) {
     Region* region = AllocateRegion(kRegionSize, growth);
@@ -213,7 +213,7 @@ uword Heap::AllocateOldSmall(size_t size, GrowthPolicy growth) {
 }
 
 uword Heap::AllocateOldLarge(size_t size, GrowthPolicy growth) {
-  ASSERT(size >= kLargeAllocation);
+  ASSERT(size >= kLargeAllocationSize);
   Region* region = AllocateRegion(size + AllocationSize(sizeof(Region)),
                                   growth);
   uword addr = region->TryAllocate(size);
@@ -226,7 +226,7 @@ uword Heap::AllocateOldLarge(size_t size, GrowthPolicy growth) {
 }
 
 uword Heap::AllocateSnapshot(size_t size) {
-  if (size >= kLargeAllocation) {
+  if (size >= kLargeAllocationSize) {
     return AllocateOldLarge(size, kForceGrowth);
   }
 
@@ -265,8 +265,6 @@ Region* Heap::AllocateRegion(size_t region_size, GrowthPolicy growth) {
 }
 
 void Heap::GrowRememberedSet() {
-  // TODO(rmacnak): Investigate a limit to trigger GC instead of letting this
-  // grow in an unbounded way.
   remembered_set_capacity_ += (remembered_set_capacity_ >> 1);
   if (TRACE_GROWTH) {
     OS::PrintErr("Growing remembered set to %" Pd "\n",
@@ -278,6 +276,11 @@ void Heap::GrowRememberedSet() {
     remembered_set_[i] = old_remembered_set[i];
   }
   delete[] old_remembered_set;
+  if (remembered_set_capacity_ >= kRememberedSetOverflowSize) {
+    // Trigger an evacuating scavenge to prevent unbounded growth of the
+    // remembered set.
+    interpreter_->Interrupt(Interpreter::kInterruptRememberedSet);
+  }
 }
 
 void Heap::ShrinkRememberedSet() {
@@ -308,6 +311,10 @@ void Heap::Scavenge(Reason reason) {
   size_t new_before = top_ - to_.object_start();
 #endif
   size_t old_before = old_size_;
+
+  if (reason == kRememberedSet) {
+    survivor_end_ = top_;  // Tenure everything.
+  }
 
   FlipSpaces();
 
