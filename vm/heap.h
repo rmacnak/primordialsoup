@@ -253,14 +253,14 @@ class Heap {
     return result;
   }
 
-  LargeInteger AllocateLargeInteger(intptr_t capacity,
+  LargeInteger AllocateLargeInteger(intptr_t size,
                                     Allocator allocator = kNormal) {
     size_t heap_size = AllocationSize(sizeof(LargeInteger::Layout) +
-                                      capacity * sizeof(digit_t));
+                                      size * sizeof(digit_t));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kLargeIntegerCid, heap_size);
     LargeInteger result = static_cast<LargeInteger>(obj);
-    result->set_capacity(capacity);
+    result->set_size(size);
     ASSERT(result->IsLargeInteger());
     ASSERT(result->HeapSize() == heap_size);
     return result;

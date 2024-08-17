@@ -95,30 +95,55 @@ Object LargeInteger::Reduce(LargeInteger large, Heap* H) {
   }
 }
 
+static void Truncate(LargeInteger integer, intptr_t new_size) {
+  ASSERT(new_size >= 0);
+  ASSERT(new_size <= integer->size());
+
+  size_t old_heap_size = AllocationSize(sizeof(LargeInteger::Layout) +
+                                        integer->size() * sizeof(digit_t));
+  size_t new_heap_size = AllocationSize(sizeof(LargeInteger::Layout) +
+                                        new_size * sizeof(digit_t));
+
+  ASSERT(integer->HeapSize() == old_heap_size);
+  ASSERT(integer->HeapSizeFromClass() == old_heap_size);
+  integer->set_size(new_size);
+  integer->set_heap_size(new_heap_size);
+  ASSERT(integer->HeapSize() == new_heap_size);
+  ASSERT(integer->HeapSizeFromClass() == new_heap_size);
+
+  size_t free_size = old_heap_size - new_heap_size;
+  if (free_size != 0) {
+    uword free_start = integer->Addr() + new_heap_size;
+    HeapObject object =
+        HeapObject::Initialize(free_start, kFreeListElementCid, free_size);
+    FreeListElement element = static_cast<FreeListElement>(object);
+    if (element->heap_size() == 0) {
+      ASSERT(free_size > kObjectAlignment);
+      element->set_overflow_size(free_size);
+    }
+    ASSERT(object->HeapSize() == free_size);
+    ASSERT(element->HeapSize() == free_size);
+  }
+}
+
 static void Clamp(LargeInteger result) {
-  for (intptr_t used = result->capacity() - 1; used >= 0; used--) {
+  for (intptr_t used = result->size() - 1; used >= 0; used--) {
     if (result->digit(used) != 0) {
-      result->set_size(used + 1);
+      Truncate(result, used + 1);
       return;
     }
   }
-  result->set_size(0);
   result->set_negative(false);
+  Truncate(result, 0);
 }
 
 static void Verify(LargeInteger integer) {
-  ASSERT(integer->capacity() >= 0);
   ASSERT(integer->size() >= 0);
-  ASSERT(integer->capacity() >= integer->size());
 
   if (integer->size() == 0) {
     ASSERT(!integer->negative());
   } else {
     ASSERT(integer->digit(integer->size() - 1) != 0);
-  }
-
-  for (intptr_t i = integer->size(); i < integer->capacity(); i++) {
-    ASSERT(integer->digit(i) == 0);
   }
 }
 

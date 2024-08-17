@@ -44,6 +44,9 @@ enum HeaderBits {
   // For symbols.
   kCanonicalBit = 2,
 
+  // For LargeIntegers.
+  kNegativeBit = 3,
+
 #if defined(ARCH_IS_32_BIT)
   kSizeFieldOffset = 8,
   kSizeFieldSize = 8,
@@ -216,6 +219,8 @@ class HeapObject : public Object {
   inline void set_is_remembered(bool value);
   inline bool is_canonical() const;
   inline void set_is_canonical(bool value);
+  inline bool negative() const;
+  inline void set_negative(bool value);
   inline size_t heap_size() const;
   inline void set_heap_size(size_t value);
   inline intptr_t cid() const;
@@ -268,6 +273,7 @@ class HeapObject : public Object {
   class MarkBit : public BitField<bool, kMarkBit, 1> {};
   class RememberedBit : public BitField<bool, kRememberedBit, 1> {};
   class CanonicalBit : public BitField<bool, kCanonicalBit, 1> {};
+  class NegativeBit : public BitField<bool, kNegativeBit, 1> {};
   class SizeField
       : public BitField<size_t, kSizeFieldOffset, kSizeFieldSize> {};
   class ClassIdField
@@ -420,12 +426,8 @@ class LargeInteger : public HeapObject {
   static bool AsUint64(Object integer, uint64_t* result);
   static Object FromUint64(uint64_t raw_value, Heap* H);
 
-  inline bool negative() const;
-  inline void set_negative(bool v);
   inline intptr_t size() const;
   inline void set_size(intptr_t value);
-  inline intptr_t capacity() const;
-  inline void set_capacity(intptr_t value);
   inline digit_t digit(intptr_t index) const;
   inline void set_digit(intptr_t index, digit_t value);
 };
@@ -747,10 +749,9 @@ class MediumInteger::Layout : public HeapObject::Layout {
   int64_t value_;
 };
 
+// TODO(rmacnak): Should this be structurally monomorphic with Bytes?
 class LargeInteger::Layout : public HeapObject::Layout {
  public:
-  intptr_t capacity_;
-  intptr_t negative_;  // TODO(rmacnak): Use a header bit?
   intptr_t size_;
   digit_t digits_[];
 };
@@ -907,6 +908,12 @@ bool HeapObject::is_canonical() const {
 void HeapObject::set_is_canonical(bool value) {
   ptr()->header_ = CanonicalBit::update(value, ptr()->header_);
 }
+bool HeapObject::negative() const {
+  return NegativeBit::decode(ptr()->header_);
+}
+void HeapObject::set_negative(bool value) {
+  ptr()->header_ = NegativeBit::update(value, ptr()->header_);
+}
 size_t HeapObject::heap_size() const {
   return SizeField::decode(ptr()->header_) << kObjectAlignmentLog2;
 }
@@ -982,23 +989,11 @@ void FreeListElement::set_overflow_size(intptr_t value) {
 int64_t MediumInteger::value() const { return ptr()->value_; }
 void MediumInteger::set_value(int64_t value) { ptr()->value_ = value; }
 
-bool LargeInteger::negative() const {
-  return ptr()->negative_;
-}
-void LargeInteger::set_negative(bool v) {
-  ptr()->negative_ = v;
-}
 intptr_t LargeInteger::size() const {
   return ptr()->size_;
 }
 void LargeInteger::set_size(intptr_t value) {
   ptr()->size_ = value;
-}
-intptr_t LargeInteger::capacity() const {
-  return ptr()->capacity_;
-}
-void LargeInteger::set_capacity(intptr_t value) {
-  ptr()->capacity_ = value;
 }
 digit_t LargeInteger::digit(intptr_t index) const {
   return ptr()->digits_[index];

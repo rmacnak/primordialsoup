@@ -33,7 +33,7 @@ size_t HeapObject::HeapSizeFromClass() const {
     return AllocationSize(sizeof(Float::Layout));
   case kLargeIntegerCid:
     return AllocationSize(sizeof(LargeInteger::Layout) +
-        sizeof(digit_t) * LargeInteger::Cast(*this)->capacity());
+        sizeof(digit_t) * LargeInteger::Cast(*this)->size());
   case kByteArrayCid:
     return AllocationSize(sizeof(ByteArray::Layout) +
                           sizeof(uint8_t) * ByteArray::Cast(*this)->Size());
