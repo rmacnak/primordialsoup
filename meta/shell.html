@@ -31,7 +31,7 @@
             }
             var jsBuffer = new Uint8Array(request.response);
             var cBuffer = _malloc(jsBuffer.length);
-            writeArrayToMemory(jsBuffer, cBuffer);
+            Module.HEAPU8.set(jsBuffer, cBuffer);
             Module._load_snapshot(cBuffer, jsBuffer.length);
             _free(cBuffer);
             scheduleTurn(0);

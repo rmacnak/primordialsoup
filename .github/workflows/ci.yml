@@ -11,6 +11,7 @@ on:
 jobs:
   linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
@@ -23,6 +24,7 @@ jobs:
         run: ./test
   linux-asan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
@@ -37,6 +39,7 @@ jobs:
           ASAN_OPTIONS: halt_on_error=1
   linux-msan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
@@ -51,6 +54,7 @@ jobs:
           MSAN_OPTIONS: halt_on_error=1
   linux-tsan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
@@ -65,6 +69,7 @@ jobs:
           TSAN_OPTIONS: halt_on_error=1
   linux-ubsan:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
@@ -79,6 +84,7 @@ jobs:
           UBSAN_OPTIONS: halt_on_error=1
   macos:
     runs-on: macos-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
@@ -89,6 +95,7 @@ jobs:
         run: ./test
   windows:
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
@@ -101,6 +108,7 @@ jobs:
         shell: cmd
   android:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies
@@ -122,6 +130,7 @@ jobs:
           script: ./.github/workflows/test-android-x64
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Install Dependencies

@@ -116,6 +116,58 @@ public testJSString = (
 	(* String return value *)
 	assert: ((js global at: 'Math') toString) equals: '[object Math]'.
 )
+public testJSStringUTF16toUTF8 = (
+	| JSString |
+	JSString:: js global at: 'String'.
+
+	assert: (JSString fromCodePoint: 16r7F) equals: "\x7F".
+	assert: (JSString fromCodePoint: 16r80) equals: "\xC2\x80".
+	assert: (JSString fromCodePoint: 16rEF) equals: "\xC3\xAF".
+	assert: (JSString fromCodePoint: 16rFF) equals: "\xC3\xBF".
+	assert: (JSString fromCodePoint: 16r100) equals: "\xC4\x80".
+	assert: (JSString fromCodePoint: 16r7FF) equals: "\xDF\xBF".
+	assert: (JSString fromCodePoint: 16r800) equals: "\xE0\xA0\x80".
+	assert: (JSString fromCodePoint: 16rEFF) equals: "\xE0\xBB\xBF".
+	assert: (JSString fromCodePoint: 16rFFF) equals: "\xE0\xBF\xBF".
+	assert: (JSString fromCodePoint: 16r1000) equals: "\xE1\x80\x80".
+	assert: (JSString fromCodePoint: 16r7FFF) equals: "\xE7\xBF\xBF".
+	assert: (JSString fromCodePoint: 16r8000) equals: "\xE8\x80\x80".
+	assert: (JSString fromCodePoint: 16rEFFF) equals: "\xEE\xBF\xBF".
+	assert: (JSString fromCodePoint: 16rFFFF) equals: "\xEF\xBF\xBF".
+	assert: (JSString fromCodePoint: 16r10000) equals: "\xF0\x90\x80\x80".
+	assert: (JSString fromCodePoint: 16r7FFFF) equals: "\xF1\xBF\xBF\xBF".
+	assert: (JSString fromCodePoint: 16r80000) equals: "\xF2\x80\x80\x80".
+	assert: (JSString fromCodePoint: 16rEFFFF) equals: "\xF3\xAF\xBF\xBF".
+	assert: (JSString fromCodePoint: 16rFFFFF) equals: "\xF3\xBF\xBF\xBF".
+	assert: (JSString fromCodePoint: 16r100000) equals: "\xF4\x80\x80\x80".
+	assert: (JSString fromCodePoint: 16r10FFFF) equals: "\xF4\x8F\xBF\xBF".
+)
+public testJSStringUTF8toUTF16 = (
+	| f |
+	f:: ((js global at: 'String') at: 'prototype') at: 'codePointAt'.
+
+	assert: (f call: "\x7F") equals: 16r7F.
+	assert: (f call: "\xC2\x80") equals: 16r80.
+	assert: (f call: "\xC3\xAF") equals: 16rEF.
+	assert: (f call: "\xC3\xBF") equals: 16rFF.
+	assert: (f call: "\xC4\x80") equals: 16r100.
+	assert: (f call: "\xDF\xBF") equals: 16r7FF.
+	assert: (f call: "\xE0\xA0\x80") equals: 16r800.
+	assert: (f call: "\xE0\xBB\xBF") equals: 16rEFF.
+	assert: (f call: "\xE0\xBF\xBF") equals: 16rFFF.
+	assert: (f call: "\xE1\x80\x80") equals: 16r1000.
+	assert: (f call: "\xE7\xBF\xBF") equals: 16r7FFF.
+	assert: (f call: "\xE8\x80\x80") equals: 16r8000.
+	assert: (f call: "\xEE\xBF\xBF") equals: 16rEFFF.
+	assert: (f call: "\xEF\xBF\xBF") equals: 16rFFFF.
+	assert: (f call: "\xF0\x90\x80\x80") equals: 16r10000.
+	assert: (f call: "\xF1\xBF\xBF\xBF") equals: 16r7FFFF.
+	assert: (f call: "\xF2\x80\x80\x80") equals: 16r80000.
+	assert: (f call: "\xF3\xAF\xBF\xBF") equals: 16rEFFFF.
+	assert: (f call: "\xF3\xBF\xBF\xBF") equals: 16rFFFFF.
+	assert: (f call: "\xF4\x80\x80\x80") equals: 16r100000.
+	assert: (f call: "\xF4\x8F\xBF\xBF") equals: 16r10FFFF.
+)
 public testJSUndefined = (
 	assert: js undefined isUndefined.
 	deny: js global isUndefined.
