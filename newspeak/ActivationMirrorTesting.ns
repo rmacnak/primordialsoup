@@ -166,6 +166,16 @@ seven = (
 seventySeven = (
 	^[(add: 3 to: 4) + (add: 30 to: 40)]
 )
+shadowing = (
+	| x = 1. |
+	[
+		| x = 2. |
+		[
+			| x = 3. |
+			stop.
+		] value.
+	] value.
+)
 stackOf: thread = (
 	| names activation |
 	names:: List new.
@@ -419,7 +429,7 @@ public testActivationLocalsDeadHome = (
 	assert: thread isSuspended.
 
 	assertSlotsOf: thread suspendedActivation
-		haveNamesAndValues: {#a. nil. #b. nil. #c. 3. #d. 4}.
+		haveNamesAndValues: {#a. nil. #b. nil. #c. nil. #d. 4. #c. 3}.
 
 	thread stepInto. (* Push d *)
 	thread stepInto. (* Push c *)
@@ -427,7 +437,7 @@ public testActivationLocalsDeadHome = (
 	thread stepInto. (* Store d *)
 
 	assertSlotsOf: thread suspendedActivation
-		haveNamesAndValues: {#a. nil. #b. nil. #c. 3. #d. 7}.
+		haveNamesAndValues: {#a. nil. #b. nil. #c. nil. #d. 7. #c. 3}.
 
 	thread stepInto. (* Return top *)
 
@@ -497,6 +507,29 @@ public testActivationLocalsNested = (
 		 #notCopied2. 16.
 		 #copied2. 32.
 		 #indirect2. 64}.
+)
+public testActivationLocalsShadowing = (
+	| closure thread activation locals |
+	thread:: ActivationMirror invokeSuspended: [shadowing].
+
+	thread stepInto. (* Send shadowing *)
+	thread stepInto. (* Push 1 *)
+	thread stepInto. (* PopInto x *)
+	thread stepInto. (* Push closure *)
+	thread stepInto. (* Send value *)
+	thread stepInto. (* Push nil *)
+	thread stepInto. (* Push 2 *)
+	thread stepInto. (* PopInto x *)
+	thread stepInto. (* Push closure *)
+	thread stepInto. (* Send value *)
+	thread stepInto. (* Push nil *)
+	thread stepInto. (* Push 3 *)
+	thread stepInto. (* PopInto x *)
+
+	assertThread: thread atMethod: #shadowing snippet: 'stop'.
+
+	assertSlotsOf: thread suspendedActivation
+		haveNamesAndValues: {#x. 1. #x. 2. #x. 3}.
 )
 public testActivationNestedClassAccessor = (
 	| thread activation |

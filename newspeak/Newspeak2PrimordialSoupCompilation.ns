@@ -637,18 +637,13 @@ depthOfContext: ctxt <Activation> ^<Integer> = (
 		ifTrue: [0 (* method *)]
 		ifFalse: [1 + (depthOfContext: ctxt enclosingActivation)]
 )
-public getValueOf: varName <Symbol> ^<Object> = (
-	| info ctxt vector |
-	info:: mostLocalInfoFor: varName.
-	(* defensive programming, but should be unnecessary now that
-	 DebugMapper>localNames filters out variables in deeper contexts. *)
-	myDepth >= info contextDepth ifFalse:
-		[^nil].
+getValueOf: info <LocalVarDebugInfo> ^<Object> = (
+	| ctxt vector |
 	info remoteVector isNil ifTrue:
 		[ctxt:: contextAtDepth: info contextDepth.
 		 ctxt size = 0 ifTrue: [^nil].
 		 ^ctxt tempAt: info zeroOriginOffset + 1].
-	vector:: (getValueOf: info remoteVector).
+	vector:: (getValueOf: (mostLocalInfoFor: info remoteVector)).
 	vector isNil ifFalse:
 		[^vector at: info zeroOriginOffset + 1].
 	^nil
@@ -688,18 +683,13 @@ leastLocalInfoFor: varName <Symbol> ^<LocalVarDebugInfo> = (
 	nil = bestInfo ifTrue: [deny].
 	^bestInfo
 )
-public localNames = (
-	| names |
-	#BOGUS. (* The pc needs to be adjusted the same way we do for the source range. *)
-
-	names: List new.
+public localsDo: action = (
 	debugInfo localVariables do:
 		[:info |
 		(info validBCIRange includes: bci) ifTrue:
 			[info isSynthetic ifFalse:
 				[myDepth >= info contextDepth ifTrue:
-					[names add: info name]]]].
-	^names
+					[action value: info name value: (getValueOf: info)]]]].
 )
 mostLocalInfoFor: varName <Symbol> ^<LocalVarDebugInfo> = (
 	| bestInfo |
@@ -2119,8 +2109,8 @@ public compileExpressionSource: src <String> debugMapper: debugMapper <DebugMapp
 	pushScope:: Scope parent: currentScope.
 
 	nil = debugMapper ifFalse:
-		[debugMapper localNames do:
-			[:name <Symbol> |
+		[debugMapper localsDo:
+			[:name <Symbol> :value |
 			 | entry = ContextMappedEntry name: name mapper: debugMapper. |
 			 currentScope at: name put: entry.
 			 currentScope at: (name,':') asSymbol put: entry]].

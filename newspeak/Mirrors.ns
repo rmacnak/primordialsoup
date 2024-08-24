@@ -254,10 +254,11 @@ public sender ^<ActivationMirror> = (
 )
 public slots ^<List[SlotMirror]> = (
 	| mapper = computeDebugMapper. result = List new. |
-	mapper localNames do:
-		[:localName |
-		| localValue = mapper getValueOf: localName. |
-		result add: (SlotMirror name: localName value: (ObjectMirror reflecting: localValue))].
+	mapper localsDo:
+		[:name :value |
+		 result add: (SlotMirror
+			name: name
+			value: (ObjectMirror reflecting: value))].
 	^result
 )
 public sourceRange ^<Interval> = (
