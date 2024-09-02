@@ -3,6 +3,7 @@ class ActivationMirrorTesting usingPlatform: p minitest: m = (|
 private ClassDeclarationBuilder = p mirrors ClassDeclarationBuilder.
 private ObjectMirror = p mirrors ObjectMirror.
 private ActivationMirror = p mirrors ActivationMirror.
+private ClosureMirror = p mirrors ClosureMirror.
 private Message = p kernel Message.
 private StringBuilder = p kernel StringBuilder.
 private List = p collections List.
@@ -1329,6 +1330,12 @@ public testExceptionDuringStepOver = (
 	assert: thread result reflectee equals: exception.
 	assertThread: thread atMethod: #testExceptionDuringStepOver snippet: 'exception signal'.
 )
+public testInvokeSuspendedErrors = (
+	should: [ActivationMirror invokeSuspended: #notAClosure] signal: Exception.
+	should: [ActivationMirror invokeSuspended: nil] signal: Exception.
+	should: [ActivationMirror invokeSuspended: 0] signal: Exception.
+	should: [ActivationMirror invokeSuspended: [:notNullary | ]] signal: Exception.
+)
 public testIsKindOfActivationMirror = (
 	| closure thread activation |
 	thread:: ActivationMirror invokeSuspended: [seven].
@@ -1520,6 +1527,110 @@ public testThreadTerminateTerminated = (
 	assert: thread isTerminated.
 	assert: thread result equals: nil.
 	assert: thread suspendedActivation equals: nil.
+)
+) : (
+TEST_CONTEXT = ()
+)
+public class ClosureTests = TestBase () (
+public testClosureMirrorEquality = (
+	| c1 c2 cm11 cm12 cm2 om1 om2 |
+	c1:: [3 + 4].
+	c2:: [7].
+	cm11:: ClosureMirror reflecting: c1.
+	cm12:: ClosureMirror reflecting: c1.
+	cm2:: ClosureMirror reflecting: c2.
+	om1:: ObjectMirror reflecting: c1.
+	om2:: ObjectMirror reflecting: c2.
+
+	assert: cm11 equals: cm12.
+	assert: cm11 hash equals: cm12 hash.
+	assert: cm12 equals: cm11.
+	assert: cm12 hash equals: cm11 hash.
+	assert: cm2 equals: cm2.
+	assert: cm2 hash equals: cm2 hash.
+	deny: cm11 equals: cm2.
+	deny: cm12 equals: cm2.
+	deny: cm2 equals: cm11.
+	deny: cm2 equals: cm12.
+
+	deny: cm11 equals: om1.
+	deny: cm11 equals: om2.
+	deny: cm12 equals: om1.
+	deny: cm12 equals: om2.
+	deny: cm2 equals: om1.
+	deny: cm2 equals: om2.
+)
+public testClosureMirrorMethod = (
+	| closure method |
+	closure:: ClosureMirror reflecting: [3 + 4].
+	method: closure method.
+	assert: method isKindOfMethodMirror.
+	assert: method name equals: #testClosureMirrorMethod.
+)
+public testClosureMirrorNonClosure = (
+	should: [ClosureMirror reflecting: self] signal: Exception.
+	should: [ClosureMirror reflecting: nil] signal: Exception.
+	should: [ClosureMirror reflecting: 0] signal: Exception.
+)
+public testClosureMirrorReceiver = (
+	| closure receiver |
+	closure:: ClosureMirror reflecting: [3 + 4].
+	receiver:: ObjectMirror reflecting: self.
+	assert: closure receiver isKindOfObjectMirror.
+	assert: closure receiver equals: receiver.
+)
+public testClosureMirrorSlots = (
+	(* :bogus: local variable metadata doesn't know how to hide the duplicate the inner and outer locations for copied down variables. *)
+	| slots |
+	slots:: (ClosureMirror reflecting: withSlots) slots.
+	assert: slots size equals: 2.
+	assert: (slots at: 1) name equals: 'foo'.
+	assert: (slots at: 1) value equals: (ObjectMirror reflecting: nil).
+	assert: (slots at: 2) name equals: 'foo'.
+	assert: (slots at: 2) value equals: (ObjectMirror reflecting: 3).
+
+	slots:: (ClosureMirror reflecting: withSlotsAndParameter) slots.
+	assert: slots size equals: 3.
+	assert: (slots at: 1) name equals: 'foo'.
+	assert: (slots at: 1) value equals: (ObjectMirror reflecting: nil).
+	assert: (slots at: 2) name equals: 'foo'.
+	assert: (slots at: 2) value equals: (ObjectMirror reflecting: 3).
+	assert: (slots at: 3) name equals: 'bar'.
+	assert: (slots at: 3) value equals: (ObjectMirror reflecting: nil).
+
+	slots:: (ClosureMirror reflecting: withSlotsAndParameterAndTemp) slots.
+	assert: slots size equals: 2.
+	assert: (slots at: 1) name equals: 'foo'.
+	assert: (slots at: 1) value equals: (ObjectMirror reflecting: nil).
+	assert: (slots at: 2) name equals: 'foo'.
+	assert: (slots at: 2) value equals: (ObjectMirror reflecting: 3).
+)
+public testClosureMirrorSourceRange = (
+	| closure method range source |
+	closure:: ClosureMirror reflecting: [3 + 4].
+	method:: closure method.
+	range:: closure sourceRange.
+	source:: method source copyFrom: range start to: range stop.
+	assert: source equals: '[3 + 4]'.
+	(* Not asserting absolute range positions to avoid brittle test. *)
+)
+public testIsKindOfClosureMirror = (
+	assert: (ClosureMirror reflecting: []) isKindOfClosureMirror.
+	deny: (ObjectMirror reflecting: []) isKindOfClosureMirror.
+	deny: nil isKindOfClosureMirror.
+	deny: 0 isKindOfClosureMirror.
+)
+withSlots = (
+	| foo = 3. |
+	^[foo]
+)
+withSlotsAndParameter = (
+	| foo = 3. |
+	^[:bar | foo]
+)
+withSlotsAndParameterAndTemp = (
+	| foo = 3. |
+	^[:bar | | baz | foo]
 )
 ) : (
 TEST_CONTEXT = ()

@@ -9,6 +9,9 @@ public ArgumentError = (
 public CannotReturn = (
 	^internalKernel CannotReturn
 )
+public Closure = (
+	^internalKernel Closure
+)
 public Ephemeron = (
 	^internalKernel Ephemeron
 )
