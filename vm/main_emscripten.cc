@@ -11,7 +11,7 @@
 #include "vm/message_loop.h"
 #include "vm/os.h"
 #include "vm/port.h"
-#include "vm/primordial_soup.h"
+#include "vm/primitives.h"
 
 EM_JS(void, _JS_initializeAliens, (), {
   var aliens = new Array();
@@ -25,7 +25,10 @@ EM_JS(void, _JS_initializeAliens, (), {
 
 static psoup::Isolate* isolate;
 extern "C" void load_snapshot(const void* snapshot, size_t snapshot_length) {
-  PrimordialSoup_Startup();
+  psoup::OS::Startup();
+  psoup::Primitives::Startup();
+  psoup::PortMap::Startup();
+  psoup::Isolate::Startup();
   _JS_initializeAliens();
 
   uint64_t seed = psoup::OS::CurrentMonotonicNanos();

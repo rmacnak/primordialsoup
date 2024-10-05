@@ -9,6 +9,7 @@
 
 #include <emscripten.h>
 
+#include "vm/assert.h"
 #include "vm/os.h"
 
 namespace psoup {

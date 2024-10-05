@@ -7,12 +7,15 @@
 
 #include <signal.h>
 
+#include "vm/isolate.h"
+#include "vm/message_loop.h"
 #include "vm/os.h"
-#include "vm/primordial_soup.h"
+#include "vm/port.h"
+#include "vm/primitives.h"
 #include "vm/virtual_memory.h"
 
 static void SIGINT_handler(int sig) {
-  PrimordialSoup_InterruptAll();
+  psoup::Isolate::InterruptAll();
 }
 
 int main(int argc, const char** argv) {
@@ -22,15 +25,25 @@ int main(int argc, const char** argv) {
   }
 
   psoup::MappedMemory snapshot = psoup::MappedMemory::MapReadOnly(argv[1]);
-  PrimordialSoup_Startup();
+  psoup::OS::Startup();
+  psoup::Primitives::Startup();
+  psoup::PortMap::Startup();
+  psoup::Isolate::Startup();
   void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
 
-  intptr_t exit_code =
-      PrimordialSoup_RunIsolate(snapshot.address(), snapshot.size(),
-                                argc - 2, &argv[2]);
+  uint64_t seed = psoup::OS::CurrentMonotonicNanos();
+  psoup::Isolate* isolate = new psoup::Isolate(snapshot.address(),
+                                               snapshot.size(), seed);
+  isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,
+                                                         argc - 2, &argv[2]));
+  intptr_t exit_code = isolate->loop()->Run();
+  delete isolate;
 
   signal(SIGINT, defaultSIGINT);
-  PrimordialSoup_Shutdown();
+  psoup::Isolate::Shutdown();
+  psoup::PortMap::Shutdown();
+  psoup::Primitives::Shutdown();
+  psoup::OS::Shutdown();
 
   snapshot.Free();
 

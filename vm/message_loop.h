@@ -5,6 +5,7 @@
 #ifndef VM_MESSAGE_LOOP_H_
 #define VM_MESSAGE_LOOP_H_
 
+#include "vm/globals.h"
 #include "vm/port.h"
 
 namespace psoup {

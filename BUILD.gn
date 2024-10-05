@@ -95,8 +95,6 @@ executable("vm") {
     "vm/port.h",
     "vm/primitives.cc",
     "vm/primitives.h",
-    "vm/primordial_soup.cc",
-    "vm/primordial_soup.h",
     "vm/random.h",
     "vm/snapshot.cc",
     "vm/snapshot.h",
