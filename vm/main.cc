@@ -21,22 +21,18 @@ int main(int argc, const char** argv) {
     return -1;
   }
 
-  psoup::VirtualMemory snapshot = psoup::VirtualMemory::MapReadOnly(argv[1]);
+  psoup::MappedMemory snapshot = psoup::MappedMemory::MapReadOnly(argv[1]);
   PrimordialSoup_Startup();
   void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
 
   intptr_t exit_code =
-      PrimordialSoup_RunIsolate(reinterpret_cast<const void*>(snapshot.base()),
-                                snapshot.size(), argc - 2, &argv[2]);
+      PrimordialSoup_RunIsolate(snapshot.address(), snapshot.size(),
+                                argc - 2, &argv[2]);
 
   signal(SIGINT, defaultSIGINT);
   PrimordialSoup_Shutdown();
 
-  // TODO(rmacnak): File and anonymous mappings are freed differently on
-  // Windows.
-#if !defined(OS_WINDOWS)
   snapshot.Free();
-#endif
 
   return exit_code;
 }

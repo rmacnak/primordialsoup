@@ -12,9 +12,13 @@
 
 namespace psoup {
 
-VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
+MappedMemory MappedMemory::MapReadOnly(const char* filename) {
   UNREACHABLE();
-  return VirtualMemory(nullptr, 0);
+  return MappedMemory(nullptr, 0);
+}
+
+void MappedMemory::Free() {
+  UNREACHABLE();
 }
 
 VirtualMemory VirtualMemory::Allocate(size_t size,

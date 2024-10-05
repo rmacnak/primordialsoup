@@ -19,7 +19,7 @@
 
 namespace psoup {
 
-VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
+MappedMemory MappedMemory::MapReadOnly(const char* filename) {
   FILE* file = fopen(filename, "r");
   if (file == nullptr) {
     FATAL("Failed to open '%s'\n", filename);
@@ -37,7 +37,14 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   int result = fclose(file);
   ASSERT(result == 0);
 
-  return VirtualMemory(address, size);
+  return MappedMemory(address, size);
+}
+
+void MappedMemory::Free() {
+  int result = munmap(address_, size_);
+  if (result != 0) {
+    FATAL("Failed to munmap %" Pd " bytes\n", size_);
+  }
 }
 
 VirtualMemory VirtualMemory::Allocate(size_t size,

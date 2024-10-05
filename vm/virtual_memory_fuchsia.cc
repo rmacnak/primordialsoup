@@ -17,7 +17,7 @@
 
 namespace psoup {
 
-VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
+MappedMemory MappedMemory::MapReadOnly(const char* filename) {
   int fd = open(filename, O_RDONLY);
   if (fd < 0) {
     FATAL("Failed to open '%s'\n", filename);
@@ -41,7 +41,17 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
     FATAL("zx_vmar_map(%" Pd ") failed: %s\n", size,
           zx_status_get_string(status));
   }
-  return VirtualMemory(reinterpret_cast<void*>(addr), size);
+  return MappedMemory(reinterpret_cast<void*>(addr), size);
+}
+
+void MappedMemory::Free() {
+  zx_handle_t vmar = zx_vmar_root_self();
+  zx_status_t status = zx_vmar_unmap(vmar,
+                                     reinterpret_cast<uintptr_t>(address_),
+                                     size_);
+  if (status != ZX_OK) {
+    FATAL("zx_vmar_unmap failed: %s\n", zx_status_get_string(status));
+  }
 }
 
 VirtualMemory VirtualMemory::Allocate(size_t size,

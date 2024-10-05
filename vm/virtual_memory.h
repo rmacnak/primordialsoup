@@ -9,6 +9,23 @@
 
 namespace psoup {
 
+class MappedMemory {
+ public:
+  static MappedMemory MapReadOnly(const char* filename);
+  void Free();
+
+  void* address() const { return address_; }
+  size_t size() const { return size_; }
+
+  MappedMemory() : address_(nullptr), size_(0) {}
+
+ private:
+  MappedMemory(void* address, size_t size) : address_(address), size_(size) {}
+
+  void* address_;
+  size_t size_;
+};
+
 class VirtualMemory {
  public:
   enum Protection {
@@ -17,7 +34,6 @@ class VirtualMemory {
     kReadWrite,
   };
 
-  static VirtualMemory MapReadOnly(const char* filename);
   static VirtualMemory Allocate(size_t size,
                                 Protection protection,
                                 const char* name);

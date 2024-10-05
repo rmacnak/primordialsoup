@@ -12,7 +12,7 @@
 
 namespace psoup {
 
-VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
+MappedMemory MappedMemory::MapReadOnly(const char* filename) {
   HANDLE file = CreateFile(filename,
                            GENERIC_READ,
                            FILE_SHARE_READ,
@@ -40,7 +40,13 @@ VirtualMemory VirtualMemory::MapReadOnly(const char* filename) {
   r = CloseHandle(file);
   ASSERT(r);
 
-  return VirtualMemory(address, size);
+  return MappedMemory(address, size);
+}
+
+void MappedMemory::Free() {
+  if (UnmapViewOfFile(address_) == 0) {
+    FATAL("UnmapViewOfFile failed %d", GetLastError());
+  }
 }
 
 VirtualMemory VirtualMemory::Allocate(size_t size,

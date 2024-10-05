@@ -21,10 +21,6 @@ ThreadId Thread::GetCurrentThreadId() {
   return 1;
 }
 
-ThreadId Thread::GetCurrentThreadTraceId() {
-  return 1;
-}
-
 ThreadJoinId Thread::GetCurrentThreadJoinId() {
   return 1;
 }
