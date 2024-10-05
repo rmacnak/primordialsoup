@@ -74,10 +74,6 @@ ThreadId Thread::GetCurrentThreadId() {
   return ::GetCurrentThreadId();
 }
 
-ThreadId Thread::GetCurrentThreadTraceId() {
-  return ::GetCurrentThreadId();
-}
-
 ThreadJoinId Thread::GetCurrentThreadJoinId() {
   ThreadId id = GetCurrentThreadId();
   HANDLE handle = OpenThread(SYNCHRONIZE, false, id);
@@ -93,41 +89,28 @@ void Thread::Join(ThreadJoinId id) {
   ASSERT(res == WAIT_OBJECT_0);
 }
 
-intptr_t Thread::ThreadIdToIntPtr(ThreadId id) {
-  ASSERT(sizeof(id) <= sizeof(intptr_t));
-  return static_cast<intptr_t>(id);
-}
-
-ThreadId Thread::ThreadIdFromIntPtr(intptr_t id) {
-  return static_cast<ThreadId>(id);
-}
-
 bool Thread::Compare(ThreadId a, ThreadId b) {
   return a == b;
 }
 
 Mutex::Mutex() {
-  InitializeSRWLock(&data_.lock_);
+  InitializeSRWLock(&lock_);
 #if defined(DEBUG)
-  // When running with assertions enabled we do track the owner.
   owner_ = kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
 
 Mutex::~Mutex() {
-#if defined(DEBUG)
-  // When running with assertions enabled we do track the owner.
-  ASSERT(owner_ == kInvalidThreadId);
-#endif  // defined(DEBUG)
+  DEBUG_ASSERT(owner_ == kInvalidThreadId);
 }
 
 void Mutex::Lock() {
-  AcquireSRWLockExclusive(&data_.lock_);
+  AcquireSRWLockExclusive(&lock_);
   CheckUnheldAndMark();
 }
 
 bool Mutex::TryLock() {
-  if (TryAcquireSRWLockExclusive(&data_.lock_)) {
+  if (TryAcquireSRWLockExclusive(&lock_)) {
     CheckUnheldAndMark();
     return true;
   }
@@ -136,28 +119,24 @@ bool Mutex::TryLock() {
 
 void Mutex::Unlock() {
   CheckHeldAndUnmark();
-  ReleaseSRWLockExclusive(&data_.lock_);
+  ReleaseSRWLockExclusive(&lock_);
 }
 
 Monitor::Monitor() {
-  InitializeSRWLock(&data_.lock_);
-  InitializeConditionVariable(&data_.cond_);
+  InitializeSRWLock(&lock_);
+  InitializeConditionVariable(&cond_);
 
 #if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
   owner_ = kInvalidThreadId;
 #endif  // defined(DEBUG)
 }
 
 Monitor::~Monitor() {
-#if defined(DEBUG)
-  // When running with assertions enabled we track the owner.
-  ASSERT(owner_ == kInvalidThreadId);
-#endif  // defined(DEBUG)
+  DEBUG_ASSERT(owner_ == kInvalidThreadId);
 }
 
 bool Monitor::TryEnter() {
-  if (TryAcquireSRWLockExclusive(&data_.lock_)) {
+  if (TryAcquireSRWLockExclusive(&lock_)) {
     CheckUnheldAndMark();
     return true;
   }
@@ -165,18 +144,18 @@ bool Monitor::TryEnter() {
 }
 
 void Monitor::Enter() {
-  AcquireSRWLockExclusive(&data_.lock_);
+  AcquireSRWLockExclusive(&lock_);
   CheckUnheldAndMark();
 }
 
 void Monitor::Exit() {
   CheckHeldAndUnmark();
-  ReleaseSRWLockExclusive(&data_.lock_);
+  ReleaseSRWLockExclusive(&lock_);
 }
 
 void Monitor::Wait() {
   CheckHeldAndUnmark();
-  SleepConditionVariableSRW(&data_.cond_, &data_.lock_, INFINITE, 0);
+  SleepConditionVariableSRW(&cond_, &lock_, INFINITE, 0);
   CheckUnheldAndMark();
 }
 
@@ -193,7 +172,7 @@ Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
   Monitor::WaitResult retval = kNotified;
   // Wait for the given period of time for a Notify or a NotifyAll
   // event.
-  if (!SleepConditionVariableSRW(&data_.cond_, &data_.lock_, millis, 0)) {
+  if (!SleepConditionVariableSRW(&cond_, &lock_, millis, 0)) {
     ASSERT(GetLastError() == ERROR_TIMEOUT);
     retval = kTimedOut;
   }
@@ -203,15 +182,13 @@ Monitor::WaitResult Monitor::WaitUntilNanos(int64_t deadline) {
 }
 
 void Monitor::Notify() {
-  // When running with assertions enabled we track the owner.
   DEBUG_ASSERT(IsOwnedByCurrentThread());
-  WakeConditionVariable(&data_.cond_);
+  WakeConditionVariable(&cond_);
 }
 
 void Monitor::NotifyAll() {
-  // When running with assertions enabled we track the owner.
   DEBUG_ASSERT(IsOwnedByCurrentThread());
-  WakeAllConditionVariable(&data_.cond_);
+  WakeAllConditionVariable(&cond_);
 }
 
 }  // namespace psoup

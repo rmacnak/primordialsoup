@@ -33,15 +33,6 @@ void Thread::Join(ThreadJoinId id) {
   UNREACHABLE();
 }
 
-intptr_t Thread::ThreadIdToIntPtr(ThreadId id) {
-  ASSERT(sizeof(id) == sizeof(intptr_t));
-  return static_cast<intptr_t>(id);
-}
-
-ThreadId Thread::ThreadIdFromIntPtr(intptr_t id) {
-  return static_cast<ThreadId>(id);
-}
-
 bool Thread::Compare(ThreadId a, ThreadId b) {
   return a == b;
 }

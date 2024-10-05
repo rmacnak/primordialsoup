@@ -8,24 +8,35 @@
 #include "vm/allocation.h"
 #include "vm/globals.h"
 
-// Declare the OS-specific types ahead of defining the generic classes.
-#if defined(OS_ANDROID)
-#include "vm/thread_android.h"
-#elif defined(OS_EMSCRIPTEN)
-#include "vm/thread_emscripten.h"
-#elif defined(OS_FUCHSIA)
-#include "vm/thread_fuchsia.h"
-#elif defined(OS_LINUX)
-#include "vm/thread_linux.h"
-#elif defined(OS_MACOS)
-#include "vm/thread_macos.h"
-#elif defined(OS_WINDOWS)
-#include "vm/thread_win.h"
-#else
-#error Unknown OS.
+#if defined(OS_ANDROID) || defined(OS_FUCHSIA) || defined(OS_LINUX) ||         \
+    defined(OS_MACOS)
+#include <pthread.h>
 #endif
 
 namespace psoup {
+
+#if defined(OS_ANDROID) || defined(OS_FUCHSIA) || defined(OS_LINUX) ||         \
+    defined(OS_MACOS)
+typedef pthread_t ThreadId;
+typedef pthread_t ThreadJoinId;
+#if defined(OS_MACOS)
+constexpr ThreadId kInvalidThreadId = nullptr;
+constexpr ThreadJoinId kInvalidThreadJoinId = nullptr;
+#else
+constexpr ThreadId kInvalidThreadId = 0;
+constexpr ThreadJoinId kInvalidThreadJoinId = 0;
+#endif
+#elif defined(OS_EMSCRIPTEN)
+typedef intptr_t ThreadId;
+typedef intptr_t ThreadJoinId;
+constexpr ThreadId kInvalidThreadId = 0;
+constexpr ThreadJoinId kInvalidThreadJoinId = 0;
+#elif defined(OS_WINDOWS)
+typedef DWORD ThreadId;
+typedef HANDLE ThreadJoinId;
+constexpr ThreadId kInvalidThreadId = 0;
+const ThreadJoinId kInvalidThreadJoinId = INVALID_HANDLE_VALUE;
+#endif
 
 class Thread : public AllStatic {
  public:
@@ -40,18 +51,11 @@ class Thread : public AllStatic {
 
   static ThreadId GetCurrentThreadId();
   static void Join(ThreadJoinId id);
-  static intptr_t ThreadIdToIntPtr(ThreadId id);
-  static ThreadId ThreadIdFromIntPtr(intptr_t id);
   static bool Compare(ThreadId a, ThreadId b);
 
   // This function can be called only once per Thread, and should only be
   // called when the returned id will eventually be passed to Thread::Join().
   static ThreadJoinId GetCurrentThreadJoinId();
-
-  static void DisableThreadCreation();
-  static void EnableThreadCreation();
-
-  static ThreadId GetCurrentThreadTraceId();
 };
 
 class Mutex {
@@ -83,7 +87,13 @@ class Mutex {
 #endif
   }
 
-  MutexData data_;
+#if defined(OS_ANDROID) || defined(OS_FUCHSIA) || defined(OS_LINUX) ||         \
+    defined(OS_MACOS)
+  pthread_mutex_t mutex_;
+#elif defined(OS_WINDOWS)
+  SRWLOCK lock_;
+#endif
+
 #if defined(DEBUG)
   ThreadId owner_;
 #endif  // defined(DEBUG)
@@ -131,7 +141,15 @@ class Monitor {
 #endif
   }
 
-  MonitorData data_;  // OS-specific data.
+#if defined(OS_ANDROID) || defined(OS_FUCHSIA) || defined(OS_LINUX) ||         \
+    defined(OS_MACOS)
+  pthread_mutex_t mutex_;
+  pthread_cond_t cond_;
+#elif defined(OS_WINDOWS)
+  SRWLOCK lock_;
+  CONDITION_VARIABLE cond_;
+#endif
+
 #if defined(DEBUG)
   ThreadId owner_;
 #endif  // defined(DEBUG)
