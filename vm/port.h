@@ -45,7 +45,7 @@ class PortMap : public AllStatic {
   static Mutex* mutex_;
 
   static Entry* map_;
-  static MessageLoop* deleted_entry_;
+  static MessageLoop* const deleted_entry_;
   static intptr_t capacity_;
   static intptr_t used_;
   static intptr_t deleted_;

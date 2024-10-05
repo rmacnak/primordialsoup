@@ -31,9 +31,8 @@ int main(int argc, const char** argv) {
   psoup::Isolate::Startup();
   void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
 
-  uint64_t seed = psoup::OS::CurrentMonotonicNanos();
   psoup::Isolate* isolate = new psoup::Isolate(snapshot.address(),
-                                               snapshot.size(), seed);
+                                               snapshot.size());
   isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,
                                                          argc - 2, &argv[2]));
   intptr_t exit_code = isolate->loop()->Run();

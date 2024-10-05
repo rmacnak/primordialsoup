@@ -4,7 +4,6 @@
 
 #include "vm/port.h"
 
-#include "vm/flags.h"
 #include "vm/lockers.h"
 #include "vm/message_loop.h"
 #include "vm/os.h"
@@ -16,7 +15,7 @@ namespace psoup {
 
 Mutex* PortMap::mutex_ = nullptr;
 PortMap::Entry* PortMap::map_ = nullptr;
-MessageLoop* PortMap::deleted_entry_ = reinterpret_cast<MessageLoop*>(1);
+MessageLoop* const PortMap::deleted_entry_ = reinterpret_cast<MessageLoop*>(1);
 intptr_t PortMap::capacity_ = 0;
 intptr_t PortMap::used_ = 0;
 intptr_t PortMap::deleted_ = 0;
@@ -31,7 +30,7 @@ intptr_t PortMap::FindPort(Port port) {
     return -1;
   }
   ASSERT(port != ILLEGAL_PORT);
-  intptr_t index = port % capacity_;
+  intptr_t index = static_cast<uintptr_t>(port) % capacity_;
   intptr_t start_index = index;
   Entry entry = map_[index];
   while (entry.loop != nullptr) {
@@ -103,7 +102,7 @@ Port PortMap::CreatePort(MessageLoop* loop) {
   // Search for the first unused slot. Make use of the knowledge that here is
   // currently no port with this id in the port map.
   ASSERT(FindPort(entry.port) < 0);
-  intptr_t index = entry.port % capacity_;
+  intptr_t index = static_cast<uintptr_t>(entry.port) % capacity_;
   Entry cur = map_[index];
   // Stop the search at the first found unused (free or deleted) slot.
   while (cur.port != 0) {
@@ -182,7 +181,7 @@ void PortMap::CloseAllPorts(MessageLoop* loop) {
 
 void PortMap::Startup() {
   mutex_ = new Mutex();
-  prng_ = new Random(OS::CurrentMonotonicNanos());
+  prng_ = new Random();
 
   static const intptr_t kInitialCapacity = 8;
   // TODO(iposva): Verify whether we want to keep exponentially growing.

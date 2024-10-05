@@ -31,8 +31,7 @@ extern "C" void load_snapshot(const void* snapshot, size_t snapshot_length) {
   psoup::Isolate::Startup();
   _JS_initializeAliens();
 
-  uint64_t seed = psoup::OS::CurrentMonotonicNanos();
-  isolate = new psoup::Isolate(snapshot, snapshot_length, seed);
+  isolate = new psoup::Isolate(snapshot, snapshot_length);
   int argc = 0;
   const char** argv = nullptr;
   isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,

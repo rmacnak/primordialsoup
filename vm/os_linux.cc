@@ -50,10 +50,17 @@ int64_t OS::CurrentRealtimeNanos() {
   return result;
 }
 
+extern "C" void __msan_unpoison(void*, size_t);
+
 intptr_t OS::GetEntropy(void* buffer, size_t size) {
   if (getentropy(buffer, size) == -1) {
     return errno;
   }
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+  __msan_unpoison(buffer, size);
+#endif
+#endif
   return 0;
 }
 

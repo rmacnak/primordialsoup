@@ -5,30 +5,28 @@
 #ifndef VM_RANDOM_H_
 #define VM_RANDOM_H_
 
+#include "vm/globals.h"
+
 namespace psoup {
 
 // xorshift128+
 // Sebastiano Vigna. "Further scramblings of Marsaglia’s xorshift generators."
 class Random {
  public:
-  explicit Random(uint64_t seed) {
-    state0_ = seed;
-    state1_ = 0;
-  }
+  Random();
 
   uint64_t NextUInt64() {
-    uint64_t s1 = state0_;
-    const uint64_t s0 = state1_;
+    uint64_t s1 = state_[0];
+    const uint64_t s0 = state_[1];
     const uint64_t result = s0 + s1;
-    state0_ = s0;
+    state_[0] = s0;
     s1 ^= s1 << 23;
-    state1_ = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
+    state_[1] = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
     return result;
   }
 
  private:
-  uint64_t state0_;
-  uint64_t state1_;
+  uint64_t state_[2];
 };
 
 }  // namespace psoup

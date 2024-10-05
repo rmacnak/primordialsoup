@@ -83,14 +83,14 @@ void Isolate::PrintStack() {
   interpreter_->PrintStack();
 }
 
-Isolate::Isolate(const void* snapshot, size_t snapshot_length, uint64_t seed)
+Isolate::Isolate(const void* snapshot, size_t snapshot_length)
     : heap_(nullptr),
       interpreter_(nullptr),
       loop_(nullptr),
       snapshot_(snapshot),
       snapshot_length_(snapshot_length),
-      salt_(static_cast<uintptr_t>(seed)),
-      random_(seed),
+      random_(),
+      salt_(static_cast<uintptr_t>(random_.NextUInt64())),
       next_(nullptr) {
   heap_ = new Heap();
   interpreter_ = new Interpreter(heap_, this);
@@ -204,8 +204,7 @@ class SpawnIsolateTask : public ThreadPool::Task {
         initial_message_(initial_message) {}
 
   virtual void Run() {
-    uint64_t seed = OS::CurrentMonotonicNanos();
-    Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_, seed);
+    Isolate* child_isolate = new Isolate(snapshot_, snapshot_length_);
     child_isolate->loop()->PostMessage(initial_message_);
     initial_message_ = nullptr;
     intptr_t exit_code = child_isolate->loop()->Run();
