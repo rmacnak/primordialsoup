@@ -8,9 +8,9 @@
 #include "vm/message_loop.h"
 
 #include <errno.h>
-#include <fcntl.h>
 #include <signal.h>
 #include <sys/epoll.h>
+#include <sys/eventfd.h>
 #include <sys/timerfd.h>
 #include <unistd.h>
 
@@ -19,38 +19,20 @@
 
 namespace psoup {
 
-static bool SetBlockingHelper(intptr_t fd, bool blocking) {
-  intptr_t status;
-  status = fcntl(fd, F_GETFL);
-  if (status < 0) {
-    perror("fcntl(F_GETFL) failed");
-    return false;
-  }
-  status = blocking ? (status & ~O_NONBLOCK) : (status | O_NONBLOCK);
-  if (fcntl(fd, F_SETFL, status) < 0) {
-    perror("fcntl(F_SETFL, O_NONBLOCK) failed");
-    return false;
-  }
-  return true;
-}
-
 EPollMessageLoop::EPollMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
       mutex_(),
       head_(nullptr),
       tail_(nullptr),
       wakeup_(0) {
-  int result = pipe(interrupt_fds_);
-  if (result != 0) {
-    FATAL("Failed to create pipe");
-  }
-  if (!SetBlockingHelper(interrupt_fds_[0], false)) {
-    FATAL("Failed to set pipe fd non-blocking\n");
+  event_fd_ = eventfd(0, EFD_CLOEXEC);
+  if (event_fd_ == -1) {
+    FATAL("Failed to create eventfd");
   }
 
   timer_fd_ = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
   if (timer_fd_ == -1) {
-    FATAL("Failed to creater timer_fd");
+    FATAL("Failed to creater timerfd");
   }
 
   epoll_fd_ = epoll_create(64);
@@ -60,25 +42,24 @@ EPollMessageLoop::EPollMessageLoop(Isolate* isolate)
 
   struct epoll_event event;
   event.events = EPOLLIN;
-  event.data.fd = interrupt_fds_[0];
-  int status = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, interrupt_fds_[0], &event);
+  event.data.fd = event_fd_;
+  int status = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, event_fd_, &event);
   if (status == -1) {
-    FATAL("Failed to add pipe to epoll");
+    FATAL("Failed to add eventfd to epoll");
   }
 
   event.events = EPOLLIN;
   event.data.fd = timer_fd_;
   status = epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, timer_fd_, &event);
   if (status == -1) {
-    FATAL("Failed to add timer_fd to epoll");
+    FATAL("Failed to add timerfd to epoll");
   }
 }
 
 EPollMessageLoop::~EPollMessageLoop() {
   close(epoll_fd_);
   close(timer_fd_);
-  close(interrupt_fds_[0]);
-  close(interrupt_fds_[1]);
+  close(event_fd_);
 }
 
 intptr_t EPollMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
@@ -139,10 +120,10 @@ void EPollMessageLoop::PostMessage(IsolateMessage* message) {
 }
 
 void EPollMessageLoop::Notify() {
-  uword message = 0;
-  ssize_t written = write(interrupt_fds_[1], &message, sizeof(message));
-  if (written != sizeof(message)) {
-    FATAL("Failed to atomically write notify message");
+  uint64_t value = 1;
+  ssize_t written = write(event_fd_, &value, sizeof(value));
+  if (written != sizeof(value)) {
+    FATAL("Failed to notify");
   }
 }
 
@@ -165,17 +146,18 @@ intptr_t EPollMessageLoop::Run() {
       }
     } else {
       for (int i = 0; i < result; i++) {
-        if (events[i].data.fd == interrupt_fds_[0]) {
-          // Interrupt fd.
-          uword message = 0;
-          ssize_t red = read(interrupt_fds_[0], &message, sizeof(message));
-          if (red != sizeof(message)) {
-            FATAL("Failed to atomically read notify message");
+        if (events[i].data.fd == event_fd_) {
+          uint64_t value;
+          ssize_t red = read(event_fd_, &value, sizeof(value));
+          if (red != sizeof(value)) {
+            FATAL("Failed to read eventfd");
           }
         } else if (events[i].data.fd == timer_fd_) {
-          int64_t value;
-          ssize_t ignore = read(timer_fd_, &value, sizeof(value));
-          (void)ignore;
+          uint64_t value;
+          ssize_t red = read(timer_fd_, &value, sizeof(value));
+          if (red != sizeof(value)) {
+            FATAL("Failed to read timerfd");
+          }
           DispatchWakeup();
         } else {
           intptr_t fd = events[i].data.fd;

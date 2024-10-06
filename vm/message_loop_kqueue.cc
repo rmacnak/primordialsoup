@@ -8,7 +8,6 @@
 #include "vm/message_loop.h"
 
 #include <errno.h>
-#include <fcntl.h>
 #include <signal.h>
 #include <sys/event.h>
 #include <sys/time.h>
@@ -20,52 +19,27 @@
 
 namespace psoup {
 
-static bool SetBlockingHelper(intptr_t fd, bool blocking) {
-  intptr_t status;
-  status = fcntl(fd, F_GETFL);
-  if (status < 0) {
-    perror("fcntl(F_GETFL) failed");
-    return false;
-  }
-  status = blocking ? (status & ~O_NONBLOCK) : (status | O_NONBLOCK);
-  if (fcntl(fd, F_SETFL, status) < 0) {
-    perror("fcntl(F_SETFL, O_NONBLOCK) failed");
-    return false;
-  }
-  return true;
-}
-
 KQueueMessageLoop::KQueueMessageLoop(Isolate* isolate)
     : MessageLoop(isolate),
       mutex_(),
       head_(nullptr),
       tail_(nullptr),
       wakeup_(0) {
-  int result = pipe(interrupt_fds_);
-  if (result != 0) {
-    FATAL("Failed to create pipe");
-  }
-  if (!SetBlockingHelper(interrupt_fds_[0], false)) {
-    FATAL("Failed to set pipe fd non-blocking\n");
-  }
-
   kqueue_fd_ = kqueue();
   if (kqueue_fd_ == -1) {
     FATAL("Failed to create kqueue");
   }
 
   struct kevent event;
-  EV_SET(&event, interrupt_fds_[0], EVFILT_READ, EV_ADD, 0, 0, nullptr);
-  int status = kevent(kqueue_fd_, &event, 1, nullptr, 0, nullptr);
-  if (status == -1) {
-    FATAL("Failed to add pipe to kqueue");
+  EV_SET(&event, 0, EVFILT_USER, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, nullptr);
+  int result = kevent(kqueue_fd_, &event, 1, nullptr, 0, nullptr);
+  if (result == -1) {
+    FATAL("Failed to register notify event");
   }
 }
 
 KQueueMessageLoop::~KQueueMessageLoop() {
   close(kqueue_fd_);
-  close(interrupt_fds_[0]);
-  close(interrupt_fds_[1]);
 }
 
 intptr_t KQueueMessageLoop::AwaitSignal(intptr_t fd, intptr_t signals) {
@@ -124,10 +98,11 @@ void KQueueMessageLoop::PostMessage(IsolateMessage* message) {
 }
 
 void KQueueMessageLoop::Notify() {
-  uword message = 0;
-  ssize_t written = write(interrupt_fds_[1], &message, sizeof(message));
-  if (written != sizeof(message)) {
-    FATAL("Failed to atomically write notify message");
+  struct kevent event;
+  EV_SET(&event, 0, EVFILT_USER, 0, NOTE_TRIGGER, 0, nullptr);
+  int result = kevent(kqueue_fd_, &event, 1, nullptr, 0, nullptr);
+  if (result != 0) {
+    FATAL("Failed to notify");
   }
 }
 
@@ -169,13 +144,8 @@ intptr_t KQueueMessageLoop::Run() {
       if ((events[i].flags & EV_ERROR) != 0) {
         FATAL("kevent failed\n");
       }
-      if (events[i].udata == nullptr) {
-        // Interrupt fd.
-        uword message = 0;
-        ssize_t red = read(interrupt_fds_[0], &message, sizeof(message));
-        if (red != sizeof(message)) {
-          FATAL("Failed to atomically read notify message");
-        }
+      if (events[i].filter == EVFILT_USER) {
+        ASSERT(events[i].udata == nullptr);
       } else {
         intptr_t fd = events[i].ident;
         intptr_t pending = 0;
