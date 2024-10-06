@@ -39,7 +39,7 @@ class EPollMessageLoop : public MessageLoop {
   IsolateMessage* head_;
   IsolateMessage* tail_;
   int64_t wakeup_;
-  int interrupt_fds_[2];
+  int event_fd_;
   int timer_fd_;
   int epoll_fd_;
 

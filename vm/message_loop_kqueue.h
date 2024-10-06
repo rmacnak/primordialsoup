@@ -39,7 +39,6 @@ class KQueueMessageLoop : public MessageLoop {
   IsolateMessage* head_;
   IsolateMessage* tail_;
   int64_t wakeup_;
-  int interrupt_fds_[2];
   int kqueue_fd_;
 
   DISALLOW_COPY_AND_ASSIGN(KQueueMessageLoop);
