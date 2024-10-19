@@ -1,13 +1,23 @@
 #!/bin/bash -ex
+
+case $(adb shell uname -m) in
+  i386) ARCH=IA32 ;;
+  i686) ARCH=IA32 ;;
+  x86_64) ARCH=X64 ;;
+  armv7l) ARCH=ARM ;;
+  aarch64) ARCH=ARM64 ;;
+  riscv64) ARCH=RISCV64 ;;
+esac
+
 adb push out/snapshots/HelloApp.vfuel /data/local/tmp
 adb push out/snapshots/TestRunner.vfuel /data/local/tmp
 adb push out/snapshots/BenchmarkRunner.vfuel /data/local/tmp
 
-adb push out/DebugAndroidX64/primordialsoup /data/local/tmp
+adb push out/DebugAndroid$ARCH/primordialsoup /data/local/tmp
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/HelloApp.vfuel
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/TestRunner.vfuel
 
-adb push out/ReleaseAndroidX64/primordialsoup /data/local/tmp
+adb push out/ReleaseAndroid$ARCH/primordialsoup /data/local/tmp
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/HelloApp.vfuel
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/TestRunner.vfuel
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/BenchmarkRunner.vfuel

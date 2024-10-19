@@ -432,4 +432,9 @@ def Main():
     BuildVM(target_cxx, 'x64', 'android', False, None)
     BuildVM(target_cxx, 'x64', 'android', True, None)
 
+    target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
+        + android_host_name + '/bin/riscv64-linux-android35-clang++'
+    BuildVM(target_cxx, 'riscv64', 'android', False, None)
+    BuildVM(target_cxx, 'riscv64', 'android', True, None)
+
 Main()

@@ -127,7 +127,7 @@ jobs:
         with:
           arch: x86_64
           api-level: 28
-          script: ./.github/workflows/test-android-x64
+          script: ./test-android
   web:
     runs-on: ubuntu-latest
     timeout-minutes: 10
