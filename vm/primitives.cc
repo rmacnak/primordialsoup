@@ -1233,23 +1233,14 @@ DEFINE_PRIMITIVE(Integer_fromDigits) {
 
 #define FLOAT_FUNCTION_1(func)                                                 \
   ASSERT(num_args == 0);                                                       \
-  Float rcvr = static_cast<Float>(I->Stack(0));                                \
-  if (!rcvr->IsFloat()) {                                                      \
-    return kFailure;                                                           \
-  }                                                                            \
-  RETURN_FLOAT(func(rcvr->value()));
+  FLOAT_ARGUMENT(x, 0);                                                        \
+  RETURN_FLOAT(func(x));
 
 #define FLOAT_FUNCTION_2(func)                                                 \
   ASSERT(num_args == 1);                                                       \
-  Float rcvr = static_cast<Float>(I->Stack(1));                                \
-  Float arg = static_cast<Float>(I->Stack(0));                                 \
-  if (!rcvr->IsFloat()) {                                                      \
-    return kFailure;                                                           \
-  }                                                                            \
-  if (!arg->IsFloat()) {                                                       \
-    return kFailure;                                                           \
-  }                                                                            \
-  RETURN_FLOAT(func(rcvr->value(), arg->value()));
+  FLOAT_ARGUMENT(x, 1);                                                        \
+  FLOAT_ARGUMENT(y, 0);                                                        \
+  RETURN_FLOAT(func(x, y));
 
 DEFINE_PRIMITIVE(Double_floor) { FLOAT_FUNCTION_1(floor); }
 DEFINE_PRIMITIVE(Double_ceiling) { FLOAT_FUNCTION_1(ceil); }
