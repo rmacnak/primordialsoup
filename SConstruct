@@ -198,6 +198,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   vm_ccs = [
     'assert',
     'double_conversion',
+    'handle',
     'heap',
     'interpreter',
     'isolate',
@@ -249,12 +250,14 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     objects += env.Object(os.path.join(outdir, 'double-conversion', cc + '.o'),
                           os.path.join('double-conversion', cc + '.cc'))
 
+  outputs = []
   if target_os == 'emscripten':
     program = env.Program([os.path.join(outdir, 'primordialsoup.html'),
                            os.path.join(outdir, 'primordialsoup.wasm'),
                            os.path.join(outdir, 'primordialsoup.js')],
                           objects)
     Depends(program, 'meta/shell.html')
+    outputs += program
 
     emrun_env = env.Clone()
     emrun_env['LINKFLAGS'] += ['--emrun']
@@ -265,9 +268,17 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     ]
     emrun_program = emrun_env.Program(emrun_paths, objects)
     Depends(emrun_program, 'meta/shell.html')
+    outputs += emrun_program
   else:
-    program = env.Program(os.path.join(outdir, 'primordialsoup'), objects)
-  return program[0]
+    outputs += env.Program(os.path.join(outdir, 'primordialsoup'), objects)
+
+    objects = [
+      env.Object(os.path.join(outdir, 'vm', 'test_process.o'),
+                 os.path.join('vm', 'test_process.cc'))
+    ]
+    outputs += env.Program(os.path.join(outdir, 'test_process'), objects)
+
+  return outputs
 
 
 def BuildSnapshots(host_vm, triples):
@@ -348,9 +359,10 @@ def Main():
   # sanitizer.
   host_debug_vm = BuildVM(host_cxx, host_arch, host_os, True, None)
   host_release_vm = BuildVM(host_cxx, host_arch, host_os, False, None)
-  BuildSnapshots(host_release_vm, [
+  BuildSnapshots(host_release_vm[0], [
      ['Runtime', 'HelloApp', 'HelloApp.vfuel'],
      ['RuntimeWithMirrors', 'TestRunner', 'TestRunner.vfuel'],
+     ['RuntimeWithMirrors', 'IOTestRunner', 'IOTestRunner.vfuel'],
      ['Runtime', 'BenchmarkRunner', 'BenchmarkRunner.vfuel'],
      ['RuntimeWithMirrors', 'CompilerApp', 'CompilerApp.vfuel'],
      ['RuntimeWithMirrors', 'Formatter', 'Formatter.vfuel'],
@@ -401,7 +413,7 @@ def Main():
 
   ndk = ARGUMENTS.get('ndk', None)
   if ndk != None:
-    # The following paths were taken from android-ndk-r19c. They might differ
+    # The following paths were taken from android-ndk-r27b. They might differ
     # between versions of the Android NDK.
     if host_os == 'linux':
       android_host_name = 'linux-x86_64'
@@ -413,22 +425,22 @@ def Main():
       raise Exception("Android NDK paths not known for this OS")
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
-        + android_host_name + '/bin/armv7a-linux-androideabi28-clang++'
+        + android_host_name + '/bin/armv7a-linux-androideabi30-clang++'
     BuildVM(target_cxx, 'arm', 'android', False, None)
     BuildVM(target_cxx, 'arm', 'android', True, None)
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
-        + android_host_name + '/bin/aarch64-linux-android28-clang++'
+        + android_host_name + '/bin/aarch64-linux-android30-clang++'
     BuildVM(target_cxx, 'arm64', 'android', False, None)
     BuildVM(target_cxx, 'arm64', 'android', True, None)
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
-        + android_host_name + '/bin/i686-linux-android28-clang++'
+        + android_host_name + '/bin/i686-linux-android30-clang++'
     BuildVM(target_cxx, 'ia32', 'android', False, None)
     BuildVM(target_cxx, 'ia32', 'android', True, None)
 
     target_cxx = ndk + '/toolchains/llvm/prebuilt/' \
-        + android_host_name + '/bin/x86_64-linux-android28-clang++'
+        + android_host_name + '/bin/x86_64-linux-android30-clang++'
     BuildVM(target_cxx, 'x64', 'android', False, None)
     BuildVM(target_cxx, 'x64', 'android', True, None)
 

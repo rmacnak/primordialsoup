@@ -11,13 +11,18 @@ esac
 
 adb push out/snapshots/HelloApp.vfuel /data/local/tmp
 adb push out/snapshots/TestRunner.vfuel /data/local/tmp
+adb push out/snapshots/IOTestRunner.vfuel /data/local/tmp
 adb push out/snapshots/BenchmarkRunner.vfuel /data/local/tmp
 
 adb push out/DebugAndroid$ARCH/primordialsoup /data/local/tmp
+adb push out/DebugAndroid$ARCH/test_process /data/local/tmp
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/HelloApp.vfuel
+adb shell PSOUP_TEST_PROCESS=/data/local/tmp/test_process /data/local/tmp/primordialsoup /data/local/tmp/IOTestRunner.vfuel
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/TestRunner.vfuel
 
 adb push out/ReleaseAndroid$ARCH/primordialsoup /data/local/tmp
+adb push out/ReleaseAndroid$ARCH/test_process /data/local/tmp
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/HelloApp.vfuel
+adb shell PSOUP_TEST_PROCESS=/data/local/tmp/test_process /data/local/tmp/primordialsoup /data/local/tmp/IOTestRunner.vfuel
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/TestRunner.vfuel
 adb shell /data/local/tmp/primordialsoup /data/local/tmp/BenchmarkRunner.vfuel

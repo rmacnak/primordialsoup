@@ -30,6 +30,9 @@ int main(int argc, const char** argv) {
   psoup::PortMap::Startup();
   psoup::Isolate::Startup();
   void (*defaultSIGINT)(int) = signal(SIGINT, SIGINT_handler);
+#if !defined(OS_WINDOWS)
+  signal(SIGPIPE, SIG_IGN);
+#endif
 
   psoup::Isolate* isolate = new psoup::Isolate(snapshot.address(),
                                                snapshot.size());

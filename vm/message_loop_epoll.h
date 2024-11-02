@@ -10,6 +10,9 @@
   instead.
 #endif
 
+#include <sys/epoll.h>
+
+#include "vm/handle.h"
 #include "vm/message_loop.h"
 #include "vm/thread.h"
 
@@ -31,8 +34,27 @@ class EPollMessageLoop : public MessageLoop {
   intptr_t Run();
   void Interrupt();
 
+  intptr_t StartProcess(intptr_t options,
+                        char** argv,
+                        char** env,
+                        const char* cwd,
+                        intptr_t* process_out,
+                        intptr_t* stdin_out,
+                        intptr_t* stdout_out,
+                        intptr_t* stderr_out);
+  intptr_t Read(intptr_t handle,
+                uint8_t* buffer,
+                intptr_t buffer_size,
+                intptr_t* size_out);
+  intptr_t Write(intptr_t handle,
+                 const uint8_t* buffer,
+                 intptr_t buffer_size,
+                 intptr_t* size_out);
+  intptr_t Close(intptr_t handle);
+
  private:
   IsolateMessage* TakeMessages();
+  void RespondToEvent(const struct epoll_event& event);
   void Notify();
 
   Mutex mutex_;
@@ -42,6 +64,7 @@ class EPollMessageLoop : public MessageLoop {
   int event_fd_;
   int timer_fd_;
   int epoll_fd_;
+  HandleMap handles_;
 
   DISALLOW_COPY_AND_ASSIGN(EPollMessageLoop);
 };

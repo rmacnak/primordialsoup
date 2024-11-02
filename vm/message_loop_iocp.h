@@ -9,8 +9,8 @@
 #error Do not include message_loop_iocp.h directly; use message_loop.h instead.
 #endif
 
+#include "vm/handle.h"
 #include "vm/message_loop.h"
-
 #include "vm/thread.h"
 
 namespace psoup {
@@ -31,15 +31,49 @@ class IOCPMessageLoop : public MessageLoop {
   intptr_t Run();
   void Interrupt();
 
+  intptr_t StartProcess(intptr_t options,
+                        char** argv,
+                        char** env,
+                        const char* cwd,
+                        intptr_t* process_out,
+                        intptr_t* stdin_out,
+                        intptr_t* stdout_out,
+                        intptr_t* stderr_out);
+  intptr_t Read(intptr_t handle,
+                uint8_t* buffer,
+                intptr_t buffer_size,
+                intptr_t* size_out);
+  intptr_t Write(intptr_t handle,
+                 const uint8_t* buffer,
+                 intptr_t buffer_size,
+                 intptr_t* size_out);
+  intptr_t Close(intptr_t handle);
+
  private:
   IsolateMessage* TakeMessages();
   void Notify();
+
+  void RespondToIOCompletion(Handle* handle,
+                             DWORD status,
+                             DWORD bytes,
+                             OVERLAPPED* overlapped);
+  void RespondToRead(Handle* handle,
+                     DWORD status,
+                     DWORD bytes,
+                     IOBuffer* buffer);
+  void RespondToWrite(Handle* handle,
+                      DWORD status,
+                      DWORD bytes,
+                      IOBuffer* buffer);
+  void MaybeIssueRead(Handle* handle);
+  void MaybeScheduleWakeup(Handle* handle);
 
   Mutex mutex_;
   IsolateMessage* head_;
   IsolateMessage* tail_;
   int64_t wakeup_;
   HANDLE completion_port_;
+  HandleMap handles_;
 
   DISALLOW_COPY_AND_ASSIGN(IOCPMessageLoop);
 };

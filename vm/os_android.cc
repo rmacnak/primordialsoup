@@ -109,10 +109,7 @@ char* OS::PrintStr(const char* format, ...) {
 }
 
 char* OS::StrError(int err, char* buffer, size_t bufsize) {
-  if (strerror_r(err, buffer, bufsize) != 0) {
-    snprintf(buffer, bufsize, "%s", "strerror_r failed");
-  }
-  return buffer;
+  return strerror_r(err, buffer, bufsize);
 }
 
 void OS::Exit(int code) {

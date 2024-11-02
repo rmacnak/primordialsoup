@@ -1,0 +1,222 @@
+class IO usingPlatform: p internalKernel: k = (
+|
+private ArgumentError = p kernel ArgumentError.
+private Resolver = p actors Resolver.
+private List = p collections List.
+private multipleReturn = Array new: 4.
+private handleMap = k messageLoop handleMap.
+|) (
+public class Files = () (
+) : (
+)
+class Handle handle: h = (
+	|
+	protected handle ::= h.
+	|
+) (
+CLOSE = ( ^4 )
+ERROR = ( ^8 )
+READ = ( ^1 )
+WRITE = ( ^2 )
+private onStatus: status signals: pending count: count = (
+	0 = (READ & pending) ifFalse: [onReadable: count].
+	0 = (WRITE & pending) ifFalse: [onWritable].
+	0 = (CLOSE & pending) ifFalse: [onClose].
+	0 = (ERROR & pending) ifFalse: [onError: status].
+)
+private rawAwait: handle signals: signals = (
+	(* :pragma: primitive: 190 *)
+	panic
+)
+protected rawClose: handle = (
+	(* :pragma: primitive: 356 *)
+	panic.
+)
+protected rawRead: handle count: count multipleReturn: _ = (
+	(* :pragma: primitive: 354 *)
+	panic.
+)
+protected rawWrite: handle buffer: b startingAt: s count: c multipleReturn: _ = (
+	(* :pragma: primitive: 355 *)
+	^(ArgumentError value: bytes) signal
+)
+protected subscribe: signals = (
+	rawAwait: handle signals: signals.
+	handleMap at: handle put:
+		[:status :signals :count | onStatus: status signals: signals count: count].
+)
+) : (
+)
+public class Network = () (
+) : (
+)
+class OSException status: s = Exception (
+|
+public status <Integer> = s.
+|
+) (
+public printString ^<String> = (
+	^'OSException(', (statusToString: status), ', ', status printString, ')'
+)
+private statusToString: s <Integer> ^<String> = (
+	(* :pragma: primitive: 352 *)
+	^(ArgumentError value: s) signal
+)
+) : (
+)
+(* :todo: kill/interrupt/signal *)
+class Process handle: h stdin: stdin stdout: stdout stderr: stderr = (
+	|
+	public stdin = WriteStream handle: stdin.
+	public stdout = ReadStream handle: stdout.
+	public stderr = ReadStream handle: stderr.
+	private exitResolver = Resolver new.
+	|
+	handleMap at: h put:
+		[:status :signals :count |
+		 handleMap removeKey: h.
+		 exitResolver fulfill: status].
+) (
+public exitCode ^<Promise[Integer]> = (
+	^exitResolver promise
+)
+) : (
+)
+public class Processes = () (
+public OSException = (
+	^outer IO OSException
+)
+(* :todo: As map? Do earlier or later duplicates obtain? Case-insensitive lookup for Windows? *)
+public environment ^<Array[String]> = (
+	(* :pragma: primitive: 357 *)
+	panic.
+)
+private primStartProcess: options argv: args env: env cwd: cwd multipleReturn: multipleReturn = (
+	(* :pragma: primitive: 353 *)
+	^ArgumentError signal
+)
+(* :todo: Probably refactor as ProcessStarter, stdio as pipe/inherit/null/file/append, detached, hide/show Windows console. *)
+public start: options <Integer> arguments: arguments <Array[String]> environment: env <Array[String]> workingDirectory: path <String> = (
+	checkStatus: (primStartProcess: 0 argv: arguments env: env cwd: path multipleReturn: multipleReturn).
+	^(Process
+		handle: (multipleReturn at: 1)
+		stdin: (multipleReturn at: 2)
+		stdout: (multipleReturn at: 3)
+		stderr: (multipleReturn at: 4)) <-: yourself
+)
+) : (
+)
+class ReadStream handle: h = Handle handle: h (
+	|
+	protected sink
+	|
+) (
+public >> s = (
+	sink:: s.
+	subscribe: READ.
+	^s
+)
+public close = (
+	nil = handle ifTrue: [^self].
+	checkStatus: (rawClose: handle).
+	handle:: nil.
+	handleMap removeKey: handle ifAbsent: [].
+	nil = sink ifFalse: [sink onDone. sink:: nil].
+)
+protected onClose = (
+	close.
+)
+protected onError: status = (
+	sink onError: (OSException status: status).
+)
+protected onReadable: count = (
+	| chunk |
+	checkStatus: (rawRead: handle count: count multipleReturn: multipleReturn).
+	chunk:: multipleReturn at: 1.
+	sink onData: chunk.
+)
+protected onWritable = (
+	panic.
+)
+) : (
+)
+class Slice over: bytes = (
+	|
+	public buffer <ByteArray | String> = bytes.
+	public offset <Integer> ::= 0.
+	public size <Integer> ::= bytes size.
+	|
+) (
+public advance: amount = (
+	offset:: offset + amount.
+	size:: size - amount.
+	^size > 0
+)
+) : (
+)
+class WriteStream handle: h = Handle handle: h (
+	|
+	ready
+	pending = List new.
+	doneResolver = Resolver new.
+	|
+) (
+public close = (
+	nil = handle ifTrue: [^self].
+	checkStatus: (rawClose: handle).
+	handle:: nil.
+	handleMap removeKey: handle ifAbsent: [].
+	pending removeAll.
+)
+isBytes: chunk = (
+	chunk isKindOfString ifTrue: [^true].
+	^chunk isKindOfByteArray
+)
+protected onClose = (
+	close.
+)
+(* :todo: Per-chunk promise, or only for a separate #flush? *)
+public onData: chunk = (
+	(isBytes: chunk) ifFalse: [^ArgumentError value: chunk].
+	pending add: (Slice over: chunk).
+	nil = ready ifTrue: [subscribe: WRITE].
+	true = ready ifTrue: [onWritable].
+)
+public onDone = (
+	pending isEmpty ifTrue: [^close].
+	pending add: nil.
+)
+protected onError: status = (
+	doneResolver break: (OSException status: status).
+	close.
+)
+protected onReadable: count = (
+	panic.
+)
+protected onWritable = (
+	| slice written status |
+	ready:: true.
+	pending isEmpty ifTrue: [^self].
+	slice:: pending removeFirst.
+	ready:: false.
+	nil = slice ifTrue: [^close].
+	status::
+		rawWrite: handle
+		buffer: slice buffer
+		startingAt: slice offset
+		count: slice size
+		multipleReturn: multipleReturn.
+	status = 0 ifFalse: [^onError: status].
+	written:: multipleReturn at: 1.
+	(slice advance: written) ifTrue: [pending addFirst: slice].
+)
+) : (
+)
+private checkStatus: status = (
+	0 = status ifFalse: [^(OSException status: status) signal].
+)
+private panic = (
+	(* :pragma: primitive: 187 *)
+)
+) : (
+)

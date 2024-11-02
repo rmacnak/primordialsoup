@@ -17,6 +17,11 @@
 #elif defined(OS_WINDOWS)
 #include <stringapiset.h>
 #endif
+#if defined(OS_MACOS)
+#include <crt_externs.h>
+#else
+extern char** environ;
+#endif
 
 #include "vm/assert.h"
 #include "vm/double_conversion.h"
@@ -263,6 +268,12 @@ const bool kFailure = false;
   V(330, JS_performNew)                                                        \
   V(331, JS_performInstanceOf)                                                 \
   V(332, JS_performHas)                                                        \
+  V(352, OSError_statusToString)                                               \
+  V(353, Process_start)                                                        \
+  V(354, Pipe_read)                                                            \
+  V(355, Pipe_write)                                                           \
+  V(356, Pipe_close)                                                           \
+  V(357, Process_environment)                                                  \
   V(509, print)                                                                \
   V(510, readFileAsBytes)                                                      \
   V(511, writeBytesToFile)
@@ -3780,6 +3791,249 @@ DEFINE_PRIMITIVE(JS_performHas) {
   if (_JS_performHas()) {
     RETURN_SELF();
   }
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(OSError_statusToString) {
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(status, 0);
+
+  const int kBufferLength = 256;
+  char buffer[kBufferLength];
+  char* raw_string = OS::StrError(status, buffer, kBufferLength);
+
+  intptr_t len = strlen(raw_string);
+  String string = H->AllocateString(len);  // SAFEPOINT
+  memcpy(string->element_addr(0), raw_string, len);
+
+  RETURN(string);
+}
+
+#if defined(OS_ANDROID) || defined(OS_LINUX) || \
+    defined(OS_MACOS) || defined(OS_WINDOWS)
+static char* AsMallocString(Bytes bytes) {
+  intptr_t n = bytes->Size();
+  char* result = reinterpret_cast<char*>(malloc(n + 1));
+  memcpy(result, bytes->element_addr(0), n);
+  result[n] = '\0';
+  return result;
+}
+
+static char** AsMallocArrayOfStrings(Array array) {
+  intptr_t n = array->Size();
+  char** result = reinterpret_cast<char**>(malloc(sizeof(char*) * (n + 1)));
+  for (intptr_t i = 0; i < n; i++) {
+    result[i] = AsMallocString(static_cast<Bytes>(array->element(i)));
+  }
+  result[n] = nullptr;
+  return result;
+}
+
+static void ReleaseArrayOfStrings(char** array) {
+  char** cursor = array;
+  while (*cursor != nullptr) {
+    free(*cursor);
+    cursor++;
+  }
+  free(array);
+}
+
+static String AsString(Heap* H, const char* cstr) {
+  size_t len = strlen(cstr);
+  String result = H->AllocateString(len);  // SAFEPOINT
+  memcpy(result->element_addr(0), cstr, len);
+  return result;
+}
+#endif
+
+DEFINE_PRIMITIVE(Process_start) {
+#if defined(OS_ANDROID) || defined(OS_LINUX) || \
+    defined(OS_MACOS) || defined(OS_WINDOWS)
+  ASSERT(num_args == 5);
+  SmallInteger options = static_cast<SmallInteger>(I->Stack(4));
+  if (!options->IsSmallInteger()) {
+    return kFailure;
+  }
+  Array arguments = static_cast<Array>(I->Stack(3));
+  if (!arguments->IsArray()) {
+    return kFailure;
+  }
+  for (intptr_t i = 0, n = arguments->Size(); i < n; i++) {
+    if (!arguments->element(i)->IsBytes()) {
+      return kFailure;
+    }
+  }
+  Array environment = static_cast<Array>(I->Stack(2));
+  if (environment != nil) {
+    if (!environment->IsArray()) {
+      return kFailure;
+    }
+    for (intptr_t i = 0, n = environment->Size(); i < n; i++) {
+      if (!environment->element(i)->IsBytes()) {
+        return kFailure;
+      }
+    }
+  }
+  Bytes workingdir = static_cast<Bytes>(I->Stack(1));
+  if (workingdir != nil && !workingdir->IsBytes()) {
+    return kFailure;
+  }
+  Array multiple_return = static_cast<Array>(I->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 4)) {
+    return kFailure;
+  }
+
+  intptr_t opt = options->value();
+  char** argv = AsMallocArrayOfStrings(arguments);
+  char** env = environment == nil ? nullptr
+                                  : AsMallocArrayOfStrings(environment);
+  char* cwd = workingdir == nil ? nullptr : AsMallocString(workingdir);
+  intptr_t process, stdin_, stdout_, stderr_;
+  PlatformMessageLoop* loop =
+      static_cast<PlatformMessageLoop*>(I->isolate()->loop());
+  intptr_t status = loop->StartProcess(opt, argv, env, cwd,
+                                       &process, &stdin_, &stdout_, &stderr_);
+  if (status == 0) {
+    multiple_return->set_element(0, SmallInteger::New(process));
+    multiple_return->set_element(1, SmallInteger::New(stdin_));
+    multiple_return->set_element(2, SmallInteger::New(stdout_));
+    multiple_return->set_element(3, SmallInteger::New(stderr_));
+  }
+  ReleaseArrayOfStrings(argv);
+  if (env != nullptr) {
+    ReleaseArrayOfStrings(env);
+  }
+  RETURN_SMI(status);
+#else
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(Pipe_read) {
+#if defined(OS_ANDROID) || defined(OS_LINUX) || \
+    defined(OS_MACOS) || defined(OS_WINDOWS)
+  ASSERT(num_args == 3);
+  SMI_ARGUMENT(handle, 2);
+  SMI_ARGUMENT(count, 1);
+  ASSERT(count >= 0);
+  if (count <= 0) {
+    return kFailure;
+  }
+  Array multiple_return = static_cast<Array>(I->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
+    return kFailure;
+  }
+
+  ByteArray result = H->AllocateByteArray(count);  // SAFEPOINT
+
+  intptr_t size_out = -1;
+  PlatformMessageLoop* loop =
+      static_cast<PlatformMessageLoop*>(I->isolate()->loop());
+  intptr_t status = loop->Read(handle,
+                               result->element_addr(0),
+                               count,
+                               &size_out);
+  ASSERT(status == 0);
+  ASSERT(size_out == count);
+  multiple_return = static_cast<Array>(I->Stack(0));
+  multiple_return->set_element(0, result);
+  RETURN_SMI(status);
+#else
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(Pipe_write) {
+#if defined(OS_ANDROID) || defined(OS_LINUX) || \
+    defined(OS_MACOS) || defined(OS_WINDOWS)
+  ASSERT(num_args == 5);
+  SMI_ARGUMENT(handle, 4);
+  Bytes buffer = static_cast<Bytes>(I->Stack(3));
+  if (!buffer->IsBytes()) {
+    return kFailure;
+  }
+  SMI_ARGUMENT(offset, 2);
+  SMI_ARGUMENT(count, 1);
+  Array multiple_return = static_cast<Array>(I->Stack(0));
+  if (!multiple_return->IsArray() || (multiple_return->Size() < 1)) {
+    return kFailure;
+  }
+  if (offset < 0 || count < 0 || offset + count > buffer->Size()) {
+    return kFailure;
+  }
+
+  PlatformMessageLoop* loop =
+      static_cast<PlatformMessageLoop*>(I->isolate()->loop());
+  intptr_t size_out = -1;
+  intptr_t status = loop->Write(handle,
+                                buffer->element_addr(offset),
+                                count,
+                                &size_out);
+  if (status == 0) {
+    multiple_return->set_element(0, SmallInteger::New(size_out));
+  }
+  RETURN_SMI(status);
+#else
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(Pipe_close) {
+#if defined(OS_ANDROID) || defined(OS_LINUX) || \
+    defined(OS_MACOS) || defined(OS_WINDOWS)
+  ASSERT(num_args == 1);
+  SMI_ARGUMENT(handle, 0);
+  PlatformMessageLoop* loop =
+      static_cast<PlatformMessageLoop*>(I->isolate()->loop());
+  intptr_t status = loop->Close(handle);
+  RETURN_SMI(status);
+#else
+  return kFailure;
+#endif
+}
+
+DEFINE_PRIMITIVE(Process_environment) {
+  ASSERT(num_args == 0);
+#if defined(OS_WINDOWS)
+  char* envblock = GetEnvironmentStringsA();
+  int n = 0;
+  const char* cursor = envblock;
+  while (*cursor != '\0') {
+    n++;
+    cursor += (strlen(cursor) + 1);
+  }
+  Array array = H->AllocateArray(n);  // SAFEPOINT
+  for (intptr_t i = 0; i < n; i++) {
+    array->set_element(i, nil, kNoBarrier);
+  }
+  HandleScope h(H, &array);
+  cursor = envblock;
+  for (intptr_t i = 0; i < n; i++) {
+    String element = AsString(H, cursor);  // SAFEPOINT
+    array->set_element(i, element);
+    cursor += (element->Size() + 1);
+  }
+  FreeEnvironmentStringsA(envblock);
+  RETURN(array);
+#elif defined(OS_ANDROID) || defined(OS_LINUX) || defined(OS_MACOS)
+#if defined(OS_MACOS)
+  char** environ = *_NSGetEnviron();
+#endif
+  int n = 0;
+  while (environ[n] != nullptr) { n++; }
+
+  Array array = H->AllocateArray(n);  // SAFEPOINT
+  for (intptr_t i = 0; i < n; i++) {
+    array->set_element(i, nil, kNoBarrier);
+  }
+  HandleScope h(H, &array);
+  for (intptr_t i = 0; i < n; i++) {
+    String element = AsString(H, environ[i]);  // SAFEPOINT
+    array->set_element(i, element);
+  }
+  RETURN(array);
+#else
   return kFailure;
 #endif
 }

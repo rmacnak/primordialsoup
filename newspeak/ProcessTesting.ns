@@ -1,0 +1,277 @@
+class ProcessTesting usingPlatform: platform minitest: minitest = (|
+private TestContext = minitest TestContext.
+private Promise = platform actors Promise.
+private Resolver = platform actors Resolver.
+private Timer = platform actors Timer.
+private List = platform collections List.
+private StringBuilder = platform kernel StringBuilder.
+private OSException = platform processes OSException.
+private processes = platform processes.
+private isWindows = platform operatingSystem = 'windows'.
+private isAndroid = platform operatingSystem = 'android'.
+
+private testProcessPath = findTestProcessPath.
+|) (
+class AccumulatingSink = (
+	|
+	buffer = StringBuilder new: 8192.
+	resolver = Resolver new.
+	|
+) (
+public onData: chunk = (
+	buffer add: chunk.
+)
+public onDone = (
+	resolver fulfill: buffer asString.
+)
+public onError: e = (
+	resolver break: e.
+)
+public promise = (
+	^resolver promise
+)
+) : (
+)
+public class ProcessTests = TestContext (
+	| p <Process | nil> |
+) (
+public cleanUp = (
+	(* Always close all the stdio pipes to prevent leaks. *)
+	nil = p ifFalse:
+		[(* p kill. *)
+		 p stdin close.
+		 p stdout close.
+		 p stderr close].
+)
+contentAsString: stream <Promise[ReadStream]> ^<Promise[String]> = (
+	^(stream <-: >> AccumulatingSink new) <-: promise
+)
+startTestProcessWith: arguments <Array[String]> ^<Promise[Process]> = (
+	^processes
+		start: 0
+		arguments: {testProcessPath} , arguments
+		environment: nil
+		workingDirectory: nil
+)
+public testAbort = (
+	| exitCode |
+	p:: await: (startTestProcessWith: {'abort'}).
+
+	exitCode:: await: p exitCode.
+	isWindows
+		ifTrue: [assert: exitCode equals: 3] (* Legacy of int3? *)
+		ifFalse: [assert: exitCode equals: -6]. (* SIGABRT *)
+)
+public testArgumentsAndStderr = (
+	p:: await: (startTestProcessWith: {'args-to-stderr'}).
+
+	assert: (await: p exitCode)
+		equals: 0.
+	assert: (await: (contentAsString: p stdout))
+		equals: ''.
+	assert: (await: (contentAsString: p stderr))
+		equals: (testProcessPath, "\nargs-to-stderr\n").
+)
+public testArgumentsAndStdout = (
+	p:: await: (startTestProcessWith: {'args-to-stdout'}).
+
+	assert: (await: p exitCode)
+		equals: 0.
+	assert: (await: (contentAsString: p stdout))
+		equals: (testProcessPath, "\nargs-to-stdout\n").
+	assert: (await: (contentAsString: p stderr))
+		equals: ''.
+)
+public testChildClosesStdin = (
+	p:: await: (startTestProcessWith: {'close-stdin'}).
+
+	p stdin onData: 'abc'.
+
+	await:: timeout: 1.
+
+	p stdout close. (* Signal child to exit *)
+
+	assert: (await: (contentAsString: p stderr)) equals: ''.
+	assert: (await: p exitCode) equals: 0.
+)
+public testChildClosesStdout = (
+	p:: await: (startTestProcessWith: {'close-stdout'}).
+
+	await: (timeout: 1).
+
+	assert: (await: (contentAsString: p stdout)) equals: 'closing'.
+
+	p stdin close. (* Signal child to exit *)
+
+	assert: (await: p exitCode) equals: 0.
+	assert: (await: (contentAsString: p stderr)) equals: ''.
+)
+public testEnvironment = (
+	| stdout |
+	p:: await: (processes
+		start: 0
+		arguments: {testProcessPath. 'environment'}
+		environment: {'KEY=VAL'}
+		workingDirectory: nil).
+
+	stdout:: await: (contentAsString: p stdout).
+	isWindows
+		ifTrue: [assert: (stdout startsWith: "KEY=VAL\n")]
+		ifFalse: [assert: stdout equals: "KEY=VAL\n"].
+)
+public testExit = (
+	p:: await: (startTestProcessWith: {'exit'. '42'}).
+
+	assert: (await: p exitCode) equals: 42.
+	assert: (await: (contentAsString: p stdout)) equals: ''.
+	assert: (await: (contentAsString: p stderr)) equals: ''.
+)
+public testLargeRead = (
+	(* By large, we mean something bigger than the pipe's buffer. *)
+	| bytes |
+	p:: await: (startTestProcessWith: {'large-write'}).
+
+	bytes:: await: (contentAsString: p stdout).
+	assert: bytes size equals: 1024 * 1024.
+	1 to: bytes size do: [:i | assert: (bytes at: i) equals: (i - 1 & 255)].
+
+	assert: (await: (contentAsString: p stderr)) equals: ''.
+	assert: (await: p exitCode) equals: 0.
+)
+public testLargeWrite = (
+	(* By large, we mean something bigger than the pipe's buffer. *)
+	| bytes |
+	bytes:: ByteArray new: 1024 * 1024.
+	1 to: bytes size do: [:i | bytes at: i put: (i - 1 & 255)].
+
+	p:: await: (startTestProcessWith: {'large-read'}).
+
+	p stdin onData: bytes.
+	p stdin onDone.
+
+	assert: (await: (contentAsString: p stderr)) equals: ''.
+	assert: (await: p exitCode) equals: 0.
+)
+public testManyPendingProcesses = (
+	| n children |
+	n:: 64. (* More than max events drained per run of kevent/epoll_wait. *)
+	children:: List new.
+	64 timesRepeat:
+		[children add: (startTestProcessWith: {'sleep'. '100'})].
+
+	children do:
+		[:child |
+		 assert: (await: child <-: exitCode) equals: 0.
+		 child <-: stdin <-: close.
+		 assert: (await: (contentAsString: child <-: stdout)) equals: ''.
+		 assert: (await: (contentAsString: child <-: stderr)) equals: ''].
+)
+public testManyReads = (
+	| stdout stderr |
+	p:: await: (startTestProcessWith: {'many-writes'}).
+
+	stdout:: await: (contentAsString: p stdout).
+	assert: stdout size equals: 100 * 256.
+	1 to: stdout size do: [:i | assert: (stdout at: i) equals: (i - 1 & 255)].
+
+	assert: (await: (contentAsString: p stderr)) equals: ''.
+	assert: (await: p exitCode) equals: 0.
+)
+public testManyWrites = (
+	| bytes stderr |
+	bytes:: ByteArray new: 256.
+	1 to: bytes size do: [:i | bytes at: i put: (i - 1 & 255)].
+
+	p:: await: (startTestProcessWith: {'many-reads'}).
+
+	100 timesRepeat:
+		[p stdin onData: bytes.
+		 await: (timeout: 1)].
+	p stdin onDone.
+
+	stderr:: await: (contentAsString: p stderr).
+	assert: stderr equals: ''.
+	assert: (await: p exitCode) equals: 0.
+)
+public testNoSuchExecutable = (
+	should:
+		[await:: processes
+			start: 0
+			arguments: {'no-such-executable'}
+			environment: nil
+			workingDirectory: nil]
+	signal: OSException.
+)
+public testNoSuchWorkingDirectory = (
+	should:
+		[await:: processes
+			start: 0
+			arguments: {testProcessPath. 'working-directory'}
+			environment: nil
+			workingDirectory: 'no-such-directory']
+	signal: OSException.
+)
+public testParentEnvironment = (
+	| env hasPath PATH |
+	env:: processes environment.
+	assert: env isKindOfArray.
+	assert: env size > 0.
+	hasPath:: false.
+	PATH:: isWindows ifTrue: ['Path='] ifFalse: ['PATH='].
+	env do:
+		[:assoc |
+		 assert: assoc isKindOfString.
+		 (assoc startsWith: PATH) ifTrue: [hasPath:: true]].
+	assert: hasPath.
+)
+public testStdin = (
+	p:: await: (startTestProcessWith: {'stdin-to-stdout'}).
+
+	p stdin onData: 'abc'.
+	p stdin onDone.
+
+	assert: (await: p exitCode) equals: 0.
+	assert: (await: (contentAsString: p stdout)) equals: 'abc'.
+	assert: (await: (contentAsString: p stderr)) equals: ''.
+)
+public testTrap = (
+	| exitCode |
+	p:: await: (startTestProcessWith: {'trap'}).
+
+	exitCode:: await: p exitCode.
+	isWindows
+		ifTrue: [assert: exitCode equals: 16r80000003] (* STATUS_BREAKPOINT *)
+		ifFalse: [assert: (exitCode = -5) | (exitCode = -4)]. (* SIGTRAP / SIGILL *)
+)
+public testWorkingDirectory = (
+	| e stdout |
+	isAndroid ifTrue: [^self]. (* Doesn't have `out` *)
+	e:: isWindows ifTrue: [testProcessPath] ifFalse: ['../', testProcessPath].
+	p:: await: (processes
+		start: 0
+		arguments: {e. 'working-directory'}
+		environment: nil
+		workingDirectory: 'out').
+
+	stdout:: await: (contentAsString: p stdout).
+	assert: (stdout endsWith: 'out').
+	assert: (await: p exitCode) equals: 0.
+)
+timeout: milliseconds = (
+	| r |
+	r:: Resolver new.
+	Timer after: milliseconds do: [r fulfill: nil].
+	^r promise
+)
+) : (
+TEST_CONTEXT = ()
+)
+findTestProcessPath = (
+	processes environment do:
+		[:assoc |
+		 (assoc startsWith: 'PSOUP_TEST_PROCESS=') ifTrue:
+			[^assoc copyFrom: 20 to: assoc size]].
+	Exception signal: 'Missing PSOUP_TEST_PROCESS'.
+)
+) : (
+)

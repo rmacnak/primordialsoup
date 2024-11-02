@@ -40,8 +40,9 @@ void MessageLoop::DispatchSignal(intptr_t handle,
                                  intptr_t signals,
                                  intptr_t count) {
   if (TRACE_SIGNALS) {
-    OS::PrintErr("handle=%" Pd ", status=%" Pd "(%s), signals=%" Pd "\n",
-                 handle, status, strerror(status), signals);
+    OS::PrintErr("handle=%" Pd ", status=%" Pd ", "
+                 "signals=%" Pd ", count=%" Pd "\n",
+                 handle, status, signals, count);
   }
 
   if (isolate_ == nullptr) {

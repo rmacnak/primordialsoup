@@ -176,6 +176,20 @@ void Isolate::ActivateSignal(intptr_t handle,
                              intptr_t status,
                              intptr_t signals,
                              intptr_t count) {
+  Object status_obj;
+#if defined(OS_WINDOWS) && defined(ARCH_IS_32_BIT)
+  int64_t status_dword = static_cast<DWORD>(status);
+  if (SmallInteger::IsSmiValue(status_dword)) {
+    status_obj = SmallInteger::New(static_cast<intptr_t>(status_dword));
+  } else {
+    MediumInteger mint = heap_->AllocateMediumInteger();  // SAFEPOINT
+    mint->set_value(status_dword);
+    status_obj = mint;
+  }
+#else
+  status_obj = SmallInteger::New(status);
+#endif
+
   Object message_loop = interpreter_->object_store()->message_loop();
 
   Behavior cls = message_loop->Klass(heap_);
@@ -184,7 +198,7 @@ void Isolate::ActivateSignal(intptr_t handle,
 
   interpreter_->Push(message_loop);
   interpreter_->Push(SmallInteger::New(handle));
-  interpreter_->Push(SmallInteger::New(status));
+  interpreter_->Push(status_obj);
   interpreter_->Push(SmallInteger::New(signals));
   interpreter_->Push(SmallInteger::New(count));
   interpreter_->ActivateDispatch(method, 4);  // SAFEPOINT

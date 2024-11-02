@@ -3,6 +3,9 @@
 out/DebugHost/primordialsoup out/snapshots/HelloApp.vfuel
 out/ReleaseHost/primordialsoup out/snapshots/HelloApp.vfuel
 
+PSOUP_TEST_PROCESS=out/DebugHost/test_process out/DebugHost/primordialsoup out/snapshots/IOTestRunner.vfuel
+PSOUP_TEST_PROCESS=out/ReleaseHost/test_process out/ReleaseHost/primordialsoup out/snapshots/IOTestRunner.vfuel
+
 out/DebugHost/primordialsoup out/snapshots/TestRunner.vfuel
 out/ReleaseHost/primordialsoup out/snapshots/TestRunner.vfuel
 

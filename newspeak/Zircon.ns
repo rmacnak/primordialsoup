@@ -18,7 +18,7 @@ public onReadable: action = (
 	onReadable_:: action.
 	await: CHANNEL_READABLE | CHANNEL_PEER_CLOSED.
 )
-protected onStatus: status signals: pending = (
+protected onStatus: status signals: pending count: count = (
 	OK = status ifFalse:
 		[close. ^self].
 	0 = (CHANNEL_READABLE & pending) ifFalse:
@@ -138,7 +138,8 @@ protected waiter ::= 0.
 ) (
 protected await: signals = (
 	0 = waiter ifFalse: [rawCancelWait: waiter].
-	messageLoop handleMap at: handle put: [:status :pending | onStatus: status signals: pending].
+	messageLoop handleMap at: handle put:
+		[:status :pending :count | onStatus: status signals: pending count: count].
 	waiter:: rawAwait: handle signals: signals.
 )
 public close = (
@@ -146,7 +147,7 @@ public close = (
 	rawClose: handle.
 	handle:: HANDLE_INVALID.
 )
-protected onStatus: status signals: pending = (
+protected onStatus: status signals: pending count: count = (
 )
 private rawAwait: h signals: s = (
 	(* :pragma: primitive: 190 *)

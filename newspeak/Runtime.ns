@@ -9,6 +9,7 @@ private Time = manifest Time.
 private Random = manifest Random.
 private Zircon = manifest Zircon.
 private JS = manifest JS.
+private IO = manifest IO.
 |) (
 public class Platform internalKernel: ik = (|
 public kernel = Kernel wrapping: ik.
@@ -19,6 +20,10 @@ public time = Time usingPlatform: self.
 public random = Random usingPlatform: self.
 public zircon = Zircon usingPlatform: self internalKernel: ik.
 public js = JS usingPlatform: self internalKernel: ik.
+private io = IO usingPlatform: self internalKernel: ik.
+public processes = io Processes new.
+public files = io Files new.
+public network = io Network new.
 |) (
 public numberOfProcessors ^<Integer> = (
 	(* :pragma: primitive: 256 *)

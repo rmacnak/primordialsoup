@@ -1,0 +1,49 @@
+class IOTestRunner packageUsing: manifest = (|
+Minitest = manifest Minitest.
+testConfigs = {
+	manifest ProcessTestingConfiguration packageTestsUsing: manifest.
+	manifest FileTestingConfiguration packageTestsUsing: manifest.
+	manifest SocketTestingConfiguration packageTestsUsing: manifest.
+}.
+Promise
+|) (
+private exit: code = (
+	(* :pragma: primitive: 189 *)
+	panic.
+)
+public main: platform args: args = (
+	| keepAlive stopwatch minitest testModules tester |
+	keepAlive:: platform actors Port new.
+	Promise:: platform actors Promise.
+	stopwatch:: platform time Stopwatch new start.
+	minitest:: Minitest usingPlatform: platform.
+	testModules:: platform collections List new.
+	testConfigs do:
+		[:testConfig |
+		testModules addAll:
+			(testConfig testModulesUsingPlatform: platform minitest: minitest)].
+	tester:: minitest Tester testModules: testModules asArray.
+	tester prepare.
+
+
+	Promise when: (runTests: tester) fulfilled:
+		[(tester successes size printString, ' successes, ',
+		 tester failures size printString, ' failures, ',
+		 tester errors size printString, ' errors, ',
+		 stopwatch elapsedMilliseconds asString, ' ms') out.
+
+		 tester haveAllTestsSucceeded ifFalse: [exit: -1].
+		 keepAlive close]
+)
+runTests: tester = (
+	| s |
+	tester atEnd ifTrue: [^self].
+	tester peekSelector out.
+	^Promise when: tester stepAsync fulfilled:
+		[:result |
+		 result isError ifTrue: ['error' out. result exception out].
+		 result isFailure ifTrue: ['failure' out. result description out].
+		 runTests: tester]
+)
+) : (
+)

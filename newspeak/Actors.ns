@@ -503,12 +503,12 @@ private dispatchHandle: handle status: status signals: signals count: count = (
 	handler:: handleMap at: handle ifAbsent: [nil].
 	nil = handler
 		ifTrue:
-			['Signal for ', handle printString, ' with no handler' out]
+			[('Signal for ', handle printString, ' with no handler') out]
 		ifFalse:
 			[currentActor
 				enqueueReceiver: handler
-				selector: #value:value:
-				arguments: {status. signals}
+				selector: #value:value:value:
+				arguments: {status. signals. count}
 				resolver: nil].
 	finish: drainQueue.
 )

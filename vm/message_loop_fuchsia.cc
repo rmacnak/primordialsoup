@@ -74,13 +74,16 @@ void FuchsiaMessageLoop::CancelSignalWait(intptr_t wait_id) {
 }
 
 void FuchsiaMessageLoop::MessageEpilogue(int64_t new_wakeup) {
-  wakeup_ = new_wakeup;
-  if (new_wakeup == 0) {
-    zx_status_t result = timer_.cancel();
-    ASSERT(result == ZX_OK);
-  } else {
-    zx_status_t result = timer_.set(zx::time(new_wakeup), zx::msec(1));
-    ASSERT(result == ZX_OK);
+  if (wakeup_ != new_wakeup) {
+    wakeup_ = new_wakeup;
+
+    if (new_wakeup == 0) {
+      zx_status_t result = timer_.cancel();
+      ASSERT(result == ZX_OK);
+    } else {
+      zx_status_t result = timer_.set(zx::time(new_wakeup), zx::msec(1));
+      ASSERT(result == ZX_OK);
+    }
   }
 
   if ((open_ports_ == 0) && (open_waits_ == 0) && (wakeup_ == 0)) {

@@ -97,7 +97,7 @@ private pushExpat: closure = (
 	expatIndex:: nextExpatIndex.
 	nextExpatIndex:: 1 + expatIndex.
 	messageLoop handleMap at: expatIndex put:
-		[:status :pending |
+		[:status :pending :count |
 		| arguments = Array new: status. |
 		status to: 1 by: -1 do:
 			[:argumentIndex | arguments at: argumentIndex put: rawPop].

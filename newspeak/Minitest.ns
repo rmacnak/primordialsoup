@@ -378,11 +378,12 @@ assert: aBlockOrValue <[Boolean] | Boolean> descriptionBlock: messageBlock <[Str
 )
 (* Succeed if anObject = anotherObject. Preferrable to a simple 'assert: [a = b]' in a test method because in case of a failure the values compared are available for inspection as this method's arguments. *)
 assert: anObject equals: expectedObject = (
-	assert: anObject = expectedObject descriptionBlock:
-		['Equality assertion failed; expected: ',
-		 expectedObject printString,
-		 ', was: ',
-		 anObject printString]
+	anObject = expectedObject ifFalse:
+		[failWithMessage:
+			'Equality assertion failed; expected: ',
+			 expectedObject printString,
+			 ', was: ',
+			 anObject printString].
 )
 (* Succeed if anObject = anotherObject. Preferrable to a simple 'assert: [a = b]' in a test method because in case of a failure the values compared are available for inspection as this method's arguments. *)
 assert: anObject equals: anotherObject description: messageText = (
@@ -430,11 +431,12 @@ deny: aBlockOrBoolean <[Boolean] | Boolean> descriptionBlock: messageBlock <[Str
 )
 (* Succeed if (anObject = anotherObject) not. Preferrable to a simple 'deny: [a = b]' in a test method because in case of a failure the values compared are available for inspection as this method's arguments. *)
 deny: anObject equals: expectedObject = (
-	deny: anObject = expectedObject descriptionBlock:
-		['Inequality assertion failed; expected not: ',
-		expectedObject printString,
-		', was: ',
-		anObject printString]
+	anObject = expectedObject ifTrue:
+		[failWithMessage:
+			'Inequality assertion failed; expected not: ',
+			expectedObject printString,
+			', was: ',
+			anObject printString].
 )
 failWithMessage: messageText <String | nil> = (
 	TestFailureException new signal: messageText
