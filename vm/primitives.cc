@@ -404,7 +404,7 @@ DEFINE_PRIMITIVE(Number_add) {
     int64_t raw_left = MINT_VALUE(left);
     int64_t raw_right = MINT_VALUE(right);
     int64_t raw_result;
-    if (Math::AddHasOverflow64(raw_left, raw_right, &raw_result)) {
+    if (Math::AddHasOverflow(raw_left, raw_right, &raw_result)) {
       // Fall through to large integer operation.
     } else {
       RETURN_MINT(raw_result);
@@ -442,7 +442,7 @@ DEFINE_PRIMITIVE(Number_subtract) {
     int64_t raw_left = MINT_VALUE(left);
     int64_t raw_right = MINT_VALUE(right);
     int64_t raw_result;
-    if (Math::SubtractHasOverflow64(raw_left, raw_right, &raw_result)) {
+    if (Math::SubtractHasOverflow(raw_left, raw_right, &raw_result)) {
       // Fall through to large integer operation.
     } else {
       RETURN_MINT(raw_result);
@@ -494,7 +494,7 @@ DEFINE_PRIMITIVE(Number_multiply) {
     int64_t raw_left = MINT_VALUE(left);
     int64_t raw_right = MINT_VALUE(right);
     int64_t raw_result;
-    if (Math::MultiplyHasOverflow64(raw_left, raw_right, &raw_result)) {
+    if (Math::MultiplyHasOverflow(raw_left, raw_right, &raw_result)) {
       // Fall through to large integer operation.
     } else {
       RETURN_MINT(raw_result);
@@ -600,7 +600,7 @@ DEFINE_PRIMITIVE(Number_div) {
     if ((raw_right == -1) && (raw_left == kMinInt64)) {
       // Overflow. Fall through to large integer operation.
     } else {
-      int64_t raw_result = Math::FloorDiv64(raw_left, raw_right);
+      int64_t raw_result = Math::FloorDiv(raw_left, raw_right);
       RETURN_MINT(raw_result);
     }
   }
@@ -654,7 +654,7 @@ DEFINE_PRIMITIVE(Number_mod) {
     if ((raw_right == -1) && (raw_left == kMinInt64)) {
       // Overflow. Fall through to large integer operation.
     } else {
-      int64_t raw_result = Math::FloorMod64(raw_left, raw_right);
+      int64_t raw_result = Math::FloorMod(raw_left, raw_right);
       RETURN_MINT(raw_result);
     }
   }
@@ -696,7 +696,7 @@ DEFINE_PRIMITIVE(Number_quo) {
     if ((raw_right == -1) && (raw_left == kMinInt64)) {
       // Overflow. Fall through to large integer operation.
     } else {
-      int64_t raw_result = Math::TruncDiv64(raw_left, raw_right);
+      int64_t raw_result = Math::TruncDiv(raw_left, raw_right);
       RETURN_MINT(raw_result);
     }
   }
@@ -738,7 +738,7 @@ DEFINE_PRIMITIVE(Number_rem) {
     if ((raw_right == -1) && (raw_left == kMinInt64)) {
       // Overflow. Fall through to large integer operation.
     } else {
-      int64_t raw_result = Math::TruncMod64(raw_left, raw_right);
+      int64_t raw_result = Math::TruncMod(raw_left, raw_right);
       RETURN_MINT(raw_result);
     }
   }
@@ -1044,7 +1044,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
       return kFailure;
     }
     if (Utils::BitLength(raw_left) <= (63 - raw_right)) {
-      int64_t raw_result = Math::ShiftLeft64(raw_left, raw_right);
+      int64_t raw_result = Math::ShiftLeft(raw_left, raw_right);
       ASSERT(raw_result >> raw_right == raw_left);
       RETURN_MINT(raw_result);
     }

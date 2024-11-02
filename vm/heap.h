@@ -103,7 +103,7 @@ class FreeList {
 // Languages, Programming, Systems, and Applications. 1997.
 class Heap {
  private:
-  static constexpr intptr_t kLargeAllocationSize = 32 * KB;
+  static constexpr size_t kLargeAllocationSize = 32 * KB;
   static constexpr intptr_t kRememberedSetOverflowSize = 8 * KB;
   static constexpr size_t kInitialSemispaceCapacity = sizeof(uword) * MB / 8;
   static constexpr size_t kMaxSemispaceCapacity = 2 * sizeof(uword) * MB;

@@ -10,6 +10,9 @@
 #if !defined(WIN32_LEAN_AND_MEAN)
 #define WIN32_LEAN_AND_MEAN
 #endif
+#if !defined(NOMINMAX)
+#define NOMINMAX
+#endif
 
 #include <windows.h>
 #endif  // defined(_WIN32)
@@ -111,41 +114,41 @@ typedef uintptr_t uword;
 typedef decltype(nullptr) nullptr_t;
 
 // Byte sizes.
-constexpr int kWordSize = sizeof(word);
-constexpr int kDoubleSize = sizeof(double);
-constexpr int kFloatSize = sizeof(float);
-constexpr int kInt32Size = sizeof(int32_t);
-constexpr int kInt16Size = sizeof(int16_t);
+constexpr size_t kWordSize = sizeof(word);
+constexpr size_t kDoubleSize = sizeof(double);
+constexpr size_t kFloatSize = sizeof(float);
+constexpr size_t kInt32Size = sizeof(int32_t);
+constexpr size_t kInt16Size = sizeof(int16_t);
 #if defined(ARCH_IS_32_BIT)
-constexpr int kWordSizeLog2 = 2;
+constexpr size_t kWordSizeLog2 = 2;
 constexpr uword kUwordMax = kMaxUint32;
 #elif defined(ARCH_IS_64_BIT)
-constexpr int kWordSizeLog2 = 3;
+constexpr size_t kWordSizeLog2 = 3;
 constexpr uword kUwordMax = kMaxUint64;
 #endif
 
 // Bit sizes.
-constexpr int kBitsPerByte = 8;
-constexpr int kBitsPerWord = kWordSize * kBitsPerByte;
+constexpr size_t kBitsPerByte = 8;
+constexpr size_t kBitsPerWord = kWordSize * kBitsPerByte;
 
 // System-wide named constants.
-constexpr intptr_t KB = 1024;
-constexpr intptr_t KBLog2 = 10;
-constexpr intptr_t MB = KB * KB;
-constexpr intptr_t MBLog2 = KBLog2 + KBLog2;
-constexpr intptr_t GB = MB * KB;
-constexpr intptr_t GBLog2 = MBLog2 + KBLog2;
+constexpr size_t KB = 1024;
+constexpr size_t KBLog2 = 10;
+constexpr size_t MB = KB * KB;
+constexpr size_t MBLog2 = KBLog2 + KBLog2;
+constexpr size_t GB = MB * KB;
+constexpr size_t GBLog2 = MBLog2 + KBLog2;
 
 // Time constants.
-constexpr int kMillisecondsPerSecond = 1000;
-constexpr int kMicrosecondsPerMillisecond = 1000;
-constexpr int kMicrosecondsPerSecond = (kMicrosecondsPerMillisecond *
-                                        kMillisecondsPerSecond);
-constexpr int kNanosecondsPerMicrosecond = 1000;
-constexpr int kNanosecondsPerMillisecond = (kNanosecondsPerMicrosecond *
-                                            kMicrosecondsPerMillisecond);
-constexpr int kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
-                                       kMicrosecondsPerSecond);
+constexpr int64_t kMillisecondsPerSecond = 1000;
+constexpr int64_t kMicrosecondsPerMillisecond = 1000;
+constexpr int64_t kMicrosecondsPerSecond = (kMicrosecondsPerMillisecond *
+                                            kMillisecondsPerSecond);
+constexpr int64_t kNanosecondsPerMicrosecond = 1000;
+constexpr int64_t kNanosecondsPerMillisecond = (kNanosecondsPerMicrosecond *
+                                                kMicrosecondsPerMillisecond);
+constexpr int64_t kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
+                                           kMicrosecondsPerSecond);
 
 // A macro to disallow the copy constructor and operator= functions.
 // This should be used in the private: declarations for a class.

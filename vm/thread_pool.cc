@@ -362,8 +362,7 @@ bool ThreadPool::Worker::Loop() {
     pool_->SetIdleAndReapExited(this);
     idle_start = OS::CurrentMonotonicNanos();
     while (true) {
-      int64_t deadline =
-          idle_start + (static_cast<int64_t>(5) * kNanosecondsPerSecond);
+      int64_t deadline = idle_start + (5 * kNanosecondsPerSecond);
       Monitor::WaitResult result = ml.WaitUntilNanos(deadline);
       if (task_ != nullptr) {
         // We've found a task.  Process it, regardless of whether the
