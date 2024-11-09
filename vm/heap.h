@@ -5,6 +5,7 @@
 #ifndef VM_HEAP_H_
 #define VM_HEAP_H_
 
+#include "vm/allocation.h"
 #include "vm/assert.h"
 #include "vm/flags.h"
 #include "vm/globals.h"
@@ -439,7 +440,7 @@ class Heap {
   DISALLOW_COPY_AND_ASSIGN(Heap);
 };
 
-class HandleScope {
+class HandleScope : public ValueObject {
  public:
   HandleScope(Heap* heap, Object* ptr) : heap_(heap) {
     ASSERT(heap_->handles_size_ < Heap::kHandlesCapacity);

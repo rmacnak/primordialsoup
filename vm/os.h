@@ -5,11 +5,12 @@
 #ifndef VM_OS_H_
 #define VM_OS_H_
 
+#include "vm/allocation.h"
 #include "vm/globals.h"
 
 namespace psoup {
 
-class OS {
+class OS : public AllStatic {
  public:
   static void Startup();
   static void Shutdown();

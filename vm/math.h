@@ -8,12 +8,13 @@
 #include <limits>
 #include <type_traits>
 
+#include "vm/allocation.h"
 #include "vm/assert.h"
 #include "vm/globals.h"
 
 namespace psoup {
 
-class Math {
+class Math : public AllStatic {
  public:
   template <typename T>
   static inline bool AddHasOverflow(T left, T right, T* result) {

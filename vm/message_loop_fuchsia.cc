@@ -11,6 +11,7 @@
 #include <zircon/status.h>
 #include <zircon/syscalls.h>
 
+#include "vm/assert.h"
 #include "vm/os.h"
 
 namespace psoup {

@@ -6,6 +6,7 @@
 #define VM_THREAD_H_
 
 #include "vm/allocation.h"
+#include "vm/assert.h"
 #include "vm/globals.h"
 
 #if defined(OS_ANDROID) || defined(OS_FUCHSIA) || defined(OS_LINUX) ||         \

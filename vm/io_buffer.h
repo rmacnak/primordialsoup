@@ -5,6 +5,9 @@
 #ifndef VM_IO_BUFFER_H_
 #define VM_IO_BUFFER_H_
 
+#include "vm/assert.h"
+#include "vm/globals.h"
+
 namespace psoup {
 
 enum Operation {

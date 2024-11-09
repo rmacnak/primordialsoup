@@ -7,12 +7,13 @@
 
 #include <type_traits>
 
+#include "vm/allocation.h"
 #include "vm/assert.h"
 #include "vm/globals.h"
 
 namespace psoup {
 
-class Utils {
+class Utils : public AllStatic {
  public:
   template <typename T>
   static constexpr inline T RoundDown(T x, intptr_t n) {
