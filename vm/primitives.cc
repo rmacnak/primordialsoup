@@ -282,7 +282,7 @@ const bool kFailure = false;
   static bool primitive##name(intptr_t num_args, Heap* H, Interpreter* I)
 
 #define IS_SMI_OP(left, right)                                                 \
-  (left->IsSmallInteger() && right->IsSmallInteger())
+  (Object::BothSmallIntegers(left, right))
 
 #define IS_MINT_OP(left, right)                                                \
   ((left->IsSmallInteger() || left->IsMediumInteger()) &&                      \
@@ -405,10 +405,12 @@ DEFINE_PRIMITIVE(Number_add) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    intptr_t raw_result = raw_left + raw_right;  // Cannot overflow.
-    RETURN_MINT(raw_result);
+    intptr_t raw_left = static_cast<intptr_t>(left);
+    intptr_t raw_right = static_cast<intptr_t>(right);
+    intptr_t raw_result;
+    if (!Math::AddHasOverflow(raw_left, raw_right, &raw_result)) {
+      RETURN(static_cast<SmallInteger>(raw_result));
+    }
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -443,10 +445,12 @@ DEFINE_PRIMITIVE(Number_subtract) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    intptr_t raw_result = raw_left - raw_right;  // Cannot overflow.
-    RETURN_MINT(raw_result);
+    intptr_t raw_left = static_cast<intptr_t>(left);
+    intptr_t raw_right = static_cast<intptr_t>(right);
+    intptr_t raw_result;
+    if (!Math::SubtractHasOverflow(raw_left, raw_right, &raw_result)) {
+      RETURN(static_cast<SmallInteger>(raw_result));
+    }
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -482,23 +486,12 @@ DEFINE_PRIMITIVE(Number_multiply) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-#if defined(ARCH_IS_32_BIT)
-    int64_t raw_left = SMI_VALUE(left);
-    int64_t raw_right = SMI_VALUE(right);
-    int64_t raw_result = raw_left * raw_right;  // Cannot overflow.
-    RETURN_MINT(raw_result);
-#elif defined(ARCH_IS_64_BIT)
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
+    intptr_t raw_left = static_cast<intptr_t>(left);
+    intptr_t raw_right = static_cast<intptr_t>(right) >> kSmiTagShift;
     intptr_t raw_result;
-    if (Math::MultiplyHasOverflow(raw_left, raw_right, &raw_result)) {
-      // Fall through to large integer operation.
-    } else {
-      RETURN_MINT(raw_result);
+    if (!Math::MultiplyHasOverflow(raw_left, raw_right, &raw_result)) {
+      RETURN(static_cast<SmallInteger>(raw_result));
     }
-#else
-#error Unimplemented
-#endif
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -773,9 +766,7 @@ DEFINE_PRIMITIVE(Number_equal) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    RETURN_BOOL(raw_left == raw_right);
+    RETURN_BOOL(static_cast<intptr_t>(left) == static_cast<intptr_t>(right));
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -803,9 +794,7 @@ DEFINE_PRIMITIVE(Number_less) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    RETURN_BOOL(raw_left < raw_right);
+    RETURN_BOOL(static_cast<intptr_t>(left) < static_cast<intptr_t>(right));
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -833,9 +822,7 @@ DEFINE_PRIMITIVE(Number_greater) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    RETURN_BOOL(raw_left > raw_right);
+    RETURN_BOOL(static_cast<intptr_t>(left) > static_cast<intptr_t>(right));
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -863,9 +850,7 @@ DEFINE_PRIMITIVE(Number_lessOrEqual) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    RETURN_BOOL(raw_left <= raw_right);
+    RETURN_BOOL(static_cast<intptr_t>(left) <= static_cast<intptr_t>(right));
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -893,9 +878,7 @@ DEFINE_PRIMITIVE(Number_greaterOrEqual) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    RETURN_BOOL(raw_left >= raw_right);
+    RETURN_BOOL(static_cast<intptr_t>(left) >= static_cast<intptr_t>(right));
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -957,10 +940,8 @@ DEFINE_PRIMITIVE(Integer_bitAnd) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    intptr_t raw_result = raw_left & raw_right;
-    RETURN_SMI(raw_result);
+    RETURN(static_cast<SmallInteger>(static_cast<intptr_t>(left) &
+                                     static_cast<intptr_t>(right)));
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -983,10 +964,8 @@ DEFINE_PRIMITIVE(Integer_bitOr) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    intptr_t raw_result = raw_left | raw_right;
-    RETURN_SMI(raw_result);
+    RETURN(static_cast<SmallInteger>(static_cast<intptr_t>(left) |
+                                     static_cast<intptr_t>(right)));
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -1009,10 +988,9 @@ DEFINE_PRIMITIVE(Integer_bitXor) {
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
-    intptr_t raw_left = SMI_VALUE(left);
-    intptr_t raw_right = SMI_VALUE(right);
-    intptr_t raw_result = raw_left ^ raw_right;
-    RETURN_SMI(raw_result);
+    RETURN(static_cast<SmallInteger>(static_cast<intptr_t>(left) ^
+                                     static_cast<intptr_t>(right) ^
+                                     kSmiTag));
   }
 
   if (IS_MINT_OP(left, right)) {
@@ -1464,12 +1442,12 @@ DEFINE_PRIMITIVE(ByteArray_atPut) {
   if ((index < 0) || (index >= array->Size())) {
     return kFailure;
   }
-  SMI_ARGUMENT(value, 0);
-  if ((value < 0) || (value > 255)) {
+  Object value = I->Stack(0);
+  if (!SmallInteger::IsByte(value)) {
     return kFailure;
   }
-  array->set_element(index, value);
-  RETURN_SMI(value);
+  array->set_element(index, SmallInteger::Byte(value));
+  RETURN(value);
 }
 
 DEFINE_PRIMITIVE(ByteArray_size) {
@@ -2699,12 +2677,12 @@ DEFINE_PRIMITIVE(Bytes_copyStringFromTo) {
 
 DEFINE_PRIMITIVE(String_class_with) {
   ASSERT(num_args == 1);
-  SMI_ARGUMENT(byte, 0);
-  if ((byte < 0) || (byte > 255)) {
+  Object byte = I->Stack(0);
+  if (!SmallInteger::IsByte(byte)) {
     return kFailure;
   }
   String result = H->AllocateString(1);  // SAFEPOINT
-  result->set_element(0, byte);
+  result->set_element(0, SmallInteger::Byte(byte));
   RETURN(result);
 }
 
@@ -2725,12 +2703,7 @@ DEFINE_PRIMITIVE(String_class_withAll) {
 
     intptr_t length = bytes->Size();
     for (intptr_t i = 0; i < length; i++) {
-      SmallInteger byte = static_cast<SmallInteger>(bytes->element(i));
-      if (!byte->IsSmallInteger()) {
-        return kFailure;
-      }
-      intptr_t raw_byte = byte->value();
-      if ((raw_byte < 0) || (raw_byte > 255)) {
+      if (!SmallInteger::IsByte(bytes->element(i))) {
         return kFailure;
       }
     }
@@ -2739,9 +2712,7 @@ DEFINE_PRIMITIVE(String_class_withAll) {
     bytes = static_cast<Array>(I->Stack(0));
 
     for (intptr_t i = 0; i < length; i++) {
-      SmallInteger byte = static_cast<SmallInteger>(bytes->element(i));
-      intptr_t raw_byte = byte->value();
-      result->set_element(i, raw_byte);
+      result->set_element(i, SmallInteger::Byte(bytes->element(i)));
     }
 
     RETURN(result);
@@ -2766,12 +2737,7 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
 
     intptr_t length = bytes->Size();
     for (intptr_t i = 0; i < length; i++) {
-      SmallInteger byte = static_cast<SmallInteger>(bytes->element(i));
-      if (!byte->IsSmallInteger()) {
-        return kFailure;
-      }
-      intptr_t raw_byte = byte->value();
-      if ((raw_byte < 0) || (raw_byte > 255)) {
+      if (!SmallInteger::IsByte(bytes->element(i))) {
         return kFailure;
       }
     }
@@ -2780,9 +2746,7 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
     bytes = static_cast<Array>(I->Stack(0));
 
     for (intptr_t i = 0; i < length; i++) {
-      SmallInteger byte = static_cast<SmallInteger>(bytes->element(i));
-      intptr_t raw_byte = byte->value();
-      result->set_element(i, raw_byte);
+      result->set_element(i, SmallInteger::Byte(bytes->element(i)));
     }
 
     RETURN(result);

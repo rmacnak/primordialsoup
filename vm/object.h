@@ -151,6 +151,10 @@ class Object {
   bool IsSmallInteger() const {
     return (tagged_pointer_ & kSmiTagMask) == kSmiTag;
   }
+  static bool BothSmallIntegers(Object a, Object b) {
+    return ((static_cast<uintptr_t>(a) | static_cast<uintptr_t>(b))
+        & kSmiTagMask) == kSmiTag;
+  }
   bool IsOldObject() const {
     return (tagged_pointer_ & kObjectAlignmentMask) == kOldObjectBits;
   }
@@ -347,6 +351,15 @@ class SmallInteger : public Object {
     intptr_t tagged = static_cast<uintptr_t>(value) << kSmiTagShift;
     intptr_t untagged = tagged >> kSmiTagShift;
     return untagged == value;
+  }
+
+  static bool IsByte(Object obj) {
+    return static_cast<uintptr_t>(obj) <=
+           static_cast<uintptr_t>(255 << kSmiTagShift);
+  }
+  static uint8_t Byte(Object obj) {
+    ASSERT(IsByte(obj));
+    return static_cast<intptr_t>(obj) >> kSmiTagShift;
   }
 };
 

@@ -1204,12 +1204,12 @@ void Interpreter::Interpret() {
       // +
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        intptr_t raw_left = static_cast<SmallInteger>(left)->value();
-        intptr_t raw_right = static_cast<SmallInteger>(right)->value();
-        intptr_t raw_result = raw_left + raw_right;
-        if (SmallInteger::IsSmiValue(raw_result)) {
-          PopNAndPush(2, SmallInteger::New(raw_result));
+      if (Object::BothSmallIntegers(left, right)) {
+        intptr_t raw_left = static_cast<intptr_t>(left);
+        intptr_t raw_right = static_cast<intptr_t>(right);
+        intptr_t raw_result;
+        if (!Math::AddHasOverflow(raw_left, raw_right, &raw_result)) {
+          PopNAndPush(2, static_cast<SmallInteger>(raw_result));
           break;
         }
       }
@@ -1219,12 +1219,12 @@ void Interpreter::Interpret() {
       // -
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        intptr_t raw_left = static_cast<SmallInteger>(left)->value();
-        intptr_t raw_right = static_cast<SmallInteger>(right)->value();
-        intptr_t raw_result = raw_left - raw_right;
-        if (SmallInteger::IsSmiValue(raw_result)) {
-          PopNAndPush(2, SmallInteger::New(raw_result));
+      if (Object::BothSmallIntegers(left, right)) {
+        intptr_t raw_left = static_cast<intptr_t>(left);
+        intptr_t raw_right = static_cast<intptr_t>(right);
+        intptr_t raw_result;
+        if (!Math::SubtractHasOverflow(raw_left, raw_right, &raw_result)) {
+          PopNAndPush(2, static_cast<SmallInteger>(raw_result));
           break;
         }
       }
@@ -1232,6 +1232,17 @@ void Interpreter::Interpret() {
     }
     case 178: {
       // *
+      Object left = Stack(1);
+      Object right = Stack(0);
+      if (Object::BothSmallIntegers(left, right)) {
+        intptr_t raw_left = static_cast<intptr_t>(left);
+        intptr_t raw_right = static_cast<intptr_t>(right) >> kSmiTagShift;
+        intptr_t raw_result;
+        if (!Math::MultiplyHasOverflow(raw_left, raw_right, &raw_result)) {
+          PopNAndPush(2, static_cast<SmallInteger>(raw_result));
+          break;
+        }
+      }
       goto CommonSendDispatch;
     }
     case 179: {
@@ -1242,7 +1253,7 @@ void Interpreter::Interpret() {
       /* \\ */
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+      if (Object::BothSmallIntegers(left, right)) {
         intptr_t raw_left = static_cast<SmallInteger>(left)->value();
         intptr_t raw_right = static_cast<SmallInteger>(right)->value();
         if (raw_right != 0) {
@@ -1266,9 +1277,9 @@ void Interpreter::Interpret() {
       // &
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        PopNAndPush(2, static_cast<SmallInteger>(
-            static_cast<intptr_t>(left) & static_cast<intptr_t>(right)));
+      if (Object::BothSmallIntegers(left, right)) {
+        PopNAndPush(2, static_cast<SmallInteger>(static_cast<intptr_t>(left) &
+                                                 static_cast<intptr_t>(right)));
         break;
       }
       goto CommonSendDispatch;
@@ -1277,9 +1288,9 @@ void Interpreter::Interpret() {
       // |
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
-        PopNAndPush(2, static_cast<SmallInteger>(
-            static_cast<intptr_t>(left) | static_cast<intptr_t>(right)));
+      if (Object::BothSmallIntegers(left, right)) {
+        PopNAndPush(2, static_cast<SmallInteger>(static_cast<intptr_t>(left) |
+                                                 static_cast<intptr_t>(right)));
         break;
       }
       goto CommonSendDispatch;
@@ -1288,7 +1299,7 @@ void Interpreter::Interpret() {
       // <
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+      if (Object::BothSmallIntegers(left, right)) {
         if (static_cast<intptr_t>(left) < static_cast<intptr_t>(right)) {
           PopNAndPush(2, true_);
         } else {
@@ -1302,7 +1313,7 @@ void Interpreter::Interpret() {
       // >
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+      if (Object::BothSmallIntegers(left, right)) {
         if (static_cast<intptr_t>(left) > static_cast<intptr_t>(right)) {
           PopNAndPush(2, true_);
         } else {
@@ -1316,7 +1327,7 @@ void Interpreter::Interpret() {
       // <=
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+      if (Object::BothSmallIntegers(left, right)) {
         if (static_cast<intptr_t>(left) <= static_cast<intptr_t>(right)) {
           PopNAndPush(2, true_);
         } else {
@@ -1330,7 +1341,7 @@ void Interpreter::Interpret() {
       // >=
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+      if (Object::BothSmallIntegers(left, right)) {
         if (static_cast<intptr_t>(left) >= static_cast<intptr_t>(right)) {
           PopNAndPush(2, true_);
         } else {
@@ -1344,7 +1355,7 @@ void Interpreter::Interpret() {
       // =
       Object left = Stack(1);
       Object right = Stack(0);
-      if (left->IsSmallInteger() && right->IsSmallInteger()) {
+      if (Object::BothSmallIntegers(left, right)) {
         if (static_cast<intptr_t>(left) == static_cast<intptr_t>(right)) {
           PopNAndPush(2, true_);
         } else {
@@ -1404,9 +1415,9 @@ void Interpreter::Interpret() {
           SmallInteger value = static_cast<SmallInteger>(Stack(0));
           if ((raw_index >= 0) &&
               (raw_index < static_cast<ByteArray>(array)->Size()) &&
-              static_cast<uword>(value) <= 255) {
-            static_cast<ByteArray>(array)->set_element(raw_index,
-                                                        value->value());
+              SmallInteger::IsByte(value)) {
+            static_cast<ByteArray>(array)->set_element(
+                raw_index, SmallInteger::Byte(value));
             PopNAndPush(3, value);
             break;
           }
