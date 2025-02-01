@@ -394,15 +394,9 @@ def Main():
         BuildVM(host_cxx, 'arm64', host_os, True, sanitize)
         BuildVM(host_cxx, 'arm64', host_os,  False, sanitize)
     elif target_os == 'windows':
-      if host_arch != 'ia32':
-        BuildVM(host_cxx, 'ia32', host_os, True, sanitize)
-        BuildVM(host_cxx, 'ia32', host_os,  False, sanitize)
       if host_arch != 'x64':
         BuildVM(host_cxx, 'x64', host_os, True, sanitize)
         BuildVM(host_cxx, 'x64', host_os,  False, sanitize)
-      if host_arch != 'arm':
-        BuildVM(host_cxx, 'arm', host_os, True, sanitize)
-        BuildVM(host_cxx, 'arm', host_os,  False, sanitize)
       if host_arch != 'arm64':
         BuildVM(host_cxx, 'arm64', host_os, True, sanitize)
         BuildVM(host_cxx, 'arm64', host_os,  False, sanitize)
