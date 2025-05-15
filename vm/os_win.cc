@@ -8,6 +8,7 @@
 #include "vm/os.h"
 
 #include <bcrypt.h>
+#include <crtdbg.h>
 #include <malloc.h>
 #include <process.h>
 #include <time.h>
@@ -176,8 +177,20 @@ char* OS::StrError(int err, char* buffer, size_t bufsize) {
 }
 
 void OS::Startup() {
-  // Do not pop up a message box when abort is called.
+  // Make various kinds of error print instead of opening dialog boxes.
+  UINT new_flags =
+      SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX;
+  UINT existing_flags = SetErrorMode(new_flags);
+  SetErrorMode(existing_flags | new_flags);
+  _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG | _CRTDBG_MODE_FILE);
+  _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
+  _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG | _CRTDBG_MODE_FILE);
+  _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+  _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG | _CRTDBG_MODE_FILE);
+  _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+  _set_error_mode(_OUT_TO_STDERR);
   _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+
   LARGE_INTEGER ticks_per_sec;
   if (!QueryPerformanceFrequency(&ticks_per_sec)) {
     qpc_ticks_per_second = 0;
