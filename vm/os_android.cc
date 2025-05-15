@@ -67,8 +67,7 @@ void OS::Print(const char* format, ...) {
   va_list args;
 
   va_start(args, format);
-  vfprintf(stdout, format, args);
-  fflush(stdout);
+  vdprintf(STDOUT_FILENO, format, args);
   va_end(args);
 
   va_start(args, format);
@@ -80,8 +79,7 @@ void OS::PrintErr(const char* format, ...) {
   va_list args;
 
   va_start(args, format);
-  vfprintf(stderr, format, args);
-  fflush(stderr);
+  vdprintf(STDERR_FILENO, format, args);
   va_end(args);
 
   va_start(args, format);

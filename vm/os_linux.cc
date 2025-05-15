@@ -70,22 +70,17 @@ intptr_t OS::NumberOfAvailableProcessors() {
   return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
-static void VFPrint(FILE* stream, const char* format, va_list args) {
-  vfprintf(stream, format, args);
-  fflush(stream);
-}
-
 void OS::Print(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  VFPrint(stdout, format, args);
+  vdprintf(STDOUT_FILENO, format, args);
   va_end(args);
 }
 
 void OS::PrintErr(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  VFPrint(stderr, format, args);
+  vdprintf(STDERR_FILENO, format, args);
   va_end(args);
 }
 

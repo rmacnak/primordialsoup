@@ -7,8 +7,10 @@
 
 #include "vm/virtual_memory.h"
 
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #if defined(OS_ANDROID) || defined(OS_LINUX)
 #include <sys/prctl.h>
@@ -20,21 +22,21 @@
 namespace psoup {
 
 MappedMemory MappedMemory::MapReadOnly(const char* filename) {
-  FILE* file = fopen(filename, "r");
-  if (file == nullptr) {
+  int fd = open(filename, O_RDONLY | O_CLOEXEC);
+  if (fd < 0) {
     FATAL("Failed to open '%s'\n", filename);
   }
   struct stat st;
-  if (fstat(fileno(file), &st) != 0) {
+  if (fstat(fd, &st) != 0) {
     FATAL("Failed to stat '%s'\n", filename);
   }
-  intptr_t size = st.st_size;
+  size_t size = st.st_size;
   void* address = mmap(nullptr, size, PROT_READ, MAP_FILE | MAP_PRIVATE,
-                       fileno(file), 0);
+                       fd, 0);
   if (address == MAP_FAILED) {
     FATAL("Failed to mmap '%s'\n", filename);
   }
-  int result = fclose(file);
+  int result = close(fd);
   ASSERT(result == 0);
 
   return MappedMemory(address, size);

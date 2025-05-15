@@ -551,7 +551,7 @@ bool Heap::ScavengePointer(Object* ptr) {
     new_target = ForwardingTarget(old_target);
   } else {
     // Target is now known to be reachable. Move it to to-space.
-    intptr_t size = old_target->HeapSize();
+    size_t size = old_target->HeapSize();
 
     uword new_target_addr;
     if (old_target->Addr() < survivor_end_) {
@@ -611,7 +611,7 @@ bool Heap::ScavengeClass(intptr_t cid) {
   }
 
   // Target is now known to be reachable. Move it to to-space.
-  intptr_t size = old_target->HeapSize();
+  size_t size = old_target->HeapSize();
 
   uword new_target_addr;
   if (old_target->Addr() < survivor_end_) {
@@ -810,7 +810,7 @@ bool Heap::SweepRegion(Region* region) {
     HeapObject obj = HeapObject::FromAddr(scan);
     if (obj->is_marked()) {
       obj->set_is_marked(false);
-      intptr_t size = obj->HeapSize();
+      size_t size = obj->HeapSize();
       old_size_ += size;
       scan += size;
     } else {
