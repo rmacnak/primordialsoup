@@ -331,7 +331,7 @@ class Heap {
   uword PopTenureStack();
   bool IsTenureStackEmpty();
   void ProcessTenureStack();
-  bool ScavengePointer(Object* ptr);
+  bool ScavengePointers(Object* from, Object* to);
   void ScavengeOldObject(HeapObject obj);
   bool ScavengeClass(intptr_t cid);
 

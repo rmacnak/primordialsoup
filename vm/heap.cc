@@ -432,19 +432,15 @@ void Heap::ScavengeRoots() {
   }
 
   for (intptr_t i = 0; i < handles_size_; i++) {
-    ScavengePointer(handles_[i]);
+    ScavengePointers(handles_[i], handles_[i]);
   }
 
   Object* from;
   Object* to;
   interpreter_->RootPointers(&from, &to);
-  for (Object* ptr = from; ptr <= to; ptr++) {
-    ScavengePointer(ptr);
-  }
+  ScavengePointers(from, to);
   interpreter_->StackPointers(&from, &to);
-  for (Object* ptr = from; ptr <= to; ptr++) {
-    ScavengePointer(ptr);
-  }
+  ScavengePointers(from, to);
 }
 
 NOINLINE
@@ -461,9 +457,7 @@ uword Heap::ScavengeToSpace(uword scan) {
       Object* from;
       Object* to;
       obj->Pointers(&from, &to);
-      for (Object* ptr = from; ptr <= to; ptr++) {
-        ScavengePointer(ptr);
-      }
+      ScavengePointers(from, to);
     }
     scan += obj->HeapSize();
   }
@@ -538,40 +532,42 @@ static void objcpy(void* __restrict dst,
   } while (size != 0);
 }
 
-bool Heap::ScavengePointer(Object* ptr) {
-  HeapObject old_target = static_cast<HeapObject>(*ptr);
-  if (old_target->IsImmediateOrOldObject()) {
-    return false;
-  }
+bool Heap::ScavengePointers(Object* from, Object* to) {
+  bool has_new_target = false;
+  for (Object* ptr = from; ptr <= to; ptr++) {
+    HeapObject from_target = static_cast<HeapObject>(*ptr);
+    if (from_target->IsImmediateOrOldObject()) continue;
 
-  DEBUG_ASSERT(InFromSpace(old_target));
+    DEBUG_ASSERT(InFromSpace(from_target));
 
-  HeapObject new_target;
-  if (IsForwarded(old_target)) {
-    new_target = ForwardingTarget(old_target);
-  } else {
-    // Target is now known to be reachable. Move it to to-space.
-    size_t size = old_target->HeapSize();
-
-    uword new_target_addr;
-    if (old_target->Addr() < survivor_end_) {
-      new_target_addr = AllocateTenure(size);
+    HeapObject to_target;
+    if (IsForwarded(from_target)) {
+      to_target = ForwardingTarget(from_target);
     } else {
-      new_target_addr = AllocateCopy(size);
+      // Target is now known to be reachable. Move it to to-space.
+      size_t size = from_target->HeapSize();
+
+      uword to_target_addr;
+      if (from_target->Addr() < survivor_end_) {
+        to_target_addr = AllocateTenure(size);
+      } else {
+        to_target_addr = AllocateCopy(size);
+      }
+
+      ASSERT(to_target_addr != 0);
+      objcpy(reinterpret_cast<void*>(to_target_addr),
+             reinterpret_cast<void*>(from_target->Addr()),
+             size);
+      to_target = HeapObject::FromAddr(to_target_addr);
+      SetForwarded(from_target, to_target);
     }
 
-    ASSERT(new_target_addr != 0);
-    objcpy(reinterpret_cast<void*>(new_target_addr),
-           reinterpret_cast<void*>(old_target->Addr()),
-           size);
-    new_target = HeapObject::FromAddr(new_target_addr);
-    SetForwarded(old_target, new_target);
+    DEBUG_ASSERT(to_target->IsOldObject() || InToSpace(to_target));
+
+    *ptr = to_target;
+    has_new_target |= to_target->IsNewObject();
   }
-
-  DEBUG_ASSERT(new_target->IsOldObject() || InToSpace(new_target));
-
-  *ptr = new_target;
-  return new_target->IsNewObject();
+  return has_new_target;
 }
 
 void Heap::ScavengeOldObject(HeapObject obj) {
@@ -585,9 +581,7 @@ void Heap::ScavengeOldObject(HeapObject obj) {
     Object* from;
     Object* to;
     obj->Pointers(&from, &to);
-    for (Object* ptr = from; ptr <= to; ptr++) {
-      has_new_target |= ScavengePointer(ptr);
-    }
+    has_new_target |= ScavengePointers(from, to);
     if (has_new_target) {
       AddToRememberedSet(obj);
     }
@@ -869,9 +863,7 @@ void Heap::ScavengeEphemeronList() {
       bool has_new_target = false;
       Object* from = survivor->key_ptr();
       Object* to = survivor->finalizer_ptr();
-      for (Object* ptr = from; ptr <= to; ptr++) {
-        has_new_target |= ScavengePointer(ptr);
-      }
+      has_new_target |= ScavengePointers(from, to);
       if (has_new_target && survivor->IsOldObject()) {
         AddToRememberedSet(survivor);
       }
