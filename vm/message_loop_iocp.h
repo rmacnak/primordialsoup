@@ -68,6 +68,8 @@ class IOCPMessageLoop : public MessageLoop {
   void MaybeIssueRead(Handle* handle);
   void MaybeScheduleWakeup(Handle* handle);
 
+  intptr_t BindPipe(HANDLE pipeh);
+
   Mutex mutex_;
   IsolateMessage* head_;
   IsolateMessage* tail_;

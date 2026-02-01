@@ -339,32 +339,13 @@ class LargeIntegerCluster : public Cluster {
       bool negative = d->Read<uint8_t>();
       intptr_t bytes = d->ReadLEB128();
       intptr_t digits = (bytes + (sizeof(digit_t) - 1)) / sizeof(digit_t);
-      intptr_t full_digits = bytes / sizeof(digit_t);
 
       LargeInteger object = h->AllocateLargeInteger(digits, Heap::kSnapshot);
       object->set_negative(negative);
-      object->set_size(digits);
+      object->set_digit(digits - 1, 0);
 
-      for (intptr_t j = 0; j < full_digits; j++) {
-        digit_t digit = 0;
-        for (intptr_t shift = 0;
-             shift < static_cast<intptr_t>(kDigitBits);
-             shift += 8) {
-          digit = digit | (d->Read<uint8_t>() << shift);
-        }
-        object->set_digit(j, digit);
-      }
-
-      if (full_digits != digits) {
-        intptr_t leftover_bytes = bytes % sizeof(digit_t);
-        ASSERT(leftover_bytes != 0);
-        digit_t digit = 0;
-        for (intptr_t shift = 0;
-             shift < (leftover_bytes * 8);
-             shift += 8) {
-          digit = digit | (d->Read<uint8_t>() << shift);
-        }
-        object->set_digit(digits - 1, digit);
+      for (intptr_t j = 0; j < bytes; j++) {
+        object->set_byte(j, d->Read<uint8_t>());
       }
 
       d->RegisterRef(object);

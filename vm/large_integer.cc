@@ -204,16 +204,17 @@ static LargeInteger AddAbsolutesWithSign(LargeInteger left,
   HandleScope h1(H, &shorter);
   HandleScope h2(H, &longer);
   LargeInteger result = H->AllocateLargeInteger(longer->size() + 1);
+  result->set_negative(negative);
 
   ddigit_t carry = 0;
-  for (intptr_t i = 0; i < shorter->size(); i++) {
+  for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
     carry += static_cast<ddigit_t>(shorter->digit(i)) +
              static_cast<ddigit_t>(longer->digit(i));
     result->set_digit(i, carry & kDigitMask);
     carry >>= kDigitShift;
     ASSERT((carry == 0) || (carry == 1));
   }
-  for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+  for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
     carry += static_cast<ddigit_t>(longer->digit(i));
     result->set_digit(i, carry & kDigitMask);
     carry >>= kDigitShift;
@@ -221,7 +222,6 @@ static LargeInteger AddAbsolutesWithSign(LargeInteger left,
   }
   result->set_digit(longer->size(), carry);
 
-  result->set_negative(negative);
   Clamp(result);
   Verify(result);
   return result;
@@ -239,16 +239,17 @@ static LargeInteger SubtractAbsolutesWithSign(LargeInteger left,
   HandleScope h1(H, &left);
   HandleScope h2(H, &right);
   LargeInteger result = H->AllocateLargeInteger(left->size());
+  result->set_negative(negative);
 
   sddigit_t borrow = 0;
-  for (intptr_t i = 0; i < right->size(); i++) {
+  for (intptr_t i = 0, n = right->size(); i < n; i++) {
     borrow += static_cast<ddigit_t>(left->digit(i)) -
               static_cast<ddigit_t>(right->digit(i));
     result->set_digit(i, borrow & kDigitMask);
     borrow >>= kDigitShift;
     ASSERT((borrow == 0) || (borrow == -1));
   }
-  for (intptr_t i = right->size(); i < left->size(); i++) {
+  for (intptr_t i = right->size(), n = left->size(); i < n; i++) {
     borrow += static_cast<ddigit_t>(left->digit(i));
     result->set_digit(i, borrow & kDigitMask);
     borrow >>= kDigitShift;
@@ -256,7 +257,6 @@ static LargeInteger SubtractAbsolutesWithSign(LargeInteger left,
   }
   ASSERT(borrow == 0);
 
-  result->set_negative(negative);
   Clamp(result);
 
   Verify(result);
@@ -271,7 +271,7 @@ static void AbsAddOneInPlace(LargeInteger result) {
   }
 
   sddigit_t carry = 1;
-  for (intptr_t i = 0; i < result->size(); i++) {
+  for (intptr_t i = 0, n = result->size(); i < n; i++) {
     carry += static_cast<sddigit_t>(result->digit(i));
     result->set_digit(i, carry & kDigitMask);
     carry >>= kDigitShift;
@@ -291,15 +291,16 @@ LargeInteger MultiplyAbsolutesWithSign(LargeInteger left,
   HandleScope h1(H, &left);
   HandleScope h2(H, &right);
   LargeInteger result = H->AllocateLargeInteger(left->size() + right->size());
+  result->set_negative(negative);
 
-  for (intptr_t i = 0; i < left->size(); i++) {
+  for (intptr_t i = 0, n = left->size(); i < n; i++) {
     result->set_digit(i, 0);
   }
 
-  for (intptr_t i = 0; i < right->size(); i++) {
+  for (intptr_t i = 0, n = right->size(); i < n; i++) {
     ddigit_t carry = 0;
     ddigit_t right_digit = right->digit(i);
-    for (intptr_t j = 0; j < left->size(); j++) {
+    for (intptr_t j = 0, m = left->size(); j < m; j++) {
       ddigit_t left_digit = left->digit(j);
       carry += left_digit * right_digit +
                static_cast<ddigit_t>(result->digit(i + j));
@@ -310,7 +311,6 @@ LargeInteger MultiplyAbsolutesWithSign(LargeInteger left,
     result->set_digit(i + left->size(), carry);
   }
 
-  result->set_negative(negative);
   Clamp(result);
 
   Verify(result);
@@ -392,10 +392,10 @@ LargeInteger LargeInteger::And(LargeInteger left,
   if (!shorter->negative() && !longer->negative()) {
     // s & l
     result->set_negative(false);
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       result->set_digit(i, shorter->digit(i) & longer->digit(i));
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       result->set_digit(i, 0);
     }
   } else if (!shorter->negative() && longer->negative()) {
@@ -403,13 +403,13 @@ LargeInteger LargeInteger::And(LargeInteger left,
     // s & ~(l - 1)
     result->set_negative(false);
     sddigit_t l1_borrow = -1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       l1_borrow += static_cast<sddigit_t>(longer->digit(i));
       digit_t l1 = l1_borrow & kDigitMask;
       l1_borrow >>= kDigitShift;
       result->set_digit(i, shorter->digit(i) & ~l1);
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       result->set_digit(i, 0);
     }
   } else if (shorter->negative() && !longer->negative()) {
@@ -417,13 +417,13 @@ LargeInteger LargeInteger::And(LargeInteger left,
     // ~(s - 1) & l
     result->set_negative(false);
     sddigit_t s1_borrow = -1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(shorter->digit(i));
       digit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
       result->set_digit(i, ~s1 & longer->digit(i));
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       result->set_digit(i, longer->digit(i));
     }
   } else {
@@ -435,7 +435,7 @@ LargeInteger LargeInteger::And(LargeInteger left,
     sddigit_t s1_borrow = -1;
     sddigit_t l1_borrow = -1;
     ddigit_t r1_carry = 1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(shorter->digit(i));
       digit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -452,7 +452,7 @@ LargeInteger LargeInteger::And(LargeInteger left,
       r1_carry >>= kDigitShift;
     }
     ASSERT(s1_borrow == 0);
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       digit_t s1 = 0;
 
       l1_borrow += static_cast<sddigit_t>(longer->digit(i));
@@ -497,13 +497,12 @@ LargeInteger LargeInteger::Or(LargeInteger left,
   if (!shorter->negative() && !longer->negative()) {
     // s | l
     result->set_negative(false);
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       result->set_digit(i, shorter->digit(i) | longer->digit(i));
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       result->set_digit(i, longer->digit(i));
     }
-    result->set_size(result_size);
   } else if (!shorter->negative() && longer->negative()) {
     //     s | -l
     //     s | ~(l - 1)
@@ -512,7 +511,7 @@ LargeInteger LargeInteger::Or(LargeInteger left,
     result->set_negative(true);
     sddigit_t l1_borrow = -1;
     ddigit_t r1_carry = 1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       l1_borrow += static_cast<sddigit_t>(longer->digit(i));
       digit_t l1 = l1_borrow & kDigitMask;
       l1_borrow >>= kDigitShift;
@@ -523,7 +522,7 @@ LargeInteger LargeInteger::Or(LargeInteger left,
       result->set_digit(i, r1_carry & kDigitMask);
       r1_carry >>= kDigitShift;
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       l1_borrow += static_cast<sddigit_t>(longer->digit(i));
       digit_t l1 = l1_borrow & kDigitMask;
       l1_borrow >>= kDigitShift;
@@ -544,7 +543,7 @@ LargeInteger LargeInteger::Or(LargeInteger left,
     result->set_negative(true);
     sddigit_t s1_borrow = -1;
     ddigit_t r1_carry = 1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(shorter->digit(i));
       digit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -555,7 +554,7 @@ LargeInteger LargeInteger::Or(LargeInteger left,
       result->set_digit(i, r1_carry & kDigitMask);
       r1_carry >>= kDigitShift;
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(0);
       digit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -578,7 +577,7 @@ LargeInteger LargeInteger::Or(LargeInteger left,
     sddigit_t s1_borrow = -1;
     sddigit_t l1_borrow = -1;
     ddigit_t r1_carry = 1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(shorter->digit(i));
       ddigit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -592,7 +591,7 @@ LargeInteger LargeInteger::Or(LargeInteger left,
       result->set_digit(i, r1_carry & kDigitMask);
       r1_carry >>= kDigitShift;
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(0);
       ddigit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -638,10 +637,10 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
   if (!shorter->negative() && !longer->negative()) {
     // s ^ l
     result->set_negative(false);
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       result->set_digit(i, shorter->digit(i) ^ longer->digit(i));
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       result->set_digit(i, 0 ^ longer->digit(i));
     }
   } else if (!shorter->negative() && longer->negative()) {
@@ -652,7 +651,7 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
     result->set_negative(true);
     sddigit_t l1_borrow = -1;
     ddigit_t r1_carry = 1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       l1_borrow += static_cast<sddigit_t>(longer->digit(i));
       digit_t l1 = l1_borrow & kDigitMask;
       l1_borrow >>= kDigitShift;
@@ -663,7 +662,7 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
       result->set_digit(i, r1_carry & kDigitMask);
       r1_carry >>= kDigitShift;
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       l1_borrow += static_cast<sddigit_t>(longer->digit(i));
       digit_t l1 = l1_borrow & kDigitMask;
       l1_borrow >>= kDigitShift;
@@ -684,7 +683,7 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
     result->set_negative(true);
     sddigit_t s1_borrow = -1;
     ddigit_t r1_carry = 1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(shorter->digit(i));
       digit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -695,7 +694,7 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
       result->set_digit(i, r1_carry & kDigitMask);
       r1_carry >>= kDigitShift;
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(0);
       digit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -715,7 +714,7 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
 
     sddigit_t s1_borrow = -1;
     sddigit_t l1_borrow = -1;
-    for (intptr_t i = 0; i < shorter->size(); i++) {
+    for (intptr_t i = 0, n = shorter->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(shorter->digit(i));
       ddigit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -726,7 +725,7 @@ LargeInteger LargeInteger::Xor(LargeInteger left,
 
       result->set_digit(i, s1 ^ l1);
     }
-    for (intptr_t i = shorter->size(); i < longer->size(); i++) {
+    for (intptr_t i = shorter->size(), n = longer->size(); i < n; i++) {
       s1_borrow += static_cast<sddigit_t>(0);
       ddigit_t s1 = s1_borrow & kDigitMask;
       s1_borrow >>= kDigitShift;
@@ -767,6 +766,7 @@ LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
     intptr_t result_size = left->size() + digit_shift;
     HandleScope h1(H, &left);
     LargeInteger result = H->AllocateLargeInteger(result_size);
+    result->set_negative(left->negative());
 
     for (intptr_t i = 0; i < digit_shift; i++) {
       result->set_digit(i, 0);
@@ -775,8 +775,6 @@ LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
       result->set_digit(i, left->digit(i - digit_shift));
     }
 
-    result->set_negative(left->negative());
-    result->set_size(result_size);
     Verify(result);
     return result;
   }
@@ -784,6 +782,7 @@ LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
   intptr_t result_size = left->size() + digit_shift + 1;
   HandleScope h1(H, &left);
   LargeInteger result = H->AllocateLargeInteger(result_size);
+  result->set_negative(left->negative());
 
   for (intptr_t i = 0; i < digit_shift; i++) {
     result->set_digit(i, 0);
@@ -802,7 +801,6 @@ LargeInteger LargeInteger::ShiftLeft(LargeInteger left,
     result->set_size(result_size);
   }
 
-  result->set_negative(left->negative());
   Verify(result);
   return result;
 }
@@ -822,12 +820,11 @@ LargeInteger LargeInteger::ShiftRight(LargeInteger left,
     intptr_t result_size = left->size() - digit_shift;
     HandleScope h1(H, &left);
     LargeInteger result = H->AllocateLargeInteger(result_size);
+    result->set_negative(left->negative());
 
     for (intptr_t i = 0; i < result_size; i++) {
       result->set_digit(i, left->digit(i + digit_shift));
     }
-    result->set_size(result_size);
-    result->set_negative(left->negative());
 
     if (result->negative()) {
       // We shifted in sign-magnitude form. To get the two's complement result,
@@ -847,6 +844,7 @@ LargeInteger LargeInteger::ShiftRight(LargeInteger left,
   intptr_t result_size = left->size() - digit_shift;
   HandleScope h1(H, &left);
   LargeInteger result = H->AllocateLargeInteger(result_size);
+  result->set_negative(left->negative());
 
   digit_t carry = left->digit(digit_shift) >> bit_shift_down;
   for (intptr_t i = 0; i < result_size - 1; i++) {
@@ -861,8 +859,6 @@ LargeInteger LargeInteger::ShiftRight(LargeInteger left,
   } else {
     result->set_size(result_size);
   }
-
-  result->set_negative(left->negative());
 
   if (result->negative()) {
     // We shifted in sign-magnitude form. To get the two's complement result, we
@@ -886,27 +882,6 @@ LargeInteger LargeInteger::ShiftRight(LargeInteger left,
   return result;
 }
 
-ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint16_t x) {
-  if (x == 0) return 16;
-  intptr_t n = 0;
-  if (x <= 0x00FF) { n = n + 8; x = x << 8; }
-  if (x <= 0x0FFF) { n = n + 4; x = x << 4; }
-  if (x <= 0x3FFF) { n = n + 2; x = x << 2; }
-  if (x <= 0x7FFF) { n = n + 1; }
-  return n;
-}
-
-ATTRIBUTE_UNUSED static intptr_t CountLeadingZeros(uint32_t x) {
-  if (x == 0) return 32;
-  intptr_t n = 0;
-  if (x <= 0x0000FFFF) { n = n + 16; x = x << 16; }
-  if (x <= 0x00FFFFFF) { n = n +  8; x = x <<  8; }
-  if (x <= 0x0FFFFFFF) { n = n +  4; x = x <<  4; }
-  if (x <= 0x3FFFFFFF) { n = n +  2; x = x <<  2; }
-  if (x <= 0x7FFFFFFF) { n = n +  1; }
-  return n;
-}
-
 LargeInteger LargeInteger::Divide(DivOperationType op_type,
                                   DivResultType result_type,
                                   LargeInteger dividend,
@@ -928,7 +903,6 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
         // return 0
         LargeInteger quotient = H->AllocateLargeInteger(0);
         quotient->set_negative(false);
-        quotient->set_size(0);
         return quotient;
       }
 
@@ -938,13 +912,11 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
           // return 0
           LargeInteger quotient = H->AllocateLargeInteger(0);
           quotient->set_negative(false);
-          quotient->set_size(0);
           return quotient;
         } else {
           // return -1
           LargeInteger quotient = H->AllocateLargeInteger(1);
           quotient->set_negative(true);
-          quotient->set_size(1);
           quotient->set_digit(0, 1);
           return quotient;
         }
@@ -1027,14 +999,12 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
         if (remainder_d == 0) {
           LargeInteger remainder = H->AllocateLargeInteger(0);
           remainder->set_negative(false);
-          remainder->set_size(0);
           Verify(remainder);
           return remainder;
         }
 
         LargeInteger remainder = H->AllocateLargeInteger(1);
         remainder->set_negative(dividend->negative());
-        remainder->set_size(1);
         remainder->set_digit(0, remainder_d);
         Verify(remainder);
         return remainder;
@@ -1044,7 +1014,6 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
         if (remainder_d == 0) {
           LargeInteger remainder = H->AllocateLargeInteger(0);
           remainder->set_negative(false);
-          remainder->set_size(0);
           Verify(remainder);
           return remainder;
         }
@@ -1052,7 +1021,6 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
         if (dividend->negative() != divisor->negative()) {
           LargeInteger remainder = H->AllocateLargeInteger(1);
           remainder->set_negative(divisor->negative());
-          remainder->set_size(1);
           remainder->set_digit(0, divisor_d - remainder_d);
           Verify(remainder);
           return remainder;
@@ -1060,7 +1028,6 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
 
         LargeInteger remainder = H->AllocateLargeInteger(1);
         remainder->set_negative(divisor->negative());
-        remainder->set_size(1);
         remainder->set_digit(0, remainder_d);
         Verify(remainder);
         return remainder;
@@ -1072,7 +1039,7 @@ LargeInteger LargeInteger::Divide(DivOperationType op_type,
 
   // Multi-digit divisor.
 
-  intptr_t normalize_shift = CountLeadingZeros(divisor->digit(n - 1));
+  intptr_t normalize_shift = std::countl_zero(divisor->digit(n - 1));
   intptr_t inv_normalize_shift = kDigitBits - normalize_shift;
   digit_t* norm_div = new digit_t[n];
   for (intptr_t i = n - 1; i > 0; i--) {
@@ -1224,7 +1191,7 @@ String LargeInteger::PrintString(LargeInteger large, Heap* H) {
   intptr_t pos = est_decimal_digits;
 
   digit_t* scratch = new digit_t[large->size()];
-  for (intptr_t i = 0; i < large->size(); i++) {
+  for (intptr_t i = 0, n = large->size(); i < n; i++) {
     scratch[i] = large->digit(i);
   }
 
@@ -1483,6 +1450,7 @@ static LargeInteger NewFromShiftedInt64(int64_t value,
     // the undefined behavior of digit_t >> kDigitBits.
     intptr_t result_size = kMintDigits + digit_shift;
     LargeInteger result = H->AllocateLargeInteger(result_size);
+    result->set_negative(negative);
 
     for (intptr_t i = 0; i < digit_shift; i++) {
       result->set_digit(i, 0);
@@ -1492,14 +1460,13 @@ static LargeInteger NewFromShiftedInt64(int64_t value,
       result->set_digit(i, d);
     }
 
-    result->set_negative(negative);
-    result->set_size(result_size);
     Verify(result);
     return result;
   }
 
   intptr_t result_size = kMintDigits + digit_shift + 1;
   LargeInteger result = H->AllocateLargeInteger(result_size);
+  result->set_negative(negative);
 
   for (intptr_t i = 0; i < digit_shift; i++) {
     result->set_digit(i, 0);
@@ -1518,7 +1485,6 @@ static LargeInteger NewFromShiftedInt64(int64_t value,
     result->set_size(result_size);
   }
 
-  result->set_negative(negative);
   Verify(result);
   return result;
 }
@@ -1612,12 +1578,11 @@ Object LargeInteger::FromUint64(uint64_t raw_value, Heap* H) {
   } else {
     intptr_t kDigits = sizeof(uint64_t) * kBitsPerByte / kDigitBits;
     LargeInteger large = H->AllocateLargeInteger(kDigits);
+    large->set_negative(false);
     for (intptr_t i = 0; i < kDigits; i++) {
       large->set_digit(i, raw_value & kDigitMask);
       raw_value = raw_value >> kDigitShift;
     }
-    large->set_negative(false);
-    large->set_size(kDigits);
     Clamp(large);
     Verify(large);
     return large;

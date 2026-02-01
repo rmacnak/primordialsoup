@@ -95,7 +95,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
 
   if target_os == 'windows':
     env['CCFLAGS'] += [
-      '/std:c++17',
+      '/std:c++20',
       '/O2',
       '/Z7',  # Debug symbols
       '/WX',  # Warnings as errors
@@ -111,7 +111,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     ]
   else:
     env['CCFLAGS'] += [
-      '-std=c++17',
+      '-std=c++20',
       '-O3',
       '-g3',
       '-Werror',

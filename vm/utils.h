@@ -5,6 +5,7 @@
 #ifndef VM_UTILS_H_
 #define VM_UTILS_H_
 
+#include <bit>
 #include <type_traits>
 
 #include "vm/allocation.h"
@@ -28,21 +29,8 @@ class Utils : public AllStatic {
 
   static constexpr inline intptr_t HighestBit(int64_t v) {
     uint64_t x = static_cast<uint64_t>((v > 0) ? v : -v);
-#if defined(__GNUC__)
-    ASSERT(sizeof(long long) == sizeof(int64_t));  // NOLINT
     if (v == 0) return 0;
-    return 63 - __builtin_clzll(x);
-#else
-    uint64_t t = 0;
-    int r = 0;
-    if ((t = x >> 32) != 0) { x = t; r += 32; }
-    if ((t = x >> 16) != 0) { x = t; r += 16; }
-    if ((t = x >> 8) != 0) { x = t; r += 8; }
-    if ((t = x >> 4) != 0) { x = t; r += 4; }
-    if ((t = x >> 2) != 0) { x = t; r += 2; }
-    if (x > 1) r += 1;
-    return r;
-#endif
+    return 63 - std::countl_zero(x);
   }
 
   static constexpr inline intptr_t BitLength(int64_t value) {
@@ -53,18 +41,14 @@ class Utils : public AllStatic {
 
   template <typename T>
   static constexpr inline bool IsPowerOfTwo(T x) {
-    return ((x & (x - 1)) == 0) && (x != 0);
+    using U = std::make_unsigned<T>::type;
+    return std::has_single_bit(static_cast<U>(x));
   }
 
   template <typename T>
   static constexpr inline intptr_t ShiftForPowerOfTwo(T x) {
     ASSERT(IsPowerOfTwo(x));
-    intptr_t num_shifts = 0;
-    while (x > 1) {
-      num_shifts++;
-      x = x >> 1;
-    }
-    return num_shifts;
+    return std::bit_width<T>(x);
   }
 
   template <typename T>

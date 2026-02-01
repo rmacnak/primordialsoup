@@ -1182,10 +1182,7 @@ DEFINE_PRIMITIVE(Integer_digitAt) {
     if (index < 0 || index >= len) {
       return kFailure;
     }
-    intptr_t digit = value->digit(index / sizeof(digit_t));
-    digit >>= (8 * (index % sizeof(digit_t)));
-    digit &= 0xFF;
-    RETURN_SMI(digit);
+    RETURN_SMI(static_cast<intptr_t>(value->byte(index)));
   }
 
   return kFailure;

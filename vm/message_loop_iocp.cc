@@ -360,6 +360,15 @@ static bool CreateProcessPipe(HANDLE handles[2]) {
   return true;
 }
 
+intptr_t IOCPMessageLoop::BindPipe(HANDLE pipeh) {
+  Handle* pipe = new Handle(Handle::kPipe, pipeh);
+  ULONG_PTR key = reinterpret_cast<ULONG_PTR>(pipe);
+  if (CreateIoCompletionPort(pipeh, completion_port_, key, 0) == nullptr) {
+    FATAL("Failed to bind to IOCP: %d", GetLastError());
+  }
+  return handles_.Register(pipe);
+}
+
 intptr_t IOCPMessageLoop::StartProcess(intptr_t options,
                                        char** argv,
                                        char** env,
@@ -386,26 +395,29 @@ intptr_t IOCPMessageLoop::StartProcess(intptr_t options,
     }
   }
 
-  SIZE_T size = 0;
-  if (!InitializeProcThreadAttributeList(nullptr, 1, 0, &size) &&
-      (GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
-    goto error;
-  }
-  attribute_list = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(malloc(size));
-  ZeroMemory(attribute_list, size);
-  if (!InitializeProcThreadAttributeList(attribute_list, 1, 0, &size)) {
-    goto error;
-  }
-  HANDLE inherited_handles[3] = {
-    pipes[0][kPipeReadEnd],
-    pipes[1][kPipeWriteEnd],
-    pipes[2][kPipeWriteEnd],
-  };
-  if (!UpdateProcThreadAttribute(attribute_list, 0,
-                                 PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-                                 inherited_handles, sizeof(inherited_handles),
-                                 nullptr, nullptr)) {
-    goto error;
+  {
+    SIZE_T size = 0;
+    if (!InitializeProcThreadAttributeList(nullptr, 1, 0, &size) &&
+        (GetLastError() != ERROR_INSUFFICIENT_BUFFER)) {
+      goto error;
+    }
+    attribute_list =
+        reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(malloc(size));
+    ZeroMemory(attribute_list, size);
+    if (!InitializeProcThreadAttributeList(attribute_list, 1, 0, &size)) {
+      goto error;
+    }
+    HANDLE inherited_handles[3] = {
+      pipes[0][kPipeReadEnd],
+      pipes[1][kPipeWriteEnd],
+      pipes[2][kPipeWriteEnd],
+    };
+    if (!UpdateProcThreadAttribute(attribute_list, 0,
+                                   PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                                   inherited_handles, sizeof(inherited_handles),
+                                   nullptr, nullptr)) {
+      goto error;
+    }
   }
 
   STARTUPINFOEXA startup_info;
@@ -442,32 +454,25 @@ intptr_t IOCPMessageLoop::StartProcess(intptr_t options,
   free(command_block);
   free(environment_block);
 
-  Process* process = new Process(process_info.dwProcessId);
-  process->handle_ = process_info.hProcess;
-  process->completion_port_ = completion_port_;
-  process->wait_handle_ = INVALID_HANDLE_VALUE;
-  if (!RegisterWaitForSingleObject(&process->wait_handle_,
-                                   process->handle_,
-                                   &ExitCallback,
-                                   process,
-                                   INFINITE,
-                                   WT_EXECUTEONLYONCE)) {
-    FATAL("RegisterWaitForSingleObject failed: %d", GetLastError());
-  }
-  open_waits_++;
-  *process_out = handles_.Register(process);
-
-  auto& BindPipe = [&](HANDLE pipeh) {
-    Handle* pipe = new Handle(Handle::kPipe, pipeh);
-    ULONG_PTR key = reinterpret_cast<ULONG_PTR>(pipe);
-    if (CreateIoCompletionPort(pipeh, completion_port_, key, 0) == nullptr) {
-      FATAL("Failed to bind to IOCP: %d", GetLastError());
+  {
+    Process* process = new Process(process_info.dwProcessId);
+    process->handle_ = process_info.hProcess;
+    process->completion_port_ = completion_port_;
+    process->wait_handle_ = INVALID_HANDLE_VALUE;
+    if (!RegisterWaitForSingleObject(&process->wait_handle_,
+                                     process->handle_,
+                                     &ExitCallback,
+                                     process,
+                                     INFINITE,
+                                     WT_EXECUTEONLYONCE)) {
+      FATAL("RegisterWaitForSingleObject failed: %d", GetLastError());
     }
-    return handles_.Register(pipe);
-  };
-  *stdin_out = BindPipe(pipes[0][kPipeWriteEnd]);
-  *stdout_out = BindPipe(pipes[1][kPipeReadEnd]);
-  *stderr_out = BindPipe(pipes[2][kPipeReadEnd]);
+    open_waits_++;
+    *process_out = handles_.Register(process);
+    *stdin_out = BindPipe(pipes[0][kPipeWriteEnd]);
+    *stdout_out = BindPipe(pipes[1][kPipeReadEnd]);
+    *stderr_out = BindPipe(pipes[2][kPipeReadEnd]);
+  }
   return 0;
 
  error:

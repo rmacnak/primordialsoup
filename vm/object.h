@@ -443,6 +443,8 @@ class LargeInteger : public HeapObject {
   inline void set_size(intptr_t value);
   inline digit_t digit(intptr_t index) const;
   inline void set_digit(intptr_t index, digit_t value);
+  inline uint8_t byte(intptr_t index);
+  inline void set_byte(intptr_t index, uint8_t value);
 };
 
 class RegularObject : public HeapObject {
@@ -1013,6 +1015,12 @@ digit_t LargeInteger::digit(intptr_t index) const {
 }
 void LargeInteger::set_digit(intptr_t index, digit_t value) {
   ptr()->digits_[index] = value;
+}
+uint8_t LargeInteger::byte(intptr_t index) {
+  return reinterpret_cast<uint8_t*>(&ptr()->digits_[0])[index];
+}
+void LargeInteger::set_byte(intptr_t index, uint8_t value) {
+  reinterpret_cast<uint8_t*>(&ptr()->digits_[0])[index] = value;
 }
 
 Object RegularObject::slot(intptr_t index) const {
