@@ -1,7 +1,9 @@
-class RandomTests usingPlatform: p minitest: m = (|
-private TestContext = m TestContext.
-private Random = p random Random.
-|) (
+class RandomTests usingPlatform: p minitest: m = (
+	|
+	private TestContext = m TestContext.
+	private Random = p random Random.
+	|
+) (
 public class RandomTest = TestContext () (
 public testRandomDeterminism = (
 	|

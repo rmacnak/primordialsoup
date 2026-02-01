@@ -3,30 +3,36 @@
 Copyright (c) 2012 Google Inc.
 Copyright (c) 2011, the Dart project authors.  Please see the AUTHORS file for details. All rights reserved. Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.*)
 class Splay usingPlatform: p = (
-|
-List = p collections List.
+	|
+	private List = p collections List.
 
-kTreeSize = 8000.
-kTreeModifications = 80.
-kTreePayloadDepth = 5.
+	private kTreeSize = 8000.
+	private kTreeModifications = 80.
+	private kTreePayloadDepth = 5.
 
-seed ::= 49734321.
+	seed ::= 49734321.
 
-tree <SplayTree>
-|mysetup) (
-class Leaf withTag: tag = (|
+	tree <SplayTree>
+	|
+	mysetup.
+) (
+class Leaf withTag: tag = (
+	|
 	string ::= 'String for key ',tag,' in leaf node'.
 	array ::= {0. 1. 2. 3. 4. 5. 6. 7. 8. 9}.
-|) (
+	|
+) (
 ) : (
 )
-class Node key: k value: v = (|
-public key = k.
-public value = v.
-public left
-public right
-|) (
-(*Performs an ordered traversal of the subtree starting here.*)
+class Node key: k value: v = (
+	|
+	public key = k.
+	public value = v.
+	public left
+	public right
+	|
+) (
+(* Performs an ordered traversal of the subtree starting here. *)
 public traverse: f <[:Node]> = (
 	| current ::= self. |
 	[nil = current] whileFalse:
@@ -37,10 +43,12 @@ public traverse: f <[:Node]> = (
 )
 ) : (
 )
-class Payload left: l right: r = (|
+class Payload left: l right: r = (
+	|
 	left ::= l.
 	right ::= r.
-|) (
+	|
+) (
 ) : (
 public generate: depth with: tag = (
 	depth = 0 ifTrue: [^Leaf withTag: tag].
@@ -49,19 +57,19 @@ public generate: depth with: tag = (
 		right: (generate: depth - 1 with: tag)
 )
 )
-(*A splay tree is a self-balancing binary search tree with the additional property that recently accessed elements are quick to access again. It performs basic operations such as insertion, look-up and removal in O(log(n)) amortized time.*)
+(* A splay tree is a self-balancing binary search tree with the additional property that recently accessed elements are quick to access again. It performs basic operations such as insertion, look-up and removal in O(log(n)) amortized time. *)
 class SplayTree = (
-|
-root <Node>
-|) (
-(*Returns the node having the specified [key] or null if the tree doesn't contain a node with the specified [key].*)
+	|
+	root <Node>
+	|
+) (
+(* Returns the node having the specified [key] or null if the tree doesn't contain a node with the specified [key]. *)
 public at: key <Number> ^<Node> = (
-
 	isEmpty ifTrue: [^nil].
 	splay: key.
 	^root key = key ifTrue: [root] ifFalse: [nil]
 )
-(*Inserts a node into the tree with the specified [key] and value if the tree does not already contain a node with the specified key. If the value is inserted, it becomes the root of the tree.*)
+(* Inserts a node into the tree with the specified [key] and value if the tree does not already contain a node with the specified key. If the value is inserted, it becomes the root of the tree. *)
 public at: key <Number> put: value = (
 	| node |
 
@@ -89,13 +97,13 @@ public exportKeys ^<List[Number]> = (
 	isEmpty ifFalse: [root traverse: [:node | result add: node key]].
 	^result
 )
-(*Returns the Node having the maximum key value that is less than the specified [key].*)
+(* Returns the Node having the maximum key value that is less than the specified [key]. *)
 public findGreatestLessThan: key <Number> ^<Node> = (
 	isEmpty ifTrue: [^nil].
 
-	(*Splay on the key to move the node with the given key or the last node on the search path to the top of the tree.*)
+	(* Splay on the key to move the node with the given key or the last node on the search path to the top of the tree. *)
 	splay: key.
-	(*Now the result is either the root node or the greatest node in the left subtree.*)
+	(* Now the result is either the root node or the greatest node in the left subtree. *)
 	root key < key ifTrue: [^root].
 	nil = root left ifFalse: [^findMax: root left].
 	^nil
@@ -110,7 +118,7 @@ findMax: start <Node> ^<Node> = (
 	[nil = current right] whileFalse: [current:: current right].
 	^current
 )
-isEmpty = (
+isEmpty ^<Boolean> = (
 	^nil = root
 )
 (*Removes a node with the specified key from the tree if the tree contains a node with this key. The removed node is returned. If [key] is not found, an exception is thrown.*)
@@ -127,13 +135,13 @@ public removeKey: key <Number> ^<Node> = (
 		ifFalse:
 			[ | right = root right. |
 			root:: root left.
-			(*Splay to make sure that the new root has an empty right child.*)
+			(* Splay to make sure that the new root has an empty right child. *)
 			splay: key.
-			(*Insert the original right child as the right child of the new root.*)
+			(* Insert the original right child as the right child of the new root. *)
 			root right: right].
 	^removed
 )
-(*Perform the splay operation for the given key. Moves the node with the given key to the top of the tree.  If no node has the given key, the last node on the search path is moved to the top of the tree. This is the simplified top-down splaying algorithm from: ''Self-adjusting Binary Search Trees'' by Sleator and Tarjan*)
+(* Perform the splay operation for the given key. Moves the node with the given key to the top of the tree.  If no node has the given key, the last node on the search path is moved to the top of the tree. This is the simplified top-down splaying algorithm from: ''Self-adjusting Binary Search Trees'' by Sleator and Tarjan *)
 splay: key <Number> = (
 	| dummy left right current break |
 
@@ -153,28 +161,28 @@ splay: key <Number> = (
 		key < current key ifTrue: [
 			nil = current left ifTrue: [^break value].
 			key < current left key ifTrue: [
-				(*Rotate right*)
+				(* Rotate right *)
 				| tmp = current left. |
 				current left: tmp right.
 				tmp right: current.
 				current: tmp.
 				nil = current left ifTrue: [^break value].
 			].
-			(*Link right*)
+			(* Link right *)
 			right left: current.
 			right: current.
 			current: current left.
 		] ifFalse: [key > current key ifTrue: [
 			nil = current right ifTrue: [^break value].
 			key > current right key ifTrue: [
-				(*Rotate left*)
+				(* Rotate left *)
 				| tmp = current right. |
 				current right: tmp left.
 				tmp left: current.
 				current: tmp.
 				nil = current right ifTrue: [^break value].
 			].
-			(*Link left*)
+			(* Link left *)
 			left right: current.
 			left: current.
 			current: current right.
@@ -188,7 +196,7 @@ splay: key <Number> = (
 public bench = (
 	exercise.
 )
-(*Replace a few nodes in the splay tree.*)
+(* Replace a few nodes in the splay tree. *)
 exercise = (
 	kTreeModifications timesRepeat:
 		[ | key greatest |
@@ -210,8 +218,8 @@ mysetup = (
 	tree: SplayTree new.
 	kTreeSize timesRepeat: [insertNewNode].
 )
-(*Robert Jenkins' 32 bit integer hash function.*)
-nextRandom = (
+(* Robert Jenkins' 32 bit integer hash function. *)
+nextRandom ^<Float> = (
 	seed:: ((seed + 16r7ED55D16) + (seed << 12)) bitAnd: 16rFFFFFFFF.
 	seed:: ((seed bitXor: 16rC761C23C) bitXor: (seed >> 19)) bitAnd: 16rFFFFFFFF.
 	seed:: ((seed + 16r165667B1) + (seed << 5)) bitAnd: 16rFFFFFFFF.
@@ -221,16 +229,16 @@ nextRandom = (
 	^(seed bitAnd: 16rFFFFFFF) asFloat / 16r10000000
 )
 tearDown = (
-	(*Allow the garbage collector to reclaim the memory used by the splay tree no matter how we exit the tear down function.*)
+	(* Allow the garbage collector to reclaim the memory used by the splay tree no matter how we exit the tear down function. *)
 	| keys length |
 	keys:: tree exportKeys.
 	tree:: nil.
 
-	(*Verify that the splay tree has the right size.*)
+	(* Verify that the splay tree has the right size. *)
 	length:: keys size.
 	length = kTreeSize ifFalse: [error: 'Splay tree has wrong size'].
 
- 	(*Verify that the splay tree has sorted, unique keys.*)
+ 	(* Verify that the splay tree has sorted, unique keys. *)
 	1 to: length - 1 do: [:i |
 		(keys at: i) >= (keys at: i+1) ifTrue: [error: 'Splay tree not sorted', i printString].
 		].

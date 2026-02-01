@@ -1,6 +1,8 @@
-class FileTestingConfiguration packageTestsUsing: manifest = (|
-private FileTesting = manifest FileTesting.
-|) (
+class FileTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private FileTesting = manifest FileTesting.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{FileTesting usingPlatform: platform minitest: minitest}
 )

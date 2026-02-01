@@ -1,27 +1,29 @@
 (* Command-line test runner. *)
-class TestRunner packageUsing: manifest = (|
-Minitest = manifest Minitest.
-testConfigs = {
-	manifest KernelTestsConfiguration packageTestsUsing: manifest.
-	manifest KernelWeakTestsConfiguration packageTestsUsing: manifest.
-	manifest TimeTestsConfiguration packageTestsUsing: manifest.
-	manifest RandomTestsConfiguration packageTestsUsing: manifest.
-	manifest MinitestTestsConfiguration packageTestsUsing: manifest.
-	manifest AccessModifierTestingConfiguration packageTestsUsing: manifest.
-	manifest ActorsTestingConfiguration packageTestsUsing: manifest.
-	manifest CollectionsTestingConfiguration packageTestsUsing: manifest.
-	manifest SerializationTestingConfiguration packageTestsUsing: manifest.
-	manifest MirrorTestingConfiguration packageTestsUsing: manifest.
-	manifest MirrorBuilderTestingConfiguration packageTestsUsing: manifest.
-	manifest ActivationMirrorTestingConfiguration packageTestsUsing: manifest.
-	manifest ZirconTestingConfiguration packageTestsUsing: manifest.
-	manifest JSTestingConfiguration packageTestsUsing: manifest.
-	manifest JSONTestingConfiguration packageTestsUsing: manifest.
-	manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest.
-}.
-Promise
-|) (
-private exit: code = (
+class TestRunner packageUsing: manifest = (
+	|
+	Minitest = manifest Minitest.
+	testConfigs = {
+		manifest KernelTestsConfiguration packageTestsUsing: manifest.
+		manifest KernelWeakTestsConfiguration packageTestsUsing: manifest.
+		manifest TimeTestsConfiguration packageTestsUsing: manifest.
+		manifest RandomTestsConfiguration packageTestsUsing: manifest.
+		manifest MinitestTestsConfiguration packageTestsUsing: manifest.
+		manifest AccessModifierTestingConfiguration packageTestsUsing: manifest.
+		manifest ActorsTestingConfiguration packageTestsUsing: manifest.
+		manifest CollectionsTestingConfiguration packageTestsUsing: manifest.
+		manifest SerializationTestingConfiguration packageTestsUsing: manifest.
+		manifest MirrorTestingConfiguration packageTestsUsing: manifest.
+		manifest MirrorBuilderTestingConfiguration packageTestsUsing: manifest.
+		manifest ActivationMirrorTestingConfiguration packageTestsUsing: manifest.
+		manifest ZirconTestingConfiguration packageTestsUsing: manifest.
+		manifest JSTestingConfiguration packageTestsUsing: manifest.
+		manifest JSONTestingConfiguration packageTestsUsing: manifest.
+		manifest NS2PrimordialSoupCompilerTestingConfiguration packageTestsUsing: manifest.
+	}.
+	Promise
+	|
+) (
+private exit: code <Integer> = (
 	(* :pragma: primitive: 189 *)
 	panic.
 )

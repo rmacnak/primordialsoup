@@ -1,6 +1,8 @@
-class RandomTestsConfiguration packageTestsUsing: manifest = (|
-private RandomTests = manifest RandomTests.
-|) (
+class RandomTestsConfiguration packageTestsUsing: manifest = (
+	|
+	private RandomTests = manifest RandomTests.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{RandomTests
 		usingPlatform: platform

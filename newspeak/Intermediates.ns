@@ -1,23 +1,27 @@
 (* Intermediate compilation results. *)
-class Intermediates usingPlatform: p internalKernel: k = (|
-private List = p collections List.
-private Map = p collections Map.
-private Method = k Method.
-private SlotDeclaration = k SlotDeclaration.
-|) (
-public class IntermediateClassDeclaration = (|
-public name
-public headerSource
-public factoryName
-public instanceSide = IntermediateMixin for: self isMeta: false.
-public classSide = IntermediateMixin for: self isMeta: true.
-public enclosingClass <IntermediateMixin>
-public builder <ClassDeclarationBuilder>
-public existingMixin
-public accessor <IntermediateMethod>
-public factory <IntermediateMethod>
-public initializers <List[IntermediateMethod]>
-|) (
+class Intermediates usingPlatform: p internalKernel: k = (
+	|
+	private List = p collections List.
+	private Map = p collections Map.
+	private Method = k Method.
+	private SlotDeclaration = k SlotDeclaration.
+	|
+) (
+public class IntermediateClassDeclaration = (
+	|
+	public name
+	public headerSource
+	public factoryName
+	public instanceSide = IntermediateMixin for: self isMeta: false.
+	public classSide = IntermediateMixin for: self isMeta: true.
+	public enclosingClass <IntermediateMixin>
+	public builder <ClassDeclarationBuilder>
+	public existingMixin
+	public accessor <IntermediateMethod>
+	public factory <IntermediateMethod>
+	public initializers <List[IntermediateMethod]>
+	|
+) (
 public accessModifier ^<Symbol> = (
 	isTopLevel ifTrue: [^#public].
 	^accessor accessModifier
@@ -37,23 +41,25 @@ public isTopLevel = (
 )
 ) : (
 )
-public class IntermediateMethod = (|
-public method <CompiledMethod>
-public debugInfo
-public maxStack <Integer>
-public maxLocals <Integer>
-public argCount <Integer>
-public literals <OrderedCollection[Object]>
-public bytes <OrderedCollection[Byte]> ::= List new.
-public selector <Symbol>
-public methodMixin <AbstractMixin>
-public source <String>
-public primitive ::= 0.
-public accessModifier <Symbol>
+public class IntermediateMethod = (
+	|
+	public method <CompiledMethod>
+	public debugInfo
+	public maxStack <Integer>
+	public maxLocals <Integer>
+	public argCount <Integer>
+	public literals <OrderedCollection[Object]>
+	public bytes <OrderedCollection[Byte]> ::= List new.
+	public selector <Symbol>
+	public methodMixin <AbstractMixin>
+	public source <String>
+	public primitive ::= 0.
+	public accessModifier <Symbol>
 
-public isSynthetic ::= false.
-public builder
-|) (
+	public isSynthetic ::= false.
+	public builder
+	|
+) (
 public bci ^<Integer> = (
 	^bytes size + 1
 )
@@ -98,15 +104,17 @@ public name = (
 )
 ) : (
 )
-public class IntermediateMixin for: d isMeta: m = (|
-public declaration <IntermediateClassDeclaration> = d.
-public isMeta <Boolean> = m.
-public slots <List[IntermediateSlotDeclaration]> ::= List new.
-public transientSlots <List[IntermediateTransientSlotDeclaration]> ::= List new.
-public methods <List[IntermediateMethod]> = List new.
-public nestedClasses <List[IntermediateClassDeclaration]> = List new.
-public builder <MixinBuilder>
-|) (
+public class IntermediateMixin for: d isMeta: m = (
+	|
+	public declaration <IntermediateClassDeclaration> = d.
+	public isMeta <Boolean> = m.
+	public slots <List[IntermediateSlotDeclaration]> ::= List new.
+	public transientSlots <List[IntermediateTransientSlotDeclaration]> ::= List new.
+	public methods <List[IntermediateMethod]> = List new.
+	public nestedClasses <List[IntermediateClassDeclaration]> = List new.
+	public builder <MixinBuilder>
+	|
+) (
 public assembleMethods = (
 	| assembledMethods = List new. |
 	assembledMethods addAll: methods.
@@ -190,13 +198,15 @@ public checkNameConflictsForTransientSlot: slotName <Symbol> mutable: isMutable 
 )
 ) : (
 )
-public class IntermediateSlotDeclaration = (|
-public name
-public isMutable
-public accessModifier
-public isTransient ::= false.
-public metadata
-|) (
+public class IntermediateSlotDeclaration = (
+	|
+	public name
+	public isMutable
+	public accessModifier
+	public isTransient ::= false.
+	public metadata
+	|
+) (
 public addSyntheticMethodsTo: methods = (
 	| index = 1. |
 	methods add: (generateInitializerForSlot: index).

@@ -1,6 +1,8 @@
-class SocketTestingConfiguration packageTestsUsing: manifest = (|
-private SocketTesting = manifest SocketTesting.
-|) (
+class SocketTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private SocketTesting = manifest SocketTesting.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{SocketTesting usingPlatform: platform minitest: minitest}
 )

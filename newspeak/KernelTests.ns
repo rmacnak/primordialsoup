@@ -1,14 +1,16 @@
 (* Tests for the core library, excluding weakness and ephemerality. *)
-class KernelTests usingPlatform: p minitest: m = (|
-private TestContext = m TestContext.
-private Message = p kernel Message.
-private CannotReturn = p kernel CannotReturn.
-private MessageNotUnderstood = p kernel MessageNotUnderstood.
-private Exception = p kernel Exception.
-private Proxy = p kernel Proxy.
-private StringBuilder = p kernel StringBuilder.
-private List = p collections List.
-|) (
+class KernelTests usingPlatform: p minitest: m = (
+	|
+	private TestContext = m TestContext.
+	private Message = p kernel Message.
+	private CannotReturn = p kernel CannotReturn.
+	private MessageNotUnderstood = p kernel MessageNotUnderstood.
+	private Exception = p kernel Exception.
+	private Proxy = p kernel Proxy.
+	private StringBuilder = p kernel StringBuilder.
+	private List = p collections List.
+	|
+) (
 public class ArrayTests = TestContext () (
 public testArrayAsArray = (
 	| array = Array new: 3. |

@@ -1,12 +1,14 @@
 (* Test configuration using the current platform. *)
-class SerializationTestingConfiguration packageTestsUsing: manifest = (|
-private SerializationTesting = manifest SerializationTesting.
-public SerializationTestApp = manifest SerializationTestApp.
-public SerializationTestStruct = manifest SerializationTestStruct.
-public testClosureAdd = [:a :b | a + b].
-public testClosureNLR = [^42].
-public testFloat = 0.5 asFloat.
-|) (
+class SerializationTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private SerializationTesting = manifest SerializationTesting.
+	public SerializationTestApp = manifest SerializationTestApp.
+	public SerializationTestStruct = manifest SerializationTestStruct.
+	public testClosureAdd = [:a :b | a + b].
+	public testClosureNLR = [^42].
+	public testFloat = 0.5 asFloat.
+	|
+) (
 public testModulesUsingPlatform: p minitest: m = (
 	^{SerializationTesting
 		usingPlatform: p

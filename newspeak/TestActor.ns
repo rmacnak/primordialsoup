@@ -1,7 +1,9 @@
-class TestActor = (|
+class TestActor = (
+	|
 	public Promise
 	public link
-|) (
+	|
+) (
 public echo: answer = (
 	^answer
 )

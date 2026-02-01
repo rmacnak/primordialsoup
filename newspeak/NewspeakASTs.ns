@@ -10,15 +10,17 @@ Copyright 2010 Felix Geller and Ryan Macnak
 
 Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License.  You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0 *)
 class NewspeakASTs usingPlatform: platform = (
-|
+	|
 	private List = platform collections List.
-|) (
+	|
+) (
 (* An abstract syntax tree. An AST knows where in the source code the corresponding construct is. The slots start and end are indices into the source code marking that position. *)
 public class AST = (
-|
-public start <Integer> ::= 0. (* Note that 0 is out-of-bounds in a Newspeak string. *)
-public end <Integer> ::= 0.
-|) (
+	|
+	public start <Integer> ::= 0. (* Note that 0 is out-of-bounds in a Newspeak string. *)
+	public end <Integer> ::= 0.
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^self subclassResponsibility
 )
@@ -116,21 +118,25 @@ public variableNode: aNode <VariableAST> = (
 )
 ) : (
 )
-public class BlockAST = AST (|
+public class BlockAST = AST (
+	|
 	public body <CodeBodyAST>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool blockNode: self
 )
 public isKindOfBlockNode ^<Boolean> = ( ^true )
-public parameters ^ <List[ParameterAST]> = (
+public parameters ^<List[ParameterAST]> = (
 	^body parameters
 )
 ) : (
 )
-public class CascadedSendAST = SendAST (|
+public class CascadedSendAST = SendAST (
+	|
 	public previousSend <SendAST>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool cascadedSendNode: self
 )
@@ -143,7 +149,7 @@ public end = (
 		ifTrue: [message end]
 )
 public isKindOfCascadedSendNode ^<Boolean> = ( ^true )
-public receiver ^ <ExpressionAST> = (
+public receiver ^<ExpressionAST> = (
 	^self previousSend receiver
 )
 public start = (
@@ -167,21 +173,25 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 ) : (
 )
-public class ClassBodyAST initializer: init <InitializerAST> instanceSide: iSide <SideAST> classSide: cSide <SideAST> = AST (
 (* AST for a class body. *)
-|
+public class ClassBodyAST initializer: init <InitializerAST> instanceSide: iSide <SideAST> classSide: cSide <SideAST> = AST (
+	|
 	public instanceInitializer <InitializerAST> = init.
 	public instanceSide <SideAST> = iSide.
 	public classSide <SideAST> = cSide.
-|start:: instanceInitializer start.
-end:: classSide end max: instanceSide end) (
+	|
+	start:: instanceInitializer start.
+	end:: classSide end max: instanceSide end.
+) (
 ) : (
 )
-public class ClassDeclarationAST = AST (|
+public class ClassDeclarationAST = AST (
+	|
 	public header <ClassHeaderAST>
 	public instanceSide <SideAST>
 	public classSide <SideAST>
-|) (
+	|
+) (
 public accessModifier ^<Symbol> = (
 	^header accessModifier
 )
@@ -191,18 +201,18 @@ public apply: tool <ASTTool[T]> ^<T> = (
 public isKindOfClassDeclarationNode ^<Boolean> = (
 	^true
 )
-public name ^ <Symbol> = (
+public name ^<Symbol> = (
 	^header name
 )
 public selector ^<Symbol> = (
 	^header name
 )
-public superclassName ^ <Symbol> = (
+public superclassName ^<Symbol> = (
 	^header superclassName
 )
 ) : (
 public makeMixinNamed: klassName <Token> factoryMsg: cons <MessagePatternAST> inheriting: iList <List[SendAST]> body: body <ClassBodyAST>
- ^ <ClassDeclarationAST> = (
+ ^<ClassDeclarationAST> = (
 (* adaptor factory method for transition. Using this method, we can create an AST compatible with the unmodified compiler based on the revised parser. *)
 	|
 	superCall <SendAST> = iList first.
@@ -224,15 +234,15 @@ public makeMixinNamed: klassName <Token> factoryMsg: cons <MessagePatternAST> in
 		instanceSide: body instanceSide;
 		classSide: body classSide
 )
-public named: klassName <Token> factoryMsg: cons <MessagePatternAST> inheriting: iList <List[SendAST]> body: body <ClassBodyAST>
- ^ <ClassDeclarationAST> = (
+public named: klassName <Token> factoryMsg: cons <MessagePatternAST> inheriting: iList <List[SendAST]> body: body <ClassBodyAST> ^<ClassDeclarationAST> = (
 	^body isNil
 		ifTrue: [MixinApplicationClassAST named: klassName value factoryMsg: cons inheriting: iList]
 		ifFalse: [makeMixinNamed: klassName factoryMsg: cons inheriting: iList body: body]
 )
 )
-public class ClassHeaderAST = AST (|
-	public accessModifier
+public class ClassHeaderAST = AST (
+	|
+	public accessModifier <Symbol>
 	public name <Symbol>
 	public constructor <MessagePatternAST>
 	public superclassName <Symbol>
@@ -242,14 +252,15 @@ public class ClassHeaderAST = AST (|
 	public isSeq <Boolean>
 	public initExprs <List[ExpressionAST]>
 	public inheritanceChain <List[SendAST]>
- |) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool classHeaderNode: self
 )
-public isKindOfClassHeaderAST = (
+public isKindOfClassHeaderAST ^<Boolean> = (
 	^true
 )
-public superCall ^ <SendAST> = (
+public superCall ^<SendAST> = (
 	^inheritanceChain first
 )
 ) : (
@@ -261,29 +272,32 @@ public class ClassPrefixAST name: n
 	superclassName: sn
 	superclassCall: scc
 	superConstructorCall: sk = AST (
-|
+	|
 	public name <Symbol> = n.
 	public constructor <MessagePatternAST> = k.
 	public superclassName <Symbol> = sn.
 	public superclassCall <NormalSendAST> = scc.
 	public superConstructorCall <MessageAST> = sk.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool classPrefix: self
 )
 ) : (
 )
-public class CodeBodyAST = AST (|
+public class CodeBodyAST = AST (
+	|
 	public parameters <List[ParameterAST]>
 	public temporaries <List[TemporaryAST]>
 	public statements <List[StatementAST]>
-	public isSeq <Boolean> ::=true.
+	public isSeq <Boolean> ::= true.
 	public pragmas <List[MessageAST]>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool codeBodyNode: self
 )
-public isKindOfCodeBodyNode ^<Boolean> = (^true)
+public isKindOfCodeBodyNode ^<Boolean> = ( ^true )
 public parameters: pars <List[ParameterAST]> temporaries: temps <List[TemporaryAST]> statements: stats <List[StatementAST]> = (
 	self parameters: pars; temporaries: temps; statements: stats
 )
@@ -300,63 +314,71 @@ public isMutable ^<Boolean> = (
 )
 (* AST for an instance initializer clause. *)
 public class InitializerAST slots: s initializerExpressions: es comment: c slotsAreSequential: seq = AST (
-|
+	|
 	public slots = s.
 	public initializationExpressions <List[ExpressionAST]> = es.
 	public isSeq <Boolean> = seq.
-|) (
+	|
+) (
 ) : (
 )
-public class LiteralAST = AST (|
+public class LiteralAST = AST (
+	|
 	public value <Object>
-|) (
-public isKindOfLiteralNode ^<Boolean> = (^true)
+	|
+) (
+public isKindOfLiteralNode ^<Boolean> = ( ^true )
 ) : (
 )
-public class MessageAST = AST (|
+public class MessageAST = AST (
+	|
 	public selector <Symbol>
 	public arguments <List[ExpressionAST]>
 	public isEventual <Boolean> ::= false.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool messageNode: self
 )
-public isKindOfMessageNode ^<Boolean> = (^true)
+public isKindOfMessageNode ^<Boolean> = ( ^true )
 public send: sel <Symbol> with: args <List[ExpressionAST]> = (
 	self selector: sel; arguments: args
 )
 ) : (
 )
 public class MessagePatternAST = AST (
-|
+	|
 	public accessModifier <Symbol>
 	public selector <Symbol>
 	public parameters <List[ParameterAST]>
 	public returnType <TypeAST>
 	public typePattern <TypePatternAST>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool messagePatternNode: self
 )
 public selector: s <Symbol> parameters: p <List[ParameterAST]> = (
-  self selector: s; parameters: p
+	self selector: s; parameters: p
 )
 public selector: s <Symbol> parameters: p <List[ParameterAST]> returnType: t <TypeAST> = (
-  self selector: s; parameters: p; returnType: t
+	self selector: s; parameters: p; returnType: t
 )
 public selector: s <Symbol> parameters: p <List[ParameterAST]> returnType: t <TypeAST> typePattern: tp <TypePatternAST> = (
-  self selector: s; parameters: p; returnType: t; typePattern: tp
+	self selector: s; parameters: p; returnType: t; typePattern: tp
 )
 public selector: s <Symbol> returnType: t <TypeAST> = (
-  self selector: s; returnType: t
+	self selector: s; returnType: t
 )
 ) : (
 )
-public class MethodAST = AST (|
+public class MethodAST = AST (
+	|
 	public pattern <MessagePatternAST>
 	public body <CodeBodyAST>
-|) (
-public accessModifier ^ <Symbol> = (
+	|
+) (
+public accessModifier ^<Symbol> = (
 	^pattern accessModifier
 )
 public accessModifier: am <Symbol> = (
@@ -377,12 +399,13 @@ public selector ^<Symbol> = (
 )
 (* This class represents a class defined via a mixin application - that is, a class that does not provide a class body. *)
 public class MixinApplicationClassAST named: klassName factoryMsg: cons inheriting: iList = AST (
-|
+	|
 	public accessModifier <Symbol>
 	public name <Symbol> = klassName asSymbol.
 	public constructor <MessagePatternAST> = cons.
 	public inheritanceChain <List[SendAST]> = iList.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool mixinApplicationClass: self
 )
@@ -392,7 +415,7 @@ public isKindOfMixinApplicationClassAST ^<Boolean> = (
 ) : (
 )
 public class MutableSlotDefAST = SlotDefAST () (
-public isMutable ^ <Boolean> = (^true)
+public isMutable ^<Boolean> = ( ^true )
 ) : (
 )
 public class NumberAST = LiteralAST () (
@@ -402,27 +425,32 @@ public apply: tool <ASTTool[T]> ^<T> = (
 public isKindOfNumberNode ^<Boolean> = ( ^true )
 ) : (
 )
-public class ReturnStatAST = AST (|
+public class ReturnStatAST = AST (
+	|
 	public expression <ExpressionAST>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool returnStatNode: self
 )
 public isKindOfReturnStatNode ^<Boolean> = ( ^true )
 ) : (
 )
-public class SendAST send: aMsg = AST (|
+public class SendAST send: aMsg = AST (
+	|
 	public message <MessageAST> ::= aMsg.
-|) (
+	|
+) (
 public isKindOfSendNode ^<Boolean> = ( ^true )
 public receiver = (
 	^self subclassResponsibility
 )
 ) : (
 )
-public class SetterSendAST to: r <ExpressionAST> send: m <MessageAST> start: s <integer> end: e <Integer> = SendAST send: m (|
+public class SetterSendAST to: r <ExpressionAST> send: m <MessageAST> start: s <integer> end: e <Integer> = SendAST send: m (
+	|
 	public receiver <ExpressionAST> ::= r.
-|
+	|
 	start: s.
 	end: e.
 ) (
@@ -433,26 +461,31 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 (* An AST for one side of a class *)
 public class SideAST = AST (
-|
+	|
 	public nestedClasses <Collection[ClassDeclarationAST]>
 	public methods <Collection[MethodAST]>
 	public transientSlots <List[SlotDefAST]>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool sideNode: self
 )
 ) : (
 )
-public class SlotDefAST = AST (|
+public class SlotDefAST = AST (
+	|
 	public slotDecl <VariableAST>
 	public initializer <ExpressionAST>
 	public accessModifier
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool slotDefNode: self
 )
-public isMutable ^ <Boolean> = (self subclassResponsibility)
-public name ^ <Symbol> = (
+public isMutable ^<Boolean> = (
+	self subclassResponsibility
+)
+public name ^<Symbol> = (
 	^slotDecl name
 )
 ) : (
@@ -469,18 +502,22 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 ) : (
 )
-public class TupleAST = AST (|
+public class TupleAST = AST (
+	|
 	public elements <List[ExpressionAST]>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool tupleNode: self
 )
 public isKindOfTupleNode ^<Boolean> = ( ^true )
 ) : (
 )
-public class UnresolvedSendAST = SendAST (|
+public class UnresolvedSendAST = SendAST (
+	|
 	public receiver <ExpressionAST>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool unresolvedSendNode: self
 )
@@ -495,22 +532,26 @@ public to: anExpression <ExpressionAST> send: selector with: arguments = (
 )
 ) : (
 )
-public class VarDeclAST name: aName type: aType = AST (|
+public class VarDeclAST name: aName type: aType = AST (
+	|
 	public name <Symbol> = aName.
 	public type <TypeAST> = aType.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool varDeclNode: self
 )
 ) : (
 )
-public class VariableAST = AST (|
+public class VariableAST = AST (
+	|
 	public name <Symbol>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool variableNode: self.
 )
-public isKindOfVariableNode ^<Boolean> = (^true)
+public isKindOfVariableNode ^<Boolean> = ( ^true )
 ) : (
 )
 ) : (

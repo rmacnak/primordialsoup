@@ -1,22 +1,26 @@
 (* Tests of the Minitest framework (that is, meta-tests). *)
 class MinitestTests usingPlatform: platform testFramework: minitest = (
-|
+	|
 	private Exception = platform kernel Exception.
 	private Promise = platform actors Promise.
 	private testFramework = minitest.
 	private TestContext = minitest TestContext.
 	private TestCatalog = minitest TestCatalog.
 	private Tester = minitest Tester.
-|) (
+	|
+) (
 public class AssertionTests = TestContext (
-|
+	|
 	guineaPig = GuineaPigTestModule testFramework: testFramework.
 	catalog = TestCatalog forModule: guineaPig.
 	tester
-|) (
-public class GuineaPigTestModule testFramework: testFramework = (|
+	|
+) (
+public class GuineaPigTestModule testFramework: testFramework = (
+	|
 	private TestContext = testFramework TestContext.
-|) (
+	|
+) (
 public class AssertEqualsTestContext = TestContext (
 ) (
 public testAssertEqualsFail = (
@@ -29,8 +33,7 @@ public testAssertEqualsPass = (
 	assert: 3 equals: 3
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 public class AssertTestContext = TestContext (
 ) (
@@ -56,12 +59,10 @@ public testAssertPassExpression = (
 	assert: true
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 public class AsyncTestContext = TestContext (
-|
-|) (
+) (
 public testAsyncError = (
 	^TestException1 new <-: signal
 )
@@ -72,8 +73,7 @@ public testAsyncSuccess = (
 	^self <-: yourself
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 (* Trial tests to verify that the various #deny... messages work correctly. *)
 public class DenyTestContext = TestContext (
@@ -100,21 +100,22 @@ public testDenyPassExpression = (
 	deny: false
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 (* This helps test to see if TestContext was deferred to for the creation of the TestFailure and TestError result. *)
 public class ResultCreationTestContext = TestContext (
-|
+	|
 	private TestFailure = testFramework TestFailure.
 	private TestError = testFramework TestError.
-|) (
+	|
+) (
 (* A custom TestSuccess *)
 class CustomTestSuccess case: testCase = (
-|
+	|
 	public case ::= testCase.
 	public message = 'all good here'.
-|) (
+	|
+) (
 public isError = (
 	^false
 )
@@ -151,8 +152,7 @@ public testSuccess = (
 TEST_CONTEXT = ()
 )
 public class ShouldShouldntTestContext = TestContext (
-|
-|) (
+) (
 public testShouldFail = (
 	[should: [TestException1 new signal] signal: TestException2]
 		on: TestException1
@@ -185,8 +185,7 @@ public testShouldntPass = (
 		do: [:ex | ex resume: nil]
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 class TestException1 = Exception (
 ) (
@@ -288,20 +287,20 @@ public testShouldShouldnt = (
 	assert: tester successes containsSelector: #testShouldntPass.
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 (* Tests to verify that test cases are collected and grouped into test suites correctly across test contexts, and that test contexts and their enclosing shared state classes are instantiated the correct number of times. *)
 public class TestLifecycleTests = TestContext (
-|
+	|
 	guineaPig = GuineaPigTestModule minitest: testFramework.
 	catalog = TestCatalog forModule: guineaPig.
-|) (
+	|
+) (
 (* A fake test module for the use by tests of the enclosing class.
 
 Because this module is nested inside a test context, the test contexts and methods it contains are not included in the test catalog created for the enclosing test module. *)
 public class GuineaPigTestModule minitest: testFramework = (
-|
+	|
 	private TestContext = testFramework TestContext.
 	public DirectlyNestedTestContextInstantiationCount ::= 0.
 	public OuterSharedStateClassInstantiationCount ::= 0.
@@ -309,19 +308,19 @@ public class GuineaPigTestModule minitest: testFramework = (
 	public InnerTestContextInstantiationCount ::= 0.
 	public OuterSharedStateCleanedUp ::= false.
 	public InnerSharedStateCleanedUp ::= false.
-|) (
+	|
+) (
 (* A test context class directly nested inside its test module. The tests expect this class to have 3 test methods. *)
 public class DirectlyNestedTestContext = TestContext (
-|
-|DirectlyNestedTestContextInstantiationCount: DirectlyNestedTestContextInstantiationCount + 1) (
+	DirectlyNestedTestContextInstantiationCount: DirectlyNestedTestContextInstantiationCount + 1.
+) (
 (* A test context inside a test context, should be ignored by the catalog building logic. *)
 public class DoublyNestedTestContextWhichShouldBeIgnored = TestContext (
 ) (
 public testCase1 = (
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 public testCase1 = (
 )
@@ -333,30 +332,32 @@ testFoo: bar = (
 	(* A keyword method like this should not be recognized as a test. *)
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 (* A non-test context class that serves as a container of shared state for its nested test contexts. *)
 public class OuterSharedStateClass = (
-|
+	|
 	outerSharedState = 42.
-|OuterSharedStateClassInstantiationCount: OuterSharedStateClassInstantiationCount + 1) (
+	|
+	OuterSharedStateClassInstantiationCount: OuterSharedStateClassInstantiationCount + 1.
+) (
 (* Another non-test context class. *)
 public class InnerSharedStateClass = (
-|
+	|
 	innerSharedState = 24.
-|InnerSharedStateClassInstantiationCount: InnerSharedStateClassInstantiationCount + 1) (
+	|
+	InnerSharedStateClassInstantiationCount: InnerSharedStateClassInstantiationCount + 1.
+) (
 (* A test context class nested in some shared state classes. The tests expect this class to have 2 test methods. *)
 public class InnerTestContext = TestContext (
-|
-|InnerTestContextInstantiationCount: InnerTestContextInstantiationCount + 1) (
+	InnerTestContextInstantiationCount: InnerTestContextInstantiationCount + 1.
+) (
 public testCase1 = (
 )
 public testCase2 = (
 )
 ) : (
-TEST_CONTEXT = (
-)
+TEST_CONTEXT = ()
 )
 public cleanUp = (
 	InnerSharedStateCleanedUp: true.
@@ -404,9 +405,7 @@ public testSuiteSizes = (
 	equals: 2.
 )
 ) : (
-TEST_CONTEXT = (
-(* Marking this class as a test context. *)
-)
+TEST_CONTEXT = ()
 )
 ) : (
 )

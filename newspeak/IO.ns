@@ -1,11 +1,12 @@
 class IO usingPlatform: p internalKernel: k = (
-|
-private ArgumentError = p kernel ArgumentError.
-private Resolver = p actors Resolver.
-private List = p collections List.
-private multipleReturn = Array new: 4.
-private handleMap = k messageLoop handleMap.
-|) (
+	|
+	private ArgumentError = p kernel ArgumentError.
+	private Resolver = p actors Resolver.
+	private List = p collections List.
+	private multipleReturn = Array new: 4.
+	private handleMap = k messageLoop handleMap.
+	|
+) (
 public class Files = () (
 ) : (
 )

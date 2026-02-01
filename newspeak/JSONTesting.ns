@@ -1,9 +1,11 @@
 (* Tests for the JSON encoder/decoder. *)
-class JSONTesting usingPlatform: platform minitest: minitest json: json_ = (|
-private TestContext = minitest TestContext.
-private json = json_.
-private Map = platform collections Map.
-|) (
+class JSONTesting usingPlatform: platform minitest: minitest json: json_ = (
+	|
+	private TestContext = minitest TestContext.
+	private json = json_.
+	private Map = platform collections Map.
+	|
+) (
 public class DecoderTests = TestContext (
 ) (
 assertOrderedMap: actualMap equals: expectedMap = (

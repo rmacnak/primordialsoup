@@ -1,6 +1,8 @@
-class AccessModifierTestingConfiguration packageTestsUsing: manifest = (|
-private AccessModifierTesting = manifest AccessModifierTesting.
-|) (
+class AccessModifierTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private AccessModifierTesting = manifest AccessModifierTesting.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{AccessModifierTesting
 		usingPlatform: platform

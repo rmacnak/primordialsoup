@@ -1,12 +1,14 @@
-class IOTestRunner packageUsing: manifest = (|
-Minitest = manifest Minitest.
-testConfigs = {
-	manifest ProcessTestingConfiguration packageTestsUsing: manifest.
-	manifest FileTestingConfiguration packageTestsUsing: manifest.
-	manifest SocketTestingConfiguration packageTestsUsing: manifest.
-}.
-Promise
-|) (
+class IOTestRunner packageUsing: manifest = (
+	|
+	Minitest = manifest Minitest.
+	testConfigs = {
+		manifest ProcessTestingConfiguration packageTestsUsing: manifest.
+		manifest FileTestingConfiguration packageTestsUsing: manifest.
+		manifest SocketTestingConfiguration packageTestsUsing: manifest.
+	}.
+	Promise
+	|
+) (
 private exit: code = (
 	(* :pragma: primitive: 189 *)
 	panic.

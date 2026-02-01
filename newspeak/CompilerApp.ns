@@ -121,10 +121,12 @@ writeBytes: bytes toFileNamed: filename = (
 )
 ) : (
 )
-class Manifest forNamespace: ns = (|
-namespace = ns.
-|) (
-protected doesNotUnderstand: message = (
+class Manifest forNamespace: ns = (
+	|
+	namespace <Map> = ns.
+	|
+) (
+protected doesNotUnderstand: message <Message> = (
 	^namespace at: message selector ifAbsent: [Exception signal: 'Missing ', message selector]
 )
 ) : (

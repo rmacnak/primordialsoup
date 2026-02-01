@@ -1,11 +1,13 @@
 (* Tests for lists, maps and sets. *)
-class CollectionsTesting usingCollections: c minitest: m = (|
-private TestContext = m TestContext.
+class CollectionsTesting usingCollections: c minitest: m = (
+	|
+	private TestContext = m TestContext.
 
-private List = c List.
-private Map = c Map.
-private Set = c Set.
-|) (
+	private List = c List.
+	private Map = c Map.
+	private Set = c Set.
+	|
+) (
 public class CollectionTests = TestContext () (
 public testArrayList = (
 	| list = List new. |

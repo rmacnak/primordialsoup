@@ -1,16 +1,18 @@
 (* Tests for reflection: stack introspection. *)
-class ActivationMirrorTesting usingPlatform: p minitest: m = (|
-private ClassDeclarationBuilder = p mirrors ClassDeclarationBuilder.
-private ObjectMirror = p mirrors ObjectMirror.
-private ActivationMirror = p mirrors ActivationMirror.
-private ClosureMirror = p mirrors ClosureMirror.
-private Message = p kernel Message.
-private StringBuilder = p kernel StringBuilder.
-private List = p collections List.
-private Map = p collections Map.
-private Promise = p actors Promise.
-private TestContext = m TestContext.
-|) (
+class ActivationMirrorTesting usingPlatform: p minitest: m = (
+	|
+	private ClassDeclarationBuilder = p mirrors ClassDeclarationBuilder.
+	private ObjectMirror = p mirrors ObjectMirror.
+	private ActivationMirror = p mirrors ActivationMirror.
+	private ClosureMirror = p mirrors ClosureMirror.
+	private Message = p kernel Message.
+	private StringBuilder = p kernel StringBuilder.
+	private List = p collections List.
+	private Map = p collections Map.
+	private Promise = p actors Promise.
+	private TestContext = m TestContext.
+	|
+) (
 public class ActivationTests = TestBase () (
 class Point x: x y: y = Object new (
 |

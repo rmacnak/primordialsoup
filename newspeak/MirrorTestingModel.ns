@@ -1,13 +1,15 @@
 class MirrorTestingModel = () (
-public class Klass factory: arg = SuperKlass superFactory: arg + 0 (|
-public publicSlot = 1.
-protected protectedSlot = 2.
-defaultSlot = 3.
-private privateSlot = 4.
-mutableSlot ::= 5.
-immutableSlot = 6.
-uninitializedSlot
-|) (
+public class Klass factory: arg = SuperKlass superFactory: arg + 0 (
+	|
+	public publicSlot = 1.
+	protected protectedSlot = 2.
+	defaultSlot = 3.
+	private privateSlot = 4.
+	mutableSlot ::= 5.
+	immutableSlot = 6.
+	uninitializedSlot
+	|
+) (
 class DefaultNestedClass = () (
 ) : (
 )
@@ -91,9 +93,11 @@ selectorsTest = (
 public classMethod = (
 )
 )
-public class SuperKlass superFactory: arg = (|
-superSlot = arg.
-|) (
+public class SuperKlass superFactory: arg = (
+	|
+	superSlot = arg.
+	|
+) (
 class SuperNestedClass = () (
 ) : (
 )

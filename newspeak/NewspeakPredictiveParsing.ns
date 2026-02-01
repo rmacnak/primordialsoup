@@ -10,7 +10,7 @@ Todo:
  - Attach better source positions for synthetic parts like the default superclass clause.
  - Separate the AST building from the parsing, something like the parser calling various #acceptFoo methods that subclasses should implement. Then add the colorizing and source mirror subclasses. *)
 class NewspeakPredictiveParsing usingPlatform: platform asts: asts = (
-|
+	|
 	private List = platform collections List.
 
 	private BlockAST = asts BlockAST.
@@ -38,7 +38,8 @@ class NewspeakPredictiveParsing usingPlatform: platform asts: asts = (
 	private UnresolvedSendAST = asts UnresolvedSendAST.
 	private VarDeclAST = asts VarDeclAST.
 	private VariableAST = asts VariableAST.
-|) (
+	|
+) (
 class ParseError message: m position: p = Exception (
 	|
 	public message <String> = m.
@@ -48,26 +49,27 @@ class ParseError message: m position: p = Exception (
 public isKindOfParseError ^<Boolean> = (
 	^true
 )
-public printString = (
+public printString ^<String> = (
 	^'ParseError: ' , message , ' at position ' , position asString
 )
 ) : (
 )
 (* A recursive descent parser for Newspeak that looks up to 3 token ahead. *)
 public class Parser for: string = Scanner for: string (
-|
+	|
 	protected implicitReceiver = VariableAST new name: #'@here'.
-|) (
-defaultClassSide = (
+	|
+) (
+defaultClassSide ^<SideAST> = (
 	^SideAST new
 		transientSlots: {};
 		nestedClasses: {};
 		methods: {}
 )
-defaultConstructorPattern = (
+defaultConstructorPattern ^<MessagePatternAST> = (
 	^MessagePatternAST new selector: #new parameters: {}
 )
-defaultSuperclassClause = (
+defaultSuperclassClause ^<SendAST> = (
 	^UnresolvedSendAST new
 		receiver:
 			(UnresolvedSendAST new
@@ -79,14 +81,14 @@ defaultSuperclassClause = (
 expected: expectedKind = (
 	^(ParseError message: 'expected ' , expectedKind position: tokenStart) signal
 )
-public parseAccessModifierOpt = (
+public parseAccessModifierOpt ^<Symbol> = (
 	tokenKind = #identifier ifTrue:
 		[tokenValue = #public ifTrue: [advanceToken. ^#public].
 		 tokenValue = #protected ifTrue: [advanceToken. ^#protected].
 		 tokenValue = #private ifTrue: [advanceToken. ^#private]].
 	^#protected
 )
-public parseBinaryExpression = (
+public parseBinaryExpression ^<ExpressionAST> = (
 	(* binaryExpression = unaryExpression, binaryMsg star. *)
 	| result message |
 
@@ -100,7 +102,7 @@ public parseBinaryExpression = (
 
 	^result
 )
-public parseBinaryMessage = (
+public parseBinaryMessage ^<MessageAST> = (
 	(* binaryMsg = eventualSendOperator opt, binarySelector, unaryExpression. *)
 	| messageStart isEventual selector argument |
 
@@ -118,7 +120,7 @@ public parseBinaryMessage = (
 		isEventual: isEventual;
 		start: messageStart; end: argument end
 )
-public parseBinaryMessagePattern = (
+public parseBinaryMessagePattern ^<MessagePatternAST> = (
 	(* 	binaryMsgPattern = binarySelector, slotDecl. *)
 	| patternStart selector parameter pattern returnType |
 
@@ -136,7 +138,7 @@ public parseBinaryMessagePattern = (
 		returnType: returnType;
 		start: patternStart; end: parameter end (* bogus *)
 )
-public parseCascadedMessage = (
+public parseCascadedMessage ^<MessageAST> = (
 	tokenKind = #';' ifFalse: [expected: 'semicolon'].
 	advanceToken.
 	peekHasUnaryMessage ifTrue: [^parseUnaryMessage].
@@ -144,7 +146,7 @@ public parseCascadedMessage = (
 	peekHasKeywordMessage ifTrue: [^parseKeywordMessage].
 	expected: 'message'.
 )
-public parseCascadedMessageExpression = (
+public parseCascadedMessageExpression ^<ExpressionAST> = (
 	| result message |
 	result:: parseKeywordExpression.
 	result isKindOfSendNode ifFalse: [^result].
@@ -158,7 +160,7 @@ public parseCascadedMessageExpression = (
 
 	^result
 )
-public parseClassDeclaration = (
+public parseClassDeclaration ^<ClassDeclarationAST> = (
 	(* classDeclaration = classHeader, sideDecl, classSideDecl opt *)
 
 	| header instanceSide classSide |
@@ -173,12 +175,12 @@ public parseClassDeclaration = (
 		instanceSide: instanceSide;
 		classSide: classSide
 )
-public parseClassDeclarationEnd = (
+public parseClassDeclarationEnd ^<ClassDeclarationAST> = (
 	| result = parseClassDeclaration. |
 	tokenKind = #end ifFalse: [expected: 'end of input'].
 	^result
 )
-public parseClassHeader = (
+public parseClassHeader ^<ClassHeaderAST> = (
 	(* classHeader =
 		(accessModifier opt, (tokenFromSymbol: #class), identifier, messagePattern, equalSign,
 		superclassClause opt, lparen, classComment opt,
@@ -258,7 +260,7 @@ public parseClassHeaderForName = (
 
 	tokenKind = #identifier ifFalse: [expected: 'identifier'].
 )
-public parseClassSide = (
+public parseClassSide ^<SideAST> = (
 	(* classSideDecl = colon, lparen, category star, rparen. *)
 
 	| methods = List new. |
@@ -279,7 +281,7 @@ public parseClassSide = (
 		nestedClasses: {};
 		methods: methods
 )
-public parseClosure = (
+public parseClosure ^<BlockAST> = (
 	(* block = lbracket, blockParameters opt, codeBody, rbracket. *)
 	| closureStart closureEnd parameters = List new. body |
 
@@ -328,19 +330,19 @@ public parseClosureType = (
 	advanceToken.
 	^nil
 )
-public parseCodeBody = (
+public parseCodeBody ^<CodeBodyAST> = (
 	(* codeBody = (literalMessageComment | comment | whitespace) star, temporaries opt, statements. *)
 	| body statements |
 	body:: parseTemporariesOpt.
 	body statements: parseStatements.
 	^body
 )
-public parseDoItExpressionEnd = (
+public parseDoItExpressionEnd ^<CodeBodyAST> = (
 	| result = parseCodeBody. |
 	tokenKind = #end ifFalse: [expected: 'end of input'].
 	^result
 )
-public parseExpression = (
+public parseExpression ^<ExpressionAST> = (
 	(* expression = setterKeyword star, sendExpression. *)
 	| setterMessages = List new. result |
 	[tokenKind = #setter] whileTrue:
@@ -362,7 +364,7 @@ public parseExpression = (
 			end: setterMessage end].
 	^result
 )
-public parseInitExpressions = (
+public parseInitExpressions ^<List[ExpressionAST]> = (
 	(* initExprs = expression starSeparatedOrTerminatedBy: dot. *)
 	| statements = List new. |
 
@@ -380,7 +382,7 @@ public parseInitExpressions = (
 	 statements add: parseExpression.
 	 tokenKind = #'.' ifTrue: [advanceToken]] repeat.
 )
-public parseInstanceSide = (
+public parseInstanceSide ^<SideAST> = (
 	(* sideDecl = lparen, classDecl star, category star, rparen. *)
 
 	|
@@ -408,7 +410,7 @@ public parseInstanceSide = (
 		nestedClasses: nestedClasses;
 		methods: methods
 )
-public parseKeywordExpression = (
+public parseKeywordExpression ^<ExpressionAST> = (
 	(* keywordExpression = binaryExpression, keywordMsg opt. *)
 	| result message |
 
@@ -421,7 +423,7 @@ public parseKeywordExpression = (
 		to: result send: message;
 		start: result start; end: message end
 )
-public parseKeywordHereSend = (
+public parseKeywordHereSend ^<ExpressionAST> = (
 	(* keywordHereSend = keywordMsg. *)
 	| message |
 	message:: parseKeywordMessage.
@@ -429,7 +431,7 @@ public parseKeywordHereSend = (
 		to: implicitReceiver send: message;
 		start: message start; end: message end
 )
-public parseKeywordMessage = (
+public parseKeywordMessage ^<MessageAST> = (
 	(* keywordMsg = eventualSendOperator opt, (keyword, binaryExpression) plus. *)
 	| messageStart isEventual selector arguments = List new. |
 
@@ -452,7 +454,7 @@ public parseKeywordMessage = (
 		isEventual: isEventual;
 		start: messageStart; end: arguments last end
 )
-public parseKeywordMessagePattern = (
+public parseKeywordMessagePattern ^<MessagePatternAST> = (
 	(* keywordMsgPattern = (keyword, slotDecl) plus. *)
 	| patternStart selector parameters = List new. returnType |
 
@@ -474,7 +476,7 @@ public parseKeywordMessagePattern = (
 		returnType: returnType;
 		start: patternStart; end: parameters last end
 )
-public parseLiteral = (
+public parseLiteral ^<ExpressionAST> = (
 	(* literal = pattern | number | symbolConstant | characterConstant | string | tuple. *)
 	| n |
 
@@ -521,7 +523,7 @@ public parseLiteral = (
 
 	expected: 'literal'
 )
-public parseMessagePattern = (
+public parseMessagePattern ^<MessagePatternAST> = (
 	(* messagePattern = unaryMsgPattern | binaryMsgPattern | keywordMsgPattern. *)
 
 	tokenKind = #identifier ifTrue:
@@ -533,7 +535,7 @@ public parseMessagePattern = (
 
 	expected: 'message pattern'.
 )
-public parseMethodDeclaration = (
+public parseMethodDeclaration ^<MethodAST> = (
 	(* methodDecl = accessModifier opt, messagePattern, equalSign, lparen, codeBody, rparen. *)
 	| declStart am pattern pragmas body declEnd |
 	declStart:: extendedStart.
@@ -560,7 +562,7 @@ public parseMethodDeclaration = (
 		pattern: pattern body: body accessModifier: am;
 		start: declStart; end: declEnd
 )
-public parseMethodDeclarationEnd = (
+public parseMethodDeclarationEnd ^<MethodAST> = (
 	| result = parseMethodDeclaration. |
 	tokenKind = #end ifFalse: [expected: 'end of input'].
 	^result
@@ -568,7 +570,7 @@ public parseMethodDeclarationEnd = (
 public parseParameterDeclaration = (
 	^parseVar
 )
-public parseParenthesizedExpression = (
+public parseParenthesizedExpression ^<ExpressionAST> = (
 	(* parenthesizedExpression = lparen, expression, rparen. *)
 	| start result |
 	tokenKind = #'(' ifFalse: [expected: '('].
@@ -624,7 +626,7 @@ public parsePragmaOpt = (
 	arguments isEmpty ifTrue: [^nil].
 	^MessageAST new send: selector asSymbol with: arguments asArray
 )
-public parsePrimary = (
+public parsePrimary ^<ExpressionAST> = (
 	(* primary = slotName | literal | block | parenthesizedExpression. *)
 	| send |
 
@@ -658,7 +660,7 @@ public parseReturnType = (
 	advanceToken.
 	^parseType
 )
-public parseSendExpression = (
+public parseSendExpression ^<ExpressionAST> = (
 	(* sendExpression = keywordHereSend | cascadedMessageExpression. *)
 	peekHasKeywordMessage ifTrue: [^parseKeywordHereSend].
 	^parseCascadedMessageExpression
@@ -695,7 +697,7 @@ public parseSlotDeclaration = (
 		initializer: nil;
 		start: declStart; end: tokenEnd
 )
-public parseSlotInitializer = (
+public parseSlotInitializer ^<ExpressionAST> = (
 	(* slotDef = accessModifier opt, slotDecl,
 		(((tokenFromSymbol: #=) | (tokenFromSymbol: #'::=')), expression, dot) opt. *)
 	| result |
@@ -771,13 +773,13 @@ public parseSuperclassClause = (
 		message: message;
 		start: clauseStart; end: clauseEnd
 )
-public parseSuperclassMessage = (
+public parseSuperclassMessage ^<MessageAST> = (
 	tokenKind = #identifier ifTrue: [^parseUnaryMessage].
 	tokenKind = #binary ifTrue: [^parseBinaryMessage].
 	tokenKind = #keyword ifTrue: [^parseKeywordMessage].
 	^MessageAST new send: #new with: {}
 )
-public parseTemporariesOpt = (
+public parseTemporariesOpt ^<CodeBodyAST> = (
 	| temps = List new. body |
 	body:: CodeBodyAST new.
 	body isSeq: true.
@@ -838,7 +840,7 @@ public parseTransientSlotDeclarationEnd = (
 	tokenKind = #end ifFalse: [expected: 'end of input'].
 	^result
 )
-public parseTuple = (
+public parseTuple ^<TupleAST> = (
 	(* tuple = lcurly, (expression starSeparatedOrTerminatedBy: dot), rcurly. *)
 	| tupleStart tupleEnd elements = List new. |
 
@@ -915,7 +917,7 @@ public parseTypeTerm = (
 		whileTrue: [advanceToken].
 	^nil
 )
-public parseUnaryExpression = (
+public parseUnaryExpression ^<ExpressionAST> = (
 	(* unaryExpression = primary, unaryMsg star. *)
 	| result message |
 
@@ -929,7 +931,7 @@ public parseUnaryExpression = (
 
 	^result
 )
-public parseUnaryMessage = (
+public parseUnaryMessage ^<MessageAST> = (
 	(* unaryMsg = eventualSendOperator opt, unarySelector. *)
 	| messageStart isEventual message |
 
@@ -946,7 +948,7 @@ public parseUnaryMessage = (
 	advanceToken.
 	^message
 )
-public parseUnaryMessagePattern = (
+public parseUnaryMessagePattern ^<MessagePatternAST> = (
 	(* unaryMsgPattern = unarySelector. *)
 	| pattern |
 
@@ -973,7 +975,7 @@ public parseVar = (
 	^(VarDeclAST name: name type: type)
 		start: start; end: end.
 )
-peekHasAccessModifier = (
+peekHasAccessModifier ^<Boolean> = (
 	(* LL(1) *)
 	tokenKind = #identifier ifFalse: [^false].
 	tokenValue = #public ifTrue: [^true].
@@ -981,7 +983,7 @@ peekHasAccessModifier = (
 	tokenValue = #private ifTrue: [^true].
 	^false
 )
-peekHasBinaryMessage = (
+peekHasBinaryMessage ^<Boolean> = (
 	(* LL(2) *)
 	| context result |
 	tokenKind = #binary ifTrue: [^true].
@@ -994,7 +996,7 @@ peekHasBinaryMessage = (
 	restoreContext: context.
 	^result
 )
-peekHasClassDeclaration = (
+peekHasClassDeclaration ^<Boolean> = (
 	(* LL(3) *)
 	(* classHeader = (accessModifier opt, (tokenFromSymbol: #class), identifier, ... *)
 
@@ -1013,7 +1015,7 @@ peekHasClassDeclaration = (
 	restoreContext: context.
 	^true
 )
-peekHasKeywordMessage = (
+peekHasKeywordMessage ^<Boolean> = (
 	(* LL(2) *)
 	| context result |
 	tokenKind = #keyword ifTrue: [^true].
@@ -1026,7 +1028,7 @@ peekHasKeywordMessage = (
 	restoreContext: context.
 	^result
 )
-peekHasTransientSlotDeclaration = (
+peekHasTransientSlotDeclaration ^<Boolean> = (
 	(* LL(3) *)
 	(* transientSlotDecl = (accessModifier opt, (tokenFromSymbol: #transient), identifier, ... *)
 
@@ -1046,7 +1048,7 @@ peekHasTransientSlotDeclaration = (
 	restoreContext: context.
 	^true
 )
-peekHasTypeOperator = (
+peekHasTypeOperator ^<Boolean> = (
 	(* LL(1) *)
 	tokenKind = #binary ifFalse: [^false].
 	tokenValue = '|' ifTrue: [^true].
@@ -1054,7 +1056,7 @@ peekHasTypeOperator = (
 	tokenValue = '/' ifTrue: [^true].
 	^false
 )
-peekHasUnaryMessage = (
+peekHasUnaryMessage ^<Boolean> = (
 	(* LL(2) *)
 	| context result |
 	tokenKind = #identifier ifTrue: [^true].
@@ -1112,7 +1114,7 @@ Frequency of Newspeak tokens:
 
 *)
 public class Scanner for: string = (
-|
+	|
 	private input <String> = string.
 	private size <Integer> = string size.
 	private position <Integer> ::= 1. (* Index of the next rune to scan. *)
@@ -1120,8 +1122,9 @@ public class Scanner for: string = (
 	public tokenStart <Integer> ::= 0.
 	public tokenKind <Symbol>
 	public tokenValue (* The evaluated token, not it's substring in the source. *)
-	public extendedStart
-|) (
+	public extendedStart <Integer>
+	|
+) (
 public advanceToken = (
 	| byte |
 	skipWhitespaceAndComments.
@@ -1166,36 +1169,36 @@ public advanceToken = (
 
 	scanError: 'Unknown token'.
 )
-private extendedDigitValue: byte = (
+private extendedDigitValue: byte <Integer> ^<Integer> = (
 	byte <= 57 ifTrue: [^byte - 48].
 	^byte - 55
 )
-private isAlphanumOrUnderscore: byte = (
+private isAlphanumOrUnderscore: byte <Integer> ^<Boolean> = (
 	byte >= 97 ifTrue: [byte <= 122 ifTrue: [^true]].
 	byte >= 65 ifTrue: [byte <= 90 ifTrue: [^true]].
 	byte >= 48 ifTrue: [byte <= 57 ifTrue: [^true]].
 	^byte = 95
 )
-private isDecimalDigit: byte = (
+private isDecimalDigit: byte <Integer> ^<Boolean> = (
 	byte >= 48 ifTrue: [byte <= 57 ifTrue: [^true]].
 	^false
 )
-private isExtendedDigit: byte = (
+private isExtendedDigit: byte <Integer> ^<Boolean> = (
 	byte >= 48 ifTrue: [byte <= 57 ifTrue: [^true]].
 	byte >= 65 ifTrue: [byte <= 90 ifTrue: [^true]].
 	^false
 )
-private isHexDigit: byte = (
+private isHexDigit: byte <Integer> ^<Boolean> = (
 	byte >= 48 ifTrue: [byte <= 57 ifTrue: [^true]].
 	byte >= 65 ifTrue: [byte <= 70 ifTrue: [^true]].
 	^false
 )
-private isLetterOrUnderscore: byte = (
+private isLetterOrUnderscore: byte <Integer> ^<Boolean> = (
 	byte >= 97 ifTrue: [byte <= 122 ifTrue: [^true]].
 	byte >= 65 ifTrue: [byte <= 90 ifTrue: [^true]].
 	^byte = 95
 )
-private isSpecialCharacter: byte = (
+private isSpecialCharacter: byte <Integer> ^<Boolean> = (
 	byte = 33 ifTrue: [^true]. (* ! *)
 	byte = 37 ifTrue: [^true]. (* % *)
 	byte = 38 ifTrue: [^true]. (* & *)
@@ -1214,14 +1217,14 @@ private isSpecialCharacter: byte = (
 	byte = 126 ifTrue: [^true]. (* ~ *)
 	^false
 )
-public keepComment = (
+public keepComment ^<String> = (
 	| commentStart |
 	skipWhitespace.
 	commentStart:: position.
 	skipComment ifFalse: [^nil].
 	^input copyFrom: commentStart + 2 to: position - 1 - 2
 )
-private keepComment: comments = (
+private keepComment: comments <List[{String.String}]> = (
 	| tag payloadStart payloadEnd |
 	position + 1 <= size ifFalse: [^self].
 	(input at: position) = 40 (* ( *) ifFalse: [^self].
@@ -1250,7 +1253,7 @@ private keepComment: comments = (
 
 	scanError: 'Unterminated comment'
 )
-public keepComments = (
+public keepComments ^<List[{String.String}]> = (
 	| result = List new. |
 	[ | p = position. |
 	 skipWhitespace.
@@ -1258,7 +1261,7 @@ public keepComments = (
 	 p = position] whileFalse.
 	^result
 )
-private peekHasRadix = (
+private peekHasRadix ^<Boolean> = (
 	position + 1 <= size ifFalse: [^false].
 	(input at: position) = 114 ifFalse: [^false].
 	^isExtendedDigit: (input at: position + 1)
@@ -1585,7 +1588,7 @@ private skipWhitespaceAndComments = (
 	nil = extendedStart ifTrue:
 		[extendedStart:: position].
 )
-public tokenEnd = (
+public tokenEnd ^<Integer> = (
 	^position - 1
 )
 ) : (

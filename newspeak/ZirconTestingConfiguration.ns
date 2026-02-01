@@ -1,8 +1,9 @@
 (* Test configuration using the current platform. *)
 class ZirconTestingConfiguration packageTestsUsing: manifest = (
-|
+	|
 	private ZirconTesting = manifest ZirconTesting.
-|) (
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	platform operatingSystem = 'fuchsia' ifFalse: [^{}].
 	^{ZirconTesting usingPlatform: platform minitest: minitest}

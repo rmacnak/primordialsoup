@@ -1,6 +1,8 @@
-class ActivationMirrorTestingConfiguration packageTestsUsing: manifest = (|
-private ActivationMirrorTesting = manifest ActivationMirrorTesting.
-|) (
+class ActivationMirrorTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private ActivationMirrorTesting = manifest ActivationMirrorTesting.
+	|
+) (
 public testModulesUsingPlatform: p minitest: m = (
 	^{ActivationMirrorTesting usingPlatform: p minitest: m}
 )

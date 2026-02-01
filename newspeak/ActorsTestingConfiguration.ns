@@ -1,7 +1,9 @@
-class ActorsTestingConfiguration packageTestsUsing: manifest = (|
-private ActorsTesting = manifest ActorsTesting.
-private TestActor = manifest TestActor.
-|) (
+class ActorsTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private ActorsTesting = manifest ActorsTesting.
+	private TestActor = manifest TestActor.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{ActorsTesting
 		usingPlatform: platform

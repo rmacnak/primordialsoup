@@ -1,15 +1,18 @@
-class AccessModifierTesting usingPlatform: platform  testFramework: minitest = (|
+class AccessModifierTesting usingPlatform: platform testFramework: minitest = (
+	|
 	private TestContext = minitest TestContext.
 	private ClassMirror = platform mirrors ClassMirror.
 	private MessageNotUnderstood = platform kernel MessageNotUnderstood.
-|) (
+	|
+) (
 (*	Try to access classes with different access modifiers, but only via public send.
 	 Class access is implemented via accessor methods - so fetching a class falls back to finding the appropriate method.
 	All kind of different method sends are already tested in the MethodAcessingTests. *)
 public class ClassAccessingTests = TestContext (
-|
+	|
 	testSubjects = TestSubjects new.
-|) (
+	|
+) (
 public testPrivateClassAccess = (
 	should: [testSubjects APrivateClass] signal: MessageNotUnderstood.
 )
@@ -17,7 +20,7 @@ public testProtectedClassAccess = (
 	should: [testSubjects AProtectedClass] signal: MessageNotUnderstood.
 )
 public testPublicClassAccess = (
-	assert: testSubjects APublicClass new ping = #pong.
+	assert: testSubjects APublicClass new ping equals: #pong.
 )
 public testPublicClassAccess2 = (
 	testSubjects AClass
@@ -178,26 +181,27 @@ public testSuperMNU = (
 ) : (
 TEST_CONTEXT = ()
 )
-public class MethodAccessingTests = TestContext (
 (* Test access to methods with different access modifiers *)
-|
+public class MethodAccessingTests = TestContext (
+	|
 	testSubjects = TestSubjects new.
-|) (
+	|
+) (
 public testDefaultImplicitReceiverSend = (
 	(* send a message via an implicitReceiverSend which goes to a method with default access modifier *)
-	assert: testSubjects ASubClass new ASubInnerClass new defaultImplicitReceiverSend = #defaultImplicitReceiverTarget.
+	assert: testSubjects ASubClass new ASubInnerClass new defaultImplicitReceiverSend equals: #defaultImplicitReceiverTarget.
 )
 public testDefaultImplicitReceiverSendWithInheritance = (
 	(* send a message via implicitReceiverSend which goes to a method with default access modifier with inheritance *)
-	assert: testSubjects ASubClass new defaultImplicitReceiverSendWithInheritance = #defaultMethod.
+	assert: testSubjects ASubClass new defaultImplicitReceiverSendWithInheritance equals: #defaultMethod.
 )
 public testDefaultOuterSend = (
 	(* send a message via an outerSend which goes to a method with default access modifier *)
-	assert: testSubjects AClass new AInnerClass new outerDefaultMethod = #defaultMethod.
+	assert: testSubjects AClass new AInnerClass new outerDefaultMethod equals: #defaultMethod.
 )
 public testDefaultOuterSendWithInheritance = (
 	(* send a message via an outerSend which goes to a method with default access modifier via inheritance *)
-	assert: testSubjects ASubClass new ASubInnerClass new defaultOuterSendWithInheritance = #defaultMethod.
+	assert: testSubjects ASubClass new ASubInnerClass new defaultOuterSendWithInheritance equals: #defaultMethod.
 )
 public testDefaultPublicSend = (
 	(* send a message via publicSend which goes to a method with default access modifier *)
@@ -209,15 +213,15 @@ public testDefaultPublicSendWithInheritance = (
 )
 public testDefaultSelfSend = (
 	(* send a message via selfSend which goes to a method with default access modifier *)
-	assert: testSubjects AClass new selfDefaultMethod = #defaultMethod.
+	assert: testSubjects AClass new selfDefaultMethod equals: #defaultMethod.
 )
 public testDefaultSelfSendWithInheritance = (
 	(* send a message via selfSend which goes to a method with default access modifier in the super chain *)
-	assert: testSubjects ASubClass new selfDefaultMethod = #defaultMethod.
+	assert: testSubjects ASubClass new selfDefaultMethod equals: #defaultMethod.
 )
 public testDefaultSuperSend = (
 	(* send a message via superSend which goes to a method with default access modifier *)
-	assert: testSubjects ASubClass new superDefaultMethod = #defaultMethod.
+	assert: testSubjects ASubClass new superDefaultMethod equals: #defaultMethod.
 )
 public testImplicitPrivateOverriddenByProtected = (
 	assert: testSubjects AClass new AInnerClass new implicitPrivateOverriddenByProtected
@@ -326,13 +330,13 @@ public testOuterPublicOverriddenByProtected = (
 	equals: #protected.
 )
 public testOverriddenMethodInASubInnerClassClassViaImplicitReceiverSend = (
-	assert: testSubjects ASubClass new callOverriddenMethod = #privateOverriddenMethod.
+	assert: testSubjects ASubClass new callOverriddenMethod equals: #privateOverriddenMethod.
 )
 public testOverriddenMethodInInnerClassPublicSend = (
 	assert: testSubjects ASubClass new overriddenMethod equals: #overriddenMethod
 )
 public testOverriddenMethodInSuperClassViaImplicitReceiverSend = (
-	assert: testSubjects AClass new AInnerClass new callHiddenMethod = #privateHiddenMethod.
+	assert: testSubjects AClass new AInnerClass new callHiddenMethod equals: #privateHiddenMethod.
 )
 public testOverriddenMethodInSuperClassViaPublicSend = (
 	should: [testSubjects AClass new AInnerClass new hiddenMethod] signal: MessageNotUnderstood.
@@ -343,7 +347,7 @@ public testPrivateDoesNotUnderstand = (
 )
 public testPrivateImplicitReceiverSend = (
 	(* send a message via implicitReceiverSend which goes to a private method *)
-	assert: testSubjects ASubClass new ASubInnerClass new privateImplicitReceiverSend = #privateImplicitReceiverTarget.
+	assert: testSubjects ASubClass new ASubInnerClass new privateImplicitReceiverSend equals: #privateImplicitReceiverTarget.
 )
 public testPrivateImplicitReceiverSendWithInheritance = (
 	(* send a message via implicitReceiverSend which goes to a private method via inheritance *)
@@ -351,7 +355,7 @@ public testPrivateImplicitReceiverSendWithInheritance = (
 )
 public testPrivateOuterSend = (
 	(* send a message via outerSend which goes to a private method *)
-	assert: testSubjects AClass new AInnerClass new outerPrivateMethod = #privateMethod.
+	assert: testSubjects AClass new AInnerClass new outerPrivateMethod equals: #privateMethod.
 )
 public testPrivateOuterSendWithInheritance = (
 	(* send a message via outerSend which goes to a private method via inheritance *)
@@ -367,7 +371,7 @@ public testPrivatePublicSendWithInheritance = (
 )
 public testPrivateSelfSend = (
 	(* send a message via selfSend which goes to a private method*)
-	assert: testSubjects AClass new selfPrivateMethod = #privateMethod.
+	assert: testSubjects AClass new selfPrivateMethod equals: #privateMethod.
 )
 public testPrivateSelfSendwithInheritance = (
 	(* send a message via selfSend which goes to a private method in the super chain *)
@@ -379,19 +383,19 @@ public testPrivateSuperSend = (
 )
 public testProtectedImplicitReceiverSend = (
 	(* send a message via implicitReceiverSend which goes to a protected method *)
-	assert: testSubjects ASubClass new ASubInnerClass new protectedImplicitReceiverSend = #protectedImplicitReceiverTarget.
+	assert: testSubjects ASubClass new ASubInnerClass new protectedImplicitReceiverSend equals: #protectedImplicitReceiverTarget.
 )
 public testProtectedImplicitReceiverSendWithInheritance = (
 	(* send a message via implicitReceiverSend which goes to a protected method via inheritance *)
-	assert: testSubjects ASubClass new protectedImplicitReceiverSendWithInheritance = #protectedMethod.
+	assert: testSubjects ASubClass new protectedImplicitReceiverSendWithInheritance equals: #protectedMethod.
 )
 public testProtectedOuterSend = (
 	(* send a message via outerSend which goes to a protected method *)
-	assert: testSubjects AClass new AInnerClass new outerProtectedMethod = #protectedMethod.
+	assert: testSubjects AClass new AInnerClass new outerProtectedMethod equals: #protectedMethod.
 )
 public testProtectedOuterSendWithInheritance = (
 	(* send a message via outerSend which goes to a protected method via inheritance *)
-	assert: testSubjects ASubClass new ASubInnerClass new protectedOuterSendWithInheritance = #protectedMethod.
+	assert: testSubjects ASubClass new ASubInnerClass new protectedOuterSendWithInheritance equals: #protectedMethod.
 )
 public testProtectedPublicSend = (
 	(* send a message via publicSend which goes to a protected method *)
@@ -403,11 +407,11 @@ public testProtectedPublicSendWithInheritance = (
 )
 public testProtectedSelfSend = (
 	(* send a message via selfSend which goes to a protected method*)
-	assert: testSubjects AClass new selfProtectedMethod = #protectedMethod.
+	assert: testSubjects AClass new selfProtectedMethod equals: #protectedMethod.
 )
 public testProtectedSelfSendWithInheritance = (
 	(* send a message via selfSend which goes to a protected method in the super chain *)
-	assert: testSubjects ASubClass new selfProtectedMethod = #protectedMethod.
+	assert: testSubjects ASubClass new selfProtectedMethod equals: #protectedMethod.
 )
 public testProtectedSendDNULookupClass = (
 	assert: testSubjects ADNUSubClass new sendSelfFoo equals: 'ADNUSubClass foo'.
@@ -417,43 +421,43 @@ public testProtectedSendDNULookupClass = (
 )
 public testProtectedSuperSend = (
 	(* send a message via superSend which goes to a protected method *)
-	assert: testSubjects ASubClass new superProtectedMethod = #protectedMethod.
+	assert: testSubjects ASubClass new superProtectedMethod equals: #protectedMethod.
 )
 public testPublicImplicitReceiverSend = (
 	(* send a message via implicitReceiverSend which goes to a public method *)
-	assert: testSubjects ASubClass new ASubInnerClass new publicImplicitReceiverSend = #publicImplicitReceiverTarget.
+	assert: testSubjects ASubClass new ASubInnerClass new publicImplicitReceiverSend equals: #publicImplicitReceiverTarget.
 )
 public testPublicImplicitReceiverSendWithInheritance = (
 	(* send a message via implicitReceiverSend which goes to a public method via inheritance *)
-	assert: testSubjects ASubClass new publicImplicitReceiverSendWithInheritance = #publicMethod.
+	assert: testSubjects ASubClass new publicImplicitReceiverSendWithInheritance equals: #publicMethod.
 )
 public testPublicOuterSend = (
 	(* send a message via outerSend which goes to a public method *)
-	assert: testSubjects AClass new AInnerClass new outerPublicMethod = #publicMethod.
+	assert: testSubjects AClass new AInnerClass new outerPublicMethod equals: #publicMethod.
 )
 public testPublicOuterSendWithInheritance = (
 	(* send a message via outerSend which goes to a public method via inheritance *)
-	assert: testSubjects ASubClass new ASubInnerClass new publicOuterSendWithInheritance = #publicMethod.
+	assert: testSubjects ASubClass new ASubInnerClass new publicOuterSendWithInheritance equals: #publicMethod.
 )
 public testPublicPublicSend = (
 	(* send a message via publicSend which goes to a public method *)
-	assert: testSubjects AClass new publicMethod = #publicMethod.
+	assert: testSubjects AClass new publicMethod equals: #publicMethod.
 )
 public testPublicPublicSendWithInheritance = (
 	(* send a message via publicSend which goes to a public method in the super chain *)
-	assert: testSubjects ASubClass new publicMethod = #publicMethod.
+	assert: testSubjects ASubClass new publicMethod equals: #publicMethod.
 )
 public testPublicSelfSend = (
 	(* send a message via selfSend which goes to a public method*)
-	assert: testSubjects AClass new selfPublicMethod = #publicMethod.
+	assert: testSubjects AClass new selfPublicMethod equals: #publicMethod.
 )
 public testPublicSelfSendWithInheritance = (
 	(* send a message via selfSend which goes to a public method in the super chain *)
-	assert: testSubjects ASubClass new selfPublicMethod = #publicMethod.
+	assert: testSubjects ASubClass new selfPublicMethod equals: #publicMethod.
 )
 public testPublicSuperSend = (
 	(* send a message via superSend which goes to a public method *)
-	assert: testSubjects ASubClass new superPublicMethod = #publicMethod.
+	assert: testSubjects ASubClass new superPublicMethod equals: #publicMethod.
 )
 public testSelfPrivateOverriddenByProtected = (
 	assert: testSubjects ASubClass new selfPrivateOverriddenByProtected
@@ -522,9 +526,10 @@ TEST_CONTEXT = ()
 	 Slot access is implemented via accessor methods - so fetching a slot falls back to finding the appropriate method.
 	All kind of different method sends are already tested in the MethodAcessingTests. *)
 public class SlotAccessingTests = TestContext (
-|
+	|
 	testSubjects = TestSubjects new.
-|) (
+	|
+) (
 public testDefaultSlotAccess = (
 	should: [testSubjects AClass new defaultSlot] signal: MessageNotUnderstood.
 )
@@ -535,7 +540,7 @@ public testProtectedSlotAccess = (
 	should: [testSubjects AClass new protectedSlot] signal: MessageNotUnderstood.
 )
 public testPublicSlotAccess = (
-	assert: testSubjects AClass new publicSlot = #publicSlot.
+	assert: testSubjects AClass new publicSlot equals: #publicSlot.
 )
 ) : (
 TEST_CONTEXT = ()
@@ -545,20 +550,22 @@ public class TestSubjects = (
 ) (
 (* A class with a default access modifier. Slots and methods of all sort to be tested against *)
 public class AClass = (
-|
-	public		publicSlot		= #publicSlot.
-	protected	protectedSlot	= #protectedSlot.
-	private		privateSlot		= #privateSlot.
-				defaultSlot		= #defaultSlot.
-|) (
+	|
+	public publicSlot = #publicSlot.
+	protected protectedSlot = #protectedSlot.
+	private privateSlot = #privateSlot.
+	defaultSlot = #defaultSlot.
+	|
+) (
 (* A class to test outerSends with different accessModifiers.*)
 public class AInnerClass = (
-|
-	public		publicSlot		= #innerPublicSlot.
-	protected	protectedSlot	= #innerProtectedSlot.
-	private		privateSlot		= #innerPrivateSlot.
-				defaultSlot		= #innerDefaultSlot.
-|) (
+	|
+	public publicSlot = #innerPublicSlot.
+	protected protectedSlot = #innerProtectedSlot.
+	private privateSlot = #innerPrivateSlot.
+	defaultSlot = #innerDefaultSlot.
+	|
+) (
 public callHiddenMethod = (
 	^hiddenMethod
 )
@@ -748,17 +755,18 @@ public ping = (
 )
 ) : (
 )
-public class ASubClass = AClass (
 (* A class to test access to inherited slots/methods *)
+public class ASubClass = AClass (
 ) (
-public class ASubInnerClass = (
 (* A Class to test outerSends in combination with inheritance *)
-|
-				defaultImplicitReceiverTarget		= #defaultImplicitReceiverTarget.
-	public		publicImplicitReceiverTarget		= #publicImplicitReceiverTarget.
-	protected	protectedImplicitReceiverTarget	= #protectedImplicitReceiverTarget.
-	private		privateImplicitReceiverTarget		= #privateImplicitReceiverTarget.
-|) (
+public class ASubInnerClass = (
+	|
+	defaultImplicitReceiverTarget = #defaultImplicitReceiverTarget.
+	public publicImplicitReceiverTarget = #publicImplicitReceiverTarget.
+	protected protectedImplicitReceiverTarget = #protectedImplicitReceiverTarget.
+	private privateImplicitReceiverTarget = #privateImplicitReceiverTarget.
+	|
+) (
 public defaultImplicitReceiverSend = (
 	^defaultImplicitReceiverTarget
 )

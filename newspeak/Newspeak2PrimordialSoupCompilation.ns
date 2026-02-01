@@ -20,7 +20,7 @@ class Newspeak2PrimordialSoupCompilation usingPlatform: platform
  intermediates: i = NewspeakCompilation
  usingPlatform: platform
  asts: asts (
-|
+	|
 	private StringBuilder = platform kernel StringBuilder.
 	private Map = platform collections Map.
 	private List = platform collections List.
@@ -54,7 +54,8 @@ class Newspeak2PrimordialSoupCompilation usingPlatform: platform
 	private IntermediateMethod = i IntermediateMethod.
 	private IntermediateMixin = i IntermediateMixin.
 	private IntermediateTransientSlotDeclaration = i IntermediateTransientSlotDeclaration.
-|) (
+	|
+) (
 (* The compiler has three main entry points: compileClassSource:Within:, compileClassHeader: within: and compileMethodSource:within:. These compile an entire class declaration, a class header, and a method, respectively.
 
 The compiler returns low level (e.g., VM level) objects representing the results of compilation.
@@ -154,21 +155,24 @@ context size - #method formals - #method locals
 
 We don't do this yet.  What we do instead is often suboptimal, but sometimes insufficient. We compute the cumulative maximum operand stack size for all code in the method, including closures. The idea was that this would be conservative and simple, but in fact it may fail if a closure has a large number of arguments and copy-downs, and the actual operand stack usage is small. *)
 class AST2ByteCodeCompiler = ASTTool (
-|
+	|
 	cgen <CodeGenerator>
 	debugInfo <DebugInfo>
 
 	valueExpected <Boolean>
 
 	maxClosureContextSize <Integer>
-|) (
-class CodeGenerator = (|
-public code = IntermediateMethod new.
+	|
+) (
+class CodeGenerator = (
+	|
+	public code = IntermediateMethod new.
 
-public maxStackDepth ::= 0.
-public currentStackDepth ::= 0.
-public currentArgs
-|) (
+	public maxStackDepth ::= 0.
+	public currentStackDepth ::= 0.
+	public currentArgs
+	|
+) (
 public accessModifier: am <Symbol> = (
 	code accessModifier: am.
 )
@@ -180,19 +184,19 @@ public bci ^<Integer> = (
 	(* Answers the current bytecode index. Used for calculating jump lengths. Note this is NOT the pc. *)
 	^code bci
 )
-public close ^<LowLevelMethodMirror> = (
+public close ^<IntermediateMethod> = (
 	(* To be called at the end of code generation. *)
 	| methodContextSize = maxStackDepth + code argCount + code maxLocals. |
 	code maxStack: (methodContextSize max: maxClosureContextSize).
 	^code
 )
-public decrementStackDepthBy: n = (
+public decrementStackDepthBy: n <Integer> = (
 	(* Reduce the current height of the operand stack *)
 	currentStackDepth:: currentStackDepth - n.
 	assert: currentStackDepth >= 0
 		message: 'Stack depth must not be negative'.
 )
-public incrementStackDepthBy: n = (
+public incrementStackDepthBy: n <Integer> = (
 	(* Increase the current height of the operand stack. Keep track of the maximum operand stack height seen in this method (that's the whole point of tracking the stack height - we need this to create a CompiledMethod. *)
 	currentStackDepth:: currentStackDepth + n.
 	maxStackDepth:: maxStackDepth max: currentStackDepth.
@@ -213,7 +217,7 @@ public methodName: n <Symbol> = (
 )
 class CodeGeneratorV5 = CodeGenerator (
 ) (
-public createClosureOfArity: numArgs copying: numCopied length: jumpSize = (
+public createClosureOfArity: numArgs <Integer> copying: numCopied <Integer> length: jumpSize <Integer> = (
 	check: jumpSize between: 0 and: 65535.
 	check: numCopied between: 0 and: 15.
 	check: numArgs between: 0 and: 15.
@@ -227,11 +231,11 @@ public createClosureOfArity: numArgs copying: numCopied length: jumpSize = (
 		byte: jumpSize & 255;
 		byte: jumpSize >> 8
 )
-public createEmptyArray: size = (
+public createEmptyArray: size <Integer> = (
 	incrementStackDepthBy: 1.
 	code byte: 222; byte: size.
 )
-public createFullArray: size = (
+public createFullArray: size <Integer> = (
 	decrementStackDepthBy: size.
 	incrementStackDepthBy: 1.
 	code byte: 223; byte: size.
@@ -240,7 +244,7 @@ public dup = (
 	code byte: 159.
 	incrementStackDepthBy: 1.
 )
-public eventualSend: selector numArgs: numArgs = (
+public eventualSend: selector <Symbol> numArgs: numArgs <Integer> = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
@@ -256,7 +260,7 @@ public eventualSend: selector numArgs: numArgs = (
 		byte: selectorIndex & 255;
 		byte: (selectorIndex >> 8) | (numArgs << 4).
 )
-public implicitReceiverSend: selector numArgs: numArgs = (
+public implicitReceiverSend: selector <Symbol> numArgs: numArgs <Integer> = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
@@ -276,7 +280,7 @@ public implicitReceiverSend: selector numArgs: numArgs = (
 		byte: selectorIndex & 255;
 		byte: (selectorIndex >> 8) | (numArgs << 4).
 )
-public indexForLiteral: literal = (
+public indexForLiteral: literal <Value> ^<Integer> = (
 	^literalTable at: literal
 )
 public jumpBackTo: target <Integer> = (
@@ -312,7 +316,7 @@ public jumpIf: bool <Boolean> by: distance <Integer> = (
 		byte: distance & 255;
 		byte: distance >> 8.
 )
-public ordinarySend: selector numArgs: numArgs = (
+public ordinarySend: selector <Symbol> numArgs: numArgs <Integer> = (
 	|
 	selectorIndex
 	|
@@ -339,7 +343,7 @@ public ordinarySend: selector numArgs: numArgs = (
 		byte: selectorIndex & 255;
 		byte: (selectorIndex >> 8) | (numArgs << 4).
 )
-public outerSend: selector numArgs: numArgs depth: depth = (
+public outerSend: selector <Symbol> numArgs: numArgs <Integer> depth: depth <Integer> = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
@@ -380,28 +384,28 @@ public pop = (
 	code byte: 158.
 	decrementStackDepthBy: 1.
 )
-public popIntoLocal: offset = (
+public popIntoLocal: offset <Integer> = (
 	decrementStackDepthBy: 1.
 	offset <= 7 ifTrue: [code byte: 128 + offset. ^self].
 	code byte: 230; byte: offset.
 )
-public popIntoRemoteTemporary: index inVector: vectorIndex = (
+public popIntoRemoteTemporary: index <Integer> inVector: vectorIndex <Integer> = (
 	check: index between: 0 and: 255.
 	check: vectorIndex between: 0 and: 255.
 
 	code byte: 246; byte: index; byte: vectorIndex - currentArgs.
 	decrementStackDepthBy: 1.
 )
-public popIntoTemporary: index = (
+public popIntoTemporary: index <Integer> = (
 	check: index between: 0 and: 63.
 	index < currentArgs ifTrue: [halt].
 	popIntoLocal: index - currentArgs.
 )
-public pushBoolean: value = (
+public pushBoolean: value <Boolean> = (
 	code byte: (value ifTrue: [154] ifFalse: [153]).
 	incrementStackDepthBy: 1.
 )
-public pushEnclosingObject: depth = (
+public pushEnclosingObject: depth <Integer> = (
 	check: depth between: 0 and: 127.
 
 	depth = 0 ifTrue: [^pushSelf].
@@ -420,10 +424,10 @@ public pushInteger: n <Integer> = (
 		byte: n & 255;
 		byte: n >> 8 & 255.
 )
-public pushLiteral: value = (
+public pushLiteral: value <Value> = (
 	^pushLiteralWithIndex: (indexForLiteral: value)
 )
-public pushLiteralWithIndex: index = (
+public pushLiteralWithIndex: index <Integer> = (
 	check: index between: 0 and: 65535.
 
 	incrementStackDepthBy: 1.
@@ -437,7 +441,7 @@ public pushLiteralWithIndex: index = (
 		byte: index & 255;
 		byte: index >> 8.
 )
-public pushLocal: offset = (
+public pushLocal: offset <Integer> = (
 	incrementStackDepthBy: 1.
 	offset <= 7 ifTrue: [code byte: 120 + offset. ^self].
 	code byte: 229; byte: offset.
@@ -450,18 +454,18 @@ public pushNil = (
 	code byte: 152.
 	incrementStackDepthBy: 1.
 )
-public pushNumber: value = (
+public pushNumber: value <Number> = (
 	value isKindOfInteger ifTrue:
 		[(value between: -32768 and: 32767) ifTrue:
 			[^pushInteger: value]].
 	^pushLiteral: value
 )
-public pushParameter: offset = (
+public pushParameter: offset <Integer> = (
 	incrementStackDepthBy: 1.
 	offset <= 7 ifTrue: [code byte: 112 + offset. ^self].
 	code byte: 228; byte: offset.
 )
-public pushRemoteTemporary: index inVector: vectorIndex = (
+public pushRemoteTemporary: index <Integer> inVector: vectorIndex <Integer> = (
 	check: index between: 0 and: 255.
 	check: vectorIndex between: 0 and: 255.
 
@@ -472,13 +476,13 @@ public pushSelf = (
 	code byte: 155.
 	incrementStackDepthBy: 1.
 )
-public pushTemporary: index = (
+public pushTemporary: index <Integer> = (
 	check: index between: 0 and: 63.
 	index < currentArgs
 		ifTrue: [pushParameter: currentArgs - index]
 		ifFalse: [pushLocal: index - currentArgs].
 )
-public returnLocal: value = (
+public returnLocal: value <Value> = (
 	nil = value ifTrue: [code byte: 166. ^self].
 	false = value ifTrue: [code byte: 167. ^self].
 	true = value ifTrue: [code byte: 168. ^self].
@@ -491,7 +495,7 @@ public returnLocalTop = (
 	code byte: 170.
 	decrementStackDepthBy: 1.
 )
-public returnNonLocal: value = (
+public returnNonLocal: value <Value> = (
 	nil = value ifTrue: [code byte: 171. ^self].
 	false = value ifTrue: [code byte: 172. ^self].
 	true = value ifTrue: [code byte: 173. ^self].
@@ -504,7 +508,7 @@ public returnNonLocalTop = (
 	code byte: 175.
 	decrementStackDepthBy: 1.
 )
-public selfSend: selector numArgs: numArgs = (
+public selfSend: selector <Symbol> numArgs: numArgs <Integer> = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
@@ -524,22 +528,22 @@ public selfSend: selector numArgs: numArgs = (
 		byte: selectorIndex & 255;
 		byte: (selectorIndex >> 8) | (numArgs << 4).
 )
-public storeIntoLocal: offset = (
+public storeIntoLocal: offset <Integer> = (
 	offset <= 7 ifTrue: [code byte: 136 + offset. ^self].
 	code byte: 231; byte: offset.
 )
-public storeIntoRemoteTemporary: index inVector: vectorIndex = (
+public storeIntoRemoteTemporary: index <Integer> inVector: vectorIndex <Integer> = (
 	check: index between: 0 and: 255.
 	check: vectorIndex between: 0 and: 255.
 
 	code byte: 247; byte: index; byte: vectorIndex - currentArgs.
 )
-public storeIntoTemporary: index = (
+public storeIntoTemporary: index <Integer> = (
 	check: index between: 0 and: 63.
 	index < currentArgs ifTrue: [halt].
 	storeIntoLocal: index - currentArgs.
 )
-public superSend: selector numArgs: numArgs = (
+public superSend: selector <Symbol> numArgs: numArgs <Integer> = (
 	|
 	selectorIndex = indexForLiteral: selector.
 	|
@@ -558,11 +562,12 @@ public superSend: selector numArgs: numArgs = (
 )
 (* Debugger information. *)
 class DebugInfo = (
-|
+	|
 	public bciSourceMapping <MutableMap[Integer, Interval]> = Map new.
 	public localVariables <MutableList[LocalVariableDebugInfo]> = List new.
 	public source <String>
-|) (
+	|
+) (
 public addInfoForLocal: var <AllocatedLocal> = (
 	| info |
 	info: LocalVariableDebugInfo new.
@@ -584,19 +589,21 @@ public addInfoForRemote: varInfo <AllocatedLocal> in: remoteVarInfo <SemanticVar
 public isKindOfDebugInfo ^<Boolean> = (
 	^true
 )
-public mapBCI: bci <Integer> to: src <interval> = (
+public mapBCI: bci <Integer> to: src <Interval> = (
 	bciSourceMapping at: bci put: src
 )
-public mapperForContext: ctxt = (
-	^DebugMapper forContext: ctxt usingDebugInfo: self.
+public mapperForContext: ctxt <Activation> = (
+	^DebugMapper forContext: ctxt usingDebugInfo: self
 )
 ) : (
 )
-class DebugMapper forContext: ctxt usingDebugInfo: dbgInfo = (|
+class DebugMapper forContext: ctxt usingDebugInfo: dbgInfo = (
+	|
 	context <Activation> = ctxt.
 	debugInfo <DebugInfo> = dbgInfo.
 	myDepth <Integer> = self depthOfContext: ctxt.
-|) (
+	|
+) (
 astForContextAtDepth: targetDepth <Integer> ^<AST> = (
 	|
 	returnContext
@@ -722,10 +729,10 @@ public setterAstFor: varName <Symbol> putting: newVal <AST> ^<SendAST> = (
 ) : (
 )
 class Interval from: start_ to: stop_ = (
-|
-public start = start_.
-public stop = stop_.
-|
+	|
+	public start = start_.
+	public stop = stop_.
+	|
 ) (
 public first ^<E> = (
 	^self start
@@ -740,13 +747,14 @@ public last ^<E> = (
 )
 (* Debugger information for a local. *)
 class LocalVariableDebugInfo = (
-|
+	|
 	public name <Symbol>
 	public validBCIRange <Interval>
 	public zeroOriginOffset <Integer> (* in remoteVector if not nil, otherwise in context *)
 	public remoteVector <Symbol | nil>
 	public contextDepth <Integer> (* 0 = method, 1 = closure, 2 = nested closure, ... *)
-|) (
+	|
+) (
 public isSynthetic ^<Boolean> = (
 	(* remoteVector or setter temp: debugger will not want to report these *)
 	^(name indexOf: "@") > 0
@@ -1258,22 +1266,23 @@ public tupleNode: node <TupleAST> = (
 ) : (
 )
 class AllocatedLocal = (
-|
+	|
 	public remote <Boolean>
 	public offset <Integer>
 	public remoteVector <AllocatedLocal>
 	public closureDepth <Integer>
 	public original <LocalEntry>
-|
+	|
 ) (
 ) : (
 )
 (* To use pushFullArray/pushEmptyArray *)
 class ArrayAST = AST (
-|
+	|
 	public elements <List[AST] | nil>
 	public size <Integer>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool arrayNode: self.
 )
@@ -1293,12 +1302,12 @@ Determines which local variables are copied into each closure:
 Adds literals and selectors to the literal table.
 Adds indirection vectors to code bodies. *)
 class ClosureRewriter1 = ASTTraverser (
-|
+	|
 	closureDepth
 	captured ::= List new.
 
 	capturedMap = Map new.
-|
+	|
 ) (
 addLiteral: value <Character | Number | String | Symbol> = (
 	literalTable at: value ifAbsentPut: [literalTable size].
@@ -1464,14 +1473,14 @@ public symbolNode: node <SymbolAST> = (
 Adds copied versions of captured variables.
 Assigns locals to context/activation slots. *)
 class ClosureRewriter2 with: cm = (
-|
+	|
 	capturedSets <Map[BlockAST, List[LocalEntry]]> = cm.
 
 	closureDepth ::= 0.
 	remapping ::= Map new.
 
 	nextOffset ::= 0.
-|
+	|
 ) (
 allocateLocal: var <LocalEntry> = (
 	^remapping at: var ifAbsentPut:
@@ -1686,21 +1695,23 @@ public tupleNode: node <TupleAST> = (
 )
 ) : (
 )
-class CogClosureAST = BlockAST (|
+class CogClosureAST = BlockAST (
+	|
 	public copiedInner <List[LocalEntry]>
 	public copiedOuter <List[LocalEntry]>
 	public pushNilCount <Integer>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool closureNode: self
 )
 ) : (
 )
 class EventualSendAST = AST (
-|
-public receiver <AST>
-public message <MessageAST>
-|
+	|
+	public receiver <AST>
+	public message <MessageAST>
+	|
 ) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool eventualSendNode: self
@@ -1779,7 +1790,7 @@ processEventualSend: node <UnresolvedSendAST> = (
 		message: (node message apply: self);
 		copyPositionFrom: node
 )
-processMappedVariable: msg decl: binding = (
+processMappedVariable: msg <MessageAST> decl: binding <SymbolTableEntry> = (
 	^((msg selector endsWith: ':')
 		ifTrue: [binding setterAst: msg arguments first]
 		ifFalse: [binding getterAst])
@@ -1883,7 +1894,7 @@ astForClassDeclarationInitializer: aNode <ClassHeaderAST> ^<MethodAST> = (
 		pattern: initHdr body: body accessModifier: #public;
 		copyPositionFrom: aNode
 )
-astForComputingClassDeclaration: name <String> superCall: superCall <NormalSendAST> iList: iList <List[SendAST]> ^ <NormalSendAST> = (
+astForComputingClassDeclaration: name <String> superCall: superCall <NormalSendAST> iList: iList <List[SendAST]> ^<NormalSendAST> = (
 	(* Compute the tree for an ordinary class declaration whose superclass is a generalized mixin application. *)
 	^UnresolvedSendAST new
 		to: MixinAST new
@@ -2052,7 +2063,7 @@ public compileClassHeader: source <String> within: enclosingIR <IntermediateMixi
 	^compileClassSource: (source, '()') within: enclosingIR
 )
 public compileClassSource: src <String> within: enclosingIR <IntermediateMixin> ^<IntermediateClassDeclaration> = (
-	| tree <ClassDeclarationAST> intermediate <IntermediateClassDeclaration>  |
+	| tree <ClassDeclarationAST> intermediate <IntermediateClassDeclaration> |
 
 	currentSource:: src.
 	currentScope:: Scope new.
@@ -2165,7 +2176,7 @@ public compileTransientSlotSource: src <String> within: enclosingIR <Intermediat
 
 	^within: enclosingIR compileTransientSlotNoAdd: tree
 )
-computeSlotInitializersFor: aNode <ClassHeaderAST> ^ <Collection[StmtAST]> = (
+computeSlotInitializersFor: aNode <ClassHeaderAST> ^<Collection[StmtAST]> = (
 	^(aNode slots reject: [:slot | slot initializer isNil]) collect:
 		[:slot <SlotDefAST> |
 		| aMsg <MessageAST> slotInitializer <ExpressionAST> |
@@ -2344,7 +2355,7 @@ private createTransientSlotSetter: transientSlotNode <SlotDefAST> = (
 
 	^compileSyntheticMethod: method
 )
-enclosingObjectTreeFor: c <ExpressionAST> ^ <NormalSendAST> = (
+enclosingObjectTreeFor: c <ExpressionAST> ^<NormalSendAST> = (
 	^UnresolvedSendAST new
 		to: c
 		send: (MessageAST new send: #enclosingObjectSlot with: {});
@@ -2369,7 +2380,7 @@ hereNode ^<VariableAST> = (
 	(* Generates an AST representing the implicit receiver. Note we use a name that is not a legal identifier. *)
 	^VariableAST new name: #'@here'
 )
-inheritanceASTWIthSuperclass: sc <ExpressionAST> iList: iList <List[SendAST]> ^ <NormalSendAST> = (
+inheritanceASTWIthSuperclass: sc <ExpressionAST> iList: iList <List[SendAST]> ^<NormalSendAST> = (
 (*
 Produce an AST representing a series of mixin applications corresponding
 to the contents of the inheritance chain described by iList, applied to
@@ -2391,7 +2402,7 @@ of the various mixin applications produced conflict with each other.
 initializerSelectorNameFor: selector <Symbol> ^<Symbol> = (
 	^('initializer`', selector) asSymbol
 )
-mixinCall: number <Integer> inheritanceList: iList <Collection[SendAST]> ^ <NormalSendAST> = (
+mixinCall: number <Integer> inheritanceList: iList <Collection[SendAST]> ^<NormalSendAST> = (
 	(* Probably migrate to superclass *)
 	(* create call to superclass initializer *)
 	|
@@ -2407,7 +2418,7 @@ mixinCall: number <Integer> inheritanceList: iList <Collection[SendAST]> ^ <Norm
 			copyPositionFrom: aNode message);
 		copyPositionFrom: aNode
 )
-mixinInitializationCallsFor: iList <List[SendAST]> ^ <List[StmtAST]> = (
+mixinInitializationCallsFor: iList <List[SendAST]> ^<List[StmtAST]> = (
 	| stmts <List[StmtAST]> = List new. |
 	iList size to: 2 by: -1 do: [:i | stmts addFirst: (mixinCall: i inheritanceList: iList)].
 	stmts addFirst: (superFactoryCallFor: iList first).
@@ -2416,7 +2427,7 @@ mixinInitializationCallsFor: iList <List[SendAST]> ^ <List[StmtAST]> = (
 mixinInitializerSelectorNameFor: selector <Symbol> ^<Symbol> = (
 	^('mixinInitializer`', selector) asSymbol
 )
-mixinSendTreeFor: c <ExpressionAST> ^ <NormalSendAST> = (
+mixinSendTreeFor: c <ExpressionAST> ^<NormalSendAST> = (
 	^UnresolvedSendAST new
 		to: c
 		send: (MessageAST new send: #mixin with: {});
@@ -2431,13 +2442,13 @@ pushScope: scope <Scope> = (
 selfNode ^<VariableAST> = (
 	^VariableAST new name: #self
 )
-sourceForNode: node <AST> ^ <String> = (
+sourceForNode: node <AST> ^<String> = (
 	^currentSource copyFrom: node start to: node end
 )
-superConstructorNameFor: aNode <ClassHeaderAST> ^ <Symbol> = (
+superConstructorNameFor: aNode <ClassHeaderAST> ^<Symbol> = (
 	^(aNode name, '`superInit`', aNode constructor selector) asSymbol
 )
-superFactoryCallFor: aNode <SendAST> ^ <NormalSendAST> = (
+superFactoryCallFor: aNode <SendAST> ^<NormalSendAST> = (
 	(* Probably migrate to superclass *)
 	(* create call to superclass initializer *)
 	^UnresolvedSendAST new
@@ -2560,14 +2571,16 @@ private within: enclosingIR <IntermediateMixin> compileTransientSlotNoAdd: tree 
 )
 ) : (
 )
-class ContextMappedEntry name: nom mapper: mapper = SymbolTableEntry forAST: nil atDepth: nil (|
+class ContextMappedEntry name: nom mapper: mapper = SymbolTableEntry forAST: nil atDepth: nil (
+	|
 	public name = nom.
 	debugMapper = mapper.
-|) (
+	|
+) (
 public getterAst = (
 	^debugMapper getterAstFor: name.
 )
-public isKindOfMappedBinding = (
+public isKindOfMappedBinding ^<Boolean> = (
 	^true
 )
 public setterAst: newVal = (
@@ -2575,9 +2588,11 @@ public setterAst: newVal = (
 )
 ) : (
 )
-class WithMappedEntry name: nom = SymbolTableEntry forAST: nil atDepth: nil (|
+class WithMappedEntry name: nom = SymbolTableEntry forAST: nil atDepth: nil (
+	|
 	public name = nom.
-|) (
+	|
+) (
 public getterAst = (
 	^UnresolvedSendAST new
 		receiver: mapAst;
@@ -2585,7 +2600,7 @@ public getterAst = (
 			selector: #at:;
 			arguments: {SymbolAST new value: name})
 )
-public isKindOfMappedBinding = (
+public isKindOfMappedBinding ^<Boolean> = (
 	^true
 )
 private mapAst = (

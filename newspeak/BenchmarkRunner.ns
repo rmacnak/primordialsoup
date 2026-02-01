@@ -5,7 +5,7 @@ Copyright 2013 Ryan Macnak
 
 Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License.  You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0*)
 class BenchmarkRunner packageUsing: manifest = (
-|
+	|
 	benchmarks = {
 		manifest ClosureDefFibonacci.
 		manifest ClosureFibonacci.
@@ -19,12 +19,15 @@ class BenchmarkRunner packageUsing: manifest = (
 		manifest SlotWrite.
 		manifest Splay.
 	}.
-|) (
-class Benchmarking usingPlatform: p = (|
-private Stopwatch = p time Stopwatch.
-private List = p collections List.
-private cachedPlatform = p.
-|) (
+	|
+) (
+class Benchmarking usingPlatform: p = (
+	|
+	private Stopwatch = p time Stopwatch.
+	private List = p collections List.
+	private cachedPlatform = p.
+	|
+) (
 measure: block forAtLeast: nanoseconds = (
 	| runs stopwatch elapsed score |
 	runs:: 0.

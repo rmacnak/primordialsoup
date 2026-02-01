@@ -1,8 +1,10 @@
 (* Tests for the JSON encoder/decoder. *)
-class JSONTestingConfiguration packageTestsUsing: manifest = (|
-private JSON = manifest JSON.
-private JSONTesting = manifest JSONTesting.
-|) (
+class JSONTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private JSON = manifest JSON.
+	private JSONTesting = manifest JSONTesting.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{JSONTesting
 		usingPlatform: platform

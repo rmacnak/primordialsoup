@@ -1,20 +1,23 @@
 (* Access to Zircon primitives such as channels and VMOs. *)
 (* :exemplar: platform zircon *)
 class Zircon usingPlatform: p internalKernel: ik = (
-|
-private ArgumentError = p kernel ArgumentError.
-private multipleReturn = Array new: 4.
-private messageLoop = ik messageLoop.
-|) (
-public class Channel handle: h = ZirconObject handle: h (|
-private onReadable_
-private onClose_
-|) (
-public onClose: action = (
+	|
+	private ArgumentError = p kernel ArgumentError.
+	private multipleReturn = Array new: 4.
+	private messageLoop = ik messageLoop.
+	|
+) (
+public class Channel handle: h = ZirconObject handle: h (
+	|
+	private onReadable_
+	private onClose_
+	|
+) (
+public onClose: action <[]> = (
 	onReadable_:: action.
 	await: CHANNEL_READABLE | CHANNEL_PEER_CLOSED.
 )
-public onReadable: action = (
+public onReadable: action <[]> = (
 	onReadable_:: action.
 	await: CHANNEL_READABLE | CHANNEL_PEER_CLOSED.
 )
@@ -50,7 +53,7 @@ public write: message <Message> = (
 		 multipleReturn: multipleReturn).
 )
 ) : (
-public new = (
+public new ^<{Channel.Channel}> = (
 	checkStatus: (rawCreate: 0 multipleReturn: multipleReturn).
 	^{ self handle: (multipleReturn at: 1). self handle: (multipleReturn at: 2) }
 )
@@ -60,10 +63,10 @@ private rawCreate: options <Integer> multipleReturn: _ <Array> = (
 )
 )
 public class Message bytes: b handles: h = (
-|
-public bytes <ByteArray> = b.
-public handles <Array[ZirconObject]> = h.
-|
+	|
+	public bytes <ByteArray> = b.
+	public handles <Array[ZirconObject]> = h.
+	|
 ) (
 ) : (
 )
@@ -117,9 +120,9 @@ private rawNew: size <Integer> options: options <Integer> multipleReturn: _ <Arr
 )
 )
 public class ZirconException status: s = Exception (
-|
-public status <Integer> = s.
-|
+	|
+	public status <Integer> = s.
+	|
 ) (
 public printString ^<String> = (
 	^'ZirconException: ', (statusGetString: status), ', ', status printString
@@ -131,12 +134,12 @@ private statusGetString: status = (
 ) : (
 )
 class ZirconObject handle: h = (
-|
-protected handle ::= h.
-protected waiter ::= 0.
-|
+	|
+	protected handle ::= h.
+	protected waiter ::= 0.
+	|
 ) (
-protected await: signals = (
+protected await: signals <Integer> = (
 	0 = waiter ifFalse: [rawCancelWait: waiter].
 	messageLoop handleMap at: handle put:
 		[:status :pending :count | onStatus: status signals: pending count: count].

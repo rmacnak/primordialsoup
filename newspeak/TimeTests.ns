@@ -1,8 +1,10 @@
-class TimeTests usingPlatform: p minitest: m = (|
-private TestContext = m TestContext.
-private DateTime = p time DateTime.
-private Stopwatch = p time Stopwatch.
-|) (
+class TimeTests usingPlatform: p minitest: m = (
+	|
+	private TestContext = m TestContext.
+	private DateTime = p time DateTime.
+	private Stopwatch = p time Stopwatch.
+	|
+) (
 public class DateTimeTests = TestContext () (
 public testDateTimeEquality = (
 	| a b c d e f g h |

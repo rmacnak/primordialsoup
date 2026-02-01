@@ -1,9 +1,11 @@
 (* The core library. Notably includes the classes for representing programs, such as classes, mixins and methods. *)
-class KernelForPrimordialSoup = (|
-public messageLoop <MessageLoop>
-public symbolTable <WeakArray[Symbol]>
-private symbolTableUsed
-|) (
+class KernelForPrimordialSoup = (
+	|
+	public messageLoop <MessageLoop>
+	public symbolTable <WeakArray[Symbol]>
+	private symbolTableUsed <Integer>
+	|
+) (
 (* An activation record for a method or closure.
 
 Note this class only contains accessors and the logic needed for unwind-protect and exceptions. The debugger's simulator that is normally implemented in this class in Smalltalks is instead in the mirrors module. *)
@@ -23,11 +25,11 @@ numTemps <SmallInteger>
 private aboutToReturn: result through: firstUnwindActivation = (
 	^home return: result
 )
-public bci = (
+public bci ^<Integer> = (
 	(* :pragma: primitive: 168 *)
 	panic.
 )
-public bci: value = (
+public bci: value <Integer> = (
 	(* :pragma: primitive: 169 *)
 	panic.
 )
@@ -36,11 +38,11 @@ public bci: value = (
 private cannotReturn: result = (
 	^(CannotReturn result: result) signal
 )
-public closure = (
+public closure ^<Closure> = (
 	(* :pragma: primitive: 172 *)
 	panic.
 )
-public closure: value = (
+public closure: value <Closure> = (
 	(* :pragma: primitive: 173 *)
 	panic.
 )
@@ -49,8 +51,8 @@ public enclosingActivation ^<Activation> = (
 	nil = c ifTrue: [^nil].
 	^definingActivationOf: c
 )
-(* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including aContext. *)
-public findNextUnwindContextUpTo: activation = (
+(* Return the next unwind marked above the receiver, returning nil if there is none.  Search proceeds up to but not including `activation`. *)
+public findNextUnwindContextUpTo: activation <Activation> = (
 	| ctx |
 	ctx:: self.
 	[nil = (ctx:: ctx sender) or: [ctx = activation]]
@@ -59,7 +61,7 @@ public findNextUnwindContextUpTo: activation = (
 	^nil
 )
 (* Answer whether the receiver is strictly above context on the stack. *)
-public hasSender: context = (
+public hasSender: context <Activation> ^<Boolean> = (
 	| s |
 	self = context ifTrue: [^false].
 	s:: sender.
@@ -83,11 +85,11 @@ public isDead ^<Boolean> = (
 public isUnwindContext ^<Boolean> = (
 	^162 = method primitive
 )
-public method = (
+public method ^<Method> = (
 	(* :pragma: primitive: 170 *)
 	panic.
 )
-public method: value = (
+public method: value <Method> = (
 	(* :pragma: primitive: 171 *)
 	panic.
 )
@@ -171,27 +173,27 @@ public return: value = (
 	nil = sender ifTrue: [^self cannotReturn: value].
 	^sender resume: value
 )
-public sender = (
+public sender ^<Activation> = (
 	(* :pragma: primitive: 166 *)
 	panic.
 )
-public sender: value = (
+public sender: value <Activation> = (
 	(* :pragma: primitive: 167 *)
 	panic.
 )
-public size = (
+public size ^<Integer> = (
 	(* :pragma: primitive: 178 *)
 	panic.
 )
-public size: newDepth = (
+public size: newDepth <Integer> = (
 	(* :pragma: primitive: 179 *)
 	panic.
 )
-public tempAt: index = (
+public tempAt: index <Integer> = (
 	(* :pragma: primitive: 176 *)
 	^(ArgumentError value: index) signal
 )
-public tempAt: index put: value = (
+public tempAt: index <Integer> put: value <Object> = (
 	(* :pragma: primitive: 177 *)
 	^(ArgumentError value: index) signal
 )
@@ -222,10 +224,12 @@ public new ^<Activation> = (
 	panic.
 )
 )
-public class ArgumentError value: v = Exception (|
+public class ArgumentError value: v = Exception (
+	|
 	argument = v.
-|) (
-public printString = (
+	|
+) (
+public printString ^<String> = (
 	^'ArgumentError: ', argument printString
 )
 ) : (
@@ -384,18 +388,19 @@ public withAll: collection <Collection[E]> ^<Array[E]> = (
 )
 (* My instances describe the shape and behavior of other objects. *)
 public class Behavior = (
-|
-private superclass <Behavior> (* Must be slot 1, known to the VM. *)
-private methods <Array[Method]> (* Must be slot 2, known to the VM. *)
-private enclosingObject <Object> (* Must be slot 3, known to the VM. *)
-private mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
-private classIndex <SmallInteger> (* Must be slot 5, known to the VM. *)
-private format <SmallInteger> (* Must be slot 6, known to the VM. *)
-|) (
-public isKindOfBehavior = (
+	|
+	private superclass <Behavior> (* Must be slot 1, known to the VM. *)
+	private methods <Array[Method]> (* Must be slot 2, known to the VM. *)
+	private enclosingObject <Object> (* Must be slot 3, known to the VM. *)
+	private mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
+	private classIndex <SmallInteger> (* Must be slot 5, known to the VM. *)
+	private format <SmallInteger> (* Must be slot 6, known to the VM. *)
+	|
+) (
+public isKindOfBehavior ^<Boolean> = (
 	^true
 )
-public mixinApply: superklass = (
+public mixinApply: superklass <Class> ^<Class> = (
 	(* :todo: To be subsumed by generalized mixin application support. *)
 	^self mixin apply: superklass withName: self name enclosingObject: self enclosingObject.
 )
@@ -579,9 +584,10 @@ public withAll: bytes <Collection[Integer] | ByteArray | String> ^<ByteArray> = 
 )
 (* Signalled when attempting to return to (or through) a nil sender or a sender that has already returned. *)
 public class CannotReturn result: r = Exception (
-|
-public result = r.
-|) (
+	|
+	public result = r.
+	|
+) (
 public printString ^<String> = (
 	^'CannotReturn: ', result printString
 )
@@ -590,10 +596,11 @@ public printString ^<String> = (
 (* The superclass of all metaclasses. *)
 (* :exemplar: Object *)
 public class Class = Behavior (
-|
-private nameS <Symbol> (* Must be slot 7, known to the VM for debug printing only. *)
-private subclasses <WeakArray>
-|) (
+	|
+	private nameS <Symbol> (* Must be slot 7, known to the VM for debug printing only. *)
+	private subclasses <WeakArray>
+	|
+) (
 (* Sent by the compiler from factory methods. *)
 protected basicNew = (
 	(* :pragma: primitive: 140 *)
@@ -611,11 +618,12 @@ public printString ^<String> = (
 
 Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)
 public class ClassMixin = (
-|
-public _instanceMixin <InstanceMixin>
-public _methods <Array[Method]> (* Must be slot 2, known to the VM. *)
-public _enclosingMixin <InstanceMixin | nil> (* Must be slot 3, known to the VM. *)
-|) (
+	|
+	public _instanceMixin <InstanceMixin>
+	public _methods <Array[Method]> (* Must be slot 2, known to the VM. *)
+	public _enclosingMixin <InstanceMixin | nil> (* Must be slot 3, known to the VM. *)
+	|
+) (
 public _name ^<String> = (
 	^_instanceMixin _name, ' class'
 )
@@ -656,6 +664,7 @@ public cull: arg1 cull: arg2 cull: arg3 = (
 	^numArgsError: 3
 )
 (* Invoke this closure, and invoke the argument on normal return or if non-local return or exception handling would skip over normal return. *)
+(* :unwindProtect: *)
 public ensure: onUnwind <[]> = (
 	(* :pragma: primitive: 162 *)
 	| complete result |
@@ -841,19 +850,22 @@ public size ^<Integer> = (
 )
 (* If `key` is reachable from some other object, then `value` is reachable. *)
 public class Ephemeron = (
-|
-public key (* Must be slot 1, known to the VM. *)
-public value (* Must be slot 2, known to the VM. *)
-public finalizer (* Must be slot 3, known to the VM. *)
-(* Must have no other slots. Can be subclassed, but subclasses won't have the ephemeron property. *)
-|) (
+	|
+	public key (* Must be slot 1, known to the VM. *)
+	public value (* Must be slot 2, known to the VM. *)
+	public finalizer (* Must be slot 3, known to the VM. *)
+	(* Must have no other slots. Can be subclassed, but subclasses won't have the ephemeron property. *)
+	|
+) (
 ) : (
 )
-public class Exception = (|
-private signalActivation <Activation>
-private handlerActivation <Activation>
-public messageText (* squeak compatibility for Minitest *)
-|) (
+public class Exception = (
+	|
+	private signalActivation <Activation>
+	private handlerActivation <Activation>
+	public messageText (* squeak compatibility for Minitest *)
+	|
+) (
 private invokeNextHandler = (
 	| activation <Activation> |
 
@@ -1151,10 +1163,11 @@ public parse: string <String> ^<Float> = (
 (* A rational number. *)
 (* :exemplar: 3/4 *)
 public class Fraction reducedNumerator: num denominator: denom = Number (
-|
-public numerator <Integer> = num.
-public denominator <Integer> = denom.
-|) (
+	|
+	public numerator <Integer> = num.
+	public denominator <Integer> = denom.
+	|
+) (
 public * other <Number> ^<Number> = (
 	other isKindOfFraction ifFalse: [^other multiplyFromFraction: self].
 	^Fraction
@@ -1288,7 +1301,7 @@ public class Future computing: block <[E]> = Proxy (
 	private state ::= #unresolved.
 	|
 ) (
-protected doesNotUnderstand: message = (
+protected doesNotUnderstand: message <Message> = (
 	^message sendTo: self resolve
 )
 public isKindOfFuture ^<Boolean> = (
@@ -1309,11 +1322,11 @@ private resolve = (
 )
 (* A map whose keys are considered equal according to object identity. *)
 public class IdentityMap new: capacity = (
-|
-table ::= Array new: capacity.
-public size ::= 0.
-|
-1 to: table size do: [:index | table at: index put: table]
+	|
+	table ::= Array new: capacity.
+	public size ::= 0.
+	|
+	1 to: table size do: [:index | table at: index put: table].
 ) (
 public at: key = (
 	| table mask index entry |
@@ -1448,18 +1461,19 @@ public new = (
 
 Raw mixins are not user accessible. Mixins are implicitly extracted from a class during mixin application. *)
 public class InstanceMixin = (
-|
-public _name <Symbol>
-public _methods <Array[Method]> (* Must be slot 2, known to the VM. *)
-public _enclosingMixin <InstanceMixin | nil> (* Must be slot 3, known to the VM. *)
-public _slots <Array[{Symbol. Boolean. Symbol}]>
-public _nestedMixins <Array[InstanceMixin]>
-public _applications <WeakArray>
-public _classMixin <ClassMixin>
-public _accessModifier <Symbol>
-public _primaryFactorySelector <Symbol>
-public _headerSource <String>
-|) (
+	|
+	public _name <Symbol>
+	public _methods <Array[Method]> (* Must be slot 2, known to the VM. *)
+	public _enclosingMixin <InstanceMixin | nil> (* Must be slot 3, known to the VM. *)
+	public _slots <Array[{Symbol. Boolean. Symbol}]>
+	public _nestedMixins <Array[InstanceMixin]>
+	public _applications <WeakArray>
+	public _classMixin <ClassMixin>
+	public _accessModifier <Symbol>
+	public _primaryFactorySelector <Symbol>
+	public _headerSource <String>
+	|
+) (
 public apply: superclass <Class> format: f withName: name <Symbol> enclosingObject: eo <Object> = (
 	| newMetaclass <Metaclass> newClass <Class> |
 	newMetaclass:: Metaclass new.
@@ -1775,10 +1789,12 @@ public class MediumInteger _cannotInstantiate = Integer (
 ) (
 ) : (
 )
-public class Message selector: s arguments: a = (|
-public selector <Symbol> = s.
-public arguments <Array[Object]> = a.
-|) (
+public class Message selector: s arguments: a = (
+	|
+	public selector <Symbol> = s.
+	public arguments <Array[Object]> = a.
+	|
+) (
 private object: receiver perform: selector with: arguments = (
 	(* :pragma: primitive: 134 *)
 	^object: receiver perform: selector asSymbol withAgain: (Array withAll: arguments)
@@ -1799,10 +1815,11 @@ public sendToEventual: receiver = (
 )
 (* Signalled by Object>>doesNotUnderstand:. *)
 public class MessageNotUnderstood receiver: r message: m = Exception (
-|
-public receiver <Object> = r.
-public message <Message> = m.
-|) (
+	|
+	public receiver <Object> = r.
+	public message <Message> = m.
+	|
+) (
 (* squeak compatibility for Minitest *)
 public messageText ^<String> = (
 	^self printString
@@ -1814,9 +1831,10 @@ public printString ^<String> = (
 )
 (* The class of all metaclasses. *)
 public class Metaclass = Behavior (
-|
-private thisClass <Class>
-|) (
+	|
+	private thisClass <Class>
+	|
+) (
 public name ^<String> = (
 	^thisClass name, ' class'
 )
@@ -1825,14 +1843,16 @@ public printString ^<String> = (
 )
 ) : (
 )
-public class Method = (|
-public header <Integer> (* Must be slot 1, known to the VM. *)
-public literals <Array> (* Must be slot 2, known to the VM. *)
-public bytecode <ByteArray> (* Must be slot 3, known to the VM. *)
-public mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
-public selector <Symbol> (* Must be slot 5, known to the VM. *)
-public metadata
-|) (
+public class Method = (
+	|
+	public header <Integer> (* Must be slot 1, known to the VM. *)
+	public literals <Array> (* Must be slot 2, known to the VM. *)
+	public bytecode <ByteArray> (* Must be slot 3, known to the VM. *)
+	public mixin <AbstractMixin> (* Must be slot 4, known to the VM. *)
+	public selector <Symbol> (* Must be slot 5, known to the VM. *)
+	public metadata
+	|
+) (
 public accessModifier ^<Symbol> = (
 	| am = header & 3. |
 	0 = am ifTrue: [^#public].
@@ -1904,9 +1924,10 @@ public newSetterForSlot: name at: index accessModifier: am = (
 )
 (* Signalled when the receiver of an inlined control message (such as ifTrue:) is neither `true` nor `false`. *)
 class NonBooleanReceiver receiver: r = Exception (
-|
-public receiver = r.
-|) (
+	|
+	public receiver = r.
+	|
+) (
 public printString ^<String> = (
 	^'NonBooleanReceiver: ', receiver printString
 )
@@ -2247,12 +2268,12 @@ protected yourself = (
 ) : (
 )
 public class SlotDeclaration = (
-|
-public header ::= 0.
-public name
-public mixin
-public metadata
-|
+	|
+	public header ::= 0.
+	public name <String>
+	public mixin <InstanceMixin>
+	public metadata
+	|
 ) (
 public accessModifier ^<Symbol> = (
 	| am = header & 3. |
@@ -2410,10 +2431,12 @@ private withAllAgain: bytes <ByteArray> ^<String> = (
 	panic
 )
 )
-public class StringBuilder new: capacity <Integer> = (|
-protected size_ ::= 0.
-protected data ::= ByteArray new: capacity.
-|) (
+public class StringBuilder new: capacity <Integer> = (
+	|
+	protected size_ ::= 0.
+	protected data ::= ByteArray new: capacity.
+	|
+) (
 public add: bytes <ByteArray | String> = (
 	|
 	capacity = data size.
@@ -2450,7 +2473,7 @@ public isKindOfStringBuilder ^<Boolean> = (
 public size ^<Integer> = (
 	^size_
 )
-public writeln: line = (
+public writeln: line <ByteArray | String> = (
 	self add: line.
 	self addByte: 10. (* Line-feed *)
 )
@@ -2579,10 +2602,11 @@ public new: size <Integer> ^<WeakArray[E]> = (
 
 Note this class does not implement Map or Collection because it does not provide enumeration. *)
 public class WeakMap = (
-|
-private table ::= Array new: 256. (* A fairly large initial capacity because the expected usage is one per module. *)
-private used ::= 0.
-|) (
+	|
+	private table ::= Array new: 256. (* A fairly large initial capacity because the expected usage is one per module. *)
+	private used ::= 0.
+	|
+) (
 public at: key <K> ^<V> = (
 	| mask index entry |
 	nil = key ifTrue: [^nil].
@@ -2724,7 +2748,7 @@ public buildObjectStore = (
 		Method.
 	}
 )
-private classOf: object = (
+private classOf: object <Object> ^<Behavior> = (
 	(* :pragma: primitive: 127 *)
 	panic.
 )
@@ -2752,15 +2776,15 @@ public garbageCollect = (
 	(* :pragma: primitive: 184 *)
 	panic.
 )
-private identityHashOf: a = (
+private identityHashOf: object <Object> ^<Integer> = (
 	(* :pragma: primitive: 136 *)
 	panic.
 )
-private instantiate: klass = (
+private instantiate: klass <Behavior> = (
 	(* :pragma: primitive: 140 *)
 	panic.
 )
-private intern: string = (
+private intern: string <String> ^<String> = (
 	| table capacity index reuseIndex symbol |
 	nil = symbolTableUsed ifTrue:
 		[(* Snapshot starts with a compact array. A hash table would need to be rehashed anyway because every process has a random hash function. *)
@@ -2785,11 +2809,11 @@ private intern: string = (
 		[rehashSymbolTable].
 	^string
 )
-private is: a identicalTo: b = (
+private is: a <Object> identicalTo: b <Object> ^<Boolean> = (
 	(* :pragma: primitive: 135 *)
 	panic.
 )
-private isCanonical: object = (
+private isCanonical: object <Object> ^<Boolean> = (
 	(* :pragma: primitive: 128 *)
 	panic.
 )

@@ -392,7 +392,7 @@ public class NotFound element: e = Exception (
 	public element = e.
 	|
 ) (
-public printString = (
+public printString ^<String> = (
 	^'NotFound: ', element printString
 )
 ) : (

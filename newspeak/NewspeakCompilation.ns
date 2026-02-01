@@ -12,7 +12,7 @@ Copyright 2013 Ryan Macnak
 
 Licensed under the Apache License, Version 2.0 (the ''License''); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 *)
 class NewspeakCompilation usingPlatform: p asts: asts = (
-|
+	|
 	private Map = p collections Map.
 	private List = p collections List.
 
@@ -31,10 +31,13 @@ class NewspeakCompilation usingPlatform: p asts: asts = (
 	private VariableAST = asts VariableAST.
 
 	public namer = Namer new.
-|) (
-class ClassEntry forDeclaration: cd atDepth: d = SymbolTableEntry forAST: cd atDepth: d (|
-public enclosingClass <ClassEntry>
-|) (
+	|
+) (
+class ClassEntry forDeclaration: cd atDepth: d = SymbolTableEntry forAST: cd atDepth: d (
+	|
+	public enclosingClass <ClassEntry>
+	|
+) (
 public name = (
 	^ast selector
 )
@@ -51,11 +54,12 @@ class Compiler = () (
  - Adds temporaries to turn setter sends into regular implicit receiver sends.
  - Rewrites well-known control messages with closure literal arguments to branches and loops. *)
 class Rewriter = ASTTool (
-|
+	|
 	currentScope <Scope>
 	valueExpected <Boolean>
 	closureDepth <Integer>
-|) (
+	|
+) (
 public class BlockLocalReturnAST expression: e = ReturnAST expression: e () (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool blockLocalReturnNode: self
@@ -65,22 +69,26 @@ public isKindOfBlockLocalReturnAST ^<Boolean> = (
 )
 ) : (
 )
-public class BooleanAST withValue: b = AST (|
-	public value = b.
-|) (
+public class BooleanAST withValue: b = AST (
+	|
+	public value <Boolean> = b.
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool boolNode: self
 )
-public isKindOfBooleanNode ^<Boolean> = (^true)
-public isKindOfLiteralNode ^<Boolean> = (^true)
+public isKindOfBooleanNode ^<Boolean> = ( ^true )
+public isKindOfLiteralNode ^<Boolean> = ( ^true )
 ) : (
 )
-public class ConditionalAST if: cond is: ifTrue_ then: t else: e = AST (|
+public class ConditionalAST if: cond is: ifTrue_ then: t else: e = AST (
+	|
 	public condition <ExpressionAST> = cond.
 	public ifTrue = ifTrue_.
 	public then <CodeBodyAST> = t.
 	public else <CodeBodyAST | nil> = e.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool conditionalNode: self
 )
@@ -91,9 +99,10 @@ public if: cond <ExpressionAST> is: val <Boolean> then: t <BlockAST> forValue: f
 )
 (* See mailing list for debate over 'outer Foo' as an expression. *)
 class EnclosingObjectAST = AST (
-|
+	|
 	public depth <Integer>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool enclosingObjectNode: self
 )
@@ -102,10 +111,12 @@ public isKindOfExplicitRcvrNode ^<Boolean> = (
 )
 ) : (
 )
-public class ImplicitReceiverSendAST = SendAST (|
-public depth <Integer> (* Used on targets that don't have implicit receiver lookup at runtime. *)
-public binding <ClassEntry | SlotEntry | MethodEntry>
-|) (
+public class ImplicitReceiverSendAST = SendAST (
+	|
+	public depth <Integer> (* Used on targets that don't have implicit receiver lookup at runtime. *)
+	public binding <ClassEntry | SlotEntry | MethodEntry>
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool implicitReceiverSendNode: self
 )
@@ -114,9 +125,11 @@ public isKindOfImplicitReceiverSendNode ^<Boolean> = (
 )
 ) : (
 )
-public class LocalReadAST of: var = AST (|
+public class LocalReadAST of: var = AST (
+	|
 	public variable = var.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool localReadNode: self
 )
@@ -125,10 +138,12 @@ public name = (
 )
 ) : (
 )
-public class LocalWriteAST to: var assign: val = AST (|
+public class LocalWriteAST to: var assign: val = AST (
+	|
 	public variable = var.
 	public value = val.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool localWriteNode: self
 )
@@ -143,12 +158,13 @@ prologue; while (cond = whileTrue) { body}
 
 *)
 public class LoopAST = AST (
-|
+	|
 	public prologue <CodeBodyAST>
 	public condition <CodeBodyAST>
 	public isWhileTrue <Boolean>
 	public body <CodeBodyAST>
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool loopNode: self
 )
@@ -282,10 +298,12 @@ public apply: tool <ASTTool[T]> ^<T> = (
 )
 ) : (
 )
-public class OrdinarySendAST to: rcvr send: msg = SendAST (|
+public class OrdinarySendAST to: rcvr send: msg = SendAST (
+	|
 	public receiver = rcvr.
 	public message = msg.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool ordinarySendNode: self
 )
@@ -294,19 +312,23 @@ public isKindOfOrdinarySendNode ^<Boolean> = (
 )
 ) : (
 )
-public class OuterSendAST = SendAST (|
-public depth <Integer>
-public binding <ClassEntry | SlotEntry | MethodEntry>
-|) (
+public class OuterSendAST = SendAST (
+	|
+	public depth <Integer>
+	public binding <ClassEntry | SlotEntry | MethodEntry>
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool outerSendNode: self
 )
 ) : (
 )
-public class ParameterAST name: n type: t = AST (|
+public class ParameterAST name: n type: t = AST (
+	|
 	public name = n.
 	public type = t.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool parameterDeclNode: self
 )
@@ -321,17 +343,21 @@ public isKindOfReceiverNode ^<Boolean> = (
 )
 ) : (
 )
-class ReturnAST expression: e = AST (|
+class ReturnAST expression: e = AST (
+	|
 	public expression <AST> = e.
-|) (
+	|
+) (
 public isKindOfReturnStatNode ^<Boolean> = (
 	^true
 )
 ) : (
 )
-public class SelfSendAST = SendAST (|
-public binding <ClassEntry | SlotEntry | MethodEntry>
-|) (
+public class SelfSendAST = SendAST (
+	|
+	public binding <ClassEntry | SlotEntry | MethodEntry>
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool selfSendNode: self
 )
@@ -343,9 +369,11 @@ public receiver = (
 )
 ) : (
 )
-class SendAST = AST (|
+class SendAST = AST (
+	|
 	public message <MessageAST>
-|) (
+	|
+) (
 public isKindOfSendNode ^<Boolean> = ( ^true )
 ) : (
 )
@@ -358,10 +386,12 @@ public isKindOfSuperSendNode ^<Boolean> = (
 )
 ) : (
 )
-public class TemporaryAST name: n type: t = AST (|
+public class TemporaryAST name: n type: t = AST (
+	|
 	public name = n.
 	public type = t.
-|) (
+	|
+) (
 public apply: tool <ASTTool[T]> ^<T> = (
 	^tool temporaryDeclNode: self
 )
@@ -741,7 +771,7 @@ public returnStatNode: node <ReturnStatAST> = (
 		expression: (applyForValueTo: node expression))
 		copyPositionFrom: node
 )
-rewriteBlockNode: node <BlockAST> forValue: forValue <Boolean> ^ <BlockAST> = (
+rewriteBlockNode: node <BlockAST> forValue: forValue <Boolean> ^<BlockAST> = (
 (* An empty block evaluates to nil when called. This method performs the necessary transformation if the block is empty; otherwise it recursively rewrites the block body. This rewrite is done on all blocks, regardless of whether they are inlined. *)
 	|
 	rewrittenNode <BlockAST>
@@ -758,7 +788,7 @@ rewriteBlockNode: node <BlockAST> forValue: forValue <Boolean> ^ <BlockAST> = (
 		[rewrittenNode body statements add: (NilAST new start: node body start; end: node body end)].
 	^rewrittenNode
 )
-rewriteInlinedBlockNode: node <BlockAST> forValue: forValue <Boolean> ^ <CodeBodyAST> = (
+rewriteInlinedBlockNode: node <BlockAST> forValue: forValue <Boolean> ^<CodeBodyAST> = (
 (* An empty block evaluates to nil when called. This method performs the necessary transformation if the block is empty; otherwise it recursively rewrites the block body. This rewrite is done on all blocks, regardless of whether they are inlined. *)
 	^rewriteBlockNode: node forValue: forValue
 )
@@ -1007,19 +1037,16 @@ public compileTransientSlotSource: src <String> within: enclosingIR <Intermediat
 )
 (* Semantic info for a parameter or temporary. *)
 class LocalEntry forDeclaration: decl <VarDeclAST> atDepth: d <Integer> = SymbolTableEntry forAST: decl atDepth: d (
-|
-(* public offset <Integer>
-public remote <Boolean> ::= false.
-public remoteVector <LocalEntry> *)
-
-public closureDepth
-public used ::= false.
-public induction ::= false.
-public captured ::= false.
-public remote
-public remoteVector2
-public remoteOffset
-|) (
+	|
+	public closureDepth
+	public used ::= false.
+	public induction ::= false.
+	public captured ::= false.
+	public remote
+	public remoteVector2
+	public remoteOffset
+	|
+) (
 public isKindOfLocalBinding ^<Boolean> = (
 	^true
 )
@@ -1065,10 +1092,12 @@ public setterTemp = (
 )
 ) : (
 )
-public class Scope parent: p = (|
+public class Scope parent: p = (
+	|
 	public parent <Scope> = p.
 	protected bindings <Map[Symbol, SymbolTableEntry]> = Map new.
-|) (
+	|
+) (
 public at: key <Symbol> ^<SymbolTableEntry> = (
 	(* Answers the value associated with aKey in this or one the super scopes or fails if aKey is absent. *)
 	^self at: key ifAbsent: [Exception signal: 'Key ', key, ' not found!']
@@ -1115,14 +1144,15 @@ public name = (
 )
 (* An entry in a scope. *)
 class SymbolTableEntry forAST: tree atDepth: d = (
-|
-public ast <AST> = tree.
-public depth <Integer> = d.
-|) (
+	|
+	public ast <AST> = tree.
+	public depth <Integer> = d.
+	|
+) (
 public isKindOfLocalBinding ^<Boolean> = (
 	^false
 )
-public isKindOfMappedBinding = (
+public isKindOfMappedBinding ^<Boolean> = (
 	^false
 )
 ) : (

@@ -1,43 +1,49 @@
 (* Clustered serialization inspired by Fuel and Parcels. *)
 (* :exemplar: platform serialization *)
-class Serialization usingPlatform: p internalKernel: k = (|
-private List = p collections List.
-private IdentityMap = k IdentityMap.
+class Serialization usingPlatform: p internalKernel: k = (
+	|
+	private List = p collections List.
+	private IdentityMap = k IdentityMap.
 
-(* Classes which require special handling. *)
-private SmallInteger = k SmallInteger.
-private MediumInteger = k MediumInteger.
-private LargeInteger = k LargeInteger.
-private Float = k Float.
-private ByteArray = k ByteArray.
-private String = k String.
-private Array = k Array.
-private WeakArray = k WeakArray.
-private Ephemeron = k Ephemeron.
-private Activation = k Activation.
-private Closure = k Closure.
-private Metaclass = k Metaclass.
+	(* Classes which require special handling. *)
+	private SmallInteger = k SmallInteger.
+	private MediumInteger = k MediumInteger.
+	private LargeInteger = k LargeInteger.
+	private Float = k Float.
+	private ByteArray = k ByteArray.
+	private String = k String.
+	private Array = k Array.
+	private WeakArray = k WeakArray.
+	private Ephemeron = k Ephemeron.
+	private Activation = k Activation.
+	private Closure = k Closure.
+	private Metaclass = k Metaclass.
 
-private True = k True.
-private False = k False.
-private UndefinedObject = k UndefinedObject.
-private Fraction = k Fraction.
-private Method = k Method.
-private SlotDeclaration = k SlotDeclaration.
-private Class = k Class.
-private InstanceMixin = k InstanceMixin.
-private ClassMixin = k ClassMixin.
-|) (
-public class Deserializer = (|
-stream <ReadStream>
-clusters <Array>
-refs <Array>
-nextRefIndex <Integer>
-|) (
-class ActivationCluster = (|
-firstRefIndex <Integer>
-lastRefIndex <Integer>
-|) (
+	private True = k True.
+	private False = k False.
+	private UndefinedObject = k UndefinedObject.
+	private Fraction = k Fraction.
+	private Method = k Method.
+	private SlotDeclaration = k SlotDeclaration.
+	private Class = k Class.
+	private InstanceMixin = k InstanceMixin.
+	private ClassMixin = k ClassMixin.
+	|
+) (
+public class Deserializer = (
+	|
+	stream <ReadStream>
+	clusters <Array>
+	refs <Array>
+	nextRefIndex <Integer>
+	|
+) (
+class ActivationCluster = (
+	|
+	firstRefIndex <Integer>
+	lastRefIndex <Integer>
+	|
+) (
 public adoptInstances = (
 )
 public readEdges = (
@@ -61,10 +67,12 @@ public readNodes = (
 )
 ) : (
 )
-class ArrayCluster = (|
-firstRefIndex <Integer>
-lastRefIndex <Integer>
-|) (
+class ArrayCluster = (
+	|
+	firstRefIndex <Integer>
+	lastRefIndex <Integer>
+	|
+) (
 public adoptInstances = (
 )
 public readEdges = (
@@ -96,10 +104,12 @@ public readNodes = (
 )
 ) : (
 )
-class ClosureCluster = (|
-firstRefIndex <Integer>
-lastRefIndex <Integer>
-|) (
+class ClosureCluster = (
+	|
+	firstRefIndex <Integer>
+	lastRefIndex <Integer>
+	|
+) (
 public adoptInstances = (
 )
 public readEdges = (
@@ -120,10 +130,12 @@ public readNodes = (
 )
 ) : (
 )
-class EphemeronCluster = (|
-firstRefIndex <Integer>
-lastRefIndex <Integer>
-|) (
+class EphemeronCluster = (
+	|
+	firstRefIndex <Integer>
+	lastRefIndex <Integer>
+	|
+) (
 public adoptInstances = (
 )
 public readEdges = (
@@ -184,12 +196,14 @@ public readNodes = (
 )
 ) : (
 )
-class RegularObjectCluster for: format = (|
-numSlots <Integer> = format.
-klass
-firstRefIndex <Integer>
-lastRefIndex <Integer>
-|) (
+class RegularObjectCluster for: format = (
+	|
+	numSlots <Integer> = format.
+	klass <Behavior>
+	firstRefIndex <Integer>
+	lastRefIndex <Integer>
+	|
+) (
 public adoptInstances = (
 	firstRefIndex to: lastRefIndex do:
 		[:refIndex |
@@ -231,10 +245,12 @@ public readNodes = (
 )
 ) : (
 )
-class WeakArrayCluster = (|
-firstRefIndex <Integer>
-lastRefIndex <Integer>
-|) (
+class WeakArrayCluster = (
+	|
+	firstRefIndex <Integer>
+	lastRefIndex <Integer>
+	|
+) (
 public adoptInstances = (
 )
 public readEdges = (
@@ -296,10 +312,12 @@ registerRef: object = (
 )
 ) : (
 )
-public class ReadStream over: bytes <ByteArray> = (|
-data <ByteArray> = bytes.
-position <Integer> ::= 0.
-|) (
+public class ReadStream over: bytes <ByteArray> = (
+	|
+	data <ByteArray> = bytes.
+	position <Integer> ::= 0.
+	|
+) (
 public float32 ^<Float> = (
 	| result |
 	result:: data float32At: position.
@@ -389,19 +407,21 @@ public uint8 ^<Integer> = (
 ) : (
 )
 public class Serializer = (
-|
-stream = WriteStream new.
-clusters = IdentityMap new: 32.
-orderedClusters = List new.
-ephemerons
-stack = List new.
-refs = IdentityMap new: 256.
-nextRefIndex
-|
+	|
+	stream = WriteStream new.
+	clusters = IdentityMap new: 32.
+	orderedClusters = List new.
+	ephemerons <EphmeronCluster>
+	stack = List new.
+	refs = IdentityMap new: 256.
+	nextRefIndex
+	|
 ) (
-class ActivationCluster = (|
-objects = List new.
-|) (
+class ActivationCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 
@@ -436,9 +456,11 @@ public writeNodes = (
 )
 ) : (
 )
-class ArrayCluster = (|
-objects = List new.
-|) (
+class ArrayCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 
@@ -465,9 +487,11 @@ public writeNodes = (
 )
 ) : (
 )
-class ByteArrayCluster = (|
-objects = List new.
-|) (
+class ByteArrayCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 )
@@ -484,9 +508,11 @@ public writeNodes = (
 )
 ) : (
 )
-class ClosureCluster = (|
-objects = List new.
-|) (
+class ClosureCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 
@@ -512,9 +538,11 @@ public writeNodes = (
 )
 ) : (
 )
-class EphemeronCluster = (|
-objects = List new.
-|) (
+class EphemeronCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 	enqueue: object finalizer.
@@ -538,9 +566,11 @@ public writeNodes = (
 )
 ) : (
 )
-class FloatCluster = (|
-objects = List new.
-|) (
+class FloatCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 )
@@ -555,9 +585,11 @@ public writeNodes = (
 )
 ) : (
 )
-class IntegerCluster = (|
-objects = List new.
-|) (
+class IntegerCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 )
@@ -572,9 +604,11 @@ public writeNodes = (
 )
 ) : (
 )
-class LargeIntegerCluster = (|
-objects = List new.
-|) (
+class LargeIntegerCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 )
@@ -593,11 +627,13 @@ public writeNodes = (
 )
 ) : (
 )
-class RegularObjectCluster for: k = (|
-klass = k.
-slotFilter = computeSlotFilter: k.
-objects = List new.
-|) (
+class RegularObjectCluster for: k = (
+	|
+	klass <Behavior> = k.
+	slotFilter = computeSlotFilter: k.
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 
@@ -640,10 +676,12 @@ public writeNodes = (
 )
 ) : (
 )
-class StringCluster = (|
-noncanonical = List new.
-canonical = List new.
-|) (
+class StringCluster = (
+	|
+	noncanonical = List new.
+	canonical = List new.
+	|
+) (
 public analyze: object = (
 	(isCanonical: object)
 		ifTrue: [canonical add: object]
@@ -672,9 +710,11 @@ public writeNodes = (
 )
 ) : (
 )
-class WeakArrayCluster = (|
-objects = List new.
-|) (
+class WeakArrayCluster = (
+	|
+	objects = List new.
+	|
+) (
 public analyze: object = (
 	objects add: object.
 
@@ -944,7 +984,8 @@ writeWeakRef: object = (
 )
 ) : (
 )
-class TemporaryClass withFormat: fmt = (|
+class TemporaryClass withFormat: fmt = (
+	|
 	superclass = Object.
 	methods = {}.
 	enclosingObject = nil.
@@ -953,21 +994,24 @@ class TemporaryClass withFormat: fmt = (|
 	format = fmt.
 	public name = 'PartiallyDeserializedObject'.
 	subclasses
-|) (
+	|
+) (
 public vfBasicNew = (
 	(* :pragma: primitive: 140 *)
 	panic.
 )
 ) : (
 )
-public class WriteStream = (|
-data <ByteArray> ::= ByteArray new: 32 * 1024.
-position <Integer> ::= 0.
-|) (
+public class WriteStream = (
+	|
+	data <ByteArray> ::= ByteArray new: 32 * 1024.
+	position <Integer> ::= 0.
+	|
+) (
 public asByteArray ^<ByteArray> = (
 	^data copyWithSize: position
 )
-ensureCapacity: availableNeeded = (
+ensureCapacity: availableNeeded <Integer> = (
 	position + availableNeeded > data size ifTrue:
 		[data:: data copyWithSize: 2 * data size].
 )

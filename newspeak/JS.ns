@@ -38,7 +38,7 @@ public at: key put: value = (
 	rawPerformSet.
 	^rawPop
 )
-protected doesNotUnderstand: message = (
+protected doesNotUnderstand: message <Message> = (
 	| jsSelector |
 	0 = message arguments size ifTrue:
 		[(message selector startsWith: 'isKindOf') ifTrue:

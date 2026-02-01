@@ -1,8 +1,10 @@
 (* The public facet of the core library. *)
 (* :exemplar: platform kernel *)
-class Kernel wrapping: k = (|
-private internalKernel = k.
-|) (
+class Kernel wrapping: k = (
+	|
+	private internalKernel = k.
+	|
+) (
 public ArgumentError = (
 	^internalKernel ArgumentError
 )

@@ -1,8 +1,9 @@
 (* Test configuration using the current platform. *)
 class JSTestingConfiguration packageTestsUsing: manifest = (
-|
+	|
 	private JSTesting = manifest JSTesting.
-|) (
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	platform operatingSystem = 'emscripten' ifFalse: [^{}].
 	^{JSTesting usingPlatform: platform minitest: minitest}

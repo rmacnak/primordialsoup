@@ -1,33 +1,37 @@
 (* One-way constraint solver, originally written in Smalltalk by John Maloney and Mario Wolczko. *)
 class DeltaBlue usingPlatform: p = (
-|
-private List = p collections List.
+	|
+	private List = p collections List.
 
-private required = Strength name: 'required' value: 0.
-private strongPreferred = Strength name: 'strongPreferred' value: 1.
-private preferred = Strength name: 'preferred' value: 2.
-private strongDefault = Strength name: 'strongDefault' value: 3.
-private normal = Strength name: 'normal' value: 4.
-private weakDefault = Strength name: 'weakDefault' value: 5.
-private weakest = Strength name: 'weakest' value: 6.
+	private required = Strength name: 'required' value: 0.
+	private strongPreferred = Strength name: 'strongPreferred' value: 1.
+	private preferred = Strength name: 'preferred' value: 2.
+	private strongDefault = Strength name: 'strongDefault' value: 3.
+	private normal = Strength name: 'normal' value: 4.
+	private weakDefault = Strength name: 'weakDefault' value: 5.
+	private weakest = Strength name: 'weakest' value: 6.
 
-private descendingStrengths = {required. strongPreferred. preferred. strongDefault. normal. weakDefault. weakest}.
+	private descendingStrengths = {required. strongPreferred. preferred. strongDefault. normal. weakDefault. weakest}.
 
-private forward = Direction named: 'forward'.
-private backward = Direction named: 'backward'.
+	private forward = Direction named: 'forward'.
+	private backward = Direction named: 'backward'.
 
-private planner = Planner new.
-|) (
-class Direction named: n = (|
-name <String> = n.
-|) (
+	private planner = Planner new.
+	|
+) (
+class Direction named: n = (
+	|
+	name <String> = n.
+	|
+) (
 ) : (
 )
 (* A Plan is an ordered list of constraints to be executed in sequence to resatisfy all currently satisfiable constraints in the face of one or more changing inputs. *)
 class Plan = (
-|
-private constraints = List new.
-|) (
+	|
+	private constraints = List new.
+	|
+) (
 public addConstraint: c <Constraint> = (
 	constraints add: c.
 )
@@ -39,16 +43,18 @@ public execute = (
 )
 (* I embody the DeltaBlue algorithm described in: ''The DeltaBlue Algorithm: An Incremental Constraint Hierarchy Solver'' by Bjorn N. Freeman-Benson and John Maloney. See January 1990 Communications of the ACM or University of Washington TR 89-08-06 for further details. *)
 class Planner = (
-|
-currentMark <Integer> ::= 0.
-|) (
+	|
+	currentMark <Integer> ::= 0.
+	|
+) (
 (* I am an abstract superclass for constraints having two possible output variables. *)
 class BinaryConstraint var: v1 var: v2 strength: s = Constraint strength: s (
-|
-v1 <Variable> = v1.
-v2 <Variable> = v2.
-direction <Direction>
-|) (
+	|
+	v1 <Variable> = v1.
+	v2 <Variable> = v2.
+	direction <Direction>
+	|
+) (
 (* Add myself to the constraint graph. *)
 public addToGraph = (
 	v1 addConstraint: self.
@@ -120,9 +126,10 @@ public removeFromGraph = (
 )
 (* I am an abstract class representing a system-maintainable relationship (or "constraint") between a set of variables. I supply a strength instance variable; concrete subclasses provide a means of storing the constrained variables and other information required to represent a constraint. *)
 class Constraint strength: s = (
-|
-public strength <Strength> = s.
-|) (
+	|
+	public strength <Strength> = s.
+	|
+) (
 (* Activate this constraint and attempt to satisfy it. *)
 public addConstraint = (
 	addToGraph.
@@ -270,10 +277,11 @@ public execute = (
 )
 (* I am an abstract superclass for constraints having a single possible output variable. *)
 class UnaryConstraint var: v strength: s = Constraint strength: s (
-|
-public output <Variable> = v.
-protected satisfied <Boolean> ::= false.
-|) (
+	|
+	public output <Variable> = v.
+	protected satisfied <Boolean> ::= false.
+	|
+) (
 (* Add myself to the constraint graph. *)
 public addToGraph = (
 	output addConstraint: self.
@@ -312,15 +320,16 @@ public removeFromGraph = (
 )
 (* I represent a constrained variable. In addition to my value, I maintain the structure of the constraint graph, the current dataflow graph, and various parameters of interest to the DeltaBlue incremental constraint solver. *)
 class Variable name: n initialValue: v = (
-|
-public value <Integer> ::= v.
-public constraints <List[Constraint]> = List new: 2.
-public determinedBy <Constraint>
-public mark <Integer> ::= 0.
-public walkStrength <Strength> ::= weakest.
-public stay <Boolean> ::= true.
-public name <String> = n.
-|) (
+	|
+	public value <Integer> ::= v.
+	public constraints <List[Constraint]> = List new: 2.
+	public determinedBy <Constraint>
+	public mark <Integer> ::= 0.
+	public walkStrength <Strength> ::= weakest.
+	public stay <Boolean> ::= true.
+	public name <String> = n.
+	|
+) (
 (* Add the given constraint to the set of all constraints that refer to me. *)
 public addConstraint: c <Constraint> = (
 	constraints add: c.
@@ -500,10 +509,11 @@ public setValueOf: var <Variable> to: newValue = (
 )
 (* Strengths are used to measure the relative importance of constraints. New strengths may be inserted in the strength hierarchy without disrupting current constraints. Strengths cannot be created outside this class, so pointer comparison can be used for value comparison. *)
 class Strength name: n value: v = (
-|
-public name <String> = n.
-public value <Integer> = v.
-|) (
+	|
+	public name <String> = n.
+	public value <Integer> = v.
+	|
+) (
 public strongerThan: other <Strength> ^<Boolean> = (
 	^self value < other value
 )

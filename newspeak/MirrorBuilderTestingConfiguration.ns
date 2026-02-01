@@ -1,7 +1,9 @@
 (* Test configuration using the current platform. *)
-class MirrorBuilderTestingConfiguration packageTestsUsing: manifest = (|
-private MirrorBuilderTesting = manifest MirrorBuilderTesting.
-|) (
+class MirrorBuilderTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private MirrorBuilderTesting = manifest MirrorBuilderTesting.
+	|
+) (
 public testModulesUsingPlatform: p minitest: m = (
 	^{MirrorBuilderTesting usingPlatform: p minitest: m}
 )

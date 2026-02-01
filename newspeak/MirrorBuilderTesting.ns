@@ -1,13 +1,15 @@
 (* Tests for reflection: modification. *)
-class MirrorBuilderTesting usingPlatform: p minitest: m = (|
-private ClassDeclarationBuilder = p mirrors ClassDeclarationBuilder.
-private ClassMirror = p mirrors ClassMirror.
-private ObjectMirror = p mirrors ObjectMirror.
-private MessageNotUnderstood = p kernel MessageNotUnderstood.
-private Map = p collections Map.
-private Set = p collections Set.
-private TestContext = m TestContext.
-|) (
+class MirrorBuilderTesting usingPlatform: p minitest: m = (
+	|
+	private ClassDeclarationBuilder = p mirrors ClassDeclarationBuilder.
+	private ClassMirror = p mirrors ClassMirror.
+	private ObjectMirror = p mirrors ObjectMirror.
+	private MessageNotUnderstood = p kernel MessageNotUnderstood.
+	private Map = p collections Map.
+	private Set = p collections Set.
+	private TestContext = m TestContext.
+	|
+) (
 public class ClassDeclarationBuilderTests = TestBase () (
 classFromSource: src <String> ^<Class> = (
 	^(ClassDeclarationBuilder fromSource: src) install applyToObject reflectee

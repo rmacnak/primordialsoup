@@ -1,15 +1,19 @@
 (* JSON encoder/decoder. *)
-class JSON usingPlatform: platform = (|
-private ArgumentError = platform kernel ArgumentError.
-private StringBuilder = platform kernel StringBuilder.
-private List = platform collections List.
-private Map = platform collections Map.
-|) (
-class Decoder on: b = (|
-protected string <ByteArray | String> = b.
-protected position <Integer> ::= 1.
-protected size <Integer> = string size.
-|) (
+class JSON usingPlatform: platform = (
+	|
+	private ArgumentError = platform kernel ArgumentError.
+	private StringBuilder = platform kernel StringBuilder.
+	private List = platform collections List.
+	private Map = platform collections Map.
+	|
+) (
+class Decoder on: b = (
+	|
+	protected string <ByteArray | String> = b.
+	protected position <Integer> ::= 1.
+	protected size <Integer> = string size.
+	|
+) (
 error: message = (
 	^Exception signal: message
 )
@@ -244,9 +248,11 @@ skipWhitespace = (
 )
 ) : (
 )
-class Encoder on: b = (|
-protected builder <StringBuilder> = b.
-|) (
+class Encoder on: b = (
+	|
+	protected builder <StringBuilder> = b.
+	|
+) (
 writeCharacter: byte = (
 	16r22 = byte ifTrue: [^builder addByte: 16r5C; addByte: 16r22]. (* \" *)
 	16r5C = byte ifTrue: [^builder addByte: 16r5C; addByte: 16r5C]. (* \\ *)

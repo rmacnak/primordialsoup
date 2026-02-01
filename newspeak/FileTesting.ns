@@ -1,6 +1,8 @@
-class FileTesting usingPlatform: platform minitest: minitest = (|
-private TestContext = minitest TestContext.
-|) (
+class FileTesting usingPlatform: platform minitest: minitest = (
+	|
+	private TestContext = minitest TestContext.
+	|
+) (
 public class FileTests = TestContext (
 ) (
 ) : (

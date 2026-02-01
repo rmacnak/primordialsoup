@@ -1,8 +1,10 @@
 (* :exemplar: platform time *)
-class Time usingPlatform: p = (|
+class Time usingPlatform: p = (
+	|
 	public Timer = p actors Timer.
 	private StringBuilder = p kernel StringBuilder.
-|) (
+	|
+) (
 public class DateTime nanosecondsSinceEpoch: nanos <Integer> isUtc: local <Boolean> = (
 	|
 	public nanosecondsSinceEpoch <Integer> = nanos.
@@ -15,7 +17,7 @@ public = other <Object> = (
 	nanosecondsSinceEpoch = other nanosecondsSinceEpoch ifFalse: [^false].
 	^isUtc = other isUtc
 )
-public asString = (
+public asString ^<String> = (
 	| s = StringBuilder new: 32. |
 	s add: ({'Mon'. 'Tue'. 'Wed'. 'Thu'. 'Fri'. 'Sat'. 'Sun'} at: weekday).
 	s add: ' '.
@@ -34,7 +36,7 @@ public asString = (
 	s add: timeZoneName.
 	^s asString
 )
-public asStringIso8601 = (
+public asStringIso8601 ^<String> = (
 	| s = StringBuilder new: 32. |
 	s add: year asString.
 	s add: '-'.
@@ -95,7 +97,7 @@ private parts = (
 		 parts_:: parts].
 	^parts_
 )
-public printString = (
+public printString ^<String> = (
 	^self asString
 )
 (* The second of the minute in [0, 59]. *)
@@ -175,10 +177,11 @@ public parse: iso8601string <String> ^<DateTime> = (
 )
 (* Measures durations using the system's monotonic clock. *)
 public class Stopwatch = (
-|
-private cumulativeNanos ::= 0.
-private startNanos
-|) (
+	|
+	private cumulativeNanos <Integer> ::= 0.
+	private startNanos <Integer>
+	|
+) (
 public elapsedMicroseconds ^<Integer> = (
 	^elapsedNanoseconds quo: 1000
 )
@@ -200,11 +203,11 @@ public stop = (
 )
 ) : (
 )
-private currentMonotonicNanos = (
+private currentMonotonicNanos ^<Integer> = (
 	(* :pragma: primitive: 264 *)
 	panic.
 )
-private currentRealtimeNanos = (
+private currentRealtimeNanos ^<Integer> = (
 	(* :pragma: primitive: 265 *)
 	panic.
 )

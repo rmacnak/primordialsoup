@@ -1,6 +1,8 @@
-class SocketTesting usingPlatform: platform minitest: minitest = (|
-private TestContext = minitest TestContext.
-|) (
+class SocketTesting usingPlatform: platform minitest: minitest = (
+	|
+	private TestContext = minitest TestContext.
+	|
+) (
 public class SocketTests = TestContext (
 ) (
 ) : (

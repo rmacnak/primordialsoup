@@ -1,13 +1,15 @@
 (* Tests for reflection: introspection and dynamic invocation. *)
-class MirrorTesting usingPlatform: p minitest: m model: md = (|
-private ObjectMirror = p mirrors ObjectMirror.
-private ClassMirror = p mirrors ClassMirror.
-private Map = p collections Map.
-private Set = p collections Set.
-private WeakArray = p kernel WeakArray.
-private TestContext = m TestContext.
-private model = md.
-|) (
+class MirrorTesting usingPlatform: p minitest: m model: md = (
+	|
+	private ObjectMirror = p mirrors ObjectMirror.
+	private ClassMirror = p mirrors ClassMirror.
+	private Map = p collections Map.
+	private Set = p collections Set.
+	private WeakArray = p kernel WeakArray.
+	private TestContext = m TestContext.
+	private model = md.
+	|
+) (
 public class ClassDeclarationMirrorTests = TestBase () (
 public testClassDeclarationMirrorEnclosingClass = (
 	| mirror mirror2 |

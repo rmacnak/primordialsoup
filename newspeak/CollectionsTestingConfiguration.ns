@@ -1,7 +1,9 @@
 (* Test configuration using the current platform's collections. *)
-class CollectionsTestingConfiguration packageTestsUsing: manifest = (|
-private CollectionsTesting = manifest CollectionsTesting.
-|) (
+class CollectionsTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private CollectionsTesting = manifest CollectionsTesting.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{CollectionsTesting usingCollections: platform collections minitest: minitest}
 )

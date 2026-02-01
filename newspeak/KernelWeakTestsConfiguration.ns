@@ -1,7 +1,9 @@
 (* Test configuration using the current platform. *)
-class KernelWeakTestsConfiguration packageTestsUsing: manifest = (|
-private KernelWeakTests = manifest KernelWeakTests.
-|) (
+class KernelWeakTestsConfiguration packageTestsUsing: manifest = (
+	|
+	private KernelWeakTests = manifest KernelWeakTests.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	| kernel = platform kernel. |
 	^{KernelWeakTests

@@ -1,6 +1,8 @@
-class TimeTestsConfiguration packageTestsUsing: manifest = (|
-private TimeTests = manifest TimeTests.
-|) (
+class TimeTestsConfiguration packageTestsUsing: manifest = (
+	|
+	private TimeTests = manifest TimeTests.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{TimeTests
 		usingPlatform: platform

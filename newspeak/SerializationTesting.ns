@@ -1,18 +1,20 @@
 (* Tests for partial-graph serialization. *)
-class SerializationTesting usingPlatform: p minitest: m resources: r = (|
-private WeakArray = p kernel WeakArray.
-private Ephemeron = p kernel Ephemeron.
-private Map = p collections Map.
-private Set = p collections Set.
-private Serializer = p serialization Serializer.
-private Deserializer = p serialization Deserializer.
-private TestContext = m TestContext.
-private SerializationTestApp = r SerializationTestApp.
-private SerializationTestStruct = r SerializationTestStruct.
-private testClosureAdd = r testClosureAdd.
-private testClosureNLR = r testClosureNLR.
-private testFloat = r testFloat.
-|) (
+class SerializationTesting usingPlatform: p minitest: m resources: r = (
+	|
+	private WeakArray = p kernel WeakArray.
+	private Ephemeron = p kernel Ephemeron.
+	private Map = p collections Map.
+	private Set = p collections Set.
+	private Serializer = p serialization Serializer.
+	private Deserializer = p serialization Deserializer.
+	private TestContext = m TestContext.
+	private SerializationTestApp = r SerializationTestApp.
+	private SerializationTestStruct = r SerializationTestStruct.
+	private testClosureAdd = r testClosureAdd.
+	private testClosureNLR = r testClosureNLR.
+	private testFloat = r testFloat.
+	|
+) (
 public class SerializationTests = TestContext () (
 roundTrip: object = (
 	|

@@ -1,6 +1,8 @@
-class ProcessTestingConfiguration packageTestsUsing: manifest = (|
-private ProcessTesting = manifest ProcessTesting.
-|) (
+class ProcessTestingConfiguration packageTestsUsing: manifest = (
+	|
+	private ProcessTesting = manifest ProcessTesting.
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest = (
 	^{ProcessTesting usingPlatform: platform minitest: minitest}
 )

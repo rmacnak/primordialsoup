@@ -1,5 +1,6 @@
 (* Tests for promises and eventual sends. *)
-class ActorsTesting usingPlatform: p actors: a testActor: ta minitest: m = (|
+class ActorsTesting usingPlatform: p actors: a testActor: ta minitest: m = (
+	|
 	private TestActor = ta.
 	private TestContext = m TestContext.
 	private Message = p kernel Message.
@@ -10,7 +11,8 @@ class ActorsTesting usingPlatform: p actors: a testActor: ta minitest: m = (|
 	private Stopwatch = p time Stopwatch.
 	private Actor = a Actor.
 	private Promise = a Promise.
-|) (
+	|
+) (
 public class AwaitTests = TestBase () (
 awaitExceptionInContinuation = (
 	(await: 0) / 0.
@@ -117,12 +119,14 @@ TEST_CONTEXT = ()
 class FooError = Exception () (
 ) : (
 )
-class HappensAfterChecker eventCount: n = (|
+class HappensAfterChecker eventCount: n = (
+	|
 	events = List new.
 	eventCount = n.
 	resolver = Resolver new.
 	public whenDone = resolver promise.
-|) (
+	|
+) (
 public check: event happensAfter: predecessor = (
 	nil = predecessor ifFalse:
 		[(events includes: predecessor) ifFalse:

@@ -1,6 +1,6 @@
 (* Tests for Zircon primitives. *)
 class ZirconTesting usingPlatform: platform minitest: minitest = (
-|
+	|
 	private zx = platform zircon.
 	private Channel = zx Channel.
 	private Message = zx Message.
@@ -9,7 +9,8 @@ class ZirconTesting usingPlatform: platform minitest: minitest = (
 	private ZirconException = zx ZirconException.
 
 	private TestContext = minitest TestContext.
-|) (
+	|
+) (
 public class ZirconTests = TestContext (
 ) (
 should: block <[]> failWithStatus: expectedStatus <Integer> = (

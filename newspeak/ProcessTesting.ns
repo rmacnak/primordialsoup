@@ -1,17 +1,19 @@
-class ProcessTesting usingPlatform: platform minitest: minitest = (|
-private TestContext = minitest TestContext.
-private Promise = platform actors Promise.
-private Resolver = platform actors Resolver.
-private Timer = platform actors Timer.
-private List = platform collections List.
-private StringBuilder = platform kernel StringBuilder.
-private OSException = platform processes OSException.
-private processes = platform processes.
-private isWindows = platform operatingSystem = 'windows'.
-private isAndroid = platform operatingSystem = 'android'.
+class ProcessTesting usingPlatform: platform minitest: minitest = (
+	|
+	private TestContext = minitest TestContext.
+	private Promise = platform actors Promise.
+	private Resolver = platform actors Resolver.
+	private Timer = platform actors Timer.
+	private List = platform collections List.
+	private StringBuilder = platform kernel StringBuilder.
+	private OSException = platform processes OSException.
+	private processes = platform processes.
+	private isWindows = platform operatingSystem = 'windows'.
+	private isAndroid = platform operatingSystem = 'android'.
 
-private testProcessPath = findTestProcessPath.
-|) (
+	private testProcessPath = findTestProcessPath.
+	|
+) (
 class AccumulatingSink = (
 	|
 	buffer = StringBuilder new: 8192.

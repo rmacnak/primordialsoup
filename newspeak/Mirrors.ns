@@ -1,33 +1,33 @@
 (* Reflection. *)
 (* :exemplar: platform mirrors *)
-class Mirrors usingPlatform: platform internalKernel: ik namespace: ns = (|
-private Collection = platform collections Collection.
-private List = platform collections List.
-private Map = platform collections Map.
-private Set = platform collections Set.
-private WeakArray = platform kernel WeakArray.
-private WeakMap = platform kernel WeakMap.
-private StringBuilder = platform kernel StringBuilder.
-private ArgumentError = ik ArgumentError.
-private IdentityMap = ik IdentityMap.
-private InstanceMixin = ik InstanceMixin.
-private ClassMixin = ik ClassMixin.
-private Metaclass = ik Metaclass.
+class Mirrors usingPlatform: platform internalKernel: ik namespace: ns = (
+	|
+	private Collection = platform collections Collection.
+	private List = platform collections List.
+	private Map = platform collections Map.
+	private Set = platform collections Set.
+	private WeakArray = platform kernel WeakArray.
+	private WeakMap = platform kernel WeakMap.
+	private StringBuilder = platform kernel StringBuilder.
+	private ArgumentError = ik ArgumentError.
+	private IdentityMap = ik IdentityMap.
+	private InstanceMixin = ik InstanceMixin.
+	private ClassMixin = ik ClassMixin.
+	private Metaclass = ik Metaclass.
+	private Activation = ik Activation.
+	private Closure = ik Closure.
+	private Message = ik Message.
 
-private Activation = ik Activation.
-private Closure = ik Closure.
-private Message = ik Message.
-private String = ik String.
+	private reflectees = WeakMap new.
 
-private reflectees = WeakMap new.
-
-private cachedPlatform = platform.
-private internalKernel = ik.
-private namespace = ns.
-private parsingX
-private intermediatesX
-private compilerX
-|) (
+	private cachedPlatform = platform.
+	private internalKernel = ik.
+	private namespace = ns.
+	private parsingX
+	private intermediatesX
+	private compilerX
+	|
+) (
 public class ActivationMirror reflecting: activation thread: thr = (
 (* :bogus: This constructor should not be public. *)
 	|
@@ -231,7 +231,7 @@ public stepThrough ^<ThreadMirror> = (
 	^ThreadMirror reflecting: thread
 )
 ) : (
-public invokeSuspended: closure = (
+public invokeSuspended: closure <[]> ^<ThreadMirror> = (
 	| simulator thread |
 
 	Closure = (classOf: closure) ifFalse: [^(ArgumentError value: closure) signal].
@@ -247,12 +247,27 @@ public invokeSuspended: closure = (
 	^ThreadMirror reflecting: thread
 )
 )
-class AtomicInstaller = (|
-private updateMixinsAndClasses <IdentityMap[OldObject,NewObject]>
-private updateInstances <IdentityMap[OldObject,NewObject]>
-private existingClasses <IdentityMap[HierarchyDepth,Set[Class]]>
-private newExistingMixins <Map[IntermediateClassDeclaration,InstanceMixin]>
-|) (
+(* Some care is needed to ensure atomic install works with shape changes to InstanceMixin, ClassMixin, Class or Metaclass. Installing such changes involves processing their instances twice: first to create the new definition and second to reallocate to the new shape, which requires the new definition.
+
+Let A be the old definition
+Let B be the new definition with the old shape
+Let C be the new definition with the new shape
+Let D be the old definition with the new shape
+
+We need the bulk become to include, in order,
+
+B -> C
+A -> C
+
+They must appear in this order so C adopts the identity hash (and possible class index) of A rather than that of B. We must also not include A -> D, as it makes no sense to forward an identity to two objects. *)
+class AtomicInstaller = (
+	|
+	private updateMixinsAndClasses <IdentityMap[OldObject,NewObject]>
+	private updateInstances <IdentityMap[OldObject,NewObject]>
+	private existingClasses <IdentityMap[HierarchyDepth,Set[Class]]>
+	private newExistingMixins <Map[IntermediateClassDeclaration,InstanceMixin]>
+	|
+) (
 allInstVarNamesOf: cls = (
 	nil = cls ifTrue: [^{}].
 	^(allInstVarNamesOf: (superclassOf: cls)) , ((mixinOf: cls) _slots collect: [:slot | slot name])
@@ -491,10 +506,12 @@ private sortClass: app <Class> = (
 )
 ) : (
 )
-public class ClassDeclarationBuilder fromIntermediate: ir = (|
-private intermediate <IntermediateClassDeclaration> = ir.
-public header <ClassHeaderBuilder> = ClassHeaderBuilder fromIntermediate: ir.
-|) (
+public class ClassDeclarationBuilder fromIntermediate: ir = (
+	|
+	private intermediate <IntermediateClassDeclaration> = ir.
+	public header <ClassHeaderBuilder> = ClassHeaderBuilder fromIntermediate: ir.
+	|
+) (
 public accessModifier ^<Symbol> = (
 	^intermediate accessModifier
 )
@@ -553,7 +570,7 @@ public instanceSide ^<MixinBuilder> = (
 		 ir builder: builder].
 	^builder
 )
-public name = (
+public name ^<Symbol> = (
 	^intermediate name
 )
 public source ^<String> = (
@@ -603,7 +620,6 @@ public applyToObject ^<ClassMirror> = (
 )
 public asBuilder ^<ClassDeclarationBuilder> = (
 	| ec ir builder |
-	(* nil = mixin _enclosingMixin ifFalse: [unimplemented]. *)
 	ec:: nil. (* Intermediates for enclosing class (if any) computed lazily. *)
 	ir:: buildIntermediateFor: mixin within: ec.
 	builder:: ClassDeclarationBuilder fromIntermediate: ir.
@@ -635,10 +651,10 @@ public instanceSide ^<MixinMirror> = (
 public isKindOfClassDeclarationMirror ^<Boolean> = (
 	^true
 )
-public name = (
+public name ^<Symbol> = (
 	^mixin _name
 )
-public printString = (
+public printString ^<String> = (
 	^'ClassDeclarationMirror:',name.
 )
 public source ^<String> = (
@@ -665,9 +681,11 @@ private to: sb writeClassDeclaration: instanceMixin = (
 )
 ) : (
 )
-private class ClassHeaderBuilder fromIntermediate: ir = (|
-private intermediate <IntermediateClassDeclaration> = ir.
-|) (
+private class ClassHeaderBuilder fromIntermediate: ir = (
+	|
+	private intermediate <IntermediateClassDeclaration> = ir.
+	|
+) (
 private checkForHeaderConflicts: newIntermediate <IntermediateClassDeclaration> = (
 	newIntermediate instanceSide slots do:
 		[:slot <IntermediateSlotDeclaration> |
@@ -820,10 +838,13 @@ public source ^<String> = (
 )
 ) : (
 )
-public class ClassMirror reflecting: behavior = (|
-public reflectee <Behavior> = behavior.
-|(isBehavior: behavior) ifFalse: [^Exception new signal].
-reflectees at: self put: behavior) (
+public class ClassMirror reflecting: behavior = (
+	|
+	public reflectee <Behavior> = behavior.
+	|
+	(isBehavior: behavior) ifFalse: [^(ArgumentError value: behavior) signal].
+	reflectees at: self put: behavior.
+) (
 public = other ^<Boolean> = (
 	(is: reflectee identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfClassMirror
@@ -844,7 +865,7 @@ public isKindOfClassMirror ^<Boolean> = (
 public isMeta ^<Boolean> = (
 	^Metaclass = (classOf: reflectee)
 )
-public methods ^<Collection[MethodMirror]> = (
+public methods ^<MirrorGroup[MethodMirror]> = (
 	| cls <Behavior> results <Collection[MethodMirror]> |
 	cls:: reflectee.
 	results:: List new.
@@ -859,7 +880,7 @@ public methods ^<Collection[MethodMirror]> = (
 public mixin ^<MixinMirror> = (
 	^MixinMirror reflecting: (mixinOf: reflectee)
 )
-public nestedClasses = (
+public nestedClasses ^<MirrorGroup[ClassDeclarationMirror]> = (
 	| cls <Behavior> results <Collection[ClassDeclarationMirror]> |
 	cls:: reflectee.
 	results:: List new.
@@ -870,7 +891,7 @@ public nestedClasses = (
 		cls:: superclassOf: cls].
 	^MirrorGroup wrapping: results
 )
-public slots ^<Collection[SlotDeclarationMirror]> = (
+public slots ^<MirrorGroup[SlotDeclarationMirror]> = (
 	| cls <Behavior> classes result <Collection[SlotDeclarationMirror]> |
 	cls:: reflectee.
 	classes:: List new.
@@ -908,7 +929,7 @@ public superclass ^<ClassMirror> = (
 	nil = s ifTrue: [^nil].
 	^ClassMirror reflecting: s
 )
-public transientSlots ^<Collection[TransientSlotDeclarationMirror]> = (
+public transientSlots ^<MirrorGroup[TransientSlotDeclarationMirror]> = (
 	| cls <Behavior> classes result <Collection[TransientSlotDeclarationMirror]> |
 	cls:: reflectee.
 	classes:: List new.
@@ -933,7 +954,7 @@ public class ClosureMirror reflecting: c = (
 	|
 	public reflectee = c.
 	|
-	Closure = (classOf: c) ifFalse: [^(ArgumentError value: closure) signal].
+	Closure = (classOf: c) ifFalse: [^(ArgumentError value: c) signal].
 	reflectees at: self put: reflectee.
 ) (
 public = other ^<Boolean> = (
@@ -1143,17 +1164,19 @@ class Metadata tag: t payload: p = (
 ) (
 ) : (
 )
-private class MethodBuilder reflecting: ir in: builder = (|
-private intermediate = ir.
-public definingMixin = builder.
-|) (
-public accessModifier = (
+private class MethodBuilder reflecting: ir in: builder = (
+	|
+	private intermediate <IntermediateMethod> = ir.
+	public definingMixin <MixinBuilder> = builder.
+	|
+) (
+public accessModifier ^<Symbol> = (
 	^intermediate accessModifier
 )
 public metadata ^<Array[Metadata]> = (
 	^metadataFrom: source
 )
-public name = (
+public name ^<Symbol> = (
 	^intermediate selector
 )
 public source ^<String> = (
@@ -1161,9 +1184,12 @@ public source ^<String> = (
 )
 ) : (
 )
-private class MethodMirror reflecting: m = (|
+private class MethodMirror reflecting: m = (
+	|
 	method <Method> = m.
-|reflectees at: self put: m) (
+	|
+	reflectees at: self put: m.
+) (
 public = other ^<Boolean> = (
 	(is: method identicalTo: (reflectees at: other)) ifFalse: [^false].
 	^other isKindOfMethodMirror
@@ -1186,21 +1212,23 @@ public literals ^<Set[Object]> = (
 public metadata ^<Array[Metadata]> = (
 	^metadataFrom: source
 )
-public name = (
+public name ^<Symbol> = (
 	^method selector
 )
 public selectors ^<Set[String]> = (
 	^(Printer for: method) selectors
 )
+(* :todo: Should this be async? *)
 public source ^<String> = (
-	(* :todo: Should this be async? *)
 	^method source
 )
 ) : (
 )
-private class MirrorGroup wrapping: collection = Collection (|
+private class MirrorGroup wrapping: collection = Collection (
+	|
 	protected mirrors <Collection[E extends Mirror]> = collection.
-|) (
+	|
+) (
 public do: action <[:E]> = (
 	mirrors do: action
 )
@@ -1222,35 +1250,37 @@ public size ^<Integer> = (
 )
 ) : (
 )
-private class MixinBuilder fromIntermediate: ir = (|
-private intermediate <IntermediateMixin> = ir.
-private methodsX
-private nestedClassesX
-private slotsX
-private transientSlotsX
-|) (
+private class MixinBuilder fromIntermediate: ir = (
+	|
+	private intermediate <IntermediateMixin> = ir.
+	private methodsX <MutableMethodGroup>
+	private nestedClassesX <MutableNestedClassGroup>
+	private slotsX <MutableSlotGroup>
+	private transientSlotsX <MutableTransientSlotGroup>
+	|
+) (
 public declaration ^<ClassDeclarationBuilder> = (
 	^intermediate declaration builder
 )
 public isKindOfMixinMirror ^<Boolean> = (
 	^true
 )
-public methods = (
+public methods ^<MutableMethodGroup> = (
 	nil = methodsX ifTrue:
 		[methodsX:: MutableMethodGroup fromIntermediate: intermediate].
 	^methodsX
 )
-public nestedClasses = (
+public nestedClasses ^<MutableNestedClassGroup> = (
 	nil = nestedClassesX ifTrue:
 		[nestedClassesX:: MutableNestedClassGroup fromIntermediate: intermediate].
 	^nestedClassesX
 )
-public slots = (
+public slots ^<MutableSlotGroup> = (
 	nil = slotsX ifTrue:
 		[slotsX:: MutableSlotGroup fromIntermediate: intermediate].
 	^slotsX
 )
-public transientSlots = (
+public transientSlots ^<MutableTransientSlotGroup> = (
 	nil = transientSlotsX ifTrue:
 		[transientSlotsX:: MutableTransientSlotGroup fromIntermediate: intermediate].
 	^transientSlotsX
@@ -1343,10 +1373,12 @@ public transientSlots ^<Collection[TransientSlotDeclarationMirror]> = (
 )
 ) : (
 )
-private class MutableMethodGroup fromIntermediate: ir = Collection (|
-private intermediate <IntermediateMixin> = ir.
-|) (
-public addFromSource: source <String> = (
+private class MutableMethodGroup fromIntermediate: ir = Collection (
+	|
+	private intermediate <IntermediateMixin> = ir.
+	|
+) (
+public addFromSource: source <String> ^<MethodBuilder> = (
 	|
 	imethod <IntermediateMethod>
 	|
@@ -1378,9 +1410,11 @@ public removeMirrorNamed: name <Symbol> = (
 )
 ) : (
 )
-private class MutableNestedClassGroup fromIntermediate: ir = Collection (|
-private intermediate <IntermediateMixin> = ir.
-|) (
+private class MutableNestedClassGroup fromIntermediate: ir = Collection (
+	|
+	private intermediate <IntermediateMixin> = ir.
+	|
+) (
 public addFromSource: source <String> ^<ClassDeclarationBuilder> = (
 	| idecl <IntermediateClassDeclaration> builder |
 
@@ -1421,9 +1455,11 @@ public removeMirrorNamed: name <Symbol> = (
 )
 ) : (
 )
-private class MutableSlotGroup fromIntermediate: ir = Collection (|
-private intermediate <IntermediateMixin> = ir.
-|) (
+private class MutableSlotGroup fromIntermediate: ir = Collection (
+	|
+	private intermediate <IntermediateMixin> = ir.
+	|
+) (
 public do: action = (
 	intermediate slots do:
 		[:intermediateSlot |
@@ -1438,10 +1474,12 @@ protected newForCollectUsingAdd: capacity = (
 )
 ) : (
 )
-private class MutableTransientSlotGroup fromIntermediate: ir = Collection (|
-private intermediate <IntermediateMixin> = ir.
-|) (
-public addFromSource: source <String> = (
+private class MutableTransientSlotGroup fromIntermediate: ir = Collection (
+	|
+	private intermediate <IntermediateMixin> = ir.
+	|
+) (
+public addFromSource: source <String> ^<TransientSlotDeclarationBuilder> = (
 	|
 	islot <IntermediateTransientSlotDeclaration>
 	|
@@ -1475,7 +1513,7 @@ public removeMirrorNamed: name <Symbol> = (
 )
 public class ObjectMirror reflecting: object = (
 	|
-	public reflectee = object.
+	public reflectee <Object> = object.
 	|
 	reflectees at: self put: reflectee.
 ) (
@@ -1525,8 +1563,8 @@ public evaluateSuspended: expression <String> with: scope <Map[Symbol, ObjectMir
 public getClass ^<ClassMirror> = (
 	^ClassMirror reflecting: (classOf: reflectee)
 )
+(* :deprecated: This form cannot access shadowed slots. Use #slots instead. *)
 public getSlot: name = (
-	(* :deprecated: This form cannot access shadowed slots. Use #slots instead. *)
 	| index raw |
 	index:: indexOfSlotNamed: name in: (classOf: reflectee).
 	raw:: slotOf: reflectee at: index.
@@ -1556,8 +1594,8 @@ public isKindOfObjectMirror ^<Boolean> = (
 public referringObjects ^<ObjectMirror[Array]> = (
 	^ObjectMirror reflecting: (allReferersOf: reflectee)
 )
+(* :deprecated: This form cannot access shadowed slots. Use #slots instead. *)
 public setSlot: name to: value = (
-	(* :deprecated: This form cannot access shadowed slots. Use #slots instead. *)
 	| index raw |
 	index:: indexOfSlotNamed: name in: (classOf: reflectee).
 	slotOf: reflectee at: index put: value.
@@ -1697,9 +1735,11 @@ superSend: selector numArgs: numArgs = (
 )
 ) : (
 )
-private class Simulator = InstructionStream (|
-public activation
-|) (
+private class Simulator = InstructionStream (
+	|
+	public activation
+	|
+) (
 aboutToReturn: result through: firstUnwindActivation = (
 	| method |
 	method:: behavior: Activation methodAt: #aboutToReturn:through:.
@@ -2121,29 +2161,33 @@ sizeOf: bytecode = (
 	^4
 )
 )
-private class SlotDeclarationMirror name: n isMutable: m accessModifier: a mixin: mxn = (|
-public name = n.
-public isMutable = m.
-public accessModifier = a.
-public definingMixin = mxn.
-|) (
+private class SlotDeclarationMirror name: n isMutable: m accessModifier: a mixin: mxn = (
+	|
+	public name <Symbol> = n.
+	public isMutable <Boolean> = m.
+	public accessModifier <Symbol> = a.
+	public definingMixin <MixinMirror> = mxn.
+	|
+) (
 public isKindOfSlotDeclarationMirror ^<Boolean> = (
 	^true
 )
 ) : (
 )
 private class SlotMirror name: n value: v = (
-|
-public name <Symbol> = n.
-public value <ObjectMirror> = v.
-|
+	|
+	public name <Symbol> = n.
+	public value <ObjectMirror> = v.
+	|
 ) (
 ) : (
 )
-private class SyntheticMethodMirror reflecting: m name: n source: s = MethodMirror reflecting: m (|
+private class SyntheticMethodMirror reflecting: m name: n source: s = MethodMirror reflecting: m (
+	|
 	public name <Symbol> = n.
 	public source <String> = s.
-|) (
+	|
+) (
 ) : (
 )
 private class Thread = (
@@ -2252,6 +2296,7 @@ public resume = (
 		[^Exception signal: 'Nothing to resume'].
 	^resumeImpl
 )
+(* :unwindProtect: *)
 private resumeImpl = (
 	(* :pragma: primitive: 163 *)
 	| threadAtTemp1 jumpResult |
@@ -2285,6 +2330,7 @@ public return: returnValue from: activation = (
 	suspendedActivation push: returnValue.
 	state: #suspended.
 )
+(* :unwindProtect: *)
 private simulatorRoot = (
 	(* :pragma: primitive: 163 *)
 	panic.
@@ -2306,6 +2352,7 @@ public stepInto: activation = (
 		[^Exception signal: 'Activation is not in thread'].
 	stepUntil: [:top | true].
 )
+(* :todo: Run on the host like #resume. *)
 public stepOut: activation = (
 	| goal = activation sender. |
 	(hasSender: activation) ifFalse:
@@ -2314,6 +2361,7 @@ public stepOut: activation = (
 		[^resume].
 	stepUntil: [:top | has: top reachedOrSkipped: goal].
 )
+(* :todo: Run on the host like #resume. *)
 public stepOver: activation = (
 	(hasSender: activation) ifFalse:
 		[^Exception signal: 'Activation is not in thread'].
@@ -2373,7 +2421,9 @@ private unwindTo: activation = (
 ) : (
 )
 private class ThreadMirror reflecting: t = (
-	| protected thread = t. |
+	|
+	protected thread <Thread> = t.
+	|
 ) (
 public isBroken ^<Boolean> = (
 	^thread state = #broken
@@ -2416,20 +2466,22 @@ public terminate ^<ThreadMirror> = (
 )
 ) : (
 )
-private class TransientSlotDeclarationBuilder reflecting: ir in: builder = (|
-private intermediate = ir.
-public definingMixin = builder.
-|) (
-public accessModifier = (
+private class TransientSlotDeclarationBuilder reflecting: ir in: builder = (
+	|
+	private intermediate <IntermediateTransientSlotDeclaration> = ir.
+	public definingMixin <MixinBuilder> = builder.
+	|
+) (
+public accessModifier ^<Symbol> = (
 	^intermediate accessModifier
 )
-public isMutable = (
+public isMutable ^<Boolean> = (
 	^intermediate isMutable
 )
 public metadata ^<Array[Metadata]> = (
 	^metadataFrom: source
 )
-public name = (
+public name ^<Symbol> = (
 	^intermediate name
 )
 public source ^<String> = (
@@ -2437,10 +2489,12 @@ public source ^<String> = (
 )
 ) : (
 )
-private class TransientSlotDeclarationMirror descriptor: d mixin: mxn = (|
-private descriptor = d.
-public definingMixin = mxn.
-|) (
+private class TransientSlotDeclarationMirror descriptor: d mixin: mxn = (
+	|
+	private descriptor <SlotDeclaration> = d.
+	public definingMixin <MixinMirror> = mxn.
+	|
+) (
 public accessModifier ^<Symbol> = (
 	(* Not `descriptor accessModifier`, which is always private to prevent overrides. *)
 	^getter accessModifier
@@ -2479,15 +2533,15 @@ public source ^<String> = (
 )
 ) : (
 )
-private allInstancesOf: cls = (
+private allInstancesOf: cls <Behavior> ^<Array> = (
 	(* :pragma: primitive: 141 *)
 	panic.
 )
-private allReferersOf: target = (
+private allReferersOf: target <Object> ^<Array> = (
 	(* :pragma: primitive: 133 *)
 	panic.
 )
-private allocate: cls = (
+private allocate: cls <Behavior> ^<Object> = (
 	(* :pragma: primitive: 140 *)
 	panic.
 )
@@ -2585,7 +2639,7 @@ buildIntermediateMethod: selector within: mixin <InstanceMixin> = (
 	methodIR isSynthetic: true.
 	^methodIR
 )
-private classOf: object = (
+private classOf: object <Object> ^<Behavior> = (
 	(* :pragma: primitive: 127 *)
 	panic.
 )
@@ -2694,11 +2748,11 @@ private enclosingObjectOf: behavior = (
 private formatOf: behavior = (
 	^self slotOf: behavior at: 6
 )
-private heapSizeOf: object = (
+private heapSizeOf: object <Object> ^<Integer> = (
 	(* :pragma: primitive: 137 *)
 	panic.
 )
-private identityHashOf: a = (
+private identityHashOf: object <Object> ^<Integer>  = (
 	(* :pragma: primitive: 136 *)
 	panic.
 )
@@ -2710,11 +2764,11 @@ private intermediates = (
 	nil = intermediatesX ifTrue: [constructCompiler].
 	^intermediatesX
 )
-private is: a identicalTo: b = (
+private is: a <Object> identicalTo: b <Object> ^<Boolean> = (
 	(* :pragma: primitive: 135 *)
 	panic.
 )
-private isBehavior: object = (
+private isBehavior: object <Object> ^<Boolean> = (
 	| cls |
 	cls:: classOf: object.
 	Metaclass = cls ifTrue: [^true (* [object] is a metaclass *)].

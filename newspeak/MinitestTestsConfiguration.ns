@@ -1,9 +1,10 @@
 (* Runs MinitestTests. *)
 class MinitestTestsConfiguration packageTestsUsing: ideNamespace = (
-|
+	|
 	Minitest = ideNamespace Minitest.
 	MinitestTests = ideNamespace MinitestTests.
-|) (
+	|
+) (
 public testModulesUsingPlatform: platform minitest: minitest ^<{MiniTests}> = (
 	^{MinitestTests usingPlatform: platform testFramework: minitest}
 )
