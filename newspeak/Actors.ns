@@ -57,9 +57,7 @@ public deliver = (
 	 type:: #value]
 		on: Exception
 		do: [:error |
-			nil = resolver ifTrue:
-				['Exception in turn without resolver' out.
-				 error pass].
+			nil = resolver ifTrue: [error pass].
 			resolution:: error.
 			type:: #error].
 
@@ -509,6 +507,7 @@ class MessageLoop = (
 	public application
 	public platform
 	public handleMap = Map new.
+	public unhandledExceptionHook
 	|
 ) (
 public Promise = (
@@ -516,6 +515,10 @@ public Promise = (
 )
 public Resolver = (
 	^outer Actors Resolver
+)
+private currentActivation ^<Activation> = (
+	(* :pragma: primitive: 164 *)
+	panic.
 )
 (* Respond to an event on a handle, typically a file descriptor or expat. *)
 (* :vmEntryPoint: *)
@@ -592,7 +595,17 @@ private finish: wakeup <Integer> = (
 	panic.
 )
 public unhandledException: exception from: signalActivationSender = (
-	| activation |
+	| activation hook |
+
+	(* Disable hook while running it. *)
+	hook: unhandledExceptionHook.
+	unhandledExceptionHook: nil.
+	nil = hook ifFalse:
+		[currentActivation sender: nil.
+		 hook value: exception value: signalActivationSender.
+		 unhandledExceptionHook: hook.
+		 finish: drainQueue].
+
 	'Unhandled exception: ' out.
 	exception out.
 	activation:: signalActivationSender.

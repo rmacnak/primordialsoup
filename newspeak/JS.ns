@@ -98,10 +98,13 @@ private pushExpat: closure = (
 	nextExpatIndex:: 1 + expatIndex.
 	messageLoop handleMap at: expatIndex put:
 		[:status :pending :count |
-		| arguments = Array new: status. |
+		| arguments = Array new: status. result |
 		status to: 1 by: -1 do:
 			[:argumentIndex | arguments at: argumentIndex put: rawPop].
-		rawPush: (closure valueWithArguments: arguments)].
+		rawPush: nil. (* avoid underflow in case of unhandled exception *)
+		result:: closure valueWithArguments: arguments.
+		rawPop.
+		rawPush: result].
 	rawPushExpat: expatIndex.
 )
 private rawPerformCall: numArgs = (

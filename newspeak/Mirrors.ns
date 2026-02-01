@@ -2805,6 +2805,17 @@ private numCopiedOf: closure <Closure> ^<Integer> = (
 	(* :pragma: primitive: 147 *)
 	panic.
 )
+(* :todo: Should this have to go to a supervisor actor? *)
+public onUnhandledException: hook <[:ThreadMirror]> = (
+	nil = hook ifTrue: [internalKernel messageLoop unhandledExceptionHook: nil. ^self].
+	internalKernel messageLoop unhandledExceptionHook:
+		[:exception :signalActivationSender |
+		 | thread = Thread new. |
+		 thread state: #broken.
+		 thread result: exception.
+		 thread suspendedActivation: signalActivationSender.
+		 hook value: (ThreadMirror reflecting: thread)].
+)
 private panic = (
 	(* :pragma: primitive: 187 *)
 )
