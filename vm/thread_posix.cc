@@ -18,30 +18,15 @@ namespace psoup {
 
 #define VALIDATE_PTHREAD_RESULT(result)                                        \
   if (result != 0) {                                                           \
-    const size_t kBufferSize = 256;                                            \
-    char error_message[kBufferSize];                                           \
+    char buffer[64];                                                           \
     FATAL("pthread error: %d (%s)", result,                                    \
-          OS::StrError(result, error_message, kBufferSize));                   \
+          OS::StrError(result, buffer, sizeof(buffer)));                       \
   }
 
 #if defined(DEBUG)
 #define ASSERT_PTHREAD_SUCCESS(result) VALIDATE_PTHREAD_RESULT(result)
 #else
 #define ASSERT_PTHREAD_SUCCESS(result) ASSERT(result == 0)
-#endif
-
-#ifdef DEBUG
-#define RETURN_ON_PTHREAD_FAILURE(result)                                      \
-  if (result != 0) {                                                           \
-    const size_t kBufferSize = 256;                                            \
-    char error_message[kBufferSize];                                           \
-    OS::PrintErr("%s:%d: pthread error: %d (%s)\n", __FILE__, __LINE__,        \
-                 result, OS::StrError(result, error_message, kBufferSize));    \
-    return result;                                                             \
-  }
-#else
-#define RETURN_ON_PTHREAD_FAILURE(result)                                      \
-  if (result != 0) return result;
 #endif
 
 class ThreadStartData {
@@ -90,20 +75,14 @@ static void* ThreadStart(void* data_ptr) {
 int Thread::Start(const char* name,
                   ThreadStartFunction function,
                   uword parameter) {
-  pthread_attr_t attr;
-  int result = pthread_attr_init(&attr);
-  RETURN_ON_PTHREAD_FAILURE(result);
-
   ThreadStartData* data = new ThreadStartData(name, function, parameter);
 
   pthread_t tid;
-  result = pthread_create(&tid, &attr, ThreadStart, data);
-  RETURN_ON_PTHREAD_FAILURE(result);
-
-  result = pthread_attr_destroy(&attr);
-  RETURN_ON_PTHREAD_FAILURE(result);
-
-  return 0;
+  int result = pthread_create(&tid, nullptr, ThreadStart, data);
+  if (result != 0) {
+    delete data;
+  }
+  return result;
 }
 
 ThreadId Thread::GetCurrentThreadId() {
@@ -124,19 +103,7 @@ bool Thread::Compare(ThreadId a, ThreadId b) {
 }
 
 Mutex::Mutex() {
-  pthread_mutexattr_t attr;
-  int result = pthread_mutexattr_init(&attr);
-  VALIDATE_PTHREAD_RESULT(result);
-
-#if defined(DEBUG)
-  result = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
-  VALIDATE_PTHREAD_RESULT(result);
-#endif  // defined(DEBUG)
-
-  result = pthread_mutex_init(&mutex_, &attr);
-  VALIDATE_PTHREAD_RESULT(result);
-
-  result = pthread_mutexattr_destroy(&attr);
+  int result = pthread_mutex_init(&mutex_, nullptr);
   VALIDATE_PTHREAD_RESULT(result);
 
 #if defined(DEBUG)
@@ -145,10 +112,10 @@ Mutex::Mutex() {
 }
 
 Mutex::~Mutex() {
+  DEBUG_ASSERT(owner_ == kInvalidThreadId);
+
   int result = pthread_mutex_destroy(&mutex_);
   VALIDATE_PTHREAD_RESULT(result);
-
-  DEBUG_ASSERT(owner_ == kInvalidThreadId);
 }
 
 void Mutex::Lock() {
@@ -175,35 +142,26 @@ void Mutex::Unlock() {
 }
 
 Monitor::Monitor() {
-  pthread_mutexattr_t mutex_attr;
-  int result = pthread_mutexattr_init(&mutex_attr);
+  int result = pthread_mutex_init(&mutex_, nullptr);
   VALIDATE_PTHREAD_RESULT(result);
 
-#if defined(DEBUG)
-  result = pthread_mutexattr_settype(&mutex_attr, PTHREAD_MUTEX_ERRORCHECK);
+#if defined(OS_MACOS)
+  result = pthread_cond_init(&cond_, nullptr);
   VALIDATE_PTHREAD_RESULT(result);
-#endif  // defined(DEBUG)
-
-  result = pthread_mutex_init(&mutex_, &mutex_attr);
-  VALIDATE_PTHREAD_RESULT(result);
-
-  result = pthread_mutexattr_destroy(&mutex_attr);
-  VALIDATE_PTHREAD_RESULT(result);
-
+#else
   pthread_condattr_t cond_attr;
   result = pthread_condattr_init(&cond_attr);
   VALIDATE_PTHREAD_RESULT(result);
 
-#if !defined(OS_MACOS)
   result = pthread_condattr_setclock(&cond_attr, CLOCK_MONOTONIC);
   VALIDATE_PTHREAD_RESULT(result);
-#endif
 
   result = pthread_cond_init(&cond_, &cond_attr);
   VALIDATE_PTHREAD_RESULT(result);
 
   result = pthread_condattr_destroy(&cond_attr);
   VALIDATE_PTHREAD_RESULT(result);
+#endif
 
 #if defined(DEBUG)
   owner_ = kInvalidThreadId;

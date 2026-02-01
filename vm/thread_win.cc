@@ -58,10 +58,9 @@ int Thread::Start(const char* name,
   uintptr_t thread = _beginthreadex(nullptr, 0,
                                     ThreadEntry, start_data, 0, &tid);
   if (thread == -1L || thread == 0) {
-#ifdef DEBUG
-    OS::PrintErr("_beginthreadex error: %d (%s)\n", errno, strerror(errno));
-#endif
-    return errno;
+    int error = errno;
+    delete start_data;
+    return error;
   }
 
   // Close the handle, so we don't leak the thread object.

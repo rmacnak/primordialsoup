@@ -3774,9 +3774,8 @@ DEFINE_PRIMITIVE(OSError_statusToString) {
   ASSERT(num_args == 1);
   SMI_ARGUMENT(status, 0);
 
-  const int kBufferLength = 256;
-  char buffer[kBufferLength];
-  char* raw_string = OS::StrError(status, buffer, kBufferLength);
+  char buffer[64];
+  char* raw_string = OS::StrError(status, buffer, sizeof(buffer));
 
   intptr_t len = strlen(raw_string);
   String string = H->AllocateString(len);  // SAFEPOINT
@@ -4098,8 +4097,12 @@ DEFINE_PRIMITIVE(Term_read) {
   ASSERT(num_args == 0);
 #if defined(OS_MACOS) || defined(OS_LINUX)
   uint8_t byte;
-  if (read(STDIN_FILENO, &byte, 1) <= 0) {
-    FATAL("Failed to read");
+  while (read(STDIN_FILENO, &byte, 1) <= 0) {
+    int error = errno;
+    if (error == EINTR) continue;
+    char buffer[64];
+    FATAL("Failed to read: %d (%s)", error,
+          OS::StrError(error, buffer, sizeof(buffer)));
   }
   RETURN_SMI(static_cast<intptr_t>(byte));
 #else

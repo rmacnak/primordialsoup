@@ -326,10 +326,13 @@ void ThreadPool::Worker::StartThread() {
     ASSERT(task_ != nullptr);
   }
 #endif
-  int result = Thread::Start("PSoup ThreadPool Worker", &Worker::Main,
+  // Note some targets truncate names to 15 characters.
+  int result = Thread::Start("PSoup Worker", &Worker::Main,
                              reinterpret_cast<uword>(this));
   if (result != 0) {
-    FATAL("Could not start worker thread: result = %d.", result);
+    char buffer[64];
+    FATAL("Failed to start thread: %d (%s)", result,
+          OS::StrError(result, buffer, sizeof(buffer)));
   }
 }
 

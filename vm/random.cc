@@ -12,10 +12,9 @@ namespace psoup {
 Random::Random() {
   int result = OS::GetEntropy(&state_, sizeof(state_));
   if (result != 0) {
-    const size_t kBufferSize = 256;                                     \
-    char error_message[kBufferSize];                                    \
-    FATAL("GetEntropy error: %d (%s)", result,                          \
-          OS::StrError(result, error_message, kBufferSize));            \
+    char buffer[64];
+    FATAL("GetEntropy error: %d (%s)", result,
+          OS::StrError(result, buffer, sizeof(buffer)));
   }
 }
 

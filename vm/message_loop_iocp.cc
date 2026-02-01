@@ -212,10 +212,9 @@ void IOCPMessageLoop::RespondToIOCompletion(Handle* handle,
   }
 
   if (status != 0 && status != ERROR_BROKEN_PIPE) {
-    const size_t kBufferSize = 256;
-    char error_message[kBufferSize];
+    char buffer[64];
     FATAL("overlapped error: %d (%s)", status,
-          OS::StrError(status, error_message, kBufferSize));
+          OS::StrError(status, buffer, sizeof(buffer)));
   }
 
   if (overlapped != nullptr) {
