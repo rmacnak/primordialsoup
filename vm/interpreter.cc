@@ -727,7 +727,7 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
       return;
     } else {
       HandleScope h1(H, &method);
-      if (Primitives::Invoke(prim, num_args, H, this)) {  // SAFEPOINT
+      if (Primitives::Invoke(this, H, num_args, prim)) {  // SAFEPOINT
         ASSERT(StackDepth() >= 0);
         return;
       }

@@ -290,7 +290,7 @@ const bool kFailure = false;
   V(511, writeBytesToFile)
 
 #define DEFINE_PRIMITIVE(name)                                                 \
-  static bool primitive##name(intptr_t num_args, Heap* H, Interpreter* I)
+  static bool primitive##name(Interpreter* I, Heap* H, intptr_t num_args)
 
 #define IS_SMI_OP(left, right)                                                 \
   (Object::BothSmallIntegers(left, right))
@@ -3019,7 +3019,7 @@ DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
 
   const uint8_t* initial_ip = I->IPForAssert();
 
-  bool callee_success = Primitives::Invoke(index, callee_num_args, H, I);
+  bool callee_success = Primitives::Invoke(I, H, callee_num_args, index);
 
   if (initial_ip != I->IPForAssert()) {
     // FP can move if the Activation setter primitives flush.

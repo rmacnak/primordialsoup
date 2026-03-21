@@ -13,9 +13,9 @@ namespace psoup {
 class Heap;
 class Interpreter;
 
-typedef bool(PrimitiveFunction)(intptr_t num_args,
+typedef bool(PrimitiveFunction)(Interpreter* interpreter,
                                 Heap* heap,
-                                Interpreter* interpreter);
+                                intptr_t num_args);
 
 class Primitives {
  public:
@@ -25,14 +25,14 @@ class Primitives {
   static bool IsUnwindProtect(intptr_t prim) { return prim == 162; }
   static bool IsSimulationRoot(intptr_t prim) { return prim == 163; }
 
-  static bool Invoke(intptr_t prim,
-                     intptr_t num_args,
+  static bool Invoke(Interpreter* interpreter,
                      Heap* heap,
-                     Interpreter* interpreter) {
+                     intptr_t num_args,
+                     intptr_t prim) {
     ASSERT(prim > 0);
     ASSERT(prim < kNumPrimitives);
     PrimitiveFunction* func = primitive_table_[prim];
-    return func(num_args, heap, interpreter);
+    return func(interpreter, heap, num_args);
   }
 
  private:
