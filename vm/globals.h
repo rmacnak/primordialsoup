@@ -190,6 +190,16 @@ constexpr int64_t kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
 #define NOINLINE
 #endif
 
+#if defined(__clang__)
+#define ASSUME(expression) __builtin_assume(expression)
+#elif defined(__GNUC__)
+#define ASSUME(expression) if (!(expression)) __builtin_unreachable()
+#elif defined(_MSC_VER)
+#define ASSUME(expression) __assume(expression)
+#else
+#define ASSUME(expression) do { } while (false && (expression))
+#endif
+
 #if defined(__has_feature)
 #if __has_feature(undefined_behavior_sanitizer)
 #define USING_UNDEFINED_BEHAVIOR_SANITIZER

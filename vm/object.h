@@ -337,7 +337,11 @@ class SmallInteger : public Object {
 
   intptr_t value() const {
     ASSERT(IsSmallInteger());
-    return static_cast<intptr_t>(tagged_pointer_) >> kSmiTagShift;
+    uword tagged = tagged_pointer_;
+    // Help the compiler know that it is okay to combine this right shift with a
+    // following left shift that is frequently used for index scaling.
+    ASSUME((tagged & kSmiTagMask) == kSmiTag);
+    return static_cast<intptr_t>(tagged) >> kSmiTagShift;
   }
 
 #if defined(ARCH_IS_32_BIT)
