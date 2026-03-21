@@ -124,7 +124,7 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
     int argc = isolate_message->argc();
     Array strings = heap_->AllocateArray(argc);  // SAFEPOINT
     for (intptr_t i = 0; i < argc; i++) {
-      strings->set_element(i, SmallInteger::New(0));
+      strings->set_element(i, SmallInteger::New(0), kNoBarrier);
     }
 
     HandleScope h1(heap_, &strings);

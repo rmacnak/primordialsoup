@@ -2311,7 +2311,7 @@ DEFINE_PRIMITIVE(Time_localtime) {
 #endif
 
   result = static_cast<Array>(I->Stack(0));
-  result->set_element(7, SmallInteger::New(utc_offset));
+  result->set_element(7, SmallInteger::New(utc_offset), kNoBarrier);
   result->set_element(8, tzname);
   RETURN_SMI(status);
 }
@@ -3866,10 +3866,10 @@ DEFINE_PRIMITIVE(Process_start) {
   intptr_t status = loop->StartProcess(opt, argv, env, cwd,
                                        &process, &stdin_, &stdout_, &stderr_);
   if (status == 0) {
-    multiple_return->set_element(0, SmallInteger::New(process));
-    multiple_return->set_element(1, SmallInteger::New(stdin_));
-    multiple_return->set_element(2, SmallInteger::New(stdout_));
-    multiple_return->set_element(3, SmallInteger::New(stderr_));
+    multiple_return->set_element(0, SmallInteger::New(process), kNoBarrier);
+    multiple_return->set_element(1, SmallInteger::New(stdin_), kNoBarrier);
+    multiple_return->set_element(2, SmallInteger::New(stdout_), kNoBarrier);
+    multiple_return->set_element(3, SmallInteger::New(stderr_), kNoBarrier);
   }
   ReleaseArrayOfStrings(argv);
   if (env != nullptr) {
@@ -3942,7 +3942,7 @@ DEFINE_PRIMITIVE(Pipe_write) {
                                 count,
                                 &size_out);
   if (status == 0) {
-    multiple_return->set_element(0, SmallInteger::New(size_out));
+    multiple_return->set_element(0, SmallInteger::New(size_out), kNoBarrier);
   }
   RETURN_SMI(status);
 #else
@@ -4059,8 +4059,8 @@ DEFINE_PRIMITIVE(Term_size) {
     RETURN_SMI(status);
   }
   Array result = H->AllocateArray(2);
-  result.set_element(0, SmallInteger::New(w.ws_row));
-  result.set_element(1, SmallInteger::New(w.ws_col));
+  result.set_element(0, SmallInteger::New(w.ws_row), kNoBarrier);
+  result.set_element(1, SmallInteger::New(w.ws_col), kNoBarrier);
   RETURN(result);
 #else
   return kFailure;
