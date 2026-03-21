@@ -6,6 +6,8 @@
 
 #include <math.h>
 
+#include <bit>
+
 #include "vm/assert.h"
 #include "vm/heap.h"
 #include "vm/object.h"
@@ -1249,8 +1251,7 @@ double LargeInteger::AsDouble(LargeInteger integer) {
   static const int kExponentBias = 0x3FF + kPhysicalSignificandSize;
   static const int kMaxExponent = 0x7FF - kExponentBias;
   static const uint64_t kOne64 = 1;
-  static const uint64_t kInfinityBits =
-      PSOUP_2PART_UINT64_C(0x7FF00000, 00000000);
+  static const uint64_t kInfinityBits = 0x7FF0000000000000;
 
   // A double is composed of an exponent e and a significand s. Its value equals
   // s * 2^e. The significand has 53 bits of which the first one must always be
@@ -1278,7 +1279,7 @@ double LargeInteger::AsDouble(LargeInteger integer) {
 
   if (((used - 1) * kBitsPerDigit) > (kMaxExponent + kSignificandSize)) {
     // Does not fit into a double.
-    const double infinity = bit_cast<double>(kInfinityBits);
+    const double infinity = std::bit_cast<double>(kInfinityBits);
     return integer->negative() ? -infinity : infinity;
   }
 
@@ -1322,7 +1323,7 @@ double LargeInteger::AsDouble(LargeInteger integer) {
   if (exponent >= kMaxExponent) {
     // Infinity.
     // Does not fit into a double.
-    const double infinity = bit_cast<double>(kInfinityBits);
+    const double infinity = std::bit_cast<double>(kInfinityBits);
     return integer->negative() ? -infinity : infinity;
   }
 
@@ -1361,12 +1362,14 @@ double LargeInteger::AsDouble(LargeInteger integer) {
   const uint64_t double_bits =
       (biased_exponent << kPhysicalSignificandSize) + significand;
 
-  const double value = bit_cast<double>(double_bits);
+  const double value = std::bit_cast<double>(double_bits);
   return integer->negative() ? -value : value;
 }
 
 // We assume that doubles and uint64_t have the same endianness.
-static uint64_t double_to_uint64(double d) { return bit_cast<uint64_t>(d); }
+static uint64_t double_to_uint64(double d) {
+  return std::bit_cast<uint64_t>(d);
+}
 
 // Helper functions for doubles.
 class DoubleInternals {
@@ -1416,12 +1419,10 @@ class DoubleInternals {
   }
 
  private:
-  static const uint64_t kSignMask = PSOUP_2PART_UINT64_C(0x80000000, 00000000);
-  static const uint64_t kExponentMask =
-      PSOUP_2PART_UINT64_C(0x7FF00000, 00000000);
-  static const uint64_t kSignificandMask =
-      PSOUP_2PART_UINT64_C(0x000FFFFF, FFFFFFFF);
-  static const uint64_t kHiddenBit = PSOUP_2PART_UINT64_C(0x00100000, 00000000);
+  static const uint64_t kSignMask = 0x8000000000000000;
+  static const uint64_t kExponentMask = 0x7FF0000000000000;
+  static const uint64_t kSignificandMask = 0x000FFFFFFFFFFFFF;
+  static const uint64_t kHiddenBit = 0x0010000000000000;
   static const int kPhysicalSignificandSize = 52;  // Excludes the hidden bit.
   static const int kExponentBias = 0x3FF + kPhysicalSignificandSize;
   static const int kDenormalExponent = -kExponentBias + 1;

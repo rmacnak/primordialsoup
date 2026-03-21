@@ -58,51 +58,22 @@
 #error Unknown architecture.
 #endif
 
-// ATTRIBUTE_UNUSED indicates to the compiler that a variable/typedef is
-// expected to be unused and disables the related warning.
-#ifdef __GNUC__
-#define ATTRIBUTE_UNUSED __attribute__((unused))
-#else
-#define ATTRIBUTE_UNUSED
-#endif
-
 // Short form printf format specifiers
-#if defined(OS_EMSCRIPTEN)
-#define Pd "ld"
-#define Pu "lu"
-#define Px "lx"
-#else
 #define Pd PRIdPTR
 #define Pu PRIuPTR
 #define Px PRIxPTR
-#endif
 #define Pd64 PRId64
 #define Pu64 PRIu64
 #define Px64 PRIx64
-
-// Suffixes for 64-bit integer literals.
-#ifdef _MSC_VER
-#define PSOUP_INT64_C(x) x##I64
-#define PSOUP_UINT64_C(x) x##UI64
-#else
-#define PSOUP_INT64_C(x) x##LL
-#define PSOUP_UINT64_C(x) x##ULL
-#endif
-
-// The following macro works on both 32 and 64-bit platforms.
-// Usage: instead of writing 0x1234567890123456ULL
-//      write PSOUP_2PART_UINT64_C(0x12345678,90123456);
-#define PSOUP_2PART_UINT64_C(a, b)                                             \
-  (((static_cast<uint64_t>(a) << 32) + 0x##b##u))
 
 // Integer constants.
 constexpr int32_t kMinInt32 = 0x80000000;
 constexpr int32_t kMaxInt32 = 0x7FFFFFFF;
 constexpr uint32_t kMaxUint32 = 0xFFFFFFFF;
-constexpr int64_t kMinInt64 = PSOUP_INT64_C(0x8000000000000000);
-constexpr int64_t kMaxInt64 = PSOUP_INT64_C(0x7FFFFFFFFFFFFFFF);
-constexpr uint64_t kMaxUint64 = PSOUP_2PART_UINT64_C(0xFFFFFFFF, FFFFFFFF);
-constexpr int64_t kSignBitDouble = PSOUP_INT64_C(0x8000000000000000);
+constexpr int64_t kMinInt64 = 0x8000000000000000;
+constexpr int64_t kMaxInt64 = 0x7FFFFFFFFFFFFFFF;
+constexpr uint64_t kMaxUint64 = 0xFFFFFFFFFFFFFFFF;
+constexpr int64_t kSignBitDouble = 0x8000000000000000;
 
 // Types for native machine words. Guaranteed to be able to hold pointers and
 // integers.
@@ -115,16 +86,10 @@ typedef decltype(nullptr) nullptr_t;
 
 // Byte sizes.
 constexpr size_t kWordSize = sizeof(word);
-constexpr size_t kDoubleSize = sizeof(double);
-constexpr size_t kFloatSize = sizeof(float);
-constexpr size_t kInt32Size = sizeof(int32_t);
-constexpr size_t kInt16Size = sizeof(int16_t);
 #if defined(ARCH_IS_32_BIT)
 constexpr size_t kWordSizeLog2 = 2;
-constexpr uword kUwordMax = kMaxUint32;
 #elif defined(ARCH_IS_64_BIT)
 constexpr size_t kWordSizeLog2 = 3;
-constexpr uword kUwordMax = kMaxUint64;
 #endif
 
 // Bit sizes.
@@ -155,8 +120,8 @@ constexpr int64_t kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
 #if !defined(DISALLOW_COPY_AND_ASSIGN)
 #define DISALLOW_COPY_AND_ASSIGN(TypeName)                                     \
  private:                                                                      \
-  TypeName(const TypeName&);                                                   \
-  void operator=(const TypeName&)
+  TypeName(const TypeName&) = delete;                                          \
+  void operator=(const TypeName&) = delete
 #endif  // !defined(DISALLOW_COPY_AND_ASSIGN)
 
 // A macro to disallow all the implicit constructors, namely the default
@@ -167,7 +132,7 @@ constexpr int64_t kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
 #if !defined(DISALLOW_IMPLICIT_CONSTRUCTORS)
 #define DISALLOW_IMPLICIT_CONSTRUCTORS(TypeName)                               \
  private:                                                                      \
-  TypeName();                                                                  \
+  TypeName() = delete;                                                         \
   DISALLOW_COPY_AND_ASSIGN(TypeName)
 #endif  // !defined(DISALLOW_IMPLICIT_CONSTRUCTORS)
 
@@ -184,44 +149,8 @@ constexpr int64_t kNanosecondsPerSecond = (kNanosecondsPerMicrosecond *
   }                                                                            \
                                                                                \
  private:                                                                      \
-  void* operator new(size_t size)
+  void* operator new(size_t size) = delete
 #endif  // !defined(DISALLOW_ALLOCATION)
-
-// The type-based aliasing rule allows the compiler to assume that
-// pointers of different types (for some definition of different)
-// never alias each other. Thus the following code does not work:
-//
-// float f = foo();
-// int fbits = *(int*)(&f);
-//
-// The compiler 'knows' that the int pointer can't refer to f since
-// the types don't match, so the compiler may cache f in a register,
-// leaving random data in fbits.  Using C++ style casts makes no
-// difference, however a pointer to char data is assumed to alias any
-// other pointer. This is the 'memcpy exception'.
-//
-// The bit_cast function uses the memcpy exception to move the bits
-// from a variable of one type to a variable of another type. Of
-// course the end result is likely to be implementation dependent.
-// Most compilers (gcc-4.2 and MSVC 2005) will completely optimize
-// bit_cast away.
-//
-// There is an additional use for bit_cast. Recent gccs will warn when
-// they see casts that may result in breakage due to the type-based
-// aliasing rule. If you have checked that there is no breakage you
-// can use bit_cast to cast one pointer type to another. This confuses
-// gcc enough that it can no longer see that you have cast one pointer
-// type to another thus avoiding the warning.
-template <class D, class S>
-inline D bit_cast(const S& source) {
-  static_assert(sizeof(D) == sizeof(S),
-                "Destination and source of bit_cast must have the same size");
-
-  D destination;
-  // This use of memcpy is safe: source and destination cannot overlap.
-  memcpy(&destination, &source, sizeof(destination));
-  return destination;
-}
 
 #if defined(__GNUC__) || defined(__clang__)
 // Tell the compiler to do printf format string checking if the
