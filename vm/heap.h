@@ -145,7 +145,7 @@ class Heap {
   void AddToRememberedSet(HeapObject object) {
     ASSERT(object->IsOldObject());
     ASSERT(!object->is_remembered());
-    if (remembered_set_size_ == remembered_set_capacity_) {
+    if (remembered_set_size_ == remembered_set_capacity_) [[unlikely]] {
       GrowRememberedSet();
     }
     remembered_set_[remembered_set_size_++] = object;
@@ -369,9 +369,9 @@ class Heap {
 
   uword Allocate(size_t size, Allocator allocator) {
     ASSERT(Utils::IsAligned(size, kObjectAlignment));
-    if (size < kLargeAllocationSize) {
+    if (size < kLargeAllocationSize) [[likely]] {
       uword result = top_;
-      if (result + size <= end_) {
+      if (result + size <= end_) [[likely]] {
         top_ = result + size;
 #if defined(DEBUG)
         memset(reinterpret_cast<void*>(result), kUninitializedByte, size);

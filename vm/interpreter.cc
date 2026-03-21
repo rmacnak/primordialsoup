@@ -140,8 +140,9 @@ Interpreter::Interpreter(Heap* heap, Isolate* isolate)
   stack_limit_ = reinterpret_cast<Object*>(malloc(kStackSize));
   stack_base_ = stack_limit_ + kStackSlots;
   sp_ = stack_base_;
-  checked_stack_limit_ =
-      reinterpret_cast<uword>(stack_limit_) + sizeof(Activation::Layout);
+  checked_stack_limit_.store(
+      reinterpret_cast<uword>(stack_limit_) + sizeof(Activation::Layout),
+      std::memory_order_relaxed);
 
 #if defined(DEBUG)
   for (intptr_t i = 0; i < kStackSlots; i++) {
@@ -316,7 +317,9 @@ void Interpreter::OrdinarySend(String selector, intptr_t num_args) {
 #if LOOKUP_CACHE
   Object receiver = Stack(num_args);
   Method target;
-  if (lookup_cache_.LookupOrdinary(receiver->ClassId(), selector, &target)) {
+  if (lookup_cache_.LookupOrdinary(receiver->ClassId(),
+                                   selector,
+                                   &target)) [[likely]] {
     Activate(target, num_args);  // SAFEPOINT
     return;
   }
@@ -374,7 +377,7 @@ void Interpreter::SuperSend(intptr_t selector_index, intptr_t num_args) {
                              FrameMethod(fp_),
                              kSuper,
                              &absent_receiver,
-                             &target)) {
+                             &target)) [[likely]] {
     ASSERT(absent_receiver == nullptr);
     absent_receiver = receiver;
     ActivateAbsent(target, receiver, num_args);  // SAFEPOINT
@@ -411,7 +414,7 @@ void Interpreter::ImplicitReceiverSend(intptr_t selector_index,
                              FrameMethod(fp_),
                              kImplicitReceiver,
                              &absent_receiver,
-                             &target)) {
+                             &target)) [[likely]] {
     if (absent_receiver == nullptr) {
       absent_receiver = method_receiver;
     }
@@ -466,7 +469,7 @@ void Interpreter::OuterSend(intptr_t selector_index,
                              FrameMethod(fp_),
                              depth,
                              &absent_receiver,
-                             &target)) {
+                             &target)) [[likely]] {
     ASSERT(absent_receiver != nullptr);
     ActivateAbsent(target, absent_receiver, num_args);  // SAFEPOINT
     return;
@@ -503,7 +506,7 @@ void Interpreter::SelfSend(intptr_t selector_index, intptr_t num_args) {
                              FrameMethod(fp_),
                              kSelf,
                              &absent_receiver,
-                             &target)) {
+                             &target)) [[likely]] {
     ASSERT(absent_receiver == nullptr);
     ActivateAbsent(target, receiver, num_args);  // SAFEPOINT
     return;
@@ -893,7 +896,8 @@ void Interpreter::StackOverflowOrInterrupt() {
   // Atomically fetch and clear any interrupts.
   uword overflow_limit =
       reinterpret_cast<uword>(stack_limit_) + sizeof(Activation::Layout);
-  uword overflow_or_interrupt = checked_stack_limit_.exchange(overflow_limit);
+  uword overflow_or_interrupt =
+      checked_stack_limit_.exchange(overflow_limit, std::memory_order_relaxed);
 
   if ((overflow_or_interrupt & kInterruptSIGINT) != 0) {
     isolate_->PrintStack();  // SAFEPOINT
@@ -922,7 +926,7 @@ String Interpreter::SelectorAt(intptr_t index) {
 
 void Interpreter::LocalReturn(Object result) {
   Object* saved_fp = FrameSavedFP(fp_);
-  if (saved_fp == nullptr) {
+  if (saved_fp == nullptr) [[unlikely]] {
     LocalBaseReturn(result);  // SAFEPOINT
     return;
   }
@@ -1125,7 +1129,7 @@ void Interpreter::Interpret() {
       Object top = Pop();
       if (top == true_) {
         ip_ += (byte1 & 15);
-      } else if (top != false_) {
+      } else if (top != false_) [[unlikely]] {
         SendNonBooleanReceiver(top);
       }
       break;
@@ -1135,7 +1139,7 @@ void Interpreter::Interpret() {
       Object top = Pop();
       if (top == false_) {
         ip_ += (byte1 & 15);
-      } else if (top != true_) {
+      } else if (top != true_) [[unlikely]] {
         SendNonBooleanReceiver(top);
       }
       break;
@@ -1381,14 +1385,14 @@ void Interpreter::Interpret() {
         intptr_t raw_index = index->value() - 1;
         if (array->IsArray()) {
           if ((raw_index >= 0) &&
-              (raw_index < Array::Cast(array)->Size())) {
+              (raw_index < Array::Cast(array)->Size())) [[likely]] {
             Object value = Array::Cast(array)->element(raw_index);
             PopNAndPush(2, value);
             break;
           }
         } else if (array->IsBytes()) {
           if ((raw_index >= 0) &&
-              (raw_index < Bytes::Cast(array)->Size())) {
+              (raw_index < Bytes::Cast(array)->Size())) [[likely]] {
             uint8_t raw_value = Bytes::Cast(array)->element(raw_index);
             PopNAndPush(2, SmallInteger::New(raw_value));
             break;
@@ -1405,7 +1409,7 @@ void Interpreter::Interpret() {
         intptr_t raw_index = index->value() - 1;
         if (array->IsArray()) {
           if ((raw_index >= 0) &&
-              (raw_index < Array::Cast(array)->Size())) {
+              (raw_index < Array::Cast(array)->Size())) [[likely]] {
             Object value = Stack(0);
             Array::Cast(array)->set_element(raw_index, value);
             PopNAndPush(3, value);
@@ -1415,7 +1419,7 @@ void Interpreter::Interpret() {
           SmallInteger value = SmallInteger::Cast(Stack(0));
           if ((raw_index >= 0) &&
               (raw_index < ByteArray::Cast(array)->Size()) &&
-              SmallInteger::IsByte(value)) {
+              SmallInteger::IsByte(value)) [[likely]] {
             ByteArray::Cast(array)->set_element(
                 raw_index, SmallInteger::Byte(value));
             PopNAndPush(3, value);
@@ -1524,7 +1528,7 @@ void Interpreter::Interpret() {
       Object top = Pop();
       if (top == true_) {
         ip_ += delta;
-      } else if (top != false_) {
+      } else if (top != false_) [[unlikely]] {
         SendNonBooleanReceiver(top);
       }
       break;
@@ -1536,7 +1540,7 @@ void Interpreter::Interpret() {
       Object top = Pop();
       if (top == false_) {
         ip_ += delta;
-      } else if (top != true_) {
+      } else if (top != true_) [[unlikely]] {
         SendNonBooleanReceiver(top);
       }
       break;

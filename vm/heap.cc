@@ -448,9 +448,9 @@ uword Heap::ScavengeToSpace(uword scan) {
   while (scan < top_) {
     HeapObject obj = HeapObject::FromAddr(scan);
     intptr_t cid = obj->cid();
-    if (cid == kWeakArrayCid) {
+    if (cid == kWeakArrayCid) [[unlikely]] {
       AddToWeakList(WeakArray::Cast(obj));
-    } else if (cid == kEphemeronCid) {
+    } else if (cid == kEphemeronCid) [[unlikely]] {
       AddToEphemeronList(Ephemeron::Cast(obj));
     } else {
       ScavengeClass(cid);
@@ -572,9 +572,9 @@ bool Heap::ScavengePointers(Object* from, Object* to) {
 
 void Heap::ScavengeOldObject(HeapObject obj) {
   intptr_t cid = obj->cid();
-  if (cid == kWeakArrayCid) {
+  if (cid == kWeakArrayCid) [[unlikely]] {
     AddToWeakList(WeakArray::Cast(obj));
-  } else if (cid == kEphemeronCid) {
+  } else if (cid == kEphemeronCid) [[unlikely]] {
     AddToEphemeronList(Ephemeron::Cast(obj));
   } else {
     bool has_new_target = ScavengeClass(cid);
@@ -722,9 +722,9 @@ void Heap::ProcessMarkStack() {
     ASSERT(cid != kForwardingCorpseCid);
     ASSERT(cid != kFreeListElementCid);
 
-    if (cid == kWeakArrayCid) {
+    if (cid == kWeakArrayCid) [[unlikely]] {
       AddToWeakList(WeakArray::Cast(obj));
-    } else if (cid == kEphemeronCid) {
+    } else if (cid == kEphemeronCid) [[unlikely]] {
       AddToEphemeronList(Ephemeron::Cast(obj));
     } else {
       MarkObject(ClassAt(cid));

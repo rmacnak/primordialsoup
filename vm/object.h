@@ -244,7 +244,7 @@ class HeapObject : public Object {
   size_t HeapSize() const {
     ASSERT(IsHeapObject());
     size_t heap_size_from_tag = heap_size();
-    if (heap_size_from_tag != 0) {
+    if (heap_size_from_tag != 0) [[likely]] {
       return heap_size_from_tag;
     }
     return HeapSizeFromClass();

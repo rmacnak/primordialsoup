@@ -180,7 +180,7 @@ class Interpreter {
   NOINLINE void Activate(Method method, intptr_t num_args);
   INLINE void StackOverflowOrInterruptCheck() {
     if (reinterpret_cast<uword>(sp_) <
-        checked_stack_limit_.load(std::memory_order_relaxed)) {
+        checked_stack_limit_.load(std::memory_order_relaxed)) [[unlikely]] {
       StackOverflowOrInterrupt();  // SAFEPOINT
     }
   }
