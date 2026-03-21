@@ -122,13 +122,15 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
       '-Wno-unused-parameter',
       '-fno-rtti',
       '-fno-exceptions',
-      '-fpie',
       '-fvisibility=hidden',
       '-fdata-sections',
       '-ffunction-sections',
     ]
     if target_os != 'emscripten':
-      env['CCFLAGS'] += ['-fstack-protector']
+      env['CCFLAGS'] += [
+        '-fpie',
+        '-fstack-protector',
+      ]
     if sanitize != None:
       env['CCFLAGS'] += ['-fsanitize=' + sanitize ]
       env['LINKFLAGS'] += ['-fsanitize=' + sanitize ]
@@ -180,13 +182,21 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     ]
   elif target_os == 'emscripten':
     env['LINKFLAGS'] += [
+      '-O3',
+      '-gsource-map',
+      '-profiling-funcs', # Preserve function names in WASM
       '-s', 'ALLOW_MEMORY_GROWTH=1',
       '-s', 'ENVIRONMENT=web',
-      '-s', 'EXPORTED_FUNCTIONS=["_load_snapshot", "_handle_message", "_handle_signal", "_malloc", "_free"]',
-      '-s', 'EXPORTED_RUNTIME_METHODS=["HEAPU8"]',
+      '-s', 'EXPORTED_FUNCTIONS=_main,_load_snapshot,_handle_message,_handle_signal,_malloc,_free',
+      '-s', 'EXPORTED_RUNTIME_METHODS=HEAPU8',
+      '-s', 'EXPORT_NAME=PrimordialSoup',
       '-s', 'FILESYSTEM=0',
+      '-s', 'INCOMING_MODULE_JS_API=arguments,print,printErr',
+      '-s', 'JS_MATH=1',
       '-s', 'MALLOC=emmalloc',
-      '-s', 'TOTAL_STACK=131072',
+      '-s', 'MODULARIZE=1',
+      '-s', 'STRICT=1',
+      '--closure=1',
       '--shell-file', File('meta/shell.html').path,
     ]
   else:
@@ -255,6 +265,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
   if target_os == 'emscripten':
     program = env.Program([os.path.join(outdir, 'primordialsoup.html'),
                            os.path.join(outdir, 'primordialsoup.wasm'),
+                           os.path.join(outdir, 'primordialsoup.wasm.map'),
                            os.path.join(outdir, 'primordialsoup.js')],
                           objects)
     Depends(program, 'meta/shell.html')
@@ -265,6 +276,7 @@ def BuildVM(cxx, arch, target_os, debug, sanitize):
     emrun_paths = [
       os.path.join(outdir, 'primordialsoup-emrun.html'),
       os.path.join(outdir, 'primordialsoup-emrun.wasm'),
+      os.path.join(outdir, 'primordialsoup-emrun.wasm.map'),
       os.path.join(outdir, 'primordialsoup-emrun.js'),
     ]
     emrun_program = emrun_env.Program(emrun_paths, objects)

@@ -13,24 +13,56 @@
 #include "vm/port.h"
 #include "vm/primitives.h"
 
-EM_JS(void, _JS_initializeAliens, (), {
-  var aliens = new Array();
-  aliens.push(undefined);  // 0
-  aliens.push(null);       // 1
-  aliens.push(false);      // 2
-  aliens.push(true);       // 3
-  aliens.push(window);     // 4
-  Module.aliens = aliens;
-});
+// NOLINTBEGIN(*) - Not C++
+EM_JS(void, _JS_main, (), {
+  var path = Module["snapshot"];
+  var request = new XMLHttpRequest();
+  request.open("GET", path, true);
+  request.responseType = "arraybuffer";
+  request.onload = function (event) {
+    if (request.status != 200) {
+      Module["printErr"]("Failed to load " + path + ": " +
+                         request.status + " " + request.statusText);
+      return;
+    }
+    var jsBuffer = new Uint8Array(request.response);
+    var cBuffer = Module["_malloc"](jsBuffer.length);
+    Module["HEAPU8"].set(jsBuffer, cBuffer);
+    Module["_load_snapshot"](cBuffer, jsBuffer.length);
+    Module["_free"](cBuffer);
+    Module["scheduleTurn"](0);
+  };
+  request.send();
 
-static psoup::Isolate* isolate;
-extern "C" void load_snapshot(const void* snapshot, size_t snapshot_length) {
+  Module["aliens"] = [
+    undefined,   // 0
+    null,        // 1
+    false,       // 2
+    true,        // 3
+    globalThis,  // 4
+  ];
+  Module["scheduleTurn"] = function (timeout) {
+    if (timeout >= 0) {
+      setTimeout(function () {
+        var timeout = Module["_handle_message"]();
+        Module["scheduleTurn"](timeout);
+      }, timeout);
+    }
+  };
+});
+// NOLINTEND
+
+int main(int argc, char** argv) {
+  _JS_main();
   psoup::OS::Startup();
   psoup::Primitives::Startup();
   psoup::PortMap::Startup();
   psoup::Isolate::Startup();
-  _JS_initializeAliens();
+  return 0;
+}
 
+static psoup::Isolate* isolate;
+extern "C" void load_snapshot(const void* snapshot, size_t snapshot_length) {
   isolate = new psoup::Isolate(snapshot, snapshot_length);
   int argc = 0;
   const char** argv = nullptr;

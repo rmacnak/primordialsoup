@@ -3328,16 +3328,16 @@ DEFINE_PRIMITIVE(ZXVmo_write) {
 
 #if defined(OS_EMSCRIPTEN)
 EM_JS(void, _JS_pushInteger, (int32_t value), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   aliens.push(value);
 });
 EM_JS(void, _JS_pushFloat, (double value), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   aliens.push(value);
 });
 EM_JS(void, _JS_pushString, (intptr_t addr, intptr_t size), {
-  var aliens = Module.aliens;
-  var memory = Module.HEAPU8;
+  var aliens = Module["aliens"];
+  var memory = Module["HEAPU8"];
   var value = "";
   var end = addr + size;
   while (addr < end) {
@@ -3364,23 +3364,23 @@ EM_JS(void, _JS_pushString, (intptr_t addr, intptr_t size), {
   aliens.push(value);
 });
 EM_JS(void, _JS_pushAlien, (intptr_t index), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   aliens.push(aliens[index]);
 });
 EM_JS(void, _JS_pushExpat, (intptr_t index), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   function expat() {
     for (var i = 0; i < arguments.length; i++) {
       aliens.push(arguments[i]);
     }
-    var timeout = Module._handle_signal(index, arguments.length, 0, 0);
-    scheduleTurn(timeout);
+    var timeout = Module["_handle_signal"](index, arguments.length, 0, 0);
+    Module["scheduleTurn"](timeout);
     return aliens.pop();
   }
   aliens.push(expat);
 });
 EM_JS(int, _JS_peekType, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   var alien = aliens[aliens.length - 1];
   if (null === alien) {
     return -1;
@@ -3414,17 +3414,17 @@ EM_JS(int, _JS_peekType, (), {
   return -6;
 });
 EM_JS(int32_t, _JS_popInteger, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   return aliens.pop();
 });
 EM_JS(double, _JS_popFloat, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   return aliens.pop();
 });
 EM_JS(void, _JS_popString, (intptr_t addr, intptr_t size), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   var string = aliens.pop();
-  var memory = Module.HEAPU8;
+  var memory = Module["HEAPU8"];
   for (var i = 0; i < string.length; i++) {
     var codePoint = string.codePointAt(i);
     if (codePoint <= 0x7F) {
@@ -3446,7 +3446,7 @@ EM_JS(void, _JS_popString, (intptr_t addr, intptr_t size), {
   }
 });
 EM_JS(intptr_t, _JS_peekAlien, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   var lastIndex = aliens.length - 1;
   if (undefined === aliens[lastIndex]) {
     aliens.pop();
@@ -3459,7 +3459,7 @@ EM_JS(intptr_t, _JS_peekExpat, (), {
   throw "Unimplemented";
 });
 EM_JS(bool, _JS_performGet, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   var selector = aliens.pop();
   var receiver = aliens.pop();
   try {
@@ -3472,7 +3472,7 @@ EM_JS(bool, _JS_performGet, (), {
   }
 });
 EM_JS(bool, _JS_performSet, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   var argument = aliens.pop();
   var selector = aliens.pop();
   var receiver = aliens.pop();
@@ -3486,7 +3486,7 @@ EM_JS(bool, _JS_performSet, (), {
   }
 });
 EM_JS(bool, _JS_performDelete, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   var selector = aliens.pop();
   var receiver = aliens.pop();
   try {
@@ -3499,10 +3499,10 @@ EM_JS(bool, _JS_performDelete, (), {
   }
 });
 EM_JS(bool, _JS_performInvoke, (intptr_t numArgs), {
-  var aliens = Module.aliens;
-  var arguments = new Array(numArgs);
+  var aliens = Module["aliens"];
+  var args = new Array(numArgs);
   for (var i = numArgs - 1; i >= 0; i--) {
-    arguments[i] = aliens.pop();
+    args[i] = aliens.pop();
   }
   var selector = aliens.pop();
   var receiver = aliens.pop();
@@ -3512,7 +3512,7 @@ EM_JS(bool, _JS_performInvoke, (intptr_t numArgs), {
     return false;
   }
   try {
-    var result = Reflect.apply(receiver[selector], receiver, arguments);
+    var result = Reflect.apply(receiver[selector], receiver, args);
     aliens.push(result);
     return true;
   } catch (exception) {
@@ -3521,14 +3521,14 @@ EM_JS(bool, _JS_performInvoke, (intptr_t numArgs), {
   }
 });
 EM_JS(bool, _JS_performNew, (intptr_t numArgs), {
-  var aliens = Module.aliens;
-  var arguments = new Array(numArgs);
+  var aliens = Module["aliens"];
+  var args = new Array(numArgs);
   for (var i = numArgs - 1; i >= 0; i--) {
-    arguments[i] = aliens.pop();
+    args[i] = aliens.pop();
   }
   var receiver = aliens.pop();
   try {
-    var result = Reflect.construct(receiver, arguments);
+    var result = Reflect.construct(receiver, args);
     aliens.push(result);
     return true;
   } catch (exception) {
@@ -3537,7 +3537,7 @@ EM_JS(bool, _JS_performNew, (intptr_t numArgs), {
   }
 });
 EM_JS(bool, _JS_performInstanceOf, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   var constructor = aliens.pop();
   var receiver = aliens.pop();
   try {
@@ -3550,7 +3550,7 @@ EM_JS(bool, _JS_performInstanceOf, (), {
   }
 });
 EM_JS(bool, _JS_performHas, (), {
-  var aliens = Module.aliens;
+  var aliens = Module["aliens"];
   var selector = aliens.pop();
   var receiver = aliens.pop();
   try {
