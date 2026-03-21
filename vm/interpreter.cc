@@ -580,36 +580,17 @@ void Interpreter::DNUSend(String selector,
                           Object receiver,
                           Behavior lookup_class,
                           bool present_receiver) {
-  Behavior cls = lookup_class;
-  Method method;
-  do {
-    method = MethodAt(cls, object_store()->does_not_understand());
-    if (method != nil) {
-      break;
-    }
-    cls = cls->superclass();
-  } while (cls != nil);
-
-  if (method == nil) {
-    FATAL("Recursive #doesNotUnderstand:");
-  }
-
   Array arguments;
-  {
-    HandleScope h1(H, &selector);
-    HandleScope h2(H, &receiver);
-    HandleScope h3(H, &method);
-    arguments = H->AllocateArray(num_args);  // SAFEPOINT
-  }
-  for (intptr_t i = 0; i < num_args; i++) {
-    Object e = Stack(num_args - i - 1);
-    arguments->set_element(i, e);
-  }
   Message message;
   {
     HandleScope h1(H, &selector);
     HandleScope h2(H, &receiver);
-    HandleScope h3(H, &method);
+    HandleScope h3(H, &lookup_class);
+    arguments = H->AllocateArray(num_args);  // SAFEPOINT
+    for (intptr_t i = 0; i < num_args; i++) {
+      Object e = Stack(num_args - i - 1);
+      arguments->set_element(i, e);
+    }
     HandleScope h4(H, &arguments);
     message = H->AllocateMessage();  // SAFEPOINT
   }
@@ -622,7 +603,9 @@ void Interpreter::DNUSend(String selector,
     Push(receiver);
   }
   Push(message);
-  Activate(method, 1);  // SAFEPOINT
+  SendPrivate(lookup_class,
+              object_store()->does_not_understand(),
+              1);  // SAFEPOINT
 }
 
 void Interpreter::SendCannotReturn(Object result) {
@@ -631,25 +614,11 @@ void Interpreter::SendCannotReturn(Object result) {
     HandleScope h1(H, &result);
     top = EnsureActivation(fp_);  // SAFEPOINT
   }
-
-  Behavior receiver_class = top->Klass(H);
-  Behavior cls = receiver_class;
-  Method method;
-  do {
-    method = MethodAt(cls, object_store()->cannot_return());
-    if (method != nil) {
-      break;
-    }
-    cls = cls->superclass();
-  } while (cls != nil);
-
-  if (method == nil) {
-    FATAL("Missing #cannotReturn:");
-  }
-
   Push(top);
   Push(result);
-  Activate(method, 1);  // SAFEPOINT
+  SendPrivate(top->Klass(H),
+              object_store()->cannot_return(),
+              1);  // SAFEPOINT
 }
 
 void Interpreter::SendAboutToReturnThrough(Object result, Activation unwind) {
@@ -659,26 +628,12 @@ void Interpreter::SendAboutToReturnThrough(Object result, Activation unwind) {
     HandleScope h2(H, &unwind);
     top = EnsureActivation(fp_);  // SAFEPOINT
   }
-
-  Behavior receiver_class = top->Klass(H);
-  Behavior cls = receiver_class;
-  Method method;
-  do {
-    method = MethodAt(cls, object_store()->about_to_return_through());
-    if (method != nil) {
-      break;
-    }
-    cls = cls->superclass();
-  } while (cls != nil);
-
-  if (method == nil) {
-    FATAL("Missing #aboutToReturn:through:");
-  }
-
   Push(top);
   Push(result);
   Push(unwind);
-  Activate(method, 2);  // SAFEPOINT
+  SendPrivate(top->Klass(H),
+              object_store()->about_to_return_through(),
+              2);  // SAFEPOINT
 }
 
 void Interpreter::SendNonBooleanReceiver(Object non_boolean) {
@@ -689,25 +644,11 @@ void Interpreter::SendNonBooleanReceiver(Object non_boolean) {
     HandleScope h1(H, &non_boolean);
     top = EnsureActivation(fp_);  // SAFEPOINT
   }
-
-  Behavior receiver_class = top->Klass(H);
-  Behavior cls = receiver_class;
-  Method method;
-  do {
-    method = MethodAt(cls, object_store()->non_boolean_receiver());
-    if (method != nil) {
-      break;
-    }
-    cls = cls->superclass();
-  } while (cls != nil);
-
-  if (method == nil) {
-    FATAL("Missing #nonBooleanReceiver:");
-  }
-
   Push(top);
   Push(non_boolean);
-  Activate(method, 1);  // SAFEPOINT
+  SendPrivate(top->Klass(H),
+              object_store()->non_boolean_receiver(),
+              1);  // SAFEPOINT
 }
 
 void Interpreter::EventualSend(intptr_t selector_index, intptr_t num_args) {
@@ -720,23 +661,25 @@ void Interpreter::EventualSend(intptr_t selector_index, intptr_t num_args) {
   Push(eventual_receiver);
   Push(eventual_selector);
   Push(eventual_arguments);
+  SendPrivate(message_loop->Klass(H),
+              object_store()->eventual_send(),
+              3);  // SAFEPOINT
+}
 
-  Behavior receiver_class = message_loop->Klass(H);
-  Behavior cls = receiver_class;
-  Method method;
-  do {
-    method = MethodAt(cls, object_store()->eventual_send());
+void Interpreter::SendPrivate(Behavior cls,
+                              String selector,
+                              intptr_t num_args) {
+  for (;;) {
+    Method method = MethodAt(cls, selector);
     if (method != nil) {
-      break;
+      Activate(method, num_args);  // SAFEPOINT
+      return;
     }
     cls = cls->superclass();
-  } while (cls != nil);
-
-  if (method == nil) {
-    FATAL("Missing #eventualSendTo:selector:arguments:");
+    if (cls == nil) {
+      UNREACHABLE();
+    }
   }
-
-  Activate(method, 3);  // SAFEPOINT
 }
 
 void Interpreter::InsertAbsentReceiver(Object receiver, intptr_t num_args) {

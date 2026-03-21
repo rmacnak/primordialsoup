@@ -174,6 +174,7 @@ class Interpreter {
   NOINLINE void SendAboutToReturnThrough(Object result, Activation unwind);
   NOINLINE void SendNonBooleanReceiver(Object non_boolean);
   NOINLINE void EventualSend(intptr_t selector_index, intptr_t num_args);
+  NOINLINE void SendPrivate(Behavior cls, String selector, intptr_t num_args);
 
   INLINE void InsertAbsentReceiver(Object receiver, intptr_t num_args);
   INLINE void ActivateAbsent(Method method, Object receiver, intptr_t num_args);
