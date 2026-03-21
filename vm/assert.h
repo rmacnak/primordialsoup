@@ -17,30 +17,23 @@ namespace psoup {
 
 class Assert {
  public:
-  Assert(const char* file, int line) : file_(file), line_(line) {}
-
-  NORETURN void Fail(const char* format, ...) PRINTF_ATTRIBUTE(2, 3);
-
- private:
-  const char* file_;
-  int line_;
+  NORETURN static void Fail(const char* file, int line, const char* format, ...)
+      PRINTF_ATTRIBUTE(3, 4);
+  NORETURN static void Unimplemented(const char* file, int line);
+  NORETURN static void Unreachable(const char* file, int line);
+  NORETURN static void OutOfMemory(const char* file, int line);
 };
 
 }  // namespace psoup
 
-#if defined(_MSC_VER)
 #define FATAL(format, ...)                                                     \
-  psoup::Assert(__FILE__, __LINE__).Fail(format, __VA_ARGS__)
-#else
-#define FATAL(format, ...)                                                     \
-  psoup::Assert(__FILE__, __LINE__).Fail(format, ##__VA_ARGS__)
-#endif
+  psoup::Assert::Fail(__FILE__, __LINE__, format, ##__VA_ARGS__)
 
-#define UNIMPLEMENTED() FATAL("unimplemented code")
+#define UNIMPLEMENTED() psoup::Assert::Unimplemented(__FILE__, __LINE__)
 
-#define UNREACHABLE() FATAL("unreachable code")
+#define UNREACHABLE() psoup::Assert::Unreachable(__FILE__, __LINE__)
 
-#define OUT_OF_MEMORY() FATAL("Out of memory.")
+#define OUT_OF_MEMORY() psoup::Assert::OutOfMemory(__FILE__, __LINE__)
 
 #if defined(DEBUG)
 // DEBUG binaries use assertions in the code.
@@ -51,7 +44,7 @@ class Assert {
 #define ASSERT(cond)                                                           \
   do {                                                                         \
     if (!(cond))                                                               \
-        psoup::Assert(__FILE__, __LINE__).Fail("expected: %s", #cond);         \
+        psoup::Assert::Fail(__FILE__, __LINE__, "expected: %s", #cond);        \
   } while (false)
 
 // DEBUG_ASSERT allows identifiers in condition to be undeclared in release

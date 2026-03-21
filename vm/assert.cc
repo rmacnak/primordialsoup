@@ -10,8 +10,8 @@
 
 namespace psoup {
 
-void Assert::Fail(const char* format, ...) {
-  fprintf(stderr, "%s:%d: error: ", file_, line_);
+void Assert::Fail(const char* file, int line, const char* format, ...) {
+  fprintf(stderr, "%s:%d: error: ", file, line);
   va_list arguments;
   va_start(arguments, format);
   vfprintf(stderr, format, arguments);
@@ -19,6 +19,18 @@ void Assert::Fail(const char* format, ...) {
   fprintf(stderr, "\n");
   fflush(stderr);
   abort();
+}
+
+void Assert::Unimplemented(const char* file, int line) {
+  Fail(file, line, "unimplemented code");
+}
+
+void Assert::Unreachable(const char* file, int line) {
+  Fail(file, line, "unreachable code");
+}
+
+void Assert::OutOfMemory(const char* file, int line) {
+  Fail(file, line, "out of memory");
 }
 
 }  // namespace psoup
