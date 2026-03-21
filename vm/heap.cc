@@ -151,7 +151,7 @@ Message Heap::AllocateMessage() {
   intptr_t num_slots = format->value();
   ASSERT(num_slots == 2);
   Object new_instance = AllocateRegularObject(id->value(), num_slots);
-  return static_cast<Message>(new_instance);
+  return Message::Cast(new_instance);
 }
 
 uword Heap::AllocateNormal(size_t size) {
@@ -396,7 +396,7 @@ static bool ForwardClass(Heap* heap, HeapObject object) {
   ASSERT(object->IsHeapObject());
   Behavior old_class = heap->ClassAt(object->cid());
   if (old_class->IsForwardingCorpse()) {
-    Behavior new_class = static_cast<Behavior>(
+    Behavior new_class = Behavior::Cast(
         static_cast<ForwardingCorpse>(old_class)->target());
     ASSERT(!new_class->IsForwardingCorpse());
     new_class->AssertCouldBeBehavior();
@@ -449,9 +449,9 @@ uword Heap::ScavengeToSpace(uword scan) {
     HeapObject obj = HeapObject::FromAddr(scan);
     intptr_t cid = obj->cid();
     if (cid == kWeakArrayCid) {
-      AddToWeakList(static_cast<WeakArray>(obj));
+      AddToWeakList(WeakArray::Cast(obj));
     } else if (cid == kEphemeronCid) {
-      AddToEphemeronList(static_cast<Ephemeron>(obj));
+      AddToEphemeronList(Ephemeron::Cast(obj));
     } else {
       ScavengeClass(cid);
       Object* from;
@@ -535,7 +535,7 @@ static void objcpy(void* __restrict dst,
 bool Heap::ScavengePointers(Object* from, Object* to) {
   bool has_new_target = false;
   for (Object* ptr = from; ptr <= to; ptr++) {
-    HeapObject from_target = static_cast<HeapObject>(*ptr);
+    HeapObject from_target = HeapObject::Cast(*ptr);
     if (from_target->IsImmediateOrOldObject()) continue;
 
     DEBUG_ASSERT(InFromSpace(from_target));
@@ -573,9 +573,9 @@ bool Heap::ScavengePointers(Object* from, Object* to) {
 void Heap::ScavengeOldObject(HeapObject obj) {
   intptr_t cid = obj->cid();
   if (cid == kWeakArrayCid) {
-    AddToWeakList(static_cast<WeakArray>(obj));
+    AddToWeakList(WeakArray::Cast(obj));
   } else if (cid == kEphemeronCid) {
-    AddToEphemeronList(static_cast<Ephemeron>(obj));
+    AddToEphemeronList(Ephemeron::Cast(obj));
   } else {
     bool has_new_target = ScavengeClass(cid);
     Object* from;
@@ -592,7 +592,7 @@ bool Heap::ScavengeClass(intptr_t cid) {
   ASSERT(cid < class_table_size_);
   // This is very similar to ScavengePointer.
 
-  HeapObject old_target = static_cast<HeapObject>(class_table_[cid]);
+  HeapObject old_target = HeapObject::Cast(class_table_[cid]);
   if (old_target->IsImmediateOrOldObject()) {
     return false;
   }
@@ -701,7 +701,7 @@ void Heap::MarkRoots() {
 void Heap::MarkObject(Object obj) {
   if (obj->IsImmediateObject()) return;
 
-  HeapObject heap_obj = static_cast<HeapObject>(obj);
+  HeapObject heap_obj = HeapObject::Cast(obj);
   if (heap_obj->is_marked()) return;
 
   heap_obj->set_is_marked(true);
@@ -723,9 +723,9 @@ void Heap::ProcessMarkStack() {
     ASSERT(cid != kFreeListElementCid);
 
     if (cid == kWeakArrayCid) {
-      AddToWeakList(static_cast<WeakArray>(obj));
+      AddToWeakList(WeakArray::Cast(obj));
     } else if (cid == kEphemeronCid) {
-      AddToEphemeronList(static_cast<Ephemeron>(obj));
+      AddToEphemeronList(Ephemeron::Cast(obj));
     } else {
       MarkObject(ClassAt(cid));
       bool has_new_target = ClassAt(cid)->IsNewObject();
@@ -847,7 +847,7 @@ void Heap::AddToEphemeronList(Ephemeron survivor) {
 
 static bool IsScavengeSurvivor(Object obj) {
   return obj->IsImmediateOrOldObject() ||
-         IsForwarded(static_cast<HeapObject>(obj));
+         IsForwarded(HeapObject::Cast(obj));
 }
 
 void Heap::ScavengeEphemeronList() {
@@ -877,7 +877,7 @@ void Heap::ScavengeEphemeronList() {
 }
 
 static bool IsMarkSweepSurvivor(Object obj) {
-  return obj->IsImmediateObject() || static_cast<HeapObject>(obj)->is_marked();
+  return obj->IsImmediateObject() || HeapObject::Cast(obj)->is_marked();
 }
 
 void Heap::MarkEphemeronList() {
@@ -986,7 +986,7 @@ void Heap::MournWeakListMarkSweep() {
 }
 
 bool Heap::MournWeakPointerScavenge(Object* ptr) {
-  HeapObject old_target = static_cast<HeapObject>(*ptr);
+  HeapObject old_target = HeapObject::Cast(*ptr);
   if (old_target->IsImmediateOrOldObject()) {
     return false;
   }
@@ -998,7 +998,7 @@ bool Heap::MournWeakPointerScavenge(Object* ptr) {
     new_target = ForwardingTarget(old_target);
   } else {
     // The object store and nil have already been scavenged.
-    new_target = static_cast<HeapObject>(interpreter_->nil_obj());
+    new_target = HeapObject::Cast(interpreter_->nil_obj());
   }
 
   DEBUG_ASSERT(new_target->IsOldObject() || InToSpace(new_target));
@@ -1023,7 +1023,7 @@ void Heap::MournClassTableScavenge() {
   for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
     Object* ptr = &class_table_[i];
 
-    HeapObject old_target = static_cast<HeapObject>(*ptr);
+    HeapObject old_target = HeapObject::Cast(*ptr);
     if (old_target->IsImmediateOrOldObject()) {
       continue;
     }
@@ -1058,7 +1058,7 @@ void Heap::MournClassTableMarkSweep() {
 
 void Heap::MournClassTableForwarded() {
   for (intptr_t i = kFirstLegalCid; i < class_table_size_; i++) {
-    Behavior old_class = static_cast<Behavior>(class_table_[i]);
+    Behavior old_class = Behavior::Cast(class_table_[i]);
     if (!old_class->IsForwardingCorpse()) {
       continue;
     }
@@ -1087,8 +1087,8 @@ bool Heap::BecomeForward(Array old, Array neu) {
   interpreter_->GCPrologue();  // Before creating forwarders!
 
   for (intptr_t i = 0; i < length; i++) {
-    HeapObject forwarder = static_cast<HeapObject>(old->element(i));
-    HeapObject forwardee = static_cast<HeapObject>(neu->element(i));
+    HeapObject forwarder = HeapObject::Cast(old->element(i));
+    HeapObject forwardee = HeapObject::Cast(neu->element(i));
 
     ASSERT(!forwarder->IsForwardingCorpse());
     ASSERT(!forwardee->IsForwardingCorpse());
@@ -1184,7 +1184,7 @@ void Heap::ForwardClassIds() {
   for (intptr_t old_cid = kFirstLegalCid;
        old_cid < class_table_size_;
        old_cid++) {
-    Behavior old_class = static_cast<Behavior>(class_table_[old_cid]);
+    Behavior old_class = Behavior::Cast(class_table_[old_cid]);
     if (!old_class->IsForwardingCorpse()) {
       continue;
     }
@@ -1192,7 +1192,7 @@ void Heap::ForwardClassIds() {
       continue;  // Already swapped: don't swap back.
     }
 
-    Behavior new_class = static_cast<Behavior>(
+    Behavior new_class = Behavior::Cast(
         static_cast<ForwardingCorpse>(old_class)->target());
     ASSERT(!new_class->IsForwardingCorpse());
 
@@ -1209,7 +1209,7 @@ void Heap::ForwardClassIds() {
   }
 
   for (intptr_t cid = kFirstLegalCid; cid < class_table_size_; cid++) {
-    Behavior klass = static_cast<Behavior>(class_table_[cid]);
+    Behavior klass = Behavior::Cast(class_table_[cid]);
     if (klass->IsForwardingCorpse()) {
       klass->set_is_marked(false);
     }
@@ -1220,7 +1220,7 @@ intptr_t Heap::AllocateClassId() {
   intptr_t cid;
   if (class_table_free_ != 0) {
     cid = class_table_free_;
-    class_table_free_ = static_cast<SmallInteger>(class_table_[cid])->value();
+    class_table_free_ = SmallInteger::Cast(class_table_[cid])->value();
   } else if (class_table_size_ == class_table_capacity_) {
     if (TRACE_GROWTH) {
       OS::PrintErr("Scavenging to free class table entries\n");
@@ -1228,7 +1228,7 @@ intptr_t Heap::AllocateClassId() {
     CollectAll(kClassTable);
     if (class_table_free_ != 0) {
       cid = class_table_free_;
-      class_table_free_ = static_cast<SmallInteger>(class_table_[cid])->value();
+      class_table_free_ = SmallInteger::Cast(class_table_[cid])->value();
     } else {
       class_table_capacity_ += (class_table_capacity_ >> 1);
       if (TRACE_GROWTH) {
@@ -1264,7 +1264,7 @@ void Heap::InitializeAfterSnapshot() {
   // overwritten. After all snapshot objects have been initialized, we can
   // correct the ids in the classes.
   for (intptr_t cid = kFirstLegalCid; cid < class_table_size_; cid++) {
-    Behavior cls = static_cast<Behavior>(class_table_[cid]);
+    Behavior cls = Behavior::Cast(class_table_[cid]);
     cls->AssertCouldBeBehavior();
     if (cls->id() == interpreter_->nil_obj()) {
       cls->set_id(SmallInteger::New(cid));

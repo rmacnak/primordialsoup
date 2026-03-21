@@ -18,14 +18,14 @@ const intptr_t kMintDigits = sizeof(uint64_t) / sizeof(digit_t);
 
 LargeInteger LargeInteger::Expand(Object integer, Heap* H) {
   if (integer->IsLargeInteger()) {
-    return static_cast<LargeInteger>(integer);
+    return LargeInteger::Cast(integer);
   }
 
   int64_t value;
   if (integer->IsSmallInteger()) {
-    value = static_cast<SmallInteger>(integer)->value();
+    value = SmallInteger::Cast(integer)->value();
   } else if (integer->IsMediumInteger()) {
-    value = static_cast<MediumInteger>(integer)->value();
+    value = MediumInteger::Cast(integer)->value();
   } else {
     UNREACHABLE();
     value = 0;
@@ -1535,21 +1535,21 @@ bool LargeInteger::FromDouble(double raw_value, Object* result, Heap* H) {
 
 bool LargeInteger::AsUint64(Object integer, uint64_t* result) {
   if (integer->IsSmallInteger()) {
-    intptr_t value = static_cast<SmallInteger>(integer)->value();
+    intptr_t value = SmallInteger::Cast(integer)->value();
     if (value < 0) {
       return false;
     }
     *result = value;
     return true;
   } else if (integer->IsMediumInteger()) {
-    int64_t value = static_cast<MediumInteger>(integer)->value();
+    int64_t value = MediumInteger::Cast(integer)->value();
     if (value < 0) {
       return false;
     }
     *result = value;
     return true;
   } else if (integer->IsLargeInteger()) {
-    LargeInteger large = static_cast<LargeInteger>(integer);
+    LargeInteger large = LargeInteger::Cast(integer);
     if (large->negative()) {
       return false;
     }

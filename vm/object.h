@@ -288,7 +288,7 @@ intptr_t Object::ClassId() const {
   if (IsSmallInteger()) {
     return kSmallIntegerCid;
   } else {
-    return static_cast<const HeapObject*>(this)->cid();
+    return HeapObject::Cast(*this)->cid();
   }
 }
 
@@ -360,6 +360,10 @@ class SmallInteger : public Object {
   static uint8_t Byte(Object obj) {
     ASSERT(IsByte(obj));
     return static_cast<intptr_t>(obj) >> kSmiTagShift;
+  }
+
+  static SmallInteger Cast(Object obj) {
+    return static_cast<SmallInteger>(obj);
   }
 };
 

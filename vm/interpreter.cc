@@ -66,13 +66,13 @@ static Object* FrameSavedFP(Object* fp) {
 }
 
 static SmallInteger FrameFlags(Object* fp) {
-  return static_cast<SmallInteger>(fp[-1]);
+  return SmallInteger::Cast(fp[-1]);
 }
 
-static Method FrameMethod(Object* fp) { return static_cast<Method>(fp[-2]); }
+static Method FrameMethod(Object* fp) { return Method::Cast(fp[-2]); }
 
 static Activation FrameActivation(Object* fp) {
-  return static_cast<Activation>(fp[-3]);
+  return Activation::Cast(fp[-3]);
 }
 static void FrameActivationPut(Object* fp, Activation activation) {
   fp[-3] = activation;
@@ -119,7 +119,7 @@ static intptr_t FrameNumLocals(Object* fp, Object* sp) {
 
 static Activation FrameBaseSender(Object* fp) {
   ASSERT(FrameSavedFP(fp) == nullptr);
-  return static_cast<Activation>(fp[1]);
+  return Activation::Cast(fp[1]);
 }
 
 Interpreter::Interpreter(Heap* heap, Isolate* isolate)
@@ -157,7 +157,7 @@ Interpreter::~Interpreter() {
 void Interpreter::PushIndirectLocal(intptr_t vector_offset, intptr_t offset) {
   Object vector = FrameLocal(fp_, vector_offset);
   ASSERT(vector->IsArray());
-  Object temp = static_cast<Array>(vector)->element(offset);
+  Object temp = Array::Cast(vector)->element(offset);
   Push(temp);
 }
 
@@ -166,7 +166,7 @@ void Interpreter::PopIntoIndirectLocal(intptr_t vector_offset,
   Object top = Pop();
   Object vector = FrameLocal(fp_, vector_offset);
   ASSERT(vector->IsArray());
-  static_cast<Array>(vector)->set_element(offset, top);
+  Array::Cast(vector)->set_element(offset, top);
 }
 
 void Interpreter::StoreIntoIndirectLocal(intptr_t vector_offset,
@@ -174,7 +174,7 @@ void Interpreter::StoreIntoIndirectLocal(intptr_t vector_offset,
   Object top = Stack(0);
   Object vector = FrameLocal(fp_, vector_offset);
   ASSERT(vector->IsArray());
-  static_cast<Array>(vector)->set_element(offset, top);
+  Array::Cast(vector)->set_element(offset, top);
 }
 
 void Interpreter::PushLiteral(intptr_t offset) {
@@ -277,11 +277,11 @@ void Interpreter::Perform(Object message,
 
 void Interpreter::CommonSend(intptr_t offset) {
   Array common_selectors = object_store()->common_selectors();
-  String selector = static_cast<String>(common_selectors->element(offset * 2));
+  String selector = String::Cast(common_selectors->element(offset * 2));
   ASSERT(selector->IsString());
   ASSERT(selector->is_canonical());
   SmallInteger arity =
-      static_cast<SmallInteger>(common_selectors->element(offset * 2 + 1));
+      SmallInteger::Cast(common_selectors->element(offset * 2 + 1));
   ASSERT(arity->IsSmallInteger());
   OrdinarySend(selector, arity->value());  // SAFEPOINT
 }
@@ -293,14 +293,14 @@ Method Interpreter::MethodAt(Behavior cls, String selector) {
   ASSERT(methods->IsArray());
   intptr_t length = methods->Size();
   for (intptr_t i = 0; i < length; i++) {
-    Method method = static_cast<Method>(methods->element(i));
+    Method method = Method::Cast(methods->element(i));
     ASSERT(method->selector()->IsString());
     ASSERT(method->selector()->is_canonical());
     if (method->selector() == selector) {
       return method;
     }
   }
-  return static_cast<Method>(nil);
+  return Method::Cast(nil);
 }
 
 bool Interpreter::HasMethod(Behavior cls, String selector) {
@@ -766,7 +766,7 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
       ASSERT(num_args == 0);
       Object receiver = Stack(0);
       ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
-      Object value = static_cast<RegularObject>(receiver)->slot(offset);
+      Object value = RegularObject::Cast(receiver)->slot(offset);
       PopNAndPush(1, value);
       return;
     } else if ((prim & 1024) != 0) {
@@ -776,7 +776,7 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
       Object receiver = Stack(1);
       Object value = Stack(0);
       ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
-      static_cast<RegularObject>(receiver)->set_slot(offset, value);
+      RegularObject::Cast(receiver)->set_slot(offset, value);
       PopNAndPush(2, receiver);
       return;
     } else {
@@ -808,7 +808,7 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
 }
 
 void Interpreter::ActivateClosure(intptr_t num_args) {
-  Closure closure = static_cast<Closure>(Stack(num_args));
+  Closure closure = Closure::Cast(Stack(num_args));
   ASSERT(closure->IsClosure());
   ASSERT(closure->num_args() == SmallInteger::New(num_args));
 
@@ -916,8 +916,8 @@ String Interpreter::SelectorAt(intptr_t index) {
   ASSERT((index >= 0) && (index < literals->Size()));
   Object selector = literals->element(index);
   ASSERT(selector->IsString());
-  ASSERT(static_cast<String>(selector)->is_canonical());
-  return static_cast<String>(selector);
+  ASSERT(String::Cast(selector)->is_canonical());
+  return String::Cast(selector);
 }
 
 void Interpreter::LocalReturn(Object result) {
@@ -949,8 +949,8 @@ void Interpreter::LocalBaseReturn(Object result) {
     return;
   }
 
-  top->set_sender(static_cast<Activation>(nil), kNoBarrier);
-  top->set_bci(static_cast<SmallInteger>(nil));
+  top->set_sender(Activation::Cast(nil), kNoBarrier);
+  top->set_bci(SmallInteger::Cast(nil));
 
   CreateBaseFrame(sender);
   Push(result);
@@ -959,7 +959,7 @@ void Interpreter::LocalBaseReturn(Object result) {
 void Interpreter::NonLocalReturn(Object result) {
   // Search the static chain for the enclosing method activation.
   ASSERT(FlagsIsClosure(FrameFlags(fp_)));
-  Closure c = static_cast<Closure>(FrameTemp(fp_, -1));
+  Closure c = Closure::Cast(FrameTemp(fp_, -1));
   ASSERT(c->IsClosure());
   Activation home = c->defining_activation();
   ASSERT(home->IsActivation());
@@ -1043,8 +1043,8 @@ void Interpreter::NonLocalReturn(Object result) {
   Activation zap = top;
   do {
     Activation next = zap->sender();
-    zap->set_sender(static_cast<Activation>(nil), kNoBarrier);
-    zap->set_bci(static_cast<SmallInteger>(nil));
+    zap->set_sender(Activation::Cast(nil), kNoBarrier);
+    zap->set_bci(SmallInteger::Cast(nil));
     zap = next;
   } while (zap != sender);
 
@@ -1254,8 +1254,8 @@ void Interpreter::Interpret() {
       Object left = Stack(1);
       Object right = Stack(0);
       if (Object::BothSmallIntegers(left, right)) {
-        intptr_t raw_left = static_cast<SmallInteger>(left)->value();
-        intptr_t raw_right = static_cast<SmallInteger>(right)->value();
+        intptr_t raw_left = SmallInteger::Cast(left)->value();
+        intptr_t raw_right = SmallInteger::Cast(right)->value();
         if (raw_right != 0) {
           intptr_t raw_result = Math::FloorMod(raw_left, raw_right);
           ASSERT(SmallInteger::IsSmiValue(raw_result));
@@ -1376,20 +1376,20 @@ void Interpreter::Interpret() {
     case 192: {
       // at:
       Object array = Stack(1);
-      SmallInteger index = static_cast<SmallInteger>(Stack(0));
+      SmallInteger index = SmallInteger::Cast(Stack(0));
       if (index->IsSmallInteger()) {
         intptr_t raw_index = index->value() - 1;
         if (array->IsArray()) {
           if ((raw_index >= 0) &&
-              (raw_index < static_cast<Array>(array)->Size())) {
-            Object value = static_cast<Array>(array)->element(raw_index);
+              (raw_index < Array::Cast(array)->Size())) {
+            Object value = Array::Cast(array)->element(raw_index);
             PopNAndPush(2, value);
             break;
           }
         } else if (array->IsBytes()) {
           if ((raw_index >= 0) &&
-              (raw_index < static_cast<Bytes>(array)->Size())) {
-            uint8_t raw_value = static_cast<Bytes>(array)->element(raw_index);
+              (raw_index < Bytes::Cast(array)->Size())) {
+            uint8_t raw_value = Bytes::Cast(array)->element(raw_index);
             PopNAndPush(2, SmallInteger::New(raw_value));
             break;
           }
@@ -1400,23 +1400,23 @@ void Interpreter::Interpret() {
     case 193: {
       // at:put:
       Object array = Stack(2);
-      SmallInteger index = static_cast<SmallInteger>(Stack(1));
+      SmallInteger index = SmallInteger::Cast(Stack(1));
       if (index->IsSmallInteger()) {
         intptr_t raw_index = index->value() - 1;
         if (array->IsArray()) {
           if ((raw_index >= 0) &&
-              (raw_index < static_cast<Array>(array)->Size())) {
+              (raw_index < Array::Cast(array)->Size())) {
             Object value = Stack(0);
-            static_cast<Array>(array)->set_element(raw_index, value);
+            Array::Cast(array)->set_element(raw_index, value);
             PopNAndPush(3, value);
             break;
           }
         } else if (array->IsByteArray()) {
-          SmallInteger value = static_cast<SmallInteger>(Stack(0));
+          SmallInteger value = SmallInteger::Cast(Stack(0));
           if ((raw_index >= 0) &&
-              (raw_index < static_cast<ByteArray>(array)->Size()) &&
+              (raw_index < ByteArray::Cast(array)->Size()) &&
               SmallInteger::IsByte(value)) {
-            static_cast<ByteArray>(array)->set_element(
+            ByteArray::Cast(array)->set_element(
                 raw_index, SmallInteger::Byte(value));
             PopNAndPush(3, value);
             break;
@@ -1429,10 +1429,10 @@ void Interpreter::Interpret() {
       // size
       Object array = Stack(0);
       if (array->IsArray()) {
-        PopNAndPush(1, static_cast<Array>(array)->size());
+        PopNAndPush(1, Array::Cast(array)->size());
         break;
       } else if (array->IsBytes()) {
-        PopNAndPush(1, static_cast<Bytes>(array)->size());
+        PopNAndPush(1, Bytes::Cast(array)->size());
         break;
       }
       goto CommonSendDispatch;
@@ -1634,14 +1634,14 @@ Activation Interpreter::EnsureActivation(Object* fp) {
   if (activation == nullptr) {
     activation = H->AllocateActivation();  // SAFEPOINT
     activation->set_sender_fp(fp);
-    activation->set_bci(static_cast<SmallInteger>(nil));
+    activation->set_bci(SmallInteger::Cast(nil));
     activation->set_method(FrameMethod(fp));
     if (FlagsIsClosure(FrameFlags(fp))) {
-      Closure closure = static_cast<Closure>(FrameTemp(fp, -1));
+      Closure closure = Closure::Cast(FrameTemp(fp, -1));
       ASSERT(closure->IsClosure());
       activation->set_closure(closure);
     } else {
-      activation->set_closure(static_cast<Closure>(nil), kNoBarrier);
+      activation->set_closure(Closure::Cast(nil), kNoBarrier);
     }
     activation->set_receiver(FrameReceiver(fp));
     // Note this differs from Cog, which also copies the parameters. It may help
@@ -1718,8 +1718,8 @@ bool Interpreter::HasLivingFrame(Activation activation) {
   }
 
   // Frame is gone.
-  activation->set_sender(static_cast<Activation>(nil), kNoBarrier);
-  activation->set_bci(static_cast<SmallInteger>(nil));
+  activation->set_sender(Activation::Cast(nil), kNoBarrier);
+  activation->set_bci(SmallInteger::Cast(nil));
   return false;
 }
 
@@ -1785,8 +1785,8 @@ Object Interpreter::ActivationBCI(Activation activation) {
       fp = FrameSavedFP(fp);
     }
     // Frame is gone.
-    activation->set_sender(static_cast<Activation>(nil), kNoBarrier);
-    activation->set_bci(static_cast<SmallInteger>(nil));
+    activation->set_sender(Activation::Cast(nil), kNoBarrier);
+    activation->set_bci(SmallInteger::Cast(nil));
   }
 
   return activation->bci();
@@ -1893,8 +1893,8 @@ intptr_t Interpreter::ActivationTempSize(Activation activation) {
     }
 
     // Frame is gone.
-    activation->set_sender(static_cast<Activation>(nil), kNoBarrier);
-    activation->set_bci(static_cast<SmallInteger>(nil));
+    activation->set_sender(Activation::Cast(nil), kNoBarrier);
+    activation->set_bci(SmallInteger::Cast(nil));
   }
 
   return activation->stack_depth()->value();
@@ -1946,8 +1946,8 @@ void Interpreter::GCEpilogue() {
   const uint8_t** ip_slot = &ip_;
 
   while (fp != nullptr) {
-    const SmallInteger bci =
-        static_cast<const SmallInteger>(reinterpret_cast<uword>(*ip_slot));
+    SmallInteger bci =
+        static_cast<SmallInteger>(reinterpret_cast<uword>(*ip_slot));
     *ip_slot = FrameMethod(fp)->IP(bci);
 
     ip_slot = FrameSavedIPSlot(fp);

@@ -22,9 +22,9 @@ size_t HeapObject::HeapSizeFromClass() const {
   case kIllegalCid:
     UNREACHABLE();
   case kForwardingCorpseCid:
-    return static_cast<const ForwardingCorpse>(*this)->overflow_size();
+    return static_cast<ForwardingCorpse>(*this)->overflow_size();
   case kFreeListElementCid:
-    return static_cast<const FreeListElement>(*this)->overflow_size();
+    return static_cast<FreeListElement>(*this)->overflow_size();
   case kSmallIntegerCid:
     UNREACHABLE();
   case kMediumIntegerCid:
@@ -33,7 +33,7 @@ size_t HeapObject::HeapSizeFromClass() const {
     return AllocationSize(sizeof(Float::Layout));
   case kLargeIntegerCid:
     return AllocationSize(sizeof(LargeInteger::Layout) +
-        sizeof(digit_t) * LargeInteger::Cast(*this)->size());
+                          sizeof(digit_t) * LargeInteger::Cast(*this)->size());
   case kByteArrayCid:
     return AllocationSize(sizeof(ByteArray::Layout) +
                           sizeof(uint8_t) * ByteArray::Cast(*this)->Size());
@@ -119,7 +119,7 @@ char* Object::ToCString(Heap* heap) const {
     UNREACHABLE();
   case kSmallIntegerCid:
     return OS::PrintStr("a SmallInteger(%" Pd ")",
-                        static_cast<const SmallInteger>(*this)->value());
+                        SmallInteger::Cast(*this)->value());
   case kMediumIntegerCid:
     return OS::PrintStr("a MediumInteger(%" Pd64 ")",
                         MediumInteger::Cast(*this)->value());
@@ -151,7 +151,7 @@ char* Object::ToCString(Heap* heap) const {
     if (cls->Klass(heap) == theMetaclass) {
       ASSERT(cls->HeapSize() >= AllocationSize(sizeof(Metaclass::Layout)));
       // A Metaclass.
-      String name = static_cast<Metaclass>(cls)->this_class()->name();
+      String name = Metaclass::Cast(cls)->this_class()->name();
       if (!name->IsString()) {
         return strdup("instance of uninitialized metaclass?");
       }
@@ -161,7 +161,7 @@ char* Object::ToCString(Heap* heap) const {
     } else {
       ASSERT(cls->HeapSize() >= AllocationSize(sizeof(Class::Layout)));
       // A Class.
-      String name = static_cast<Class>(cls)->name();
+      String name = Class::Cast(cls)->name();
       if (!name->IsString()) {
         return strdup("instance of uninitialized class?");
       }
@@ -202,8 +202,7 @@ void Activation::PrintStack(Heap* heap) {
     if (receiver_mixin_name->IsString()) {
       PrintStringError(receiver_mixin_name);
     } else {
-      receiver_mixin_name =
-          static_cast<AbstractMixin>(receiver_mixin_name)->name();
+      receiver_mixin_name = AbstractMixin::Cast(receiver_mixin_name)->name();
       ASSERT(receiver_mixin_name->IsString());
       PrintStringError(receiver_mixin_name);
       OS::PrintErr(" class");
@@ -216,8 +215,7 @@ void Activation::PrintStack(Heap* heap) {
       if (method_mixin_name->IsString()) {
         PrintStringError(method_mixin_name);
       } else {
-        method_mixin_name =
-            static_cast<AbstractMixin>(method_mixin_name)->name();
+        method_mixin_name = AbstractMixin::Cast(method_mixin_name)->name();
         ASSERT(method_mixin_name->IsString());
         PrintStringError(method_mixin_name);
         OS::PrintErr(" class");

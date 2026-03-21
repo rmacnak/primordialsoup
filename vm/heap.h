@@ -159,7 +159,7 @@ class Heap {
                                       num_slots * sizeof(Object));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, cid, heap_size);
-    RegularObject result = static_cast<RegularObject>(obj);
+    RegularObject result = RegularObject::Cast(obj);
     ASSERT(result->IsRegularObject() || result->IsEphemeron());
     ASSERT(result->HeapSize() == heap_size);
 
@@ -178,7 +178,7 @@ class Heap {
                                       num_bytes * sizeof(uint8_t));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kByteArrayCid, heap_size);
-    ByteArray result = static_cast<ByteArray>(obj);
+    ByteArray result = ByteArray::Cast(obj);
     result->set_size(SmallInteger::New(num_bytes));
     ASSERT(result->IsByteArray());
     ASSERT(result->HeapSize() == heap_size);
@@ -190,7 +190,7 @@ class Heap {
                                       num_bytes * sizeof(uint8_t));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kStringCid, heap_size);
-    String result = static_cast<String>(obj);
+    String result = String::Cast(obj);
     result->set_size(SmallInteger::New(num_bytes));
     ASSERT(result->IsString());
     ASSERT(result->HeapSize() == heap_size);
@@ -202,7 +202,7 @@ class Heap {
                                       num_slots * sizeof(Object));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kArrayCid, heap_size);
-    Array result = static_cast<Array>(obj);
+    Array result = Array::Cast(obj);
     result->set_size(SmallInteger::New(num_slots));
     ASSERT(result->IsArray());
     ASSERT(result->HeapSize() == heap_size);
@@ -215,7 +215,7 @@ class Heap {
                                       num_slots * sizeof(Object));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kWeakArrayCid, heap_size);
-    WeakArray result = static_cast<WeakArray>(obj);
+    WeakArray result = WeakArray::Cast(obj);
     result->set_size(SmallInteger::New(num_slots));
     ASSERT(result->IsWeakArray());
     ASSERT(result->HeapSize() == heap_size);
@@ -227,7 +227,7 @@ class Heap {
                                       num_copied * sizeof(Object));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kClosureCid, heap_size);
-    Closure result = static_cast<Closure>(obj);
+    Closure result = Closure::Cast(obj);
     result->set_num_copied(SmallInteger::New(num_copied));
     ASSERT(result->IsClosure());
     ASSERT(result->HeapSize() == heap_size);
@@ -238,7 +238,7 @@ class Heap {
     size_t heap_size = AllocationSize(sizeof(Activation::Layout));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kActivationCid, heap_size);
-    Activation result = static_cast<Activation>(obj);
+    Activation result = Activation::Cast(obj);
     ASSERT(result->IsActivation());
     ASSERT(result->HeapSize() == heap_size);
     return result;
@@ -248,7 +248,7 @@ class Heap {
     size_t heap_size = AllocationSize(sizeof(MediumInteger::Layout));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kMediumIntegerCid, heap_size);
-    MediumInteger result = static_cast<MediumInteger>(obj);
+    MediumInteger result = MediumInteger::Cast(obj);
     ASSERT(result->IsMediumInteger());
     ASSERT(result->HeapSize() == heap_size);
     return result;
@@ -260,7 +260,7 @@ class Heap {
                                       size * sizeof(digit_t));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kLargeIntegerCid, heap_size);
-    LargeInteger result = static_cast<LargeInteger>(obj);
+    LargeInteger result = LargeInteger::Cast(obj);
     result->set_size(size);
     ASSERT(result->IsLargeInteger());
     ASSERT(result->HeapSize() == heap_size);
@@ -271,7 +271,7 @@ class Heap {
     size_t heap_size = AllocationSize(sizeof(Float::Layout));
     uword addr = Allocate(heap_size, allocator);
     HeapObject obj = HeapObject::Initialize(addr, kFloatCid, heap_size);
-    Float result = static_cast<Float>(obj);
+    Float result = Float::Cast(obj);
     ASSERT(result->IsFloat());
     ASSERT(result->HeapSize() == heap_size);
     return result;
@@ -304,7 +304,7 @@ class Heap {
   Behavior ClassAt(intptr_t cid) const {
     ASSERT(cid > kIllegalCid);
     ASSERT(cid < class_table_size_);
-    return static_cast<Behavior>(class_table_[cid]);
+    return Behavior::Cast(class_table_[cid]);
   }
 
   void InitializeInterpreter(Interpreter* interpreter) {

@@ -100,10 +100,10 @@ class RegularObjectCluster : public Cluster {
 
   void ReadEdges(Deserializer* d, Heap* h) {
     Object cls = d->ReadRef();
-    h->RegisterClass(cid_, static_cast<Behavior>(cls));
+    h->RegisterClass(cid_, Behavior::Cast(cls));
 
     for (intptr_t i = ref_start_; i < ref_stop_; i++) {
-      RegularObject object = static_cast<RegularObject>(d->Ref(i));
+      RegularObject object = RegularObject::Cast(d->Ref(i));
       for (intptr_t j = 0; j < format_; j++) {
         object->set_slot(j, d->ReadRef(), kNoBarrier);
       }
@@ -248,8 +248,8 @@ class ClosureCluster : public Cluster {
 
       object->set_defining_activation(Activation::Cast(d->ReadRef()),
                                       kNoBarrier);
-      object->set_initial_bci(static_cast<SmallInteger>(d->ReadRef()));
-      object->set_num_args(static_cast<SmallInteger>(d->ReadRef()));
+      object->set_initial_bci(SmallInteger::Cast(d->ReadRef()));
+      object->set_num_args(SmallInteger::Cast(d->ReadRef()));
 
       intptr_t size = object->NumCopied();
       for (intptr_t j = 0; j < size; j++) {
@@ -280,7 +280,7 @@ class ActivationCluster : public Cluster {
       Activation object = Activation::Cast(d->Ref(i));
 
       object->set_sender(Activation::Cast(d->ReadRef()), kNoBarrier);
-      object->set_bci(static_cast<SmallInteger>(d->ReadRef()));
+      object->set_bci(SmallInteger::Cast(d->ReadRef()));
       object->set_method(Method::Cast(d->ReadRef()), kNoBarrier);
       object->set_closure(Closure::Cast(d->ReadRef()), kNoBarrier);
       object->set_receiver(d->ReadRef(), kNoBarrier);
@@ -431,7 +431,7 @@ void Deserializer::Deserialize(Heap* heap) {
     clusters_[i]->ReadEdges(this, heap);
   }
 
-  ObjectStore os = static_cast<ObjectStore>(ReadRef());
+  ObjectStore os = ObjectStore::Cast(ReadRef());
 
   heap->RegisterClass(kSmallIntegerCid, os->SmallInteger());
   heap->RegisterClass(kMediumIntegerCid, os->MediumInteger());
