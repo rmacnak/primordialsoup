@@ -1623,7 +1623,7 @@ public slots ^<Collection[SlotMirror]> = (
 			(slot: ((slots at: i) name) value: (slotOf: reflectee at: cursor)).
 		 cursor:: cursor - 1].
 	 cls:: superclassOf: cls.
-	 cls = nil] whileFalse.
+	 nil = cls] whileFalse.
 	^result
 )
 private slotsActivation ^<Collection[SlotMirror]> = (

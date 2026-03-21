@@ -628,6 +628,38 @@ class C = B (
 foo = ( ^'C' )
 ) : (
 )
+class ThrowingReflectee = ThrowingReflecteeSuper (
+	|
+	z = 3.
+	w = 4.
+	|
+) (
+public = other = ( ^Exception signal )
+public class = ( ^Exception signal )
+public hash = ( ^Exception signal )
+public printString = ( ^Exception signal )
+) : (
+public = other = ( ^Exception signal )
+public class = ( ^Exception signal )
+public hash = ( ^Exception signal )
+public printString = ( ^Exception signal )
+)
+class ThrowingReflecteeSuper = (
+	|
+	x = 1.
+	y = 2.
+	|
+) (
+public = other = ( ^Exception signal )
+public class = ( ^Exception signal )
+public hash = ( ^Exception signal )
+public printString = ( ^Exception signal )
+) : (
+public = other = ( ^Exception signal )
+public class = ( ^Exception signal )
+public hash = ( ^Exception signal )
+public printString = ( ^Exception signal )
+)
 class X = (| overridden = 'x'. |) (
 ) : (
 )
@@ -872,6 +904,25 @@ public testObjectMirrorSlotsWeakArray = (
 	assert: (slots at: 2) value reflectee equals: 'apple'.
 	assert: (slots at: 3) name equals: 2.
 	assert: (slots at: 3) value reflectee equals: 'banana'.
+)
+public testObjectMirrorThrowingReflectee = (
+	| object mirror slots mirror2 |
+	object:: ThrowingReflectee new.
+	mirror:: ObjectMirror reflecting: object.
+	slots:: mirror slots.
+	assert: slots size equals: 4.
+	assert: (slots at: 1) name equals: #x.
+	assert: (slots at: 1) value reflectee equals: 1.
+	assert: (slots at: 2) name equals: #y.
+	assert: (slots at: 2) value reflectee equals: 2.
+	assert: (slots at: 3) name equals: #z.
+	assert: (slots at: 3) value reflectee equals: 3.
+	assert: (slots at: 4) name equals: #w.
+	assert: (slots at: 4) value reflectee equals: 4.
+
+	mirror2:: ObjectMirror reflecting: object.
+	assert: mirror equals: mirror2.
+	assert: mirror hash equals: mirror2 hash.
 )
 ) : (
 TEST_CONTEXT = ()
