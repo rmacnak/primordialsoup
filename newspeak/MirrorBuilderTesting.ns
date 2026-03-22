@@ -17,12 +17,38 @@ classFromSource: src <String> ^<Class> = (
 conflictError = (
 	^Exception
 )
+difficultShapeChange: name = (
+	|
+	kernelMirror <ClassDeclarationMirror>
+	builder <ClassDeclarationBuilder>
+	newHeader <String>
+	oldHeader <String>
+	|
+	kernelMirror:: (ClassMirror reflecting: Object) mixin declaration enclosingClass.
+	builder:: (kernelMirror instanceSide nestedClasses findMirrorNamed: name) asBuilder.
+	oldHeader:: builder header source.
+	newHeader:: headerWithExtraSlot: builder.
+	builder header source: newHeader.
+	builder install.
+	builder header source: oldHeader.
+	builder install.
+)
+headerWithExtraSlot: mirror <ClassDeclarationBuilder> ^<String> = (
+	| newHeader |
+	newHeader:: mirror accessModifier, ' class ', mirror name, ' = (|'.
+	mirror instanceSide slots do:
+		[:slot | newHeader:: newHeader , ' ', slot accessModifier, ' ', slot name].
+	^newHeader , ' _extraSlot2 public _extraSlot |)'.
+)
 in: collection findMirrorNamed: name = (
 	collection do: [:mirror | mirror name = name ifTrue: [^mirror]].
 	^nil
 )
 syntaxError = (
 	^Exception
+)
+public tesDifficultShapeChangeClass = (
+	difficultShapeChange: #Class.
 )
 public testAccessModifiersFromClass = (
 	| klass builder |
@@ -941,6 +967,68 @@ public testConflictingTransientSlotOverNestedClass = (
 	)'.
 	should: [builder instanceSide transientSlots addFromSource: 'transient foo = 1.'] signal: conflictError.
 )
+public testDifficultShapeChangeClassMixin = (
+	difficultShapeChange: #ClassMixin.
+)
+public testDifficultShapeChangeInstanceMixin = (
+	difficultShapeChange: #InstanceMixin.
+)
+public testDifficultShapeChangeMetaclass = (
+	difficultShapeChange: #Metaclass.
+)
+public testDifficultsShapeChangeCombined = (
+	|
+	builder <ClassDeclarationBuilder>
+	builder_Class <ClassDeclarationBuilder>
+	builder_Metaclass <ClassDeclarationBuilder>
+	builder_InstanceMixin <ClassDeclarationBuilder>
+	builder_ClassMixin <ClassDeclarationBuilder>
+	newHeader <String>
+	oldHeader_Class <String>
+	oldHeader_Metaclass <String>
+	oldHeader_InstanceMixin <String>
+	oldHeader_ClassMixin <String>
+	oldObjectHash <Integer>
+	oldClassHash <Integer>
+	oldMetaclassHash <Integer>
+	|
+	builder:: (ClassMirror reflecting: Object) mixin declaration enclosingClass asBuilder.
+	builder_Class:: builder instanceSide nestedClasses findMirrorNamed: #Class.
+	builder_Metaclass:: builder instanceSide nestedClasses findMirrorNamed: #Metaclass.
+	builder_InstanceMixin:: builder instanceSide nestedClasses findMirrorNamed: #InstanceMixin.
+	builder_ClassMixin:: builder instanceSide nestedClasses findMirrorNamed: #ClassMixin.
+	oldHeader_Class:: builder_Class header source.
+	oldHeader_Metaclass:: builder_Metaclass header source.
+	oldHeader_InstanceMixin:: builder_InstanceMixin header source.
+	oldHeader_ClassMixin:: builder_ClassMixin header source.
+	oldObjectHash:: Object hash.
+	oldClassHash:: class hash.
+	oldMetaclassHash:: class class hash.
+
+	builder_Class header source: (headerWithExtraSlot: builder_Class).
+	builder_Metaclass header source: (headerWithExtraSlot: builder_Metaclass).
+	builder_InstanceMixin header source: (headerWithExtraSlot: builder_InstanceMixin).
+	builder_ClassMixin header source: (headerWithExtraSlot: builder_ClassMixin).
+	builder install.
+	assert: Object hash equals: oldObjectHash.
+	assert: class hash equals: oldClassHash.
+	assert: class class hash equals: oldMetaclassHash.
+	assert: Object _extraSlot equals: nil.
+	assert: class _extraSlot equals: nil.
+	assert: class class _extraSlot equals: nil.
+
+	builder_Class header source: oldHeader_Class.
+	builder_Metaclass header source: oldHeader_Metaclass.
+	builder_InstanceMixin header source: oldHeader_InstanceMixin.
+	builder_ClassMixin header source: oldHeader_ClassMixin.
+	builder install.
+	assert: Object hash equals: oldObjectHash.
+	assert: class hash equals: oldClassHash.
+	assert: class class hash equals: oldMetaclassHash.
+	should: [Object _extraSlot] signal: Exception.
+	should: [class _extraSlot] signal: Exception.
+	should: [class class _extraSlot] signal: Exception.
+)
 public testEvaluateEmptyString = (
 	| thread |
 	thread:: (ObjectMirror reflecting: self) evaluate: ''.
@@ -1408,6 +1496,9 @@ public testTransientSlotSource = (
 )
 ) : (
 TEST_CONTEXT = ()
+public class = (
+	^super class
+)
 )
 public class HeapTests = TestBase () (
 public testHeapSize = (

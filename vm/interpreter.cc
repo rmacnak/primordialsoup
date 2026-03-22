@@ -712,6 +712,7 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
       ASSERT(num_args == 0);
       Object receiver = Stack(0);
       ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
+      ASSERT(offset < receiver->Klass(H)->format()->value());
       Object value = RegularObject::Cast(receiver)->slot(offset);
       PopNAndPush(1, value);
       return;
@@ -722,6 +723,7 @@ void Interpreter::Activate(Method method, intptr_t num_args) {
       Object receiver = Stack(1);
       Object value = Stack(0);
       ASSERT(receiver->IsRegularObject() || receiver->IsEphemeron());
+      ASSERT(offset < receiver->Klass(H)->format()->value());
       RegularObject::Cast(receiver)->set_slot(offset, value);
       PopNAndPush(2, receiver);
       return;

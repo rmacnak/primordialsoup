@@ -32,6 +32,10 @@ static constexpr uint8_t kUninitializedByte = 0xcb;
 static size_t AllocationSize(size_t size) {
   return Utils::RoundUp(size, kObjectAlignment);
 }
+static bool HasAlignmentGap(intptr_t num_slots) {
+  intptr_t header_slots = sizeof(HeapObject::Layout) / sizeof(uword);
+  return ((header_slots + num_slots) & 1) == 1;
+}
 
 class Semispace {
  private:
@@ -163,9 +167,8 @@ class Heap {
     ASSERT(result->IsRegularObject() || result->IsEphemeron());
     ASSERT(result->HeapSize() == heap_size);
 
-    intptr_t header_slots = sizeof(HeapObject::Layout) / sizeof(uword);
-    if (((header_slots + num_slots) & 1) == 1) {
-      // The leftover slot will be visited by the GC. Make it a valid oop.
+    if (HasAlignmentGap(num_slots)) {
+      // The gap will be visited by the GC. Make it a valid oop.
       result->set_slot(num_slots, SmallInteger::New(0), kNoBarrier);
     }
 

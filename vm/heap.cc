@@ -1075,13 +1075,42 @@ bool Heap::BecomeForward(Array old, Array neu) {
   }
 
   intptr_t length = old->Size();
+  bool invalid = false;
   for (intptr_t i = 0; i < length; i++) {
-    Object forwarder = old->element(i);
-    Object forwardee = neu->element(i);
-    if (forwarder->IsImmediateObject() ||
-        forwardee->IsImmediateObject()) {
-      return false;
+    HeapObject forwardee = static_cast<HeapObject>(neu->element(i));
+    if (forwardee->IsImmediateObject()) {
+      invalid = true;
+    } else {
+      if (forwardee->is_marked()) {
+        // Merges are okay. Will use the identity hash from the last pair.
+      } else {
+        forwardee->set_is_marked(true);
+      }
     }
+  }
+  for (intptr_t i = 0; i < length; i++) {
+    HeapObject forwarder = static_cast<HeapObject>(old->element(i));
+    if (forwarder->IsImmediateObject()) {
+      invalid = true;
+    } else {
+      if (forwarder->is_marked()) {
+        invalid = true;  // Split or chain.
+      } else {
+        forwarder->set_is_marked(true);
+      }
+    }
+  }
+  if (old->is_marked() || neu->is_marked()) {
+    invalid = true;
+  }
+  for (intptr_t i = 0; i < length; i++) {
+    HeapObject forwarder = static_cast<HeapObject>(old->element(i));
+    if (forwarder->IsHeapObject()) forwarder->set_is_marked(false);
+    HeapObject forwardee = static_cast<HeapObject>(neu->element(i));
+    if (forwardee->IsHeapObject()) forwardee->set_is_marked(false);
+  }
+  if (invalid) {
+    return false;
   }
 
   interpreter_->GCPrologue();  // Before creating forwarders!
@@ -1090,8 +1119,8 @@ bool Heap::BecomeForward(Array old, Array neu) {
     HeapObject forwarder = HeapObject::Cast(old->element(i));
     HeapObject forwardee = HeapObject::Cast(neu->element(i));
 
-    ASSERT(!forwarder->IsForwardingCorpse());
-    ASSERT(!forwardee->IsForwardingCorpse());
+    ASSERT(!forwarder->IsForwardingCorpse());  // No splits.
+    ASSERT(!forwardee->IsForwardingCorpse());  // No chains.
 
     forwardee->set_header_hash(forwarder->header_hash());
 
@@ -1114,6 +1143,37 @@ bool Heap::BecomeForward(Array old, Array neu) {
   MournClassTableForwarded();
 
   interpreter_->GCEpilogue();
+
+#if defined(DEBUG)
+  for (intptr_t cid = kFirstLegalCid; cid < class_table_size_; cid++) {
+    Behavior cls = static_cast<Behavior>(class_table_[cid]);
+    if (cls->IsSmallInteger()) continue;
+    cls->AssertCouldBeBehavior();
+    ASSERT(cls->id() == SmallInteger::New(cid));
+  }
+  auto check_region = [&](uword start, uword end) {
+    for (uword scan = start; scan < end; ) {
+      HeapObject obj = HeapObject::FromAddr(scan);
+      intptr_t cid = obj->cid();
+      if (cid >= kFirstRegularObjectCid) {
+        intptr_t size_from_object = obj->HeapSize();
+        intptr_t num_slots = ClassAt(cid)->format()->value();
+        intptr_t size_from_class = AllocationSize(sizeof(HeapObject::Layout) +
+                                                  num_slots * sizeof(Object));
+        ASSERT(size_from_object == size_from_class);
+        if (HasAlignmentGap(num_slots)) {
+          ASSERT(RegularObject::Cast(obj)->slot(num_slots) ==
+                 SmallInteger::New(0));
+        }
+      }
+      scan += obj->HeapSize();
+    }
+  };
+  check_region(to_.object_start(), top_);
+  for (Region* region = regions_; region != nullptr; region = region->next()) {
+    check_region(region->object_start(), region->object_end());
+  }
+#endif  // defined(DEBUG)
 
   return true;
 }

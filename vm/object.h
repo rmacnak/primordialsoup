@@ -212,9 +212,10 @@ class HeapObject : public Object {
   void AssertCouldBeBehavior() const {
     ASSERT(IsHeapObject());
     ASSERT(IsRegularObject());
-    // 8 slots for a class, 7 slots for a metaclass, plus 1 header.
+    // Normally 8 slots for a class, 7 slots for a metaclass, plus header.
+    // But some tests add more slots.
     size_t heap_slots = heap_size() / sizeof(uword);
-    ASSERT((heap_slots == 8) || (heap_slots == 10));
+    ASSERT(heap_slots >= 8);
   }
 
   inline bool is_marked() const;

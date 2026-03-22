@@ -13,6 +13,7 @@ class Mirrors usingPlatform: platform internalKernel: ik namespace: ns = (
 	private IdentityMap = ik IdentityMap.
 	private InstanceMixin = ik InstanceMixin.
 	private ClassMixin = ik ClassMixin.
+	private Class = ik Class.
 	private Metaclass = ik Metaclass.
 	private Activation = ik Activation.
 	private Closure = ik Closure.
@@ -307,6 +308,7 @@ public install: classDecls <List[IntermediateClassDeclaration]> = (
 private installAll = (
 	| updateCount oldObjects newObjects index |
 	updateCount:: updateMixinsAndClasses size + updateInstances size.
+	0 = updateCount ifTrue: [^self]. (* E.g., new module *)
 	oldObjects:: Array new: updateCount.
 	newObjects:: Array new: updateCount.
 	index: 1.
@@ -319,9 +321,8 @@ private installAll = (
 	updateMixinsAndClasses keysAndValuesDo:
 		[:old :new |
 		oldObjects at: index put: old.
-		newObjects at: index put: (updateInstances at: old ifAbsent: [new]). (* Follow B to avoid B -> C, A -> B. *)
+		newObjects at: index put: (updateInstances atOrItself: new). (* Follow B to avoid B -> C, A -> B. *)
 		index: index + 1].
-	updateCount = 0 ifTrue: [^self].
 	elementsOf: oldObjects forwardIdentityToElementsOf: newObjects.
 )
 private layoutHasChangedBetween: oldClass <Behavior> and: newClass <Behavior> ^<Boolean> = (
@@ -347,6 +348,13 @@ private methodDictionaryFor: mixin <AbstractMixin> from: imixin <IntermediateMix
 		 imethod methodMixin: mixin.
 		 imethod compiledMethod]) asArray
 )
+private migrateInstanceFrom: oldInstance to: newInstance using: plan = (
+	1 to: plan size do:
+		[:newIndex | | oldIndex |
+		 0 = (oldIndex:: plan at: newIndex) ifFalse:
+			[slotOf: newInstance at: newIndex put: (slotOf: oldInstance at: oldIndex)]].
+	updateInstances at: oldInstance put: newInstance.
+)
 private noteUpdateOf: existingMixin <InstanceMixin | nil> to: newMixin <InstanceMixin> = (
 	| applications <WeakArray> |
 	nil = existingMixin ifTrue: [^self].
@@ -357,6 +365,24 @@ private noteUpdateOf: existingMixin <InstanceMixin | nil> to: newMixin <Instance
 	applications:: existingMixin _applications.
 	nil = applications ifFalse:
 		[applications do: [:application <Class> | sortClass: application]].
+)
+private planShapeChangeFrom: oldClass <Behavior> to: newClass <Behavior> = (
+	| oldSlotNames newSlotNames plan |
+	(layoutHasChangedBetween: oldClass and: newClass) ifFalse: [^nil].
+	oldSlotNames:: allInstVarNamesOf: oldClass.
+	newSlotNames:: allInstVarNamesOf: newClass.
+
+	(* Heuristic: choose the latter slot if a slot name is duplicated to favor overriding slots. *)
+	(* Consider not migrating slots across mixins. The current heuristic can be semantics breaking for unchanged code. *)
+	plan:: newSlotNames collect: [:newSlotName | in: oldSlotNames lastIndexOf: newSlotName].
+
+	(* 'remapping with ' out.
+	((oldSlotNames inject: '' into: [:a :b | a, ' ', b]), ' -> ',
+	 (newSlotNames inject: '' into: [:a :b | a, ' ', b])) out.
+	1 to: plan size do: [:newIndex |
+		(newIndex printString, '<-', (plan at: newIndex) printString) out]. *)
+
+	^plan
 )
 private processClassDeclaration: classDecl <IntermediateClassDeclaration> ^<InstanceMixin> = (
 	|
@@ -423,7 +449,7 @@ private processExistingClass: oldClass <Class> = (
 )
 private processExistingClasses = (
 	| maxDepth ::= 0. |
-	(* Process superclasses before subclasses. Create all new classes before remapping any instances. Remap instances in any order. *)
+	(* Process superclasses before subclasses. Create all new classes before remapping any instances. Resize regular instances in any order. Resize classes after metaclasses. *)
 	existingClasses keysAndValuesDo:
 		[:inheritanceDepth :classes |
 		inheritanceDepth > maxDepth ifTrue:
@@ -438,43 +464,69 @@ private processExistingClasses = (
 		[:inheritanceDepth :classes |
 		classes do:
 			[:oldClass <Class> | processInstancesOf: oldClass]].
+
+	processShapeChangeForClasses.
 )
 private processInstancesOf: oldClass <Class> = (
 	|
 	newClass <Class> = updateMixinsAndClasses at: oldClass.
-	oldSlotNames <Array[Symbol]>
-	newSlotCount <Integer>
-	remapIndices <Array[Integer]>
+	plan
+	instances
 	|
-	(layoutHasChangedBetween: oldClass and: newClass) ifFalse: [^self].
 
-	(* Heuristic: choose the latter slot if a slot name is duplicated to favor overriding slots. *)
-	oldSlotNames:: allInstVarNamesOf: oldClass.
-	remapIndices:: (allInstVarNamesOf: newClass) collect:
-		[:newSlotName | in: oldSlotNames lastIndexOf: newSlotName].
-	newSlotCount:: remapIndices size.
+	plan:: planShapeChangeFrom: oldClass to: newClass.
+	nil = plan ifTrue: [^self].
 
-	(* 'remapping with ' out.
-	(((allInstVarNamesOf: oldClass) inject: '' into: [:a :b | a, ' ', b])
-	, ' -> ',
-	((allInstVarNamesOf: newClass) inject: '' into: [:a :b | a, ' ', b])) out.
-	1 to: remapIndices size do: [:newIndex |
-		(newIndex printString, '<-', (remapIndices at: newIndex) printString) out]. *)
-
-	(allInstancesOf: oldClass) do:
-		[:oldInstance |
+	instances:: allInstancesOf: oldClass.
+	1 to: instances size do: [:i |
+		| oldInstance = instances at: i. |
 		(* Avoid A -> D (see class comment). *)
 		(updateMixinsAndClasses includesKey: oldInstance) ifFalse:
-			[ | newInstance = allocate: newClass. |
-			(* Copy state from oldInstance to newInstance. *)
-			1 to: newSlotCount do: [:newIndex |
-				| oldIndex value |
-				oldIndex:: remapIndices at: newIndex.
-				0 = oldIndex ifFalse: [
-					value:: slotOf: oldInstance at: oldIndex.
-					slotOf: newInstance at: newIndex put: value]].
+			[migrateInstanceFrom: oldInstance to: (allocate: newClass) using: plan]].
+)
+private processShapeChangeForClasses = (
+	|
+	Class_old
+	Class_new
+	Metaclass_old
+	Metaclass_new
+	plan
+	|
+	Class_old:: Class.
+	Class_new:: updateMixinsAndClasses at: Class ifAbsent: [^self].
 
-			updateInstances at: oldInstance put: newInstance]].
+	plan:: planShapeChangeFrom: Class_old to: Class_new.
+	nil = plan ifTrue: [^self].
+
+	Metaclass_old:: Metaclass.
+	Metaclass_new:: updateMixinsAndClasses at: Metaclass.
+
+	existingClasses keysAndValuesDo:
+		[:inheritanceDepth :classes | classes do: [:oldClass |
+		|
+		newClass_oldShape
+		newMetaclass_oldShape
+		newClass_newShape
+		newMetaclass_newShape
+		clone
+		|
+		newClass_oldShape:: updateMixinsAndClasses at: oldClass.
+		newMetaclass_oldShape:: updateMixinsAndClasses at: (classOf: oldClass).
+		newMetaclass_newShape:: updateInstances atOrItself: newMetaclass_oldShape. (* Maybe nop if Metaclass didn't also have a shape change. *)
+
+		(* Clone instead of updating in place because this metaclass already has an instance with the old shape. *)
+		clone:: allocate: Metaclass_new.
+		1 to: (formatOf: Metaclass_new) do:
+			[:i | slotOf: clone at: i put: (slotOf: newMetaclass_newShape at: i)].
+		superclassOf: clone put: Class_new.
+		formatOf: clone put: (formatOf: Class_new).
+		slotOf: clone at: 5 (* classIndex *) put: nil.
+		updateInstances at: newMetaclass_newShape put: clone. (* inherit the new format value *)
+		updateInstances at: newMetaclass_oldShape putReplace: clone.
+
+		newClass_newShape:: allocate: clone.
+		migrateInstanceFrom: newClass_oldShape to: newClass_newShape using: plan.
+		]].
 )
 private setup = (
 	updateMixinsAndClasses:: IdentityMap new.
@@ -503,6 +555,11 @@ private sortClass: app <Class> = (
 	subclasses:: subclassesOf: app.
 	nil = subclasses ifFalse:
 		[subclasses do: [:subclass | sortClass: subclass]].
+
+	(* Metaclasses are not recorded in the subclass list of Class. *)
+	Class = app ifTrue:
+		[(allInstancesOf: Metaclass) do: [:metaclass |
+			sortClass: (thisClassOf: metaclass)]].
 )
 ) : (
 )
@@ -1444,6 +1501,10 @@ public do: action = (
 			(* :bogus: also find existingMixin *)
 			].
 		action value: builder].
+)
+public findMirrorNamed: name <Symbol> ^<E> = (
+	self do: [:mirror | mirror name = name ifTrue: [^mirror]].
+	^nil
 )
 protected newForCollectUsingAdd: capacity = (
 	^List new: capacity
@@ -2600,7 +2661,7 @@ buildIntermediate: i <IntermediateMixin> from: mixin <AbstractMixin> within: ec 
 
 	mixin _nestedMixins do:
 		[:nestedMixin <InstanceMixin> |
-		i nestedClasses add: (buildIntermediateFor: nestedMixin within: ec)].
+		i nestedClasses add: (buildIntermediateFor: nestedMixin within: i)].
 
 	nil = mixin _enclosingMixin ifFalse:
 		[ |
@@ -2748,6 +2809,9 @@ private enclosingObjectOf: behavior = (
 private formatOf: behavior = (
 	^self slotOf: behavior at: 6
 )
+private formatOf: behavior put: value = (
+	^self slotOf: behavior at: 6 put: value
+)
 private heapSizeOf: object <Object> ^<Integer> = (
 	(* :pragma: primitive: 137 *)
 	panic.
@@ -2836,6 +2900,12 @@ private subclassesOf: klass = (
 )
 private superclassOf: behavior = (
 	^self slotOf: behavior at: 1
+)
+private superclassOf: behavior put: value = (
+	^self slotOf: behavior at: 1 put: value
+)
+private thisClassOf: metaclass = (
+	^self slotOf: metaclass at: 7
 )
 ) : (
 )

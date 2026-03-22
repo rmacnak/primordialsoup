@@ -2235,7 +2235,7 @@ DEFINE_PRIMITIVE(Heap_becomeForward) {
   Array left = Array::Cast(I->Stack(1));
   Array right = Array::Cast(I->Stack(0));
   if (left->IsArray() && right->IsArray()) {
-    if (H->BecomeForward(left, right)) {
+    if (H->BecomeForward(left, right)) {  // SAFEPOINT
       RETURN_SELF();
     }
   }
