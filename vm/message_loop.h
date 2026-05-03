@@ -14,14 +14,14 @@ class Isolate;
 
 class IsolateMessage {
  public:
-  IsolateMessage(Port dest, uint8_t* data, intptr_t length)
+  IsolateMessage(int64_t dest, uint8_t* data, intptr_t length)
       : next_(nullptr),
         dest_(dest),
         data_(data),
         length_(length),
         argv_(nullptr),
         argc_(0) {}
-  IsolateMessage(Port dest, int argc, const char** argv)
+  IsolateMessage(int64_t dest, int argc, const char** argv)
       : next_(nullptr),
         dest_(dest),
         data_(nullptr),
@@ -31,7 +31,7 @@ class IsolateMessage {
 
   ~IsolateMessage() { free(data_); }
 
-  Port dest_port() const { return dest_; }
+  int64_t dest_port() const { return dest_; }
   uint8_t* data() const { return data_; }
   intptr_t length() const { return length_; }
   int argc() const { return argc_; }
@@ -46,7 +46,7 @@ class IsolateMessage {
   friend class KQueueMessageLoop;
 
   IsolateMessage* next_;
-  Port dest_;
+  int64_t dest_;
   uint8_t* data_;  // Owned by message.
   intptr_t length_;
   const char** argv_;  // Not owned by message.
@@ -76,8 +76,8 @@ class MessageLoop {
   virtual intptr_t Run() = 0;
   virtual void Interrupt() = 0;
 
-  Port OpenPort();
-  void ClosePort(Port p);
+  int64_t OpenPort();
+  void ClosePort(int64_t p);
 
  protected:
   void DispatchMessage(IsolateMessage* message);

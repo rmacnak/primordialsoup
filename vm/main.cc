@@ -36,7 +36,7 @@ int main(int argc, const char** argv) {
 
   psoup::Isolate* isolate = new psoup::Isolate(snapshot.address(),
                                                snapshot.size());
-  isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,
+  isolate->loop()->PostMessage(new psoup::IsolateMessage(psoup::kInvalidPort,
                                                          argc - 2, &argv[2]));
   intptr_t exit_code = isolate->loop()->Run();
   delete isolate;

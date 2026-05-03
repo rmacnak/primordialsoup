@@ -138,9 +138,9 @@ void Isolate::ActivateMessage(IsolateMessage* isolate_message) {
     message = strings;
   }
 
-  Port port_id = isolate_message->dest_port();
+  int64_t port_id = isolate_message->dest_port();
   Object port;
-  if (port_id == ILLEGAL_PORT) {
+  if (port_id == kInvalidPort) {
     port = interpreter_->nil_obj();
   } else if (SmallInteger::IsSmiValue(port_id)) {
     port = SmallInteger::New(static_cast<intptr_t>(port_id));

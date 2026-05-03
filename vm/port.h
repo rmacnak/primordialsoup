@@ -10,19 +10,18 @@
 
 namespace psoup {
 
-typedef int64_t Port;
-#define ILLEGAL_PORT 0
-
 class IsolateMessage;
 class MessageLoop;
 class Mutex;
 class Random;
 
+constexpr int64_t kInvalidPort = 0;
+
 class PortMap : public AllStatic {
  public:
-  static Port CreatePort(MessageLoop* loop);
+  static int64_t CreatePort(MessageLoop* loop);
   static bool PostMessage(IsolateMessage* message);
-  static bool ClosePort(Port port);
+  static bool ClosePort(int64_t port);
   static void CloseAllPorts(MessageLoop* loop);
 
   static void Startup();
@@ -30,15 +29,15 @@ class PortMap : public AllStatic {
 
  private:
   // Allocate a new unique port.
-  static Port AllocatePort();
+  static int64_t AllocatePort();
 
-  static intptr_t FindPort(Port port);
+  static intptr_t FindPort(int64_t port);
   static void Rehash(intptr_t new_capacity);
 
   static void MaintainInvariants();
 
   typedef struct {
-    Port port;
+    int64_t port;
     MessageLoop* loop;
   } Entry;
 

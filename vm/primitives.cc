@@ -2946,7 +2946,7 @@ DEFINE_PRIMITIVE(Behavior_adoptInstance) {
 
 DEFINE_PRIMITIVE(openPort) {
   FIXED_NUM_ARGS(0);
-  Port new_port = I->isolate()->loop()->OpenPort();
+  int64_t new_port = I->isolate()->loop()->OpenPort();
   RETURN_MINT(new_port);
 }
 
@@ -2965,7 +2965,7 @@ DEFINE_PRIMITIVE(spawn) {
     uint8_t* data = reinterpret_cast<uint8_t*>(malloc(length));
     memcpy(data, message->element_addr(0), length);
 
-    I->isolate()->Spawn(new IsolateMessage(ILLEGAL_PORT, data, length));
+    I->isolate()->Spawn(new IsolateMessage(kInvalidPort, data, length));
 
     RETURN_SELF();
   }

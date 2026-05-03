@@ -6,9 +6,7 @@
 
 #include "vm/lockers.h"
 #include "vm/message_loop.h"
-#include "vm/os.h"
 #include "vm/random.h"
-#include "vm/thread.h"
 #include "vm/utils.h"
 
 namespace psoup {
@@ -21,15 +19,10 @@ intptr_t PortMap::used_ = 0;
 intptr_t PortMap::deleted_ = 0;
 Random* PortMap::prng_ = nullptr;
 
-intptr_t PortMap::FindPort(Port port) {
-  // ILLEGAL_PORT (0) is used as a sentinel value in Entry.port. The loop below
-  // could return the index to a deleted port when we are searching for
-  // port id ILLEGAL_PORT. Return -1 immediately to indicate the port
-  // does not exist.
-  if (port == ILLEGAL_PORT) {
+intptr_t PortMap::FindPort(int64_t port) {
+  if (port == kInvalidPort) {
     return -1;
   }
-  ASSERT(port != ILLEGAL_PORT);
   intptr_t index = static_cast<uintptr_t>(port) % capacity_;
   intptr_t start_index = index;
   Entry entry = map_[index];
@@ -66,15 +59,13 @@ void PortMap::Rehash(intptr_t new_capacity) {
   deleted_ = 0;
 }
 
-Port PortMap::AllocatePort() {
-  // Keep getting new values while we have an illegal port number or the port
-  // number is already in use.
-  Port result;
+int64_t PortMap::AllocatePort() {
+  int64_t result;
   do {
     result = prng_->NextUInt64();
-  } while ((result == ILLEGAL_PORT) || (FindPort(result) >= 0));
+  } while ((result == kInvalidPort) || (FindPort(result) >= 0));
 
-  ASSERT(result != 0);
+  ASSERT(result != kInvalidPort);
   ASSERT(FindPort(result) < 0);
   return result;
 }
@@ -91,7 +82,7 @@ void PortMap::MaintainInvariants() {
   }
 }
 
-Port PortMap::CreatePort(MessageLoop* loop) {
+int64_t PortMap::CreatePort(MessageLoop* loop) {
   ASSERT(loop != nullptr);
   MutexLocker ml(mutex_);
 
@@ -145,7 +136,7 @@ bool PortMap::PostMessage(IsolateMessage* message) {
   return true;
 }
 
-bool PortMap::ClosePort(Port port) {
+bool PortMap::ClosePort(int64_t port) {
   MutexLocker ml(mutex_);
   intptr_t index = FindPort(port);
   if (index < 0) {

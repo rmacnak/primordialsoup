@@ -66,7 +66,7 @@ extern "C" void load_snapshot(const void* snapshot, size_t snapshot_length) {
   isolate = new psoup::Isolate(snapshot, snapshot_length);
   int argc = 0;
   const char** argv = nullptr;
-  isolate->loop()->PostMessage(new psoup::IsolateMessage(ILLEGAL_PORT,
+  isolate->loop()->PostMessage(new psoup::IsolateMessage(psoup::kInvalidPort,
                                                          argc, argv));
 }
 

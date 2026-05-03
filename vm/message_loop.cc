@@ -53,12 +53,12 @@ void MessageLoop::DispatchSignal(intptr_t handle,
   isolate_->Interpret();
 }
 
-Port MessageLoop::OpenPort() {
+int64_t MessageLoop::OpenPort() {
   open_ports_++;
   return PortMap::CreatePort(this);
 }
 
-void MessageLoop::ClosePort(Port port) {
+void MessageLoop::ClosePort(int64_t port) {
   if (PortMap::ClosePort(port)) {
     open_ports_--;
   }
