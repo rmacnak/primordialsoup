@@ -33,40 +33,35 @@ class ThreadStartData {
  public:
   ThreadStartData(const char* name,
                   Thread::ThreadStartFunction function,
-                  uword parameter)
+                  void* parameter)
       : name_(name), function_(function), parameter_(parameter) {}
 
   const char* name() const { return name_; }
   Thread::ThreadStartFunction function() const { return function_; }
-  uword parameter() const { return parameter_; }
+  void* parameter() const { return parameter_; }
 
  private:
   const char* name_;
   Thread::ThreadStartFunction function_;
-  uword parameter_;
+  void* parameter_;
 
   DISALLOW_COPY_AND_ASSIGN(ThreadStartData);
 };
 
-// Dispatch to the thread start function provided by the caller. This trampoline
-// is used to ensure that the thread is properly destroyed if the thread just
-// exits.
 static void* ThreadStart(void* data_ptr) {
   ThreadStartData* data = reinterpret_cast<ThreadStartData*>(data_ptr);
 
   const char* name = data->name();
   Thread::ThreadStartFunction function = data->function();
-  uword parameter = data->parameter();
+  void* parameter = data->parameter();
   delete data;
 
-  // Set the thread name.
 #if defined(OS_MACOS)
   pthread_setname_np(name);
 #else
   pthread_setname_np(pthread_self(), name);
 #endif
 
-  // Call the supplied thread start function handing it its parameters.
   function(parameter);
 
   return nullptr;
@@ -74,7 +69,7 @@ static void* ThreadStart(void* data_ptr) {
 
 int Thread::Start(const char* name,
                   ThreadStartFunction function,
-                  uword parameter) {
+                  void* parameter) {
   ThreadStartData* data = new ThreadStartData(name, function, parameter);
 
   pthread_t tid;

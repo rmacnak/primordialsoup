@@ -68,7 +68,7 @@ class ThreadPool {
     friend class ThreadPool;
 
     // The main entry point for new worker threads.
-    static void Main(uword args);
+    static void Main(void* arg);
 
     bool IsDone() const { return done_; }
 

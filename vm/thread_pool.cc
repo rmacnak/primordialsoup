@@ -327,8 +327,7 @@ void ThreadPool::Worker::StartThread() {
   }
 #endif
   // Note some targets truncate names to 15 characters.
-  int result = Thread::Start("PSoup Worker", &Worker::Main,
-                             reinterpret_cast<uword>(this));
+  int result = Thread::Start("PSoup Worker", &Worker::Main, this);
   if (result != 0) {
     char buffer[64];
     FATAL("Failed to start thread: %d (%s)", result,
@@ -390,9 +389,8 @@ void ThreadPool::Worker::Shutdown() {
   ml.Notify();
 }
 
-// static
-void ThreadPool::Worker::Main(uword args) {
-  Worker* worker = reinterpret_cast<Worker*>(args);
+void ThreadPool::Worker::Main(void* arg) {
+  Worker* worker = reinterpret_cast<Worker*>(arg);
   ThreadId id = Thread::GetCurrentThreadId();
   ThreadPool* pool;
 

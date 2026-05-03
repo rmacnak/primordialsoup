@@ -41,14 +41,14 @@ const ThreadJoinId kInvalidThreadJoinId = INVALID_HANDLE_VALUE;
 
 class Thread : public AllStatic {
  public:
-  typedef void (*ThreadStartFunction)(uword parameter);
+  typedef void (*ThreadStartFunction)(void* parameter);
 
   // Start a thread running the specified function. Returns 0 if the
   // thread started successfuly and a system specific error code if
   // the thread failed to start.
   static int Start(const char* name,
                    ThreadStartFunction function,
-                   uword parameter);
+                   void* parameter);
 
   static ThreadId GetCurrentThreadId();
   static void Join(ThreadJoinId id);

@@ -13,7 +13,7 @@ namespace psoup {
 
 int Thread::Start(const char* name,
                   ThreadStartFunction function,
-                  uword parameter) {
+                  void* parameter) {
   UNREACHABLE();
 }
 

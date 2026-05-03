@@ -18,33 +18,29 @@ class ThreadStartData {
  public:
   ThreadStartData(const char* name,
                   Thread::ThreadStartFunction function,
-                  uword parameter)
+                  void* parameter)
       : name_(name), function_(function), parameter_(parameter) {}
 
   const char* name() const { return name_; }
   Thread::ThreadStartFunction function() const { return function_; }
-  uword parameter() const { return parameter_; }
+  void* parameter() const { return parameter_; }
 
  private:
   const char* name_;
   Thread::ThreadStartFunction function_;
-  uword parameter_;
+  void* parameter_;
 
   DISALLOW_COPY_AND_ASSIGN(ThreadStartData);
 };
 
-// Dispatch to the thread start function provided by the caller. This trampoline
-// is used to ensure that the thread is properly destroyed if the thread just
-// exits.
-static unsigned int __stdcall ThreadEntry(void* data_ptr) {
+static unsigned int __stdcall ThreadStart(void* data_ptr) {
   ThreadStartData* data = reinterpret_cast<ThreadStartData*>(data_ptr);
 
   const char* name = data->name();
   Thread::ThreadStartFunction function = data->function();
-  uword parameter = data->parameter();
+  void* parameter = data->parameter();
   delete data;
 
-  // Call the supplied thread start function handing it its parameters.
   function(parameter);
 
   return 0;
@@ -52,11 +48,11 @@ static unsigned int __stdcall ThreadEntry(void* data_ptr) {
 
 int Thread::Start(const char* name,
                   ThreadStartFunction function,
-                  uword parameter) {
+                  void* parameter) {
   ThreadStartData* start_data = new ThreadStartData(name, function, parameter);
   uint32_t tid;
   uintptr_t thread = _beginthreadex(nullptr, 0,
-                                    ThreadEntry, start_data, 0, &tid);
+                                    ThreadStart, start_data, 0, &tid);
   if (thread == -1L || thread == 0) {
     int error = errno;
     delete start_data;
