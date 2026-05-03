@@ -12,9 +12,9 @@ executable("vm") {
   if (is_fuchsia) {
     libs = [ "zircon" ]
     deps = [
+      "//sdk/lib/async:async-cpp",
+      "//sdk/lib/async-loop:async-loop-cpp",
       "//sdk/lib/fdio",
-      "//zircon/system/ulib/async:async-cpp",
-      "//zircon/system/ulib/async-loop:async-loop-cpp",
     ]
   } else {
     libs = [ "pthread" ]
@@ -234,19 +234,19 @@ action("snapshots") {
   args += [
     "Runtime",
     "HelloApp",
-    rebase_path(hello_snapshot),
+    rebase_path(hello_snapshot, root_build_dir),
 
     "RuntimeWithMirrors",
     "TestRunner",
-    rebase_path(tests_snapshot),
+    rebase_path(tests_snapshot, root_build_dir),
 
     "Runtime",
     "BenchmarkRunner",
-    rebase_path(benchmarks_snapshot),
+    rebase_path(benchmarks_snapshot, root_build_dir),
 
     "RuntimeWithMirrors",
     "CompilerApp",
-    rebase_path(compiler_snapshot),
+    rebase_path(compiler_snapshot, root_build_dir),
   ]
 }
 
@@ -256,12 +256,12 @@ resource("hello_snapshot") {
   outputs = [ "data/{{source_file_part}}" ]
 }
 
-fuchsia_package_with_single_component("hello-app") {
+fuchsia_component("hello-app") {
   deps = [
     ":hello_snapshot",
     ":vm",
   ]
-  manifest = "meta/hello-app.cmx"
+  manifest = "meta/hello-app.cml"
 }
 
 resource("tests_snapshot") {
@@ -270,12 +270,12 @@ resource("tests_snapshot") {
   outputs = [ "data/{{source_file_part}}" ]
 }
 
-fuchsia_package_with_single_component("test-runner") {
+fuchsia_component("test-runner") {
   deps = [
     ":tests_snapshot",
     ":vm",
   ]
-  manifest = "meta/test-runner.cmx"
+  manifest = "meta/test-runner.cml"
 }
 
 resource("benchmarks_snapshot") {
@@ -284,12 +284,12 @@ resource("benchmarks_snapshot") {
   outputs = [ "data/{{source_file_part}}" ]
 }
 
-fuchsia_package_with_single_component("benchmark-runner") {
+fuchsia_component("benchmark-runner") {
   deps = [
     ":benchmarks_snapshot",
     ":vm",
   ]
-  manifest = "meta/benchmark-runner.cmx"
+  manifest = "meta/benchmark-runner.cml"
 }
 
 resource("compiler_snapshot") {
@@ -298,19 +298,18 @@ resource("compiler_snapshot") {
   outputs = [ "data/{{source_file_part}}" ]
 }
 
-fuchsia_package_with_single_component("compiler-app") {
+fuchsia_component("compiler-app") {
   deps = [
     ":compiler_snapshot",
     ":vm",
   ]
-  manifest = "meta/compiler-app.cmx"
+  manifest = "meta/compiler-app.cml"
 }
 
-group("packages") {
-  deps = [
+fuchsia_test_package("primordialsoup-test-package") {
+  test_components = [
     ":hello-app",
     ":test-runner",
     ":benchmark-runner",
-    ":compiler-app",
   ]
 }

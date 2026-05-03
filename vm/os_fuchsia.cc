@@ -9,6 +9,7 @@
 
 #include <errno.h>
 #include <stdarg.h>
+#include <unistd.h>
 #include <zircon/syscalls.h>
 #include <zircon/types.h>
 

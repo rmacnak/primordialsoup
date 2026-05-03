@@ -34,14 +34,6 @@ To target Android, build with
 ./build ndk=/path/to/android-ndk-r19c
 ```
 
-To target Fuchsia, clone this repository to `third_party/primordialsoup` in a Fuchsia checkout, and include `third_party/primordialsoup:packages` in the list of packages. E.g.,
-
-```
-git clone https://github.com/rmacnak/primordialsoup.git third_party/primordialsoup
-fx set core.x64 --release --with-base bundles:tools,third_party/primordialsoup:packages
-fx build
-```
-
 To target WebAssembly, build with
 
 ```
@@ -57,10 +49,8 @@ After building, the test suite and some benchmarks can be run with
 ./test
 ```
 
-On Fuchsia,
+With an Android device connected and visible on `adb devices`, the test suite and benchmarks can be run with
 
 ```
-run fuchsia-pkg://fuchsia.com/hello-app#meta/hello-app.cmx
-run fuchsia-pkg://fuchsia.com/test-runner#meta/test-runner.cmx
-run fuchsia-pkg://fuchsia.com/benchmark-runner#meta/benchmark-runner.cmx
+./test-android
 ```

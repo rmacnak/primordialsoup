@@ -54,6 +54,8 @@ void FuchsiaMessageLoop::OnHandleReady(async_dispatcher_t* async,
                                        async::WaitBase* wait,
                                        zx_status_t status,
                                        const zx_packet_signal_t* packet) {
+  if (isolate_ == nullptr) return;
+
   wait->Begin(async_loop_get_dispatcher(loop_));
 
   if (wait == &timer_wait_) {
