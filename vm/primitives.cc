@@ -292,6 +292,8 @@ const bool kFailure = false;
 #define DEFINE_PRIMITIVE(name)                                                 \
   static bool primitive##name(Interpreter* I, Heap* H, intptr_t num_args)
 
+#define FIXED_NUM_ARGS(n) ASSERT(num_args == n); ASSUME(num_args == n)
+
 #define IS_SMI_OP(left, right)                                                 \
   (Object::BothSmallIntegers(left, right))
 
@@ -413,6 +415,8 @@ DEFINE_PRIMITIVE(Unimplemented) {
 }
 
 DEFINE_PRIMITIVE(Number_add) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -453,6 +457,8 @@ DEFINE_PRIMITIVE(Number_add) {
 }
 
 DEFINE_PRIMITIVE(Number_subtract) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -494,6 +500,8 @@ DEFINE_PRIMITIVE(Number_subtract) {
 }
 
 DEFINE_PRIMITIVE(Number_multiply) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -535,6 +543,8 @@ DEFINE_PRIMITIVE(Number_multiply) {
 }
 
 DEFINE_PRIMITIVE(Number_divide) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -594,6 +604,8 @@ DEFINE_PRIMITIVE(Number_divide) {
 }
 
 DEFINE_PRIMITIVE(Number_div) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -648,6 +660,8 @@ DEFINE_PRIMITIVE(Number_div) {
 }
 
 DEFINE_PRIMITIVE(Number_mod) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -690,6 +704,8 @@ DEFINE_PRIMITIVE(Number_mod) {
 }
 
 DEFINE_PRIMITIVE(Number_quo) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -732,6 +748,8 @@ DEFINE_PRIMITIVE(Number_quo) {
 }
 
 DEFINE_PRIMITIVE(Number_rem) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -774,6 +792,8 @@ DEFINE_PRIMITIVE(Number_rem) {
 }
 
 DEFINE_PRIMITIVE(Number_equal) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -802,6 +822,8 @@ DEFINE_PRIMITIVE(Number_equal) {
 }
 
 DEFINE_PRIMITIVE(Number_less) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -830,6 +852,8 @@ DEFINE_PRIMITIVE(Number_less) {
 }
 
 DEFINE_PRIMITIVE(Number_greater) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -858,6 +882,8 @@ DEFINE_PRIMITIVE(Number_greater) {
 }
 
 DEFINE_PRIMITIVE(Number_lessOrEqual) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -886,6 +912,8 @@ DEFINE_PRIMITIVE(Number_lessOrEqual) {
 }
 
 DEFINE_PRIMITIVE(Number_greaterOrEqual) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -914,7 +942,7 @@ DEFINE_PRIMITIVE(Number_greaterOrEqual) {
 }
 
 DEFINE_PRIMITIVE(Number_asInteger) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Object receiver = I->Stack(0);
   if (receiver->IsFloat()) {
     double raw_receiver = Float::Cast(receiver)->value();
@@ -930,7 +958,7 @@ DEFINE_PRIMITIVE(Number_asInteger) {
 }
 
 DEFINE_PRIMITIVE(Number_asDouble) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Object receiver = I->Stack(0);
   if (receiver->IsSmallInteger()) {
     intptr_t raw_receiver = SmallInteger::Cast(receiver)->value();
@@ -948,6 +976,8 @@ DEFINE_PRIMITIVE(Number_asDouble) {
 }
 
 DEFINE_PRIMITIVE(Integer_bitAnd) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -972,6 +1002,8 @@ DEFINE_PRIMITIVE(Integer_bitAnd) {
 }
 
 DEFINE_PRIMITIVE(Integer_bitOr) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -996,6 +1028,8 @@ DEFINE_PRIMITIVE(Integer_bitOr) {
 }
 
 DEFINE_PRIMITIVE(Integer_bitXor) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -1021,6 +1055,8 @@ DEFINE_PRIMITIVE(Integer_bitXor) {
 }
 
 DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -1079,6 +1115,8 @@ DEFINE_PRIMITIVE(Integer_bitShiftLeft) {
 }
 
 DEFINE_PRIMITIVE(Integer_bitShiftRight) {
+  FIXED_NUM_ARGS(1);
+
   Object left = I->Stack(1);
   Object right = I->Stack(0);
   if (IS_SMI_OP(left, right)) {
@@ -1146,7 +1184,7 @@ DEFINE_PRIMITIVE(Integer_bitShiftRight) {
 }
 
 DEFINE_PRIMITIVE(Integer_digitAt) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Object rcvr = I->Stack(1);
   SMI_ARGUMENT(index, 0);
   index--;
@@ -1189,7 +1227,7 @@ DEFINE_PRIMITIVE(Integer_digitAt) {
 }
 
 DEFINE_PRIMITIVE(Integer_digitLength) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Object rcvr = I->Stack(0);
   if (rcvr->IsSmallInteger() || rcvr->IsMediumInteger()) {
     int64_t value = rcvr->IsSmallInteger()
@@ -1229,12 +1267,12 @@ DEFINE_PRIMITIVE(Integer_fromDigits) {
 #endif
 
 #define FLOAT_FUNCTION_1(func)                                                 \
-  ASSERT(num_args == 0);                                                       \
+  FIXED_NUM_ARGS(0);                                                           \
   FLOAT_ARGUMENT(x, 0);                                                        \
   RETURN_FLOAT(func(x));
 
 #define FLOAT_FUNCTION_2(func)                                                 \
-  ASSERT(num_args == 1);                                                       \
+  FIXED_NUM_ARGS(1);                                                           \
   FLOAT_ARGUMENT(x, 1);                                                        \
   FLOAT_ARGUMENT(y, 0);                                                        \
   RETURN_FLOAT(func(x, y));
@@ -1256,13 +1294,13 @@ DEFINE_PRIMITIVE(Double_sqrt) { FLOAT_FUNCTION_1(sqrt); }
 DEFINE_PRIMITIVE(Double_pow) { FLOAT_FUNCTION_2(pow); }
 
 DEFINE_PRIMITIVE(Double_isFinite) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   FLOAT_ARGUMENT(rcvr, 0);
   RETURN_BOOL(isfinite(rcvr));
 }
 
 DEFINE_PRIMITIVE(Double_isInfinite) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   FLOAT_ARGUMENT(rcvr, 0);
   RETURN_BOOL(isinf(rcvr));
 }
@@ -1296,7 +1334,7 @@ DEFINE_PRIMITIVE(Behavior_basicNew) {
 }
 
 DEFINE_PRIMITIVE(Object_instVarAt) {
-  ASSERT(num_args == 2);  // Always a mirror primitive.
+  FIXED_NUM_ARGS(2);  // Always a mirror primitive.
   RegularObject object = RegularObject::Cast(I->Stack(1));
   if (!object->IsRegularObject() && !object->IsEphemeron()) {
     return kFailure;
@@ -1309,7 +1347,7 @@ DEFINE_PRIMITIVE(Object_instVarAt) {
 }
 
 DEFINE_PRIMITIVE(Object_instVarAtPut) {
-  ASSERT(num_args == 3);  // Always a mirror primitive.
+  FIXED_NUM_ARGS(3);  // Always a mirror primitive.
   RegularObject object = RegularObject::Cast(I->Stack(2));
   if (!object->IsRegularObject() && !object->IsEphemeron()) {
     return kFailure;
@@ -1326,7 +1364,7 @@ DEFINE_PRIMITIVE(Object_instVarAtPut) {
 DEFINE_PRIMITIVE(Object_instVarSize) { UNIMPLEMENTED(); return kSuccess; }
 
 DEFINE_PRIMITIVE(Array_class_new) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(length, 0);
   if (length < 0) {
     return kFailure;
@@ -1339,7 +1377,7 @@ DEFINE_PRIMITIVE(Array_class_new) {
 }
 
 DEFINE_PRIMITIVE(Array_at) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Array array = Array::Cast(I->Stack(1));
   ASSERT(array->IsArray());
   SMI_ARGUMENT(index, 0);
@@ -1351,7 +1389,7 @@ DEFINE_PRIMITIVE(Array_at) {
 }
 
 DEFINE_PRIMITIVE(Array_atPut) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Array array = Array::Cast(I->Stack(2));
   ASSERT(array->IsArray());
   SMI_ARGUMENT(index, 1);
@@ -1365,14 +1403,14 @@ DEFINE_PRIMITIVE(Array_atPut) {
 }
 
 DEFINE_PRIMITIVE(Array_size) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Array array = Array::Cast(I->Stack(0));
   ASSERT(array->IsArray());
   RETURN(array->size());
 }
 
 DEFINE_PRIMITIVE(WeakArray_class_new) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(length, 0);
   if (length < 0) {
     return kFailure;
@@ -1385,7 +1423,7 @@ DEFINE_PRIMITIVE(WeakArray_class_new) {
 }
 
 DEFINE_PRIMITIVE(WeakArray_at) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   WeakArray array = WeakArray::Cast(I->Stack(1));
   ASSERT(array->IsWeakArray());
   SMI_ARGUMENT(index, 0);
@@ -1397,7 +1435,7 @@ DEFINE_PRIMITIVE(WeakArray_at) {
 }
 
 DEFINE_PRIMITIVE(WeakArray_atPut) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   WeakArray array = WeakArray::Cast(I->Stack(2));
   ASSERT(array->IsWeakArray());
   SMI_ARGUMENT(index, 1);
@@ -1411,14 +1449,14 @@ DEFINE_PRIMITIVE(WeakArray_atPut) {
 }
 
 DEFINE_PRIMITIVE(WeakArray_size) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   WeakArray array = WeakArray::Cast(I->Stack(0));
   ASSERT(array->IsWeakArray());
   RETURN(array->size());
 }
 
 DEFINE_PRIMITIVE(ByteArray_class_new) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(length, 0);
   if (length < 0) {
     return kFailure;
@@ -1429,7 +1467,7 @@ DEFINE_PRIMITIVE(ByteArray_class_new) {
 }
 
 DEFINE_PRIMITIVE(ByteArray_at) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   ByteArray array = ByteArray::Cast(I->Stack(1));
   ASSERT(array->IsByteArray());
   SMI_ARGUMENT(index, 0);
@@ -1442,7 +1480,7 @@ DEFINE_PRIMITIVE(ByteArray_at) {
 }
 
 DEFINE_PRIMITIVE(ByteArray_atPut) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   ByteArray array = ByteArray::Cast(I->Stack(2));
   ASSERT(array->IsByteArray());
   SMI_ARGUMENT(index, 1);
@@ -1459,7 +1497,7 @@ DEFINE_PRIMITIVE(ByteArray_atPut) {
 }
 
 DEFINE_PRIMITIVE(ByteArray_size) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   ByteArray array = ByteArray::Cast(I->Stack(0));
   ASSERT(array->IsByteArray());
   RETURN(array->size());
@@ -1467,8 +1505,8 @@ DEFINE_PRIMITIVE(ByteArray_size) {
 
 #define ACCESS_INTEGER(name, ctype, min, max)                                  \
   DEFINE_PRIMITIVE(Bytes_##name##At) {                                         \
-    ASSERT(num_args == 1);                                                     \
-    ByteArray array = ByteArray::Cast(I->Stack(1));                     \
+    FIXED_NUM_ARGS(1);                                                         \
+    ByteArray array = ByteArray::Cast(I->Stack(1));                            \
     ASSERT(array->IsByteArray());                                              \
     SMI_ARGUMENT(index, 0);                                                    \
     intptr_t width = sizeof(ctype);                                            \
@@ -1480,8 +1518,8 @@ DEFINE_PRIMITIVE(ByteArray_size) {
     RETURN_MINT(value);                                                        \
   }                                                                            \
   DEFINE_PRIMITIVE(Bytes_##name##AtPut) {                                      \
-    ASSERT(num_args == 2);                                                     \
-    ByteArray array = ByteArray::Cast(I->Stack(2));                     \
+    FIXED_NUM_ARGS(2);                                                         \
+    ByteArray array = ByteArray::Cast(I->Stack(2));                            \
     ASSERT(array->IsByteArray());                                              \
     SMI_ARGUMENT(index, 1);                                                    \
     intptr_t width = sizeof(ctype);                                            \
@@ -1506,7 +1544,7 @@ ACCESS_INTEGER(int64, int64_t, INT64_MIN, INT64_MAX)
 #undef ACCESS_INTEGER
 
 DEFINE_PRIMITIVE(Bytes_uint64At) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   ByteArray array = ByteArray::Cast(I->Stack(1));
   ASSERT(array->IsByteArray());
   SMI_ARGUMENT(index, 0);
@@ -1519,7 +1557,7 @@ DEFINE_PRIMITIVE(Bytes_uint64At) {
   RETURN(result);
 }
 DEFINE_PRIMITIVE(Bytes_uint64AtPut) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   ByteArray array = ByteArray::Cast(I->Stack(2));
   ASSERT(array->IsByteArray());
   SMI_ARGUMENT(index, 1);
@@ -1537,8 +1575,8 @@ DEFINE_PRIMITIVE(Bytes_uint64AtPut) {
 
 #define ACCESS_FLOAT(name, ctype)                                              \
   DEFINE_PRIMITIVE(Bytes_##name##At) {                                         \
-    ASSERT(num_args == 1);                                                     \
-    ByteArray array = ByteArray::Cast(I->Stack(1));                     \
+    FIXED_NUM_ARGS(1);                                                         \
+    ByteArray array = ByteArray::Cast(I->Stack(1));                            \
     ASSERT(array->IsByteArray());                                              \
     SMI_ARGUMENT(index, 0);                                                    \
     intptr_t width = sizeof(ctype);                                            \
@@ -1550,8 +1588,8 @@ DEFINE_PRIMITIVE(Bytes_uint64AtPut) {
     RETURN_FLOAT(static_cast<double>(value));                                  \
   }                                                                            \
   DEFINE_PRIMITIVE(Bytes_##name##AtPut) {                                      \
-    ASSERT(num_args == 2);                                                     \
-    ByteArray array = ByteArray::Cast(I->Stack(2));                     \
+    FIXED_NUM_ARGS(2);                                                         \
+    ByteArray array = ByteArray::Cast(I->Stack(2));                            \
     ASSERT(array->IsByteArray());                                              \
     SMI_ARGUMENT(index, 1);                                                    \
     intptr_t width = sizeof(ctype);                                            \
@@ -1568,7 +1606,7 @@ ACCESS_FLOAT(float64, double)
 #undef ACCESS_FLOAT
 
 DEFINE_PRIMITIVE(Bytes_copyByteArrayFromTo) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
 
   if (!I->Stack(1)->IsSmallInteger()) return kFailure;
   intptr_t start = SmallInteger::Cast(I->Stack(1))->value();
@@ -1595,7 +1633,7 @@ DEFINE_PRIMITIVE(Bytes_copyByteArrayFromTo) {
 }
 
 DEFINE_PRIMITIVE(ByteArray_replaceFromToWithStartingAt) {
-  ASSERT(num_args == 4);
+  FIXED_NUM_ARGS(4);
   ByteArray receiver = ByteArray::Cast(I->Stack(4));
   if (!receiver->IsByteArray()) {
     UNREACHABLE();
@@ -1636,7 +1674,7 @@ DEFINE_PRIMITIVE(ByteArray_replaceFromToWithStartingAt) {
 }
 
 DEFINE_PRIMITIVE(Array_replaceFromToWithStartingAt) {
-  ASSERT(num_args == 4);
+  FIXED_NUM_ARGS(4);
   Array receiver = Array::Cast(I->Stack(4));
   if (!receiver->IsArray()) {
     UNREACHABLE();
@@ -1686,7 +1724,7 @@ DEFINE_PRIMITIVE(Array_replaceFromToWithStartingAt) {
 }
 
 DEFINE_PRIMITIVE(Array_copyFromTo) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
 
   if (!I->Stack(1)->IsSmallInteger()) return kFailure;
   intptr_t start = SmallInteger::Cast(I->Stack(1))->value();
@@ -1713,7 +1751,7 @@ DEFINE_PRIMITIVE(Array_copyFromTo) {
 }
 
 DEFINE_PRIMITIVE(String_at) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   String string = String::Cast(I->Stack(1));
   ASSERT(string->IsString());
   SMI_ARGUMENT(index, 0);
@@ -1726,14 +1764,14 @@ DEFINE_PRIMITIVE(String_at) {
 }
 
 DEFINE_PRIMITIVE(String_size) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   String string = String::Cast(I->Stack(0));
   ASSERT(string->IsString());
   RETURN(string->size());
 }
 
 DEFINE_PRIMITIVE(String_hash) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   String string = String::Cast(I->Stack(0));
   ASSERT(string->IsString());
   SmallInteger hash = string->EnsureHash(I->isolate());
@@ -1741,14 +1779,14 @@ DEFINE_PRIMITIVE(String_hash) {
 }
 
 DEFINE_PRIMITIVE(Activation_sender) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Activation activation = Activation::Cast(I->Stack(0));
   ASSERT(activation->IsActivation());
   RETURN(I->ActivationSender(activation));  // SAFEPOINT
 }
 
 DEFINE_PRIMITIVE(Activation_senderPut) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);;
   Activation activation = Activation::Cast(I->Stack(1));
   ASSERT(activation->IsActivation());
   Activation new_sender = Activation::Cast(I->Stack(0));
@@ -1760,14 +1798,14 @@ DEFINE_PRIMITIVE(Activation_senderPut) {
 }
 
 DEFINE_PRIMITIVE(Activation_bci) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Activation activation = Activation::Cast(I->Stack(0));
   ASSERT(activation->IsActivation());
   RETURN(I->ActivationBCI(activation));
 }
 
 DEFINE_PRIMITIVE(Activation_bciPut) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Activation activation = Activation::Cast(I->Stack(1));
   ASSERT(activation->IsActivation());
   SmallInteger new_bci = SmallInteger::Cast(I->Stack(0));
@@ -1779,7 +1817,7 @@ DEFINE_PRIMITIVE(Activation_bciPut) {
 }
 
 DEFINE_PRIMITIVE(Activation_method) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Activation activation = Activation::Cast(I->Stack(0));
   ASSERT(activation->IsActivation());
   // No frame state to sync.
@@ -1787,7 +1825,7 @@ DEFINE_PRIMITIVE(Activation_method) {
 }
 
 DEFINE_PRIMITIVE(Activation_methodPut) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Activation activation = Activation::Cast(I->Stack(1));
   ASSERT(activation->IsActivation());
   Method new_method = Method::Cast(I->Stack(0));
@@ -1796,7 +1834,7 @@ DEFINE_PRIMITIVE(Activation_methodPut) {
 }
 
 DEFINE_PRIMITIVE(Activation_closure) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Activation activation = Activation::Cast(I->Stack(0));
   ASSERT(activation->IsActivation());
   // No frame state to sync.
@@ -1804,7 +1842,7 @@ DEFINE_PRIMITIVE(Activation_closure) {
 }
 
 DEFINE_PRIMITIVE(Activation_closurePut) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Activation activation = Activation::Cast(I->Stack(1));
   ASSERT(activation->IsActivation());
   Closure new_closure = Closure::Cast(I->Stack(0));
@@ -1816,7 +1854,7 @@ DEFINE_PRIMITIVE(Activation_closurePut) {
 }
 
 DEFINE_PRIMITIVE(Activation_receiver) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Activation activation = Activation::Cast(I->Stack(0));
   ASSERT(activation->IsActivation());
   // No frame state to sync.
@@ -1824,7 +1862,7 @@ DEFINE_PRIMITIVE(Activation_receiver) {
 }
 
 DEFINE_PRIMITIVE(Activation_receiverPut) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Activation activation = Activation::Cast(I->Stack(1));
   ASSERT(activation->IsActivation());
   Object new_receiver = I->Stack(0);
@@ -1833,7 +1871,7 @@ DEFINE_PRIMITIVE(Activation_receiverPut) {
 }
 
 DEFINE_PRIMITIVE(Activation_tempAt) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Activation activation = Activation::Cast(I->Stack(1));
   ASSERT(activation->IsActivation());
   SMI_ARGUMENT(index, 0);
@@ -1845,7 +1883,7 @@ DEFINE_PRIMITIVE(Activation_tempAt) {
 }
 
 DEFINE_PRIMITIVE(Activation_tempAtPut) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Activation activation = Activation::Cast(I->Stack(2));
   ASSERT(activation->IsActivation());
   SMI_ARGUMENT(index, 1);
@@ -1860,14 +1898,14 @@ DEFINE_PRIMITIVE(Activation_tempAtPut) {
 }
 
 DEFINE_PRIMITIVE(Activation_tempSize) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Activation activation = Activation::Cast(I->Stack(0));
   ASSERT(activation->IsActivation());
   RETURN_SMI(I->ActivationTempSize(activation));
 }
 
 DEFINE_PRIMITIVE(Activation_tempSizePut) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Activation activation = Activation::Cast(I->Stack(1));
   ASSERT(activation->IsActivation());
   SMI_ARGUMENT(new_size, 0);
@@ -1879,7 +1917,7 @@ DEFINE_PRIMITIVE(Activation_tempSizePut) {
 }
 
 DEFINE_PRIMITIVE(Activation_class_new) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Activation result = H->AllocateActivation();  // SAFEPOINT
   result->set_sender(Activation::Cast(nil), kNoBarrier);
   result->set_bci(SmallInteger::Cast(nil));
@@ -1891,7 +1929,7 @@ DEFINE_PRIMITIVE(Activation_class_new) {
 }
 
 DEFINE_PRIMITIVE(Closure_class_new) {
-  ASSERT(num_args == 4);
+  FIXED_NUM_ARGS(4);
   Activation defining_activation = Activation::Cast(I->Stack(3));
   SmallInteger initial_bci = SmallInteger::Cast(I->Stack(2));
   SmallInteger closure_num_args = SmallInteger::Cast(I->Stack(1));
@@ -1929,7 +1967,7 @@ DEFINE_PRIMITIVE(Closure_class_new) {
 }
 
 DEFINE_PRIMITIVE(Closure_class_withNumCopied) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SmallInteger num_copied = SmallInteger::Cast(I->Stack(0));
   if (!num_copied->IsSmallInteger()) {
     return kFailure;
@@ -1947,7 +1985,7 @@ DEFINE_PRIMITIVE(Closure_class_withNumCopied) {
 }
 
 DEFINE_PRIMITIVE(Closure_numCopied) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Closure closure = Closure::Cast(I->Stack(0));
   if (!closure->IsClosure()) {
     return kFailure;
@@ -1965,7 +2003,7 @@ DEFINE_PRIMITIVE(Closure_definingActivation) {
 }
 
 DEFINE_PRIMITIVE(Closure_definingActivationPut) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Closure closure = Closure::Cast(I->Stack(1));
   Activation activation = Activation::Cast(I->Stack(0));
   if (!closure->IsClosure()) {
@@ -1979,7 +2017,7 @@ DEFINE_PRIMITIVE(Closure_definingActivationPut) {
 }
 
 DEFINE_PRIMITIVE(Closure_initialBci) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Closure closure = Closure::Cast(I->Stack(0));
   if (!closure->IsClosure()) {
     return kFailure;
@@ -1988,7 +2026,7 @@ DEFINE_PRIMITIVE(Closure_initialBci) {
 }
 
 DEFINE_PRIMITIVE(Closure_initialBciPut) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Closure closure = Closure::Cast(I->Stack(1));
   SmallInteger initial_bci = SmallInteger::Cast(I->Stack(0));
   if (!closure->IsClosure()) {
@@ -2002,7 +2040,7 @@ DEFINE_PRIMITIVE(Closure_initialBciPut) {
 }
 
 DEFINE_PRIMITIVE(Closure_numArgs) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Closure closure = Closure::Cast(I->Stack(0));
   if (!closure->IsClosure()) {
     return kFailure;
@@ -2011,7 +2049,7 @@ DEFINE_PRIMITIVE(Closure_numArgs) {
 }
 
 DEFINE_PRIMITIVE(Closure_numArgsPut) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Closure closure = Closure::Cast(I->Stack(1));
   SmallInteger closure_num_args = SmallInteger::Cast(I->Stack(0));
   if (!closure->IsClosure()) {
@@ -2025,7 +2063,7 @@ DEFINE_PRIMITIVE(Closure_numArgsPut) {
 }
 
 DEFINE_PRIMITIVE(Closure_copiedAt) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Closure closure = Closure::Cast(I->Stack(1));
   SmallInteger index = SmallInteger::Cast(I->Stack(0));
   if (!closure->IsClosure()) {
@@ -2045,7 +2083,7 @@ DEFINE_PRIMITIVE(Closure_copiedAt) {
 }
 
 DEFINE_PRIMITIVE(Closure_copiedAtPut) {
-  ASSERT(num_args == 3);
+  FIXED_NUM_ARGS(3);
   Closure closure = Closure::Cast(I->Stack(2));
   SmallInteger index = SmallInteger::Cast(I->Stack(1));
   Object value = I->Stack(0);
@@ -2110,7 +2148,7 @@ DEFINE_PRIMITIVE(Object_identityHash) {
 }
 
 DEFINE_PRIMITIVE(Object_performWithAll) {
-  ASSERT(num_args == 3);
+  FIXED_NUM_ARGS(3);
   Object message = I->Stack(3);
   Object receiver = I->Stack(2);
   String selector = String::Cast(I->Stack(1));
@@ -2127,7 +2165,7 @@ DEFINE_PRIMITIVE(Object_performWithAll) {
 }
 
 DEFINE_PRIMITIVE(Closure_value0) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Closure closure = Closure::Cast(I->Stack(num_args));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != SmallInteger::New(0)) {
@@ -2139,7 +2177,7 @@ DEFINE_PRIMITIVE(Closure_value0) {
 }
 
 DEFINE_PRIMITIVE(Closure_value1) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Closure closure = Closure::Cast(I->Stack(num_args));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != SmallInteger::New(1)) {
@@ -2151,7 +2189,7 @@ DEFINE_PRIMITIVE(Closure_value1) {
 }
 
 DEFINE_PRIMITIVE(Closure_value2) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Closure closure = Closure::Cast(I->Stack(num_args));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != SmallInteger::New(2)) {
@@ -2163,7 +2201,7 @@ DEFINE_PRIMITIVE(Closure_value2) {
 }
 
 DEFINE_PRIMITIVE(Closure_value3) {
-  ASSERT(num_args == 3);
+  FIXED_NUM_ARGS(3);
   Closure closure = Closure::Cast(I->Stack(num_args));
   ASSERT(closure->IsClosure());
   if (closure->num_args() != SmallInteger::New(3)) {
@@ -2175,7 +2213,7 @@ DEFINE_PRIMITIVE(Closure_value3) {
 }
 
 DEFINE_PRIMITIVE(Closure_valueArray) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Closure closure = Closure::Cast(I->Stack(1));
   ASSERT(closure->IsClosure());
   Array args = Array::Cast(I->Stack(0));
@@ -2194,7 +2232,7 @@ DEFINE_PRIMITIVE(Closure_valueArray) {
 }
 
 DEFINE_PRIMITIVE(Activation_jump) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Activation target = Activation::Cast(I->Stack(0));
   if (!target->IsActivation() ||
       !target->bci()->IsSmallInteger()) {
@@ -2207,21 +2245,21 @@ DEFINE_PRIMITIVE(Activation_jump) {
 }
 
 DEFINE_PRIMITIVE(Behavior_allInstances) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Behavior cls = Behavior::Cast(I->Stack(0));
   Array result = H->InstancesOf(cls);  // SAFEPOINT
   RETURN(result);
 }
 
 DEFINE_PRIMITIVE(Object_referencesTo) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Object target = I->Stack(0);
   Array result = H->ReferencesTo(target);  // SAFEPOINT
   RETURN(result);
 }
 
 DEFINE_PRIMITIVE(Object_heapSize) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Object target = I->Stack(0);
   intptr_t heap_size = 0;
   if (target->IsHeapObject()) {
@@ -2231,7 +2269,7 @@ DEFINE_PRIMITIVE(Object_heapSize) {
 }
 
 DEFINE_PRIMITIVE(Heap_becomeForward) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Array left = Array::Cast(I->Stack(1));
   Array right = Array::Cast(I->Stack(0));
   if (left->IsArray() && right->IsArray()) {
@@ -2243,10 +2281,12 @@ DEFINE_PRIMITIVE(Heap_becomeForward) {
 }
 
 DEFINE_PRIMITIVE(Platform_numberOfProcessors) {
+  FIXED_NUM_ARGS(0);
   RETURN_SMI(OS::NumberOfAvailableProcessors());
 }
 
 DEFINE_PRIMITIVE(Platform_operatingSystem) {
+  FIXED_NUM_ARGS(0);
   const char* name = OS::Name();
   intptr_t length = strlen(name);
   String result = H->AllocateString(length);  // SAFEPOINT
@@ -2255,19 +2295,19 @@ DEFINE_PRIMITIVE(Platform_operatingSystem) {
 }
 
 DEFINE_PRIMITIVE(Time_monotonicNanos) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   int64_t now = OS::CurrentMonotonicNanos();
   RETURN_MINT(now);
 }
 
 DEFINE_PRIMITIVE(Time_realtimeNanos) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   int64_t now = OS::CurrentRealtimeNanos();
   RETURN_MINT(now);
 }
 
 DEFINE_PRIMITIVE(Time_localtime) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   MINT_ARGUMENT(seconds, 1);
   Array result = Array::Cast(I->Stack(0));
   if (!result->IsArray() || (result->Size() < 9)) return kFailure;
@@ -2317,7 +2357,7 @@ DEFINE_PRIMITIVE(Time_localtime) {
 }
 
 DEFINE_PRIMITIVE(Random_getEntropy) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   SMI_ARGUMENT(size, 0);
   if (size < 0) return kFailure;
   ByteArray buffer = ByteArray::Cast(I->Stack(1));
@@ -2327,9 +2367,7 @@ DEFINE_PRIMITIVE(Random_getEntropy) {
 }
 
 DEFINE_PRIMITIVE(print) {
-  ASSERT(num_args == 1);
-  ASSERT(I->StackDepth() >= 2);
-
+  FIXED_NUM_ARGS(1);
   Object message = I->Stack(0);
   if (message->IsString()) {
     String string = String::Cast(message);
@@ -2359,12 +2397,13 @@ DEFINE_PRIMITIVE(Interpreter_flushCache) {
 }
 
 DEFINE_PRIMITIVE(Heap_collectGarbage) {
+  FIXED_NUM_ARGS(0);
   H->CollectAll(Heap::kPrimitive);  // SAFEPOINT
   RETURN_SELF();
 }
 
 DEFINE_PRIMITIVE(MessageLoop_exit) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SmallInteger exit_code = SmallInteger::Cast(I->Stack(0));
   if (!exit_code->IsSmallInteger()) {
     return kFailure;
@@ -2376,7 +2415,7 @@ DEFINE_PRIMITIVE(MessageLoop_exit) {
 }
 
 DEFINE_PRIMITIVE(Double_asStringFixed) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   FLOAT_ARGUMENT(value, 1);
   SMI_ARGUMENT(fraction_digits, 0);
   if (fraction_digits < 0 || fraction_digits > 20) {
@@ -2399,7 +2438,7 @@ DEFINE_PRIMITIVE(Double_asStringFixed) {
 }
 
 DEFINE_PRIMITIVE(Double_asStringExponential) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   FLOAT_ARGUMENT(value, 1);
   SMI_ARGUMENT(fraction_digits, 0);
   if (fraction_digits < 0 || fraction_digits > 20) {
@@ -2417,7 +2456,7 @@ DEFINE_PRIMITIVE(Double_asStringExponential) {
 }
 
 DEFINE_PRIMITIVE(Double_asStringPrecision) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   FLOAT_ARGUMENT(value, 1);
   SMI_ARGUMENT(precision, 0);
   if (precision < 1 || precision > 21) {
@@ -2435,7 +2474,7 @@ DEFINE_PRIMITIVE(Double_asStringPrecision) {
 }
 
 DEFINE_PRIMITIVE(Number_asString) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Object receiver = I->Stack(0);
 
   char buffer[64];
@@ -2470,7 +2509,7 @@ DEFINE_PRIMITIVE(Closure_ensure) {
 }
 
 DEFINE_PRIMITIVE(String_equals) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
 
   String left = String::Cast(I->Stack(1));
   String right = String::Cast(I->Stack(0));
@@ -2497,7 +2536,7 @@ DEFINE_PRIMITIVE(String_equals) {
 }
 
 DEFINE_PRIMITIVE(String_concat) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   String a = String::Cast(I->Stack(1));
   String b = String::Cast(I->Stack(0));
   if (!a->IsString() || !b->IsString()) {
@@ -2519,7 +2558,7 @@ DEFINE_PRIMITIVE(Closure_onDo) {
 }
 
 DEFINE_PRIMITIVE(Bytes_startsWith) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Bytes string = Bytes::Cast(I->Stack(1));
   Bytes prefix = Bytes::Cast(I->Stack(0));
   if (!string->IsBytes() || !prefix->IsBytes()) {
@@ -2540,7 +2579,7 @@ DEFINE_PRIMITIVE(Bytes_startsWith) {
 }
 
 DEFINE_PRIMITIVE(Bytes_endsWith) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Bytes string = Bytes::Cast(I->Stack(1));
   Bytes suffix = Bytes::Cast(I->Stack(0));
   if (!string->IsBytes() || !suffix->IsBytes()) {
@@ -2563,7 +2602,7 @@ DEFINE_PRIMITIVE(Bytes_endsWith) {
 }
 
 DEFINE_PRIMITIVE(Bytes_indexOf) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
 
   Bytes string = Bytes::Cast(I->Stack(2));
   Bytes substring = Bytes::Cast(I->Stack(1));
@@ -2609,7 +2648,7 @@ DEFINE_PRIMITIVE(Bytes_indexOf) {
 }
 
 DEFINE_PRIMITIVE(Bytes_lastIndexOf) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
 
   Bytes string = Bytes::Cast(I->Stack(2));
   Bytes substring = Bytes::Cast(I->Stack(1));
@@ -2657,7 +2696,7 @@ DEFINE_PRIMITIVE(Bytes_lastIndexOf) {
 }
 
 DEFINE_PRIMITIVE(Bytes_copyStringFromTo) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
 
   if (!I->Stack(1)->IsSmallInteger()) return kFailure;
   intptr_t start = SmallInteger::Cast(I->Stack(1))->value();
@@ -2684,7 +2723,7 @@ DEFINE_PRIMITIVE(Bytes_copyStringFromTo) {
 }
 
 DEFINE_PRIMITIVE(String_class_with) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Object byte = I->Stack(0);
   if (!SmallInteger::IsByte(byte)) {
     return kFailure;
@@ -2695,7 +2734,7 @@ DEFINE_PRIMITIVE(String_class_with) {
 }
 
 DEFINE_PRIMITIVE(String_class_withAll) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
 
   if (I->Stack(0)->IsBytes()) {
     intptr_t length = Bytes::Cast(I->Stack(0))->Size();
@@ -2729,7 +2768,7 @@ DEFINE_PRIMITIVE(String_class_withAll) {
 }
 
 DEFINE_PRIMITIVE(ByteArray_class_withAll) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
 
   if (I->Stack(0)->IsBytes()) {
     intptr_t length = Bytes::Cast(I->Stack(0))->Size();
@@ -2763,7 +2802,7 @@ DEFINE_PRIMITIVE(ByteArray_class_withAll) {
 }
 
 DEFINE_PRIMITIVE(Object_isCanonical) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Object object = I->Stack(0);
   if (object->IsHeapObject()) {
     RETURN_BOOL(HeapObject::Cast(object)->is_canonical());
@@ -2773,7 +2812,7 @@ DEFINE_PRIMITIVE(Object_isCanonical) {
 }
 
 DEFINE_PRIMITIVE(Object_markCanonical) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Object object = I->Stack(0);
   if (object->IsHeapObject()) {
     HeapObject::Cast(object)->set_is_canonical(true);
@@ -2787,7 +2826,7 @@ DEFINE_PRIMITIVE(writeBytesToFile) {
 #if defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Bytes content = Bytes::Cast(I->Stack(1));
   Bytes filename = Bytes::Cast(I->Stack(0));
   if (!content->IsBytes() || !filename->IsBytes()) {
@@ -2824,7 +2863,7 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
 #if defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Bytes filename = String::Cast(I->Stack(0));
   if (!filename->IsBytes()) {
     return kFailure;
@@ -2863,7 +2902,7 @@ DEFINE_PRIMITIVE(readFileAsBytes) {
 }
 
 DEFINE_PRIMITIVE(Double_class_parse) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   String string = String::Cast(I->Stack(0));
   if (!string->IsString()) {
     return kFailure;
@@ -2878,12 +2917,12 @@ DEFINE_PRIMITIVE(Double_class_parse) {
 }
 
 DEFINE_PRIMITIVE(currentActivation) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   RETURN(I->CurrentActivation());  // SAFEPOINT
 }
 
 DEFINE_PRIMITIVE(Behavior_adoptInstance) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   Behavior new_cls = Behavior::Cast(I->Stack(1));
   HeapObject instance = HeapObject::Cast(I->Stack(0));
   Behavior old_cls = instance->Klass(H);
@@ -2906,20 +2945,20 @@ DEFINE_PRIMITIVE(Behavior_adoptInstance) {
 }
 
 DEFINE_PRIMITIVE(openPort) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   Port new_port = I->isolate()->loop()->OpenPort();
   RETURN_MINT(new_port);
 }
 
 DEFINE_PRIMITIVE(closePort) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   MINT_ARGUMENT(port, 0);
   I->isolate()->loop()->ClosePort(port);
   RETURN_SELF();
 }
 
 DEFINE_PRIMITIVE(spawn) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   ByteArray message = ByteArray::Cast(I->Stack(0));
   if (message->IsByteArray()) {
     intptr_t length = message->Size();
@@ -2935,7 +2974,7 @@ DEFINE_PRIMITIVE(spawn) {
 }
 
 DEFINE_PRIMITIVE(send) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   MINT_ARGUMENT(port, 1);
   ByteArray data = ByteArray::Cast(I->Stack(0));
   if (!data->IsByteArray()) {
@@ -2952,7 +2991,7 @@ DEFINE_PRIMITIVE(send) {
 }
 
 DEFINE_PRIMITIVE(MessageLoop_finish) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   MINT_ARGUMENT(new_wakeup, 0);
   I->isolate()->loop()->MessageEpilogue(new_wakeup);
   I->ReturnFromDispatch();
@@ -2962,7 +3001,7 @@ DEFINE_PRIMITIVE(MessageLoop_finish) {
 }
 
 DEFINE_PRIMITIVE(doPrimitiveWithArgs) {
-  ASSERT(num_args == 3);
+  FIXED_NUM_ARGS(3);
   SmallInteger primitive_index = SmallInteger::Cast(I->Stack(2));
   Object receiver = I->Stack(1);
   Array arguments = Array::Cast(I->Stack(0));
@@ -3049,7 +3088,7 @@ DEFINE_PRIMITIVE(simulationRoot) {
 }
 
 DEFINE_PRIMITIVE(MessageLoop_awaitSignal) {
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   SMI_ARGUMENT(handle, 1);
   SMI_ARGUMENT(signals, 0);
   intptr_t wait_id = I->isolate()->loop()->AwaitSignal(handle, signals);
@@ -3057,7 +3096,7 @@ DEFINE_PRIMITIVE(MessageLoop_awaitSignal) {
 }
 
 DEFINE_PRIMITIVE(MessageLoop_cancelSignalWait) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(wait_id, 0);
   I->isolate()->loop()->CancelSignalWait(wait_id);
   RETURN_SELF();
@@ -3073,7 +3112,7 @@ DEFINE_PRIMITIVE(ZXStatus_getString) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(status, 0);
   const char* raw_string = zx_status_get_string(status);
   intptr_t length = strlen(raw_string);
@@ -3087,7 +3126,7 @@ DEFINE_PRIMITIVE(ZXHandle_close) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SmallInteger handle = SmallInteger::Cast(I->Stack(0));
   if (!handle->IsSmallInteger()) {
     return kFailure;
@@ -3101,7 +3140,7 @@ DEFINE_PRIMITIVE(ZXChannel_create) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   SmallInteger options = SmallInteger::Cast(I->Stack(1));
   if (!options->IsSmallInteger() || options->value() < 0) {
     return kFailure;
@@ -3123,7 +3162,7 @@ DEFINE_PRIMITIVE(ZXChannel_read) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   SmallInteger channel = SmallInteger::Cast(I->Stack(1));
   if (!channel->IsSmallInteger()) {
     return kFailure;
@@ -3169,7 +3208,7 @@ DEFINE_PRIMITIVE(ZXChannel_write) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 4);
+  FIXED_NUM_ARGS(4);
   SmallInteger channel = SmallInteger::Cast(I->Stack(3));
   if (!channel->IsSmallInteger()) {
     return kFailure;
@@ -3207,7 +3246,7 @@ DEFINE_PRIMITIVE(ZXVmo_create) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 3);
+  FIXED_NUM_ARGS(3);
   SmallInteger size = SmallInteger::Cast(I->Stack(2));
   if (!size->IsSmallInteger() || size->value() < 0) {
     return kFailure;
@@ -3231,7 +3270,7 @@ DEFINE_PRIMITIVE(ZXVmo_getSize) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 2);
+  FIXED_NUM_ARGS(2);
   SmallInteger vmo = SmallInteger::Cast(I->Stack(1));
   if (!vmo->IsSmallInteger()) {
     return kFailure;
@@ -3251,7 +3290,7 @@ DEFINE_PRIMITIVE(ZXVmo_setSize) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 3);
+  FIXED_NUM_ARGS(3);
   SmallInteger vmo = SmallInteger::Cast(I->Stack(2));
   if (!vmo->IsSmallInteger()) {
     return kFailure;
@@ -3273,7 +3312,7 @@ DEFINE_PRIMITIVE(ZXVmo_read) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 4);
+  FIXED_NUM_ARGS(4);
   SmallInteger vmo = SmallInteger::Cast(I->Stack(3));
   if (!vmo->IsSmallInteger()) {
     return kFailure;
@@ -3303,7 +3342,7 @@ DEFINE_PRIMITIVE(ZXVmo_write) {
 #if !defined(OS_FUCHSIA)
   return kFailure;
 #else
-  ASSERT(num_args == 4);
+  FIXED_NUM_ARGS(4);
   SmallInteger vmo = SmallInteger::Cast(I->Stack(3));
   if (!vmo->IsSmallInteger()) {
     return kFailure;
@@ -3568,7 +3607,7 @@ DEFINE_PRIMITIVE(JS_pushValue) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   Object object = I->Stack(0);
   if (object->IsSmallInteger()) {
     intptr_t value = SmallInteger::Cast(object)->value();
@@ -3615,7 +3654,7 @@ DEFINE_PRIMITIVE(JS_pushAlien) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(index, 0);
   _JS_pushAlien(index);
   RETURN_SELF();
@@ -3626,7 +3665,7 @@ DEFINE_PRIMITIVE(JS_pushExpat) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(index, 0);
   _JS_pushExpat(index);
   RETURN_SELF();
@@ -3637,6 +3676,7 @@ DEFINE_PRIMITIVE(JS_popValue) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
+  FIXED_NUM_ARGS(0);
   intptr_t type = _JS_peekType();
   if (type == -1) {
     RETURN(I->nil_obj());
@@ -3665,7 +3705,7 @@ DEFINE_PRIMITIVE(JS_peekAlien) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   intptr_t index = _JS_peekAlien();
   RETURN_SMI(index);
 #endif
@@ -3675,7 +3715,7 @@ DEFINE_PRIMITIVE(JS_peekExpat) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   intptr_t index = _JS_peekExpat();
   RETURN_SMI(index);
 #endif
@@ -3685,7 +3725,7 @@ DEFINE_PRIMITIVE(JS_performGet) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   if (_JS_performGet()) {
     RETURN_SELF();
   }
@@ -3697,7 +3737,7 @@ DEFINE_PRIMITIVE(JS_performSet) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   if (_JS_performSet()) {
     RETURN_SELF();
   }
@@ -3709,7 +3749,7 @@ DEFINE_PRIMITIVE(JS_performDelete) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   if (_JS_performDelete()) {
     RETURN_SELF();
   }
@@ -3721,7 +3761,7 @@ DEFINE_PRIMITIVE(JS_performInvoke) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(js_num_args, 0);
   if (_JS_performInvoke(js_num_args)) {
     RETURN_SELF();
@@ -3734,7 +3774,7 @@ DEFINE_PRIMITIVE(JS_performNew) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(js_num_args, 0);
   if (_JS_performNew(js_num_args)) {
     RETURN_SELF();
@@ -3747,7 +3787,7 @@ DEFINE_PRIMITIVE(JS_performInstanceOf) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   if (_JS_performInstanceOf()) {
     RETURN_SELF();
   }
@@ -3759,7 +3799,7 @@ DEFINE_PRIMITIVE(JS_performHas) {
 #if !defined(OS_EMSCRIPTEN)
   return kFailure;
 #else
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   if (_JS_performHas()) {
     RETURN_SELF();
   }
@@ -3768,7 +3808,7 @@ DEFINE_PRIMITIVE(JS_performHas) {
 }
 
 DEFINE_PRIMITIVE(OSError_statusToString) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(status, 0);
 
   char buffer[64];
@@ -3821,7 +3861,7 @@ static String AsString(Heap* H, const char* cstr) {
 DEFINE_PRIMITIVE(Process_start) {
 #if defined(OS_ANDROID) || defined(OS_LINUX) || \
     defined(OS_MACOS) || defined(OS_WINDOWS)
-  ASSERT(num_args == 5);
+  FIXED_NUM_ARGS(5);
   SmallInteger options = SmallInteger::Cast(I->Stack(4));
   if (!options->IsSmallInteger()) {
     return kFailure;
@@ -3884,7 +3924,7 @@ DEFINE_PRIMITIVE(Process_start) {
 DEFINE_PRIMITIVE(Pipe_read) {
 #if defined(OS_ANDROID) || defined(OS_LINUX) || \
     defined(OS_MACOS) || defined(OS_WINDOWS)
-  ASSERT(num_args == 3);
+  FIXED_NUM_ARGS(3);
   SMI_ARGUMENT(handle, 2);
   SMI_ARGUMENT(count, 1);
   ASSERT(count >= 0);
@@ -3918,7 +3958,7 @@ DEFINE_PRIMITIVE(Pipe_read) {
 DEFINE_PRIMITIVE(Pipe_write) {
 #if defined(OS_ANDROID) || defined(OS_LINUX) || \
     defined(OS_MACOS) || defined(OS_WINDOWS)
-  ASSERT(num_args == 5);
+  FIXED_NUM_ARGS(5);
   SMI_ARGUMENT(handle, 4);
   Bytes buffer = Bytes::Cast(I->Stack(3));
   if (!buffer->IsBytes()) {
@@ -3953,7 +3993,7 @@ DEFINE_PRIMITIVE(Pipe_write) {
 DEFINE_PRIMITIVE(Pipe_close) {
 #if defined(OS_ANDROID) || defined(OS_LINUX) || \
     defined(OS_MACOS) || defined(OS_WINDOWS)
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
   SMI_ARGUMENT(handle, 0);
   PlatformMessageLoop* loop =
       static_cast<PlatformMessageLoop*>(I->isolate()->loop());
@@ -3965,7 +4005,7 @@ DEFINE_PRIMITIVE(Pipe_close) {
 }
 
 DEFINE_PRIMITIVE(Process_environment) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
 #if defined(OS_WINDOWS)
   char* envblock = GetEnvironmentStringsA();
   int n = 0;
@@ -4010,7 +4050,7 @@ DEFINE_PRIMITIVE(Process_environment) {
 }
 
 DEFINE_PRIMITIVE(Object_yourself) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
   return kSuccess;
 }
 
@@ -4019,7 +4059,7 @@ static struct termios original_term;
 #endif
 
 DEFINE_PRIMITIVE(Term_start) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
 #if defined(OS_MACOS) || defined(OS_LINUX)
   intptr_t status = tcgetattr(STDIN_FILENO, &original_term);
   if (status == 0) {
@@ -4039,7 +4079,7 @@ DEFINE_PRIMITIVE(Term_start) {
 }
 
 DEFINE_PRIMITIVE(Term_stop) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
 #if defined(OS_MACOS) || defined(OS_LINUX)
   intptr_t status = tcsetattr(STDIN_FILENO, TCSANOW, &original_term);
   RETURN_SMI(status);
@@ -4049,7 +4089,7 @@ DEFINE_PRIMITIVE(Term_stop) {
 }
 
 DEFINE_PRIMITIVE(Term_size) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
 #if defined(OS_MACOS) || defined(OS_LINUX)
   struct winsize w;
   w.ws_col = 0;
@@ -4068,7 +4108,7 @@ DEFINE_PRIMITIVE(Term_size) {
 }
 
 DEFINE_PRIMITIVE(Term_write) {
-  ASSERT(num_args == 1);
+  FIXED_NUM_ARGS(1);
 #if defined(OS_MACOS) || defined(OS_LINUX)
   Bytes buffer = Bytes::Cast(I->Stack(0));
   if (!buffer->IsBytes()) return kFailure;
@@ -4091,7 +4131,7 @@ DEFINE_PRIMITIVE(Term_write) {
 }
 
 DEFINE_PRIMITIVE(Term_read) {
-  ASSERT(num_args == 0);
+  FIXED_NUM_ARGS(0);
 #if defined(OS_MACOS) || defined(OS_LINUX)
   uint8_t byte;
   while (read(STDIN_FILENO, &byte, 1) <= 0) {
