@@ -3422,12 +3422,15 @@ EM_JS(int, _JS_peekType, (), {
   var aliens = Module["aliens"];
   var alien = aliens[aliens.length - 1];
   if (null === alien) {
+    aliens.pop();
     return -1;
   }
   if (false === alien) {
+    aliens.pop();
     return -2;
   }
   if (true === alien) {
+    aliens.pop();
     return -3;
   }
   if (typeof alien === "number") {
