@@ -850,7 +850,9 @@ public parseTuple ^<TupleAST> = (
 
 	[tokenKind = #'}'] whileFalse:
 		[elements add: parseExpression.
-		 tokenKind = #'.' ifTrue: [advanceToken]].
+		 tokenKind = #'.'
+			ifTrue: [advanceToken]
+			ifFalse: [tokenKind = #'}' ifFalse: [expected: '}']]].
 
 	tupleEnd:: tokenEnd.
 	advanceToken. (* Consume } *)
@@ -863,7 +865,10 @@ public parseTupleType = (
 	advanceToken.
 	[tokenKind = #'}'] whileFalse:
 		[parseTypeExpression.
-		 tokenKind = #'.' ifTrue: [advanceToken]].
+		 tokenKind = #'.'
+			ifTrue: [advanceToken]
+			ifFalse: [tokenKind = #'}' ifFalse: [expected: '}']]].
+
 	advanceToken. (* Consume } *)
 	^nil
 )

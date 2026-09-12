@@ -2467,6 +2467,13 @@ public testTransientSlotIsComputedLazilyAndCachedLater = (
 			)
 		)'.
 )
+public testTupleBoundaries = (
+	assertCompilationErrorIn: 'class Sample = () ( method = ( ^{1 2 3} ) )'.
+	assertCompilationErrorIn: 'class Sample = () ( method = ( ^{.} ) )'.
+
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( ^{1. 2. 3.} ) )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method = ( ^{1. 2. 3} ) )'.
+)
 public testTupleLiteral0 = (
 	testSampleMethod: 'public tupleLiteral0 = ({})'
 	with: 'assert: [sample = sample tupleLiteral0].'
@@ -2499,6 +2506,13 @@ assert: [{16r1. 2} size = 2].
 assert: [{16r1 .2} size = 2].
 assert: [{16r1 . 2} size = 2].
 '
+)
+public testTupleTypeBoundaries = (
+	assertCompilationErrorIn: 'class Sample = () ( method ^<{{} {} {}}> = () )'.
+	assertCompilationErrorIn: 'class Sample = () ( method ^<{.}> = () )'.
+
+	assertNoCompilationErrorIn: 'class Sample = () ( method ^<{{}. {}. {}.}> = () )'.
+	assertNoCompilationErrorIn: 'class Sample = () ( method ^<{{}. {}. {}}> = () )'.
 )
 public testTwoParamBlock = (
 	testSampleMethod: 'public twoParamBlock = (^[:x :y | x -y] value: 91 value: 49) '
