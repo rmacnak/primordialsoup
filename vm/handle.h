@@ -106,6 +106,7 @@ class Process : public Handle {
   virtual ~Process();
 
   intptr_t pid() const { return pid_; }
+  intptr_t pidfd() const { return pidfd_; }
 
 #if defined(OS_WINDOWS)
   HANDLE completion_port() const { return completion_port_; }

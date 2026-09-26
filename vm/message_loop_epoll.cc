@@ -264,23 +264,23 @@ void EPollMessageLoop::RespondToEvent(const struct epoll_event& event) {
   }
   if (handle->type() == Handle::kProcess) {
     Process* process = static_cast<Process*>(handle);
-    pid_t pid = process->pid();
+    int pidfd = process->pidfd();
 
     // The pidfd asserts readable when the child exits, but doesn't
     // provide anything to read.
-    int wait_status = 0;
-    pid_t wait_result;
+    siginfo_t info = {};
+    int result;
     do {
-      wait_result = waitpid(pid, &wait_status, 0);
-    } while (wait_result == -1 && errno == EINTR);
-    ASSERT(wait_result == pid);
+      result = waitid(P_PIDFD, pidfd, &info, WEXITED);
+    } while (result == -1 && errno == EINTR);
+    ASSERT(info.si_pid == process->pid());
+    ASSERT(info.si_signo == SIGCHLD);
 
-    if (WIFEXITED(wait_status)) {
-      status = WEXITSTATUS(wait_status);
+    if (info.si_code == CLD_EXITED) {
+      status = info.si_status;
       ASSERT(status >= 0);
     } else {
-      ASSERT(WIFSIGNALED(wait_status));
-      status = -WTERMSIG(wait_status);
+      status = -info.si_status;
       ASSERT(status < 0);
     }
     pending = kCloseEvent;
@@ -408,22 +408,22 @@ intptr_t EPollMessageLoop::StartProcess(intptr_t options,
       // EOF: child exec succeeded.
     } else if (r == sizeof(childError)) {
       // Child setup or exec failed and managed to report it cleanly.
-      int wait_status = 0;
-      pid_t wait_result;
+      siginfo_t info;
+      int result;
       do {
-        wait_result = waitpid(pid, &wait_status, 0);  // Reap child.
-      } while (wait_result == -1 && errno == EINTR);
-      ASSERT(wait_result == pid);
+        result = waitid(P_PIDFD, pidfd, &info, WEXITED);  // Reap child.
+      } while (result == -1 && errno == EINTR);
+      ASSERT(info.si_pid == pid);
       errno = childError;
       goto parentError;
     } else if (r == -1 && errno == EPIPE) {
       // Some other child failure?
-      int wait_status = 0;
-      pid_t wait_result;
+      siginfo_t info;
+      int result;
       do {
-        wait_result = waitpid(pid, &wait_status, 0);  // Reap child.
-      } while (wait_result == -1 && errno == EINTR);
-      ASSERT(wait_result == pid);
+        result = waitid(P_PIDFD, pidfd, &info, WEXITED);  // Reap child.
+      } while (result == -1 && errno == EINTR);
+      ASSERT(info.si_pid == pid);
       errno = EPIPE;
       goto parentError;
     } else {
