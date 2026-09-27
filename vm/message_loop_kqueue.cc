@@ -7,11 +7,11 @@
 
 #include "vm/message_loop.h"
 
-#include <crt_externs.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
+#include <spawn.h>
 #include <sys/event.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -308,131 +308,68 @@ intptr_t KQueueMessageLoop::StartProcess(intptr_t options,
                                          intptr_t* stdin_out,
                                          intptr_t* stdout_out,
                                          intptr_t* stderr_out) {
+  int status;
   pid_t pid;
-  int pipes[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
-  for (int i = 0; i < 4; i++) {
-    if (pipe(pipes[i]) != 0) {
-      goto parentError;
-    }
-    if (!SetCloseOnExec(pipes[i][0])) {
-      goto parentError;
-    }
-    if (!SetCloseOnExec(pipes[i][1])) {
-      goto parentError;
-    }
+  int pipes[3][2] = {{-1, -1}, {-1, -1}, {-1, -1}};
+  posix_spawn_file_actions_t facts = {};
+  posix_spawnattr_t attr = {};
+  for (int i = 0; i < 3; i++) {
+    if (pipe(pipes[i]) != 0) goto failErrno;
+    if (!SetCloseOnExec(pipes[i][0])) goto failErrno;
+    if (!SetCloseOnExec(pipes[i][1])) goto failErrno;
   }
-  if (!SetBlockingHelper(pipes[0][kPipeWriteEnd], false)) {
-    goto parentError;
+  if (!SetBlockingHelper(pipes[0][kPipeWriteEnd], false)) goto failErrno;
+  if (!SetBlockingHelper(pipes[1][kPipeReadEnd], false)) goto failErrno;
+  if (!SetBlockingHelper(pipes[2][kPipeReadEnd], false)) goto failErrno;
+
+  status = posix_spawn_file_actions_init(&facts);
+  if (status != 0) goto failStatus;
+  status = posix_spawn_file_actions_adddup2(&facts,
+                                            pipes[0][kPipeReadEnd],
+                                            STDIN_FILENO);
+  if (status != 0) goto failStatus;
+  status = posix_spawn_file_actions_adddup2(&facts,
+                                            pipes[1][kPipeWriteEnd],
+                                            STDOUT_FILENO);
+  if (status != 0) goto failStatus;
+  status = posix_spawn_file_actions_adddup2(&facts,
+                                            pipes[2][kPipeWriteEnd],
+                                            STDERR_FILENO);
+  if (status != 0) goto failStatus;
+  if (cwd != nullptr) {
+    status = posix_spawn_file_actions_addchdir(&facts, cwd);
+    if (status != 0) goto failStatus;
   }
-  if (!SetBlockingHelper(pipes[1][kPipeReadEnd], false)) {
-    goto parentError;
-  }
-  if (!SetBlockingHelper(pipes[2][kPipeReadEnd], false)) {
-    goto parentError;
-  }
 
-  pid = fork();
-  if (pid == 0) {
-    // The child process.
+  status = posix_spawnattr_init(&attr);
+  if (status != 0) goto failStatus;
+  status = posix_spawnattr_setflags(&attr,
+                                    POSIX_SPAWN_SETSIGMASK |
+                                    POSIX_SPAWN_SETSIGDEF |
+                                    POSIX_SPAWN_CLOEXEC_DEFAULT);
+  if (status != 0) goto failStatus;
+  sigset_t signals;
+  sigemptyset(&signals);
+  status = posix_spawnattr_setsigmask(&attr, &signals);
+  if (status != 0) goto failStatus;
+  sigfillset(&signals);
+  status = posix_spawnattr_setsigdefault(&attr, &signals);
+  if (status != 0) goto failStatus;
 
-    // Setup stdio.
-    if (dup2(pipes[0][kPipeReadEnd], STDIN_FILENO) == -1) {
-      goto childError;
-    }
-    if (dup2(pipes[1][kPipeWriteEnd], STDOUT_FILENO) == -1) {
-      goto childError;
-    }
-    if (dup2(pipes[2][kPipeWriteEnd], STDERR_FILENO) == -1) {
-      goto childError;
-    }
+  status = posix_spawnp(&pid, argv[0], &facts, &attr, argv, env);
+  if (status != 0) goto failStatus;
+  posix_spawnattr_destroy(&attr);
+  posix_spawn_file_actions_destroy(&facts);
 
-    // Setup environment.
-    if (env != nullptr) {
-      *_NSGetEnviron() = env;
-    }
+  // Close the child end of the stdio pipes.
+  close(pipes[0][kPipeReadEnd]);
+  pipes[0][kPipeReadEnd] = -1;
+  close(pipes[1][kPipeWriteEnd]);
+  pipes[1][kPipeWriteEnd] = -1;
+  close(pipes[2][kPipeWriteEnd]);
+  pipes[2][kPipeWriteEnd] = -1;
 
-    // Setup working directory.
-    if (cwd != nullptr) {
-      if (chdir(cwd) != 0) {
-        goto childError;
-      }
-    }
-
-    // Reset signals.
-    for (int i = 1; i < 32; i++) {
-      if (i == SIGKILL) continue;  // Can't be caught.
-      if (i == SIGSTOP) continue;  // Can't be caught.
-      if (signal(i, SIG_DFL) == SIG_ERR) {
-        goto childError;
-      }
-    }
-    sigset_t set;
-    sigemptyset(&set);
-    if (pthread_sigmask(SIG_SETMASK, &set, nullptr) != 0) {
-      goto childError;
-    }
-
-    // Finally exec. On success, does not return.
-    execvp(argv[0], argv);
-
-   childError:
-    int error = errno;
-    ssize_t n;
-    do {
-      n = write(pipes[3][kPipeWriteEnd], &error, sizeof(error));
-    } while (n == -1 && errno == EINTR);
-    if (n == -1 && errno == EPIPE) {
-      // Parent died.
-    } else {
-      ASSERT(n == sizeof(errno));
-    }
-    _exit(127);
-  } else if (pid > 0) {
-    // The parent process.
-
-    // Close the child end of the stdio and status pipes.
-    close(pipes[0][kPipeReadEnd]);
-    pipes[0][kPipeReadEnd] = -1;
-    close(pipes[1][kPipeWriteEnd]);
-    pipes[1][kPipeWriteEnd] = -1;
-    close(pipes[2][kPipeWriteEnd]);
-    pipes[2][kPipeWriteEnd] = -1;
-    close(pipes[3][kPipeWriteEnd]);
-    pipes[3][kPipeWriteEnd] = -1;
-
-    // Wait for child to either successfully exec (which closes the status pipe)
-    // or report an error.
-    int r, childError;
-    do {
-      r = read(pipes[3][kPipeReadEnd], &childError, sizeof(childError));
-    } while (r == -1 && errno == EINTR);
-    if (r == 0) {
-      // EOF: child exec succeeded.
-    } else if (r == sizeof(childError)) {
-      // Child setup or exec failed and managed to report it cleanly.
-      int wait_status = 0;
-      pid_t wait_result;
-      do {
-        wait_result = waitpid(pid, &wait_status, 0);  // Reap child.
-      } while (wait_result == -1 && errno == EINTR);
-      ASSERT(wait_result == pid);
-      errno = childError;
-      goto parentError;
-    } else if (r == -1 && errno == EPIPE) {
-      // Some other child failure?
-      int wait_status = 0;
-      pid_t wait_result;
-      do {
-        wait_result = waitpid(pid, &wait_status, 0);  // Reap child.
-      } while (wait_result == -1 && errno == EINTR);
-      ASSERT(wait_result == pid);
-      errno = EPIPE;
-      goto parentError;
-    } else {
-      UNREACHABLE();
-    }
-    close(pipes[3][kPipeReadEnd]);
-
+  {
     Process* process = new Process(pid);
 
     // Subscribe to process exit.
@@ -463,17 +400,17 @@ intptr_t KQueueMessageLoop::StartProcess(intptr_t options,
     *stderr_out = handles_.Register(new Handle(Handle::kPipe,
                                                pipes[2][kPipeReadEnd]));
     return 0;
-  } else {
-    // Fork failed.
-    goto parentError;
   }
 
- parentError:
-  int status = errno;
-  for (int i = 0; i < 4; i++) {
+ failErrno:
+  status = errno;
+ failStatus:
+  for (int i = 0; i < 3; i++) {
     close(pipes[i][0]);
     close(pipes[i][1]);
   }
+  posix_spawnattr_destroy(&attr);
+  posix_spawn_file_actions_destroy(&facts);
   return status;
 }
 
